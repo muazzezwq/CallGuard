@@ -1,5 +1,7 @@
 # ArcSLA
 
+> 🏗️ Built by an [Arc Architects](https://www.arc.network) program member.
+
 **On-chain SLA marketplace for autonomous services, on Arc.**
 
 Providers stake USDC to commit to Service-Level Agreements. Callers pay per request. Stake is automatically slashed when SLAs are violated — no arbiter, no oracle, no off-chain dispute system.
@@ -165,7 +167,7 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full rationale.
 ### Clone and install
 
 ```bash
-git clone https://github.com/<you>/arcsla.git
+git clone https://github.com/muazzezwq/arcsla.git
 cd arcsla
 forge install foundry-rs/forge-std
 forge install OpenZeppelin/openzeppelin-contracts
@@ -253,6 +255,8 @@ arcsla/
 │   └── Deploy.s.sol                 # deterministic deployment + wiring
 ├── demo/
 │   └── index.html                   # single-file dapp UI (ethers.js v6)
+├── docs/
+│   └── v2-design.md                 # formal v2 design document
 ├── SPEC.md                          # technical specification
 ├── ARCHITECTURE.md                  # design deep-dive
 ├── SECURITY.md                      # trade-offs and attack surface
@@ -268,15 +272,37 @@ arcsla/
 - **USDC decimals fetched at runtime.** Standard USDC uses 6 decimals, but Arc's testnet USDC uses 18. The demo reads `decimals()` from the token contract at boot, so any deployment works, but amounts displayed before wallet connection assume the detected value.
 - **Event scan window is 50,000 blocks.** For historical `CallStarted`/`ReceiptSubmitted`/`CallSlashed` counts, the demo scans the last ~27 hours of blocks only. Provider count comes from contract state (`nextProviderId`) so it's always accurate, but very old calls won't appear in the "Calls" stat. A proper indexer (subgraph or similar) is planned for v2.
 
+---
+
 ## Roadmap
 
-- **EIP-712 typed data for receipts.** Replace the current raw-bytes EIP-191 signature with EIP-712 typed data so wallets can display a human-readable receipt preview (callId, responseHash, chain, contract) instead of binary gibberish. Requires a contract redeploy.
-- **Reputation-weighted routing.** An on-chain router that picks the best provider for a given task using the Bayesian score.
-- **Agent wallets.** A wrapper contract that lets AI agents hold bounded USDC budgets and spend autonomously, with spending caps and revocable signers.
-- **Optimistic quality challenges.** The current SLA only enforces "a response arrived on time." A future challenge period would let callers dispute junk responses.
-- **Off-chain endpoint monitoring.** An optional aggregator that pings provider endpoints and publishes uptime/latency metrics as a convenience layer — complementary to the on-chain slashing, which already provides cryptoeconomic monitoring through unclaimed timeouts.
-- **Multi-chain via CCTP.** Let providers accept calls on Arc but settle to the chain of their choice using Circle's Cross-Chain Transfer Protocol.
-- **Mainnet.** Once Arc Mainnet is live and audited, ArcSLA moves there.
+A full design document for v2 is available at [`docs/v2-design.md`](./docs/v2-design.md). The summary below.
+
+### v2 — Currently in design
+
+**Tier 1 (must ship)**
+- **EIP-712 typed signing** — replace raw-bytes EIP-191 with structured data; signers see field-by-field receipt previews in wallet
+- **Pre-specified `refundTo` address** — caller specifies where slash proceeds go at call submission, making the protocol fully non-custodial
+- **Lockup period with early withdrawal** — payments enter a configurable lockup before provider withdrawal, with optional EIP-712-signed fee for early access
+- **Stake-weighted reputation** — Bayesian score weighted by stake at risk per call, preventing low-stake reputation farming
+
+**Tier 2 (should ship)**
+- **DID/SBT identity binding** — optional rotation-resilient identity layer (likely `did:pkh`)
+- **Multi-chain via CCTP** — Arc remains the enforcement layer; callers may originate payments from Ethereum, Base, Polygon, Solana via Circle's Cross-Chain Transfer Protocol
+- **EIP-1271 support** — for contract-wallet recipients (agents may be smart contract accounts)
+
+**Tier 3 (explore)**
+- Optional DisputeModule for subjective-quality services
+- Debt accounting for over-slashed providers
+- Yield-bearing stake wrapper (Aave/Compound integration)
+
+### Beyond v2
+
+- Reputation-weighted routing contract (any consumer reads `getReputationScore(id)` and picks best provider)
+- Off-chain endpoint monitoring (complementary to on-chain cryptoeconomic monitoring)
+- Mainnet deployment once Arc Mainnet is live and audited
+
+See [`docs/v2-design.md`](./docs/v2-design.md) for the full motivation, design rationale, and open questions.
 
 ---
 
@@ -298,6 +324,7 @@ arcsla/
 
 ### Project documents
 
+- [`docs/v2-design.md`](./docs/v2-design.md) — formal v2 design document
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — design decisions and rationale
 - [`SECURITY.md`](./SECURITY.md) — threat model and known trade-offs
 - [`DEPLOY.md`](./DEPLOY.md) — step-by-step deployment guide
