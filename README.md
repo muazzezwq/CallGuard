@@ -114,26 +114,42 @@ Every page includes a footer with links to Arc, Circle, testnet tools (faucet, A
 
 ## How it works
 
-```
-┌─────────┐  1. callService(providerId, requestHash)    ┌──────────────┐
-│ Caller  ├────────────────────────────────────────────▶│  PayPerCall  │
-│ (agent) │  2. USDC escrowed, CallStarted event        │              │
-└─────────┘                                             │   contract   │
-                                                        │              │
-┌──────────┐  3. provider fulfills request off-chain    │              │
-│ Provider ├────────────────────────────────────────────┤              │
-│ (API)    │  4. submitReceipt(callId, hash, signature) │              │
-└──────────┘                                            │              │
-                                                        │              │
-      on SLA honor:                                     │              │
-        ├─ escrow released to provider                  │              │
-        └─ ServiceRegistry.incCompleted(id) — rep ↑    │              │
-                                                        │              │
-      on timeout (anyone can call):                     │              │
-        ├─ escrow refunded to caller                    │              │
-        ├─ stake slashed and sent to caller             │              │
-        └─ ServiceRegistry.incSlashed(id) — rep ↓      │              │
-                                                        └──────────────┘
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Caller as Caller (AI Agent)
+    participant USDC as USDC Token
+    participant PPC as PayPerCall
+    participant SR as ServiceRegistry
+    actor Provider as Provider (AI Service)
+    actor Anyone as Anyone
+
+    rect rgb(220, 240, 220)
+    Note over Caller,Provider: Honor path — SLA met
+
+    Caller->>USDC: approve(PayPerCall, amount)
+    Caller->>PPC: callService(providerId, requestHash)
+    PPC->>USDC: transferFrom(Caller, PPC, amount)
+    PPC->>SR: read provider info
+    PPC-->>Caller: callId, CallStarted event
+
+    Provider->>Provider: process request off-chain
+    Provider->>Provider: sign Receipt (EIP-191)
+
+    Provider->>PPC: submitReceipt(callId, hash, signature)
+    PPC->>PPC: verify signature, check deadline
+    PPC->>USDC: transfer(Provider, amount)
+    PPC->>SR: incCompleted(providerId) — reputation up
+    end
+
+    rect rgb(250, 220, 220)
+    Note over Caller,Anyone: Timeout path — SLA missed
+
+    Anyone->>PPC: claimTimeout(callId)
+    PPC->>PPC: verify deadline expired
+    PPC->>USDC: transfer(Caller, amount + slash)
+    PPC->>SR: incSlashed(providerId) — reputation down
+    end
 ```
 
 Every transfer of value is contract-enforced. There is no custodian, no arbiter, no dispute committee.
