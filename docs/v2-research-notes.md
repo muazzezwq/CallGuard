@@ -415,4 +415,73 @@ Riskier — appears to ignore Arc's stated standards.
 
 *Part 2 added May 11, 2026, after evening discussion. Strategy decision pending.*
 
+---
+
+## Strategic Decisions — May 11, 2026
+
+After reviewing the ERC-8004 / ERC-8183 specs, the Refund Protocol source, and the Arc team's stated direction, the following architectural decisions were made for ArcSLA v2:
+
+### Decision 1 — ERC-8004 NFT Identity: Backwards-Compatible Hybrid
+
+**Choice:** v1 providers (currently 9 on Arc Testnet) continue with wallet-based identity unchanged. v2 introduces a new `registerV2` function that requires ERC-8004 IdentityRegistry NFT ownership. Both paths coexist.
+
+**Rationale:**
+- Preserves existing v1 stakes and reputation history
+- Does not force a forced-migration event that would risk losing existing providers
+- New v2 providers get portable, ecosystem-composable identity via NFT
+- Migration is opt-in — existing providers can optionally mint and re-register
+
+**Implementation note:** New mapping `providerToTokenId` in ServiceRegistry v2. Registration validates `IERC721(ERC8004_REGISTRY).ownerOf(tokenId) == msg.sender`.
+
+### Decision 2 — ERC-8183 Integration: Not for v2
+
+**Choice:** ArcSLA v2 remains an independent protocol. No integration with ERC-8183 AgenticCommerce.
+
+**Rationale:**
+- ERC-8183's `claimRefund` is deliberately not hookable — this prevents ArcSLA's core slash logic from being implemented as a hook
+- ArcSLA addresses high-frequency pay-per-call; ERC-8183 addresses lower-frequency job-based commerce. Different problem spaces.
+- Building two products (independent + hook variant) is not realistic in the 65-day hackathon window
+- v3 may revisit if ERC-8183 spec evolves or if a separate ArcSLA-SLAHook product becomes worthwhile
+
+### Decision 3 — Reputation Writing: Internal Only
+
+**Choice:** ArcSLA does not write feedback to ERC-8004 ReputationRegistry. Bayesian scoring remains entirely within ArcSLA's own ServiceRegistry.
+
+**Rationale:**
+- Gas overhead of cross-contract writes is significant for high-frequency pay-per-call (~15-25k extra gas per receipt)
+- ERC-8004's validator-registration model adds authorization complexity
+- Soru 1's NFT binding already provides ecosystem composability (any contract can query: "this NFT's ArcSLA reputation is X")
+- Future aggregator services can bridge ArcSLA events → ERC-8004 ReputationRegistry without modifying contracts
+
+### Decision 4 — Hackathon Submission Angle: Ecosystem Complement
+
+**Choice:** Submission positions ArcSLA as a **complementary** layer to Arc's stated standards, not an alternative.
+
+**Submission framing:**
+> "ArcSLA addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and ArcSLA target different commerce patterns — together they cover the agentic economy spectrum."
+
+**Rationale:**
+- Shows technical maturity (understands the ecosystem)
+- Aligns with Architects-program-member positioning
+- Backed by actual integration work (ERC-8004 NFT binding)
+- Honest about why ERC-8183 integration was not pursued (architectural constraint: claimRefund not hookable)
+
+---
+
+## What these decisions mean for the v2 design document
+
+The existing `docs/v2-design.md` was written before these decisions. It contains an outdated "DID/SBT Identity Binding" section that mentioned did:pkh / did:ethr / did:web as candidates.
+
+`docs/v2-design.md` needs the following updates:
+
+1. **Section 2.6 (DID/SBT Identity Binding)** → rename to "ERC-8004 NFT Identity Binding"; replace did:pkh research with ERC-8004 IdentityRegistry specification
+2. **New Section 8 (Ecosystem Positioning)** → add the four decisions above as a formal architectural appendix
+3. **Tier 2 listing** → replace "DID/SBT identity binding" with "ERC-8004 NFT identity binding"
+
+These updates will be made next.
+
+---
+
+*Decisions captured May 11, 2026 evening, after a full day of research and discussion.*
+
 *— Onur Akdemir | arcsla.vercel.app | github.com/muazzezwq/arcsla*
