@@ -417,8 +417,12 @@ contract PayPerCallTest is Test {
     }
 
     function _sign(uint256 pk, bytes32 callId, bytes32 responseHash) internal view returns (bytes memory) {
-        bytes32 inner = keccak256(abi.encodePacked(callId, responseHash));
-        bytes32 digest = inner.toEthSignedMessageHash();
+        // EIP-712 digest — uses the contract's domainSeparator and Receipt typehash.
+        // This matches what providers will sign via `signTypedData` in wallets.
+        bytes32 digest = payPerCall.hashReceipt(PayPerCall.Receipt({
+            callId: callId,
+            responseHash: responseHash
+        }));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
     }

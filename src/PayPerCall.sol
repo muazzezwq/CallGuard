@@ -6,21 +6,33 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IServiceRegistry } from "./interfaces/IServiceRegistry.sol";
 
 /// @title PayPerCall
 /// @notice Escrow USDC per service call. Provider commits to an SLA by
-///         signing a receipt that hashes `(callId, responseHash)`. A valid
-///         receipt transfers the escrow to the provider; a timeout without
-///         a receipt refunds the caller and slashes the provider's stake.
+///         signing an EIP-712 typed Receipt. A valid receipt transfers the
+///         escrow to the provider; a timeout without a receipt refunds the
+///         caller and slashes the provider's stake.
 ///
-/// @dev    Signing flow — providers MUST sign using the eth_sign / EIP-191
-///         "\x19Ethereum Signed Message:\n32" prefix. This matches what
-///         `personal_sign` in browser wallets produces by default.
-contract PayPerCall is ReentrancyGuard {
+/// @dev    v2 Signing flow — providers MUST sign using EIP-712 typed data
+///         under the ArcSLA / v1 domain. Wallets render readable fields
+///         (callId, responseHash) instead of an opaque hex blob.
+contract PayPerCall is ReentrancyGuard, EIP712 {
     using SafeERC20 for IERC20;
     using MessageHashUtils for bytes32;
+
+    // ---------------------------------------------------------------------
+    // EIP-712 typehash for Receipt
+    // ---------------------------------------------------------------------
+
+    /// @dev EIP-712 type hash for the Receipt struct.
+    /// Type string MUST match exactly (no spaces between fields, fields
+    /// comma-separated, struct name and parentheses included).
+    bytes32 public constant RECEIPT_TYPEHASH = keccak256(
+        "Receipt(bytes32 callId,bytes32 responseHash)"
+    );
 
     // ---------------------------------------------------------------------
     // Errors
@@ -32,6 +44,7 @@ contract PayPerCall is ReentrancyGuard {
     error DeadlineNotReached();
     error InvalidSignature();
     error CallIdCollision();
+    error ReceiptAlreadyUsed();
 
     // ---------------------------------------------------------------------
     // Types
@@ -55,6 +68,15 @@ contract PayPerCall is ReentrancyGuard {
         CallStatus status;
     }
 
+    /// @notice EIP-712 typed receipt that the provider signs off-chain.
+    /// @dev Mirrors the v1 signed payload (callId + responseHash) but as a
+    ///      structured type so wallets can display readable fields instead
+    ///      of a hex blob.
+    struct Receipt {
+        bytes32 callId;
+        bytes32 responseHash;
+    }
+
     // ---------------------------------------------------------------------
     // State
     // ---------------------------------------------------------------------
@@ -64,6 +86,10 @@ contract PayPerCall is ReentrancyGuard {
 
     mapping(bytes32 => Call) internal _calls;
     uint256 public nonce; // bumped on every call to keep callIds unique
+
+    /// @notice Tracks EIP-712 digests of receipts that have already been
+    ///         consumed. Prevents the same signature from being replayed.
+    mapping(bytes32 => bool) public usedReceipts;
 
     // ---------------------------------------------------------------------
     // Events
@@ -84,9 +110,33 @@ contract PayPerCall is ReentrancyGuard {
     // Constructor
     // ---------------------------------------------------------------------
 
-    constructor(IERC20 _usdc, IServiceRegistry _registry) {
+    constructor(IERC20 _usdc, IServiceRegistry _registry) EIP712("ArcSLA", "1") {
         usdc = _usdc;
         registry = _registry;
+    }
+
+    // ---------------------------------------------------------------------
+    // EIP-712 helpers
+    // ---------------------------------------------------------------------
+
+    /// @notice Returns the EIP-712 domain separator for this contract.
+    /// @dev Useful for off-chain integrations that want to verify the
+    ///      domain they're signing against.
+    function domainSeparator() external view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
+
+    /// @notice Computes the EIP-712 digest for a Receipt.
+    /// @dev Domain separator (name "ArcSLA", version "1", current chainId,
+    ///      this contract address) is prepended automatically by
+    ///      `_hashTypedDataV4`.
+    function hashReceipt(Receipt memory receipt) public view returns (bytes32) {
+        bytes32 structHash = keccak256(abi.encode(
+            RECEIPT_TYPEHASH,
+            receipt.callId,
+            receipt.responseHash
+        ));
+        return _hashTypedDataV4(structHash);
     }
 
     // ---------------------------------------------------------------------
@@ -125,7 +175,7 @@ contract PayPerCall is ReentrancyGuard {
     }
 
     // ---------------------------------------------------------------------
-    // Close a call — happy path
+    // Close a call — happy path (EIP-712 typed receipt)
     // ---------------------------------------------------------------------
 
     function submitReceipt(bytes32 callId, bytes32 responseHash, bytes calldata signature) external nonReentrant {
@@ -133,8 +183,13 @@ contract PayPerCall is ReentrancyGuard {
         if (c.status != CallStatus.Pending) revert InvalidStatus();
         if (block.timestamp > c.deadline) revert DeadlineExceeded();
 
-        // EIP-191 prefixed digest — matches personal_sign / eth_sign.
-        bytes32 digest = keccak256(abi.encodePacked(callId, responseHash)).toEthSignedMessageHash();
+        // EIP-712 typed digest — wallets display structured Receipt fields.
+        bytes32 digest = hashReceipt(Receipt({ callId: callId, responseHash: responseHash }));
+
+        // Replay protection — the same digest cannot be consumed twice.
+        if (usedReceipts[digest]) revert ReceiptAlreadyUsed();
+        usedReceipts[digest] = true;
+
         address signer = ECDSA.recover(digest, signature);
 
         IServiceRegistry.ProviderView memory p = registry.getProvider(c.providerId);
