@@ -163,24 +163,52 @@ Stake is snapshotted at call submission, not read live. This prevents the "stake
 
 **Open question:** Time-of-call snapshots add storage cost (1 uint256 per call). Worth measuring gas impact before committing to the snapshot pattern vs reading current stake.
 
-### 2.6 DID/SBT Identity Binding (optional)
+### 2.6 ERC-8004 NFT Identity Binding (backwards-compatible hybrid)
 
-**Problem:** In v1, provider identity equals wallet address. A 6-month reputation history is destroyed by a single phishing attack. This is brittle for any provider operating real services.
+**Problem:** In v1, provider identity equals wallet address. A compromised key means losing 6+ months of accumulated reputation. Additionally, wallet-based identity is not portable — reputation cannot easily be referenced by other protocols on Arc.
 
-**v2 design:** Providers may **optionally** bind their address to a Decentralized Identifier (DID) or a Soulbound Token (SBT). On key compromise:
+**v2 design:** Adopts Arc's [ERC-8004 IdentityRegistry](https://docs.arc.network/arc/tutorials/register-your-first-ai-agent) NFT-based identity model with backwards compatibility for existing v1 providers.
 
-1. Provider rotates the hot signing key via existing v1 mechanism (cold key controls registration)
-2. Provider proves continuity by re-binding to the same DID/SBT
-3. Reputation persists across the rotation
+**Mechanism:**
 
-**Methods under consideration:**
-- `did:ethr` — well-supported, but Ethereum-centric
-- `did:pkh` — chain-agnostic, simpler resolution
-- `did:web` — off-chain anchor, fastest to integrate, weakest decentralization guarantees
+- **v1 providers (currently 9 on Arc Testnet):** continue with wallet-based identity unchanged. The existing `register()` function remains operational.
+- **v2 providers:** mint an ERC-8004 IdentityRegistry NFT first, then register via new `registerV2()` function that records the NFT `tokenId`.
+- **Optional migration:** existing v1 providers may mint an NFT and re-register under v2 to gain ecosystem portability. Migration is opt-in, not forced.
 
-Likely default: `did:pkh` with a fallback to address-only for providers who don't want the dependency.
+**Implementation sketch:**
 
-**Considerations:** DID resolution should not become a runtime dependency for core flows (call honor, slash). Identity binding is queryable but not blocking.
+```solidity
+// New mapping in ServiceRegistry v2
+mapping(uint256 => uint256) public providerToTokenId; // providerId → ERC-8004 tokenId
+
+// New registration function (v1's register() preserved)
+function registerV2(
+    uint256 erc8004TokenId,
+    uint256 stake,
+    uint256 maxResponseTime,
+    uint256 slashPercent,
+    address signer,
+    string memory endpoint
+) external returns (uint256 providerId) {
+    // Verify caller owns the NFT
+    require(
+        IERC721(ERC8004_IDENTITY_REGISTRY).ownerOf(erc8004TokenId) == msg.sender,
+        "Not NFT owner"
+    );
+    
+    // Existing v1 registration logic continues
+    // ...
+    
+    providerToTokenId[providerId] = erc8004TokenId;
+}
+```
+
+**Identity continuity on key rotation:** A v2 provider can transfer the ERC-8004 NFT to a new wallet, then call a new `rotateOwner()` function to update `signer` and re-bind the providerId. Reputation history persists because providerId stays constant.
+
+**Considerations:**
+- ERC-8004 NFT ownership lookup adds ~5k gas per relevant operation. Acceptable for register/rotate flows; avoided in per-call hot paths.
+- Reputation remains stored in ArcSLA's ServiceRegistry (not written to ERC-8004 ReputationRegistry — see §8 Ecosystem Positioning).
+- Identity binding is non-blocking: a provider whose ERC-8004 NFT becomes inaccessible can still operate via the existing v1 wallet path.
 
 ### 2.7 Multi-chain Payment Origination via CCTP
 
@@ -229,7 +257,7 @@ This pattern mirrors Refund Protocol's non-custodial arbiter.
 4. **Stake-weighted reputation** (§2.5)
 
 ### Tier 2 — Should ship for v2
-5. **DID/SBT identity binding** (§2.6)
+5. **ERC-8004 NFT identity binding** (§2.6) — backwards-compatible hybrid (v1 wallet-only preserved, v2 NFT required)
 6. **Multi-chain via CCTP** (§2.7)
 7. **EIP-1271 support for contract-wallet recipients** (agents may be smart contract accounts)
 
@@ -254,6 +282,51 @@ ArcSLA is not a competitor to existing Circle primitives. It extends them.
 | **Smart Contract Platform** | Deployment and management tooling for ArcSLA contracts |
 
 The clearest framing: **Refund Protocol** addresses dispute resolution in stablecoin commerce between humans. **ArcSLA** addresses SLA enforcement in stablecoin commerce between AI agents. Same trust philosophy, different counterparty model.
+
+---
+
+## Section 8 — Ecosystem Positioning (ERC-8004 and ERC-8183)
+
+After reviewing Arc's [agentic economy documentation](https://docs.arc.network/build/agentic-economy), [ERC-8004 Identity Registry tutorial](https://docs.arc.network/arc/tutorials/register-your-first-ai-agent), and [ERC-8183 job lifecycle tutorial](https://docs.arc.network/arc/tutorials/create-your-first-erc-8183-job), the following decisions clarify ArcSLA's place in the Arc agentic economy stack.
+
+### ArcSLA vs Arc's standards — a clear positioning
+
+Arc promotes two standards for agent-based commerce:
+
+- **ERC-8004** — agent identity (IdentityRegistry), reputation (ReputationRegistry), and validation (ValidationRegistry)
+- **ERC-8183** — programmable job contracts with deterministic lifecycle (open → funded → submitted → completed/rejected/expired)
+
+ArcSLA solves a problem these standards intentionally do not address: **high-frequency pay-per-call SLA enforcement with stake-backed commitment**.
+
+ERC-8183 covers job-based commerce — one client, one provider, one deliverable, one evaluator decision. ArcSLA covers per-call commerce — a provider committing capital against ongoing service availability, with thousands of calls per hour and deadline-based automatic enforcement.
+
+These are different commerce patterns. Together they cover the agentic economy spectrum.
+
+### What ArcSLA v2 integrates
+
+**ERC-8004 IdentityRegistry — yes, with backwards compatibility.** New v2 providers register via `registerV2()`, which requires ownership of an ERC-8004 IdentityRegistry NFT. The token ID is recorded in the provider record. Existing v1 providers continue with wallet-based identity; migration is opt-in. (See §2.6 for implementation.)
+
+### What ArcSLA v2 does not integrate
+
+**ERC-8183 — no integration in v2.** ERC-8183's `claimRefund` function is explicitly not hookable in the spec ("claimRefund is deliberately not hookable so that refunds after expiry cannot be blocked"). This prevents ArcSLA's core slash logic from being implemented as an ERC-8183 hook contract. A separate ArcSLA-SLAHook product targeting ERC-8183 jobs may be explored in v3.
+
+**ERC-8004 ReputationRegistry — no direct writes in v2.** Reputation events are not pushed from ArcSLA to ERC-8004 ReputationRegistry for two reasons:
+1. Gas overhead is significant for high-frequency pay-per-call (~15-25k extra gas per receipt write)
+2. ERC-8004's validator-registration model adds authorization complexity that doesn't align with ArcSLA's permissionless registration
+
+Composability is preserved through the NFT identity binding: any contract on Arc can query `providerToTokenId(providerId)` to get the ERC-8004 NFT, then check ArcSLA's `getReputationScore(providerId)` for the Bayesian score. Future aggregator services may bridge ArcSLA reputation events to ERC-8004 ReputationRegistry without contract modification.
+
+### Hackathon submission framing
+
+For the Stablecoin Commerce Stack Challenge (Track 4 — Agentic Economy on Arc), ArcSLA positions as a **complementary layer** within Arc's standards stack:
+
+> ArcSLA addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and ArcSLA target different commerce patterns — together they cover the agentic economy spectrum.
+
+This positions ArcSLA as a builder that:
+- Understands Arc's stated standards
+- Respects them where they fit (ERC-8004 NFT for identity)
+- Departs from them where architecture demands (ERC-8183 hook constraint)
+- Adds genuine new primitive (stake-backed SLA enforcement)
 
 ---
 
