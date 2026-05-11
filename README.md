@@ -304,7 +304,7 @@ A full design document for v2 is available at [`docs/v2-design.md`](./docs/v2-de
 - **Stake-weighted reputation** — Bayesian score weighted by stake at risk per call, preventing low-stake reputation farming
 
 **Tier 2 (should ship)**
-- **DID/SBT identity binding** — optional rotation-resilient identity layer (likely `did:pkh`)
+- **ERC-8004 NFT identity binding** — backwards-compatible hybrid (v1 wallet-only preserved, v2 NFT required); see [`docs/v2-design.md §2.6`](./docs/v2-design.md)
 - **Multi-chain via CCTP** — Arc remains the enforcement layer; callers may originate payments from Ethereum, Base, Polygon, Solana via Circle's Cross-Chain Transfer Protocol
 - **EIP-1271 support** — for contract-wallet recipients (agents may be smart contract accounts)
 
