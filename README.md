@@ -115,6 +115,7 @@ Every page includes a footer with links to Arc, Circle, testnet tools (faucet, A
 ## How it works
 
 ```mermaid
+%%{init: {'theme':'neutral'}}%%
 sequenceDiagram
     autonumber
     actor Caller as Caller (AI Agent)
@@ -124,7 +125,7 @@ sequenceDiagram
     actor Provider as Provider (AI Service)
     actor Anyone as Anyone
 
-    rect rgb(220, 240, 220)
+    rect rgb(180, 220, 180)
     Note over Caller,Provider: Honor path — SLA met
 
     Caller->>USDC: approve(PayPerCall, amount)
@@ -142,7 +143,7 @@ sequenceDiagram
     PPC->>SR: incCompleted(providerId) — reputation up
     end
 
-    rect rgb(250, 220, 220)
+    rect rgb(245, 180, 180)
     Note over Caller,Anyone: Timeout path — SLA missed
 
     Anyone->>PPC: claimTimeout(callId)
