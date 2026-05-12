@@ -3399,8 +3399,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         chainName: "Arc Testnet",
         rpcUrl: "https://rpc.testnet.arc.network",
         explorerBase: "https://testnet.arcscan.app",
-        registry: "0x74635245CfF23a7F261CD5ECF72693cbc75481e4",
-        payPerCall: "0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE",
+        registry: "0xf29205d7A5a1B8e61998C8A04d03EAb3795dCf1E",
+        payPerCall: "0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B",
         usdc: "0x3600000000000000000000000000000000000000",
       };
 
@@ -4975,13 +4975,23 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         try {
           const responseHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
 
-          // Build digest: keccak256(callId, responseHash), then EIP-191 prefix
-          // getBytes() converts hex strings to Uint8Array so concat works correctly
-          const inner = ethers.keccak256(ethers.concat([
-            ethers.getBytes(callId),
-            ethers.getBytes(responseHash)
-          ]));
-          // Use signMessage on the raw bytes — ethers v6 wraps with \x19 prefix
+          // EIP-712 typed data signing — matches v2 PayPerCall contract.
+          // Wallet will display structured Receipt fields (callId, responseHash)
+          // instead of an opaque hex blob.
+          const domain = {
+            name: "ArcSLA",
+            version: "1",
+            chainId: CONFIG.chainId,
+            verifyingContract: CONFIG.payPerCall,
+          };
+          const types = {
+            Receipt: [
+              { name: "callId", type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+            ],
+          };
+          const value = { callId, responseHash };
+
           document.querySelectorAll(".toast.info").forEach(t => t.remove());
           const tSign = toast({
             kind: "info",
@@ -4989,7 +4999,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             detail: `<span class="spinner"></span> Sign in MetaMask`,
             timeout: 60000,
           });
-          const signature = await state.signer.signMessage(ethers.getBytes(inner));
+          const signature = await state.signer.signTypedData(domain, types, value);
           tSign.remove();
 
           const tSub = toast({
