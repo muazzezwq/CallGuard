@@ -71,15 +71,16 @@ Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts
 
 **Try the live demo:** [**arcsla.vercel.app**](https://arcsla.vercel.app) — open in any modern browser with MetaMask.
 
-### v2 contracts (current — EIP-712 typed signing)
+### v3 contracts (current — ERC-8004 NFT + CCTP)
 
 | Contract | Address |
 | --- | --- |
-| ServiceRegistry | [`0xf29205d7A5a1B8e61998C8A04d03EAb3795dCf1E`](https://testnet.arcscan.app/address/0xf29205d7A5a1B8e61998C8A04d03EAb3795dCf1E) |
-| PayPerCall | [`0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B`](https://testnet.arcscan.app/address/0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B) |
+| ServiceRegistry | [`0x0FbC2841d0d56a57C3967472DDCaef825a38de02`](https://testnet.arcscan.app/address/0x0FbC2841d0d56a57C3967472DDCaef825a38de02) |
+| PayPerCall | [`0x1A64e531Dc7498931A658F14AD6801108F372ed8`](https://testnet.arcscan.app/address/0x1A64e531Dc7498931A658F14AD6801108F372ed8) |
+| CrossChainReceiver | [`0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04`](https://testnet.arcscan.app/address/0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04) |
 | USDC (native gas) | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
 
-Deployed May 11, 2026. Frontend points here.
+Deployed May 15, 2026. Frontend points here.
 
 ### v1 contracts (legacy — EIP-191 signing)
 
