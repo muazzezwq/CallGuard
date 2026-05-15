@@ -14,7 +14,7 @@ import { IPayPerCall } from "./interfaces/IPayPerCall.sol";
 contract CrossChainReceiver is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
-    address public constant MESSAGE_TRANSMITTER = 0x8EF77B696afF6BfDe78F9D6780C1Ade2B4b7e58;
+    address public constant MESSAGE_TRANSMITTER = 0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275;
 
     IERC20 public immutable usdc;
     IPayPerCall public immutable payPerCall;
