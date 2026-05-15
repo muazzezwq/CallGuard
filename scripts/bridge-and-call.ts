@@ -20,7 +20,7 @@ import { argv } from "process";
 
 dotenv.config();
 
-const PAY_PER_CALL_ADDRESS = "0x1A64e531Dc7498931A658F14AD6801108F372ed8" as const;
+const PAY_PER_CALL_ADDRESS = "0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B" as const;
 const USDC_DECIMALS = 6;
 export const ARC_MESSAGE_TRANSMITTER = "0x8EF77B696afF6BfDe78F9D6780C1Ade2B4b7e58";
 
@@ -102,4 +102,97 @@ export async function bridgeAndCall({
   if (result.state !== TransferState.Complete) {
     console.warn(`⚠️ Retrying...`);
     const retry = await kit.retry();
-    if (retry?.state !== TransferState.Com
+    if (retry?.state !== TransferState.Complete) {
+      throw new Error(`CCTP failed: ${result.error?.message || "unknown"}`);
+    }
+    onStep?.(retry);
+  }
+
+  const bridgeTxHash = transfer.txHash!;
+  console.log(`✅ CCTP mint confirmed on Arc Testnet`);
+
+  const arcClient = createWalletClient({
+    chain: destinationViemChain,
+    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network"),
+    account,
+  });
+
+  const arcTxHash = await arcClient.writeContract({
+    address: PAY_PER_CALL_ADDRESS,
+    abi: PAY_PER_CALL_ABI,
+    functionName: "callService",
+    args: [providerId, requestHash],
+  });
+
+  onStep?.({
+    type: "contract_call",
+    state: TransferState.Complete,
+    message: "PayPerCall.callService() executed"
+  }, arcTxHash);
+
+  const publicClient = createPublicClient({
+    chain: arcTestnet,
+    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network"),
+  });
+
+  const receipt = await publicClient.getTransactionReceipt({ hash: arcTxHash });
+  const logs = parseEventLogs({
+    abi: PAY_PER_CALL_ABI,
+    eventName: "CallStarted",
+    logs: receipt.logs,
+  });
+
+  if (!logs[0]?.args?.callId) {
+    throw new Error("CallStarted event not found");
+  }
+  const callId = logs[0].args.callId;
+
+  console.log(`🎯 callId: ${callId}`);
+  console.log(`🔍 https://testnet.arcscan.app/tx/${arcTxHash}`);
+
+  return { callId, bridgeTxHash, arcTxHash };
+}
+
+if (require.main === module) {
+  const args = Object.fromEntries(
+    argv.slice(2).reduce((acc, arg, i, arr) => {
+      if (arg.startsWith("--")) {
+        const key = arg.slice(2);
+        const val = arr[i + 1]?.startsWith("--") ? true : arr[i + 1];
+        if (val !== undefined) acc.push([key, val]);
+      }
+      return acc;
+    }, [] as [string, string | boolean][])
+  );
+
+  const required = ["source", "provider-id", "amount", "request-hash"];
+  for (const key of required) {
+    if (!args[key]) {
+      console.error(`❌ Missing: --${key}`);
+      process.exit(1);
+    }
+  }
+
+  const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
+  if (!privateKey) {
+    console.error("❌ PRIVATE_KEY not set");
+    process.exit(1);
+  }
+
+  bridgeAndCall({
+    sourceChain: args.source as string,
+    providerId: BigInt(args["provider-id"]),
+    amountUsdc: parseFloat(args.amount as string),
+    requestHash: args["request-hash"] as `0x${string}`,
+    callerPrivateKey: privateKey,
+    onStep: logStep,
+  })
+    .then(({ callId, arcTxHash }) => {
+      console.log(`\n🎉 Done! https://testnet.arcscan.app/tx/${arcTxHash}`);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("💥", err.message);
+      process.exit(1);
+    });
+}
