@@ -6206,7 +6206,7 @@ console.log("call opened:", tx.hash);`;
       // Helper: poll Circle Iris API for attestation (CCTP V2 response format)
       async function waitForAttestation(sourceDomain, burnTxHash) {
         const url = `${CCTP_CONFIG.irisApi}/${sourceDomain}/${burnTxHash}`;
-        const maxAttempts = 40; // 40 * 3s = 120s timeout
+        const maxAttempts = 100; // 40 * 3s = 120s timeout
         for (let i = 0; i < maxAttempts; i++) {
           try {
             const res = await fetch(url);
