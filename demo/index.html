@@ -3092,6 +3092,16 @@
               <summary>Call a service</summary>
               <div class="action-body">
                 <div class="field">
+                  <label>Pay from chain</label>
+                  <select id="sourceChainSelect" style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:var(--font-mono);font-size:14px;color:var(--text);outline:none;width:100%">
+                    <option value="arc">Arc Testnet (direct)</option>
+                    <option value="sepolia">Ethereum Sepolia (via CCTP)</option>
+                    <option value="base">Base Sepolia (via CCTP)</option>
+                    <option value="amoy">Polygon Amoy (via CCTP)</option>
+                  </select>
+                  <div class="hint" id="sourceChainHint">Paying from Arc Testnet directly. No bridging required.</div>
+                </div>
+                <div class="field">
                   <label>Provider ID <span class="tip" data-tip="Numeric ID of the registered provider you want to call. Provider #1 is usually the demo provider. See the All Providers table below the fold.">?</span></label>
                   <input type="text" id="callProviderId" placeholder="1" />
                   <div class="hint" id="callProviderHint">
@@ -4767,77 +4777,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         return true;
       }
 
-
-      async function doRegisterV2() {
-        if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
-        if (state.chainId && state.chainId !== CONFIG.chainId) {
-          return toast({ kind: "err", title: "Wrong network", detail: `Switch to Arc Testnet.` });
-        }
-
-        const stake = parseFloat($("regStake").value.trim() || "10");
-        const price = parseFloat($("regPrice").value.trim() || "1");
-        const maxResp = parseInt($("regMaxResp").value.trim() || "30", 10);
-        const slashPct = parseFloat($("regSlashPct").value.trim() || "20");
-        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider/1";
-        const signerAddr = $("regSigner").value.trim() || await state.signer.getAddress();
-
-        if (stake < 10) return toast({ kind: "err", title: "Minimum stake is 10 USDC" });
-
-        const btn = $("btnRegisterV2");
-        if (btn.disabled) return;
-        btn.disabled = true;
-        btn.textContent = "Step 1/2: Approving USDC…";
-
-        try {
-          const stakeRaw = ethers.parseUnits(stake.toString(), state.usdcDecimals);
-          const slashBps = Math.round(slashPct * 100);
-          const priceRaw = ethers.parseUnits(price.toString(), state.usdcDecimals);
-
-          // Step 1: Approve RegisterWithNFT contract to spend USDC
-          const existingAllowance = await state.usdc.allowance(state.address, CONFIG.registerWithNFT);
-          if (existingAllowance < stakeRaw) {
-            const tA = toast({ kind: "info", title: "Approving USDC…", detail: "<span class='spinner'></span> Waiting for MetaMask", timeout: 60000 });
-            const txA = await state.usdc.approve(CONFIG.registerWithNFT, ethers.MaxUint256);
-            await txA.wait();
-            tA.remove();
-            toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
-          }
-
-          btn.textContent = "Step 2/2: Minting NFT & Registering…";
-
-          // Step 2: registerAndBind — one tx mints NFT + registers as provider
-          const helper = new ethers.Contract(
-            CONFIG.registerWithNFT,
-            ["function registerAndBind(uint256,uint256,uint32,uint32,address,string) returns (uint256,uint256)"],
-            state.signer
-          );
-
-          const tR = toast({ kind: "info", title: "Registering with NFT…", detail: "<span class='spinner'></span> Minting AgentIdentity NFT + staking in one tx", timeout: 60000 });
-          const tx = await helper.registerAndBind(stakeRaw, priceRaw, maxResp, slashBps, signerAddr, endpoint);
-          const receipt = await tx.wait();
-          tR.remove();
-
-          // Parse RegisteredWithNFT event
-          const iface = new ethers.Interface([
-            "event RegisteredWithNFT(address indexed provider, uint256 indexed tokenId, uint256 indexed providerId, uint256 stakeAmount)"
-          ]);
-          const log = receipt.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } }).find(Boolean);
-
-          const tokenId = log?.args?.tokenId?.toString() ?? "?";
-          const providerId = log?.args?.providerId?.toString() ?? "?";
-
-          toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash) });
-          btn.textContent = `✅ Provider #${providerId} (NFT #${tokenId})`;
-          btn.disabled = true;
-          await refreshAll();
-        } catch (e) {
-          console.error(e);
-          toast({ kind: "err", title: "Registration failed", detail: friendlyError(e) });
-          btn.disabled = false;
-          btn.textContent = "🔐 Register with NFT (v2)";
-        }
-      }
-
       async function doCall() {
         // Network guard — reject if not on Arc Testnet
         if (state.chainId && state.chainId !== CONFIG.chainId) {
@@ -5686,7 +5625,14 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("connectBtn2").addEventListener("click", connect);
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
-      $("btnCall").addEventListener("click", doCall);
+      $("btnCall").addEventListener("click", () => {
+        const chain = document.getElementById("sourceChainSelect")?.value || "arc";
+        if (chain === "arc") {
+          doCall();
+        } else {
+          doCCTPCall();
+        }
+      });
       $("btnReceipt").addEventListener("click", doReceipt);
 
       // Router
@@ -6180,6 +6126,287 @@ console.log("call opened:", tx.hash);`;
           }
         }
       })();
+
+      // ================================================================
+      // CCTP V2 CONFIG
+      // ================================================================
+      const CCTP_CONFIG = {
+        contracts: {
+          TokenMessengerV2: "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA",
+          MessageTransmitterV2: "0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275",
+        },
+        domains: { sepolia: 0, base: 6, amoy: 7, arc: 26 },
+        usdc: {
+          sepolia: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+          base: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          amoy: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+          arc: "0x3600000000000000000000000000000000000000",
+        },
+        chains: {
+          sepolia: { chainId: "0xaa36a7", chainIdDecimal: 11155111, rpcUrl: "https://rpc.sepolia.org", name: "Ethereum Sepolia", explorer: "https://sepolia.etherscan.io" },
+          base:    { chainId: "0x14a34",  chainIdDecimal: 84532,    rpcUrl: "https://sepolia.base.org", name: "Base Sepolia", explorer: "https://sepolia.basescan.org" },
+          amoy:    { chainId: "0x13882",  chainIdDecimal: 80002,    rpcUrl: "https://rpc-amoy.polygon.technology", name: "Polygon Amoy", explorer: "https://amoy.polygonscan.com" },
+          arc:     { chainId: "0x4CEF52", chainIdDecimal: 5042002,  rpcUrl: "https://rpc.testnet.arc.network", name: "Arc Testnet", explorer: "https://testnet.arcscan.app" },
+        },
+        irisApi: "https://iris-api-sandbox.circle.com/v2/messages",
+        crossChainReceiver: "0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04",
+      };
+
+      // Chain selector UI
+      document.addEventListener("DOMContentLoaded", () => {
+        const sel = document.getElementById("sourceChainSelect");
+        const hint = document.getElementById("sourceChainHint");
+        if (!sel || !hint) return;
+        sel.addEventListener("change", (e) => {
+          const chain = e.target.value;
+          if (chain === "arc") {
+            hint.textContent = "Paying from Arc Testnet directly. No bridging required.";
+            hint.style.color = "";
+            hint.style.background = "";
+          } else {
+            const name = CCTP_CONFIG.chains[chain].name;
+            hint.innerHTML = `⚠️ USDC will be burned on <strong>${name}</strong>, bridged via CCTP (~20s), then callService() fires on Arc.`;
+            hint.style.color = "var(--warn)";
+            hint.style.background = "var(--warn-bg)";
+            hint.style.padding = "6px 10px";
+            hint.style.borderRadius = "6px";
+          }
+        });
+      });
+
+      // Helper: switch MetaMask to a chain
+      async function switchToChain(chainKey) {
+        const chain = CCTP_CONFIG.chains[chainKey];
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chain.chainId }],
+          });
+        } catch (err) {
+          if (err.code === 4902 || err.code === -32603) {
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: chain.chainId,
+                chainName: chain.name,
+                rpcUrls: [chain.rpcUrl],
+                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: [chain.explorer],
+              }],
+            });
+          } else if (err.code === 4001) {
+            throw new Error("Chain switch rejected by user.");
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      // Helper: poll Circle Iris API for attestation (CCTP V2 response format)
+      async function waitForAttestation(sourceDomain, burnTxHash) {
+        const url = `${CCTP_CONFIG.irisApi}/${sourceDomain}/${burnTxHash}`;
+        const maxAttempts = 40; // 40 * 3s = 120s timeout
+        for (let i = 0; i < maxAttempts; i++) {
+          try {
+            const res = await fetch(url);
+            const json = await res.json();
+            // CCTP V2 response: { messages: [{ status, message, attestation }] }
+            const msg = json.messages?.[0];
+            if (msg?.status === "complete" && msg?.attestation && msg?.attestation !== "PENDING") {
+              return { message: msg.message, attestation: msg.attestation };
+            }
+          } catch {}
+          await new Promise(r => setTimeout(r, 3000));
+        }
+        throw new Error("CCTP attestation timeout after 120s. Try checking ArcScan manually.");
+      }
+
+      // CCTP cross-chain call flow
+      async function doCCTPCall() {
+        const sourceChainKey = document.getElementById("sourceChainSelect")?.value || "arc";
+        const idStr = $("callProviderId").value.trim();
+        const payload = $("callPayload").value;
+
+        if (!idStr) return toast({ kind: "err", title: "Enter a provider ID" });
+        if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
+
+        const providerId = BigInt(idStr);
+        const btn = $("btnCall");
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = "Processing…";
+
+        try {
+          const sourceChain = CCTP_CONFIG.chains[sourceChainKey];
+          const sourceDomain = CCTP_CONFIG.domains[sourceChainKey];
+          const sourceUsdcAddr = CCTP_CONFIG.usdc[sourceChainKey];
+
+          // Fetch price from Arc (always read from Arc regardless of source chain)
+          const arcProvider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
+          const registryReadOnly = new ethers.Contract(CONFIG.registry, REGISTRY_ABI, arcProvider);
+          const p = await registryReadOnly.getProvider(providerId);
+          if (!p.active) { toast({ kind: "err", title: "Provider is inactive" }); return; }
+          const amount = p.pricePerCall;
+          const amountFormatted = ethers.formatUnits(amount, 6);
+
+          // Step 1 — Switch to source chain
+          btn.textContent = "Step 1/5: Switching chain…";
+          toast({ kind: "info", title: `Switching to ${sourceChain.name}…`, timeout: 5000 });
+          await switchToChain(sourceChainKey);
+
+          // Re-init signer on new chain
+          const srcProvider = new ethers.BrowserProvider(window.ethereum);
+          const srcSigner = await srcProvider.getSigner();
+          const userAddress = await srcSigner.getAddress();
+
+          // Step 2 — Approve USDC on source chain
+          btn.textContent = "Step 2/5: Approving USDC…";
+          const usdcSrc = new ethers.Contract(sourceUsdcAddr, [
+            "function approve(address,uint256) returns (bool)",
+            "function allowance(address,address) view returns (uint256)",
+          ], srcSigner);
+
+          const allowance = await usdcSrc.allowance(userAddress, CCTP_CONFIG.contracts.TokenMessengerV2);
+          if (allowance < amount) {
+            const tA = toast({ kind: "info", title: `Approving ${amountFormatted} USDC on ${sourceChain.name}…`, detail: "<span class='spinner'></span>", timeout: 60000 });
+            const txA = await usdcSrc.approve(CCTP_CONFIG.contracts.TokenMessengerV2, ethers.MaxUint256);
+            await txA.wait();
+            tA.remove();
+            toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
+          }
+
+          // Step 3 — depositForBurn on source chain
+          btn.textContent = "Step 3/5: Burning USDC via CCTP…";
+          const tokenMessenger = new ethers.Contract(
+            CCTP_CONFIG.contracts.TokenMessengerV2,
+            ["function depositForBurn(uint256 amount, uint32 destinationDomain, bytes32 mintRecipient, address burnToken, bytes32 destinationCaller, uint256 maxFee, uint32 minFinalityThreshold) external returns (uint64)"],
+            srcSigner
+          );
+
+          // mintRecipient and destinationCaller must be bytes32 (zero-padded)
+          const mintRecipient = ethers.zeroPadValue(CCTP_CONFIG.crossChainReceiver, 32);
+          const destinationCaller = ethers.ZeroHash; // anyone can relay
+
+          const tBurn = toast({ kind: "info", title: "Burning USDC on source chain…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+          const burnTx = await tokenMessenger.depositForBurn(
+            amount,
+            CCTP_CONFIG.domains.arc,  // destinationDomain = 26
+            mintRecipient,
+            sourceUsdcAddr,
+            destinationCaller,
+            0n,    // maxFee = 0 (standard transfer)
+            1000   // minFinalityThreshold = 1000 (fast transfer)
+          );
+          const burnReceipt = await burnTx.wait();
+          tBurn.remove();
+          toast({ kind: "ok", title: "USDC burned ✓", detail: `tx: ${burnTx.hash.slice(0,10)}…`, link: `${sourceChain.explorer}/tx/${burnTx.hash}` });
+
+          // Step 4 — Wait for Circle Iris attestation
+          btn.textContent = "Step 4/5: Waiting for attestation (~20s)…";
+          const tIris = toast({ kind: "info", title: "Fetching Circle attestation…", detail: "<span class='spinner'></span> Usually 20-60 seconds", timeout: 120000 });
+          const { message: cctpMessage, attestation } = await waitForAttestation(sourceDomain, burnTx.hash);
+          tIris.remove();
+          toast({ kind: "ok", title: "Attestation received ✓", timeout: 3000 });
+
+          // Step 5 — Switch to Arc, call receiveMessage
+          btn.textContent = "Step 5/5: Minting on Arc…";
+          await switchToChain("arc");
+
+          // Re-init signer on Arc
+          const arcBrowserProvider = new ethers.BrowserProvider(window.ethereum);
+          const arcSigner = await arcBrowserProvider.getSigner();
+
+          const messageTransmitter = new ethers.Contract(
+            CCTP_CONFIG.contracts.MessageTransmitterV2,
+            ["function receiveMessage(bytes message, bytes attestation) external returns (bool)"],
+            arcSigner
+          );
+
+          const tMint = toast({ kind: "info", title: "Minting on Arc Testnet…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+          const mintTx = await messageTransmitter.receiveMessage(cctpMessage, attestation);
+          await mintTx.wait();
+          tMint.remove();
+
+          // CrossChainReceiver auto-calls callService() after mint
+          toast({
+            kind: "ok",
+            title: "✅ Cross-chain call complete!",
+            detail: `USDC bridged from ${sourceChain.name} → Arc. CrossChainReceiver executed callService().`,
+            link: `https://testnet.arcscan.app/address/${CCTP_CONFIG.crossChainReceiver}`,
+            timeout: 12000,
+          });
+
+          // Switch state back to Arc
+          state.provider = arcBrowserProvider;
+          state.signer = arcSigner;
+          state.chainId = CONFIG.chainId;
+          await refreshAll();
+
+        } catch (e) {
+          console.error(e);
+          toast({ kind: "err", title: "CCTP call failed", detail: friendlyError(e) });
+        } finally {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      }
+
+      // doRegisterV2
+      async function doRegisterV2() {
+        if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
+        if (state.chainId && state.chainId !== CONFIG.chainId) {
+          return toast({ kind: "err", title: "Wrong network", detail: "Switch to Arc Testnet." });
+        }
+        const stake = parseFloat($("regStake").value.trim() || "10");
+        const price = parseFloat($("regPrice").value.trim() || "1");
+        const maxResp = parseInt($("regMaxResp").value.trim() || "30", 10);
+        const slashPct = parseFloat($("regSlashPct").value.trim() || "20");
+        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider/1";
+        const signerAddr = $("regSigner").value.trim() || await state.signer.getAddress();
+        if (stake < 10) return toast({ kind: "err", title: "Minimum stake is 10 USDC" });
+        const btn = $("btnRegisterV2");
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = "Step 1/2: Approving USDC…";
+        try {
+          const stakeRaw = ethers.parseUnits(stake.toString(), state.usdcDecimals);
+          const priceRaw = ethers.parseUnits(price.toString(), state.usdcDecimals);
+          const slashBps = Math.round(slashPct * 100);
+          const existingAllowance = await state.usdc.allowance(state.address, CONFIG.registerWithNFT);
+          if (existingAllowance < stakeRaw) {
+            const tA = toast({ kind: "info", title: "Approving USDC…", detail: "<span class='spinner'></span>", timeout: 60000 });
+            const txA = await state.usdc.approve(CONFIG.registerWithNFT, ethers.MaxUint256);
+            await txA.wait();
+            tA.remove();
+            toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
+          }
+          btn.textContent = "Step 2/2: Minting NFT & Registering…";
+          const helper = new ethers.Contract(
+            CONFIG.registerWithNFT,
+            ["function registerAndBind(uint256,uint256,uint32,uint32,address,string) returns (uint256,uint256)"],
+            state.signer
+          );
+          const tR = toast({ kind: "info", title: "Registering with NFT…", detail: "<span class='spinner'></span>", timeout: 60000 });
+          const tx = await helper.registerAndBind(stakeRaw, priceRaw, maxResp, slashBps, signerAddr, endpoint);
+          const receipt = await tx.wait();
+          tR.remove();
+          const iface = new ethers.Interface(["event RegisteredWithNFT(address indexed provider, uint256 indexed tokenId, uint256 indexed providerId, uint256 stakeAmount)"]);
+          const log = receipt.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } }).find(Boolean);
+          const tokenId = log?.args?.tokenId?.toString() ?? "?";
+          const providerId = log?.args?.providerId?.toString() ?? "?";
+          toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash) });
+          btn.textContent = `✅ Provider #${providerId} (NFT #${tokenId})`;
+          btn.disabled = true;
+          await refreshAll();
+        } catch (e) {
+          console.error(e);
+          toast({ kind: "err", title: "Registration failed", detail: friendlyError(e) });
+          btn.disabled = false;
+          btn.textContent = "🔐 Register with NFT (v2)";
+        }
+      }
+
     </script>
   </body>
 </html>
