@@ -399,6 +399,181 @@ contract ServiceRegistryTest is Test {
     }
 
     // ------------------------------------------------------------------
+    // Tier 2: registerV2 (ERC-8004 NFT identity binding)
+    // ------------------------------------------------------------------
+
+    address internal constant IDENTITY_REGISTRY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
+
+    address internal nftOwner  = address(0xAA01);
+    address internal nonOwner  = address(0xBB02);
+    uint256 internal constant NFT_TOKEN_ID = 8004;
+
+    /// @dev Mocks ownerOf(NFT_TOKEN_ID) → nftOwner on the real IdentityRegistry address.
+    ///      No fork needed — vm.mockCall intercepts the call in the EVM.
+    function _mockNFTOwner() internal {
+        vm.mockCall(
+            IDENTITY_REGISTRY,
+            abi.encodeWithSelector(bytes4(keccak256("ownerOf(uint256)")), NFT_TOKEN_ID),
+            abi.encode(nftOwner)
+        );
+    }
+
+    function _fundAndApproveV2(address who) internal {
+        usdc.mint(who, 1_000e6);
+        vm.prank(who);
+        usdc.approve(address(registry), type(uint256).max);
+    }
+
+    // --- success path ---
+
+    function test_registerV2_setsStateAndBindsNFT() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.prank(nftOwner);
+        uint256 id = registry.registerV2(
+            NFT_TOKEN_ID,
+            nftOwner, // signer
+            STAKE,
+            PRICE,
+            MAX_RESP,
+            SLASH_BPS,
+            "https://v2.example"
+        );
+
+        // provider state
+        assertEq(id, 1);
+        assertEq(registry.providerIdOf(nftOwner), 1);
+        IServiceRegistry.ProviderView memory p = registry.getProvider(id);
+        assertEq(p.owner, nftOwner);
+        assertEq(p.signer, nftOwner);
+        assertEq(p.stake, STAKE);
+        assertTrue(p.active);
+
+        // NFT binding
+        assertEq(registry.getProviderTokenId(id), NFT_TOKEN_ID);
+        assertTrue(registry.isNFTBound(id));
+    }
+
+    function test_registerV2_pullsUSDC() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        uint256 balBefore = usdc.balanceOf(nftOwner);
+
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+
+        assertEq(usdc.balanceOf(nftOwner), balBefore - STAKE);
+        assertEq(usdc.balanceOf(address(registry)), STAKE);
+    }
+
+    function test_registerV2_emitsEvents() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.expectEmit(true, true, false, true);
+        emit ServiceRegistry.ProviderRegistered(
+            1, nftOwner, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2"
+        );
+
+        vm.expectEmit(true, true, false, false);
+        emit ServiceRegistry.NFTBound(1, NFT_TOKEN_ID);
+
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+    }
+
+    // --- failure paths ---
+
+    function test_registerV2_notNFTOwner_reverts() public {
+        _mockNFTOwner(); // NFT_TOKEN_ID belongs to nftOwner, not nonOwner
+        _fundAndApproveV2(nonOwner);
+
+        vm.expectRevert(ServiceRegistry.NotNFTOwner.selector);
+        vm.prank(nonOwner);
+        registry.registerV2(NFT_TOKEN_ID, nonOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+    }
+
+    function test_registerV2_alreadyRegistered_reverts() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+
+        vm.expectRevert(ServiceRegistry.AlreadyRegistered.selector);
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2-2");
+    }
+
+    function test_registerV2_belowMinStake_reverts() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.expectRevert(ServiceRegistry.BelowMinStake.selector);
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, MIN_STAKE - 1, PRICE, MAX_RESP, SLASH_BPS, "a");
+    }
+
+    function test_registerV2_zeroSigner_reverts() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.expectRevert(ServiceRegistry.InvalidSigner.selector);
+        vm.prank(nftOwner);
+        registry.registerV2(NFT_TOKEN_ID, address(0), STAKE, PRICE, MAX_RESP, SLASH_BPS, "a");
+    }
+
+    // --- parallel v1 / v2 isolation ---
+
+    function test_v1_and_v2_providers_are_independent() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        // v1 registration (provider1, no NFT)
+        vm.prank(provider1);
+        uint256 v1Id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v1");
+
+        // v2 registration (nftOwner, with NFT)
+        vm.prank(nftOwner);
+        uint256 v2Id = registry.registerV2(
+            NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2"
+        );
+
+        // IDs are sequential and distinct
+        assertEq(v1Id, 1);
+        assertEq(v2Id, 2);
+
+        // v1 has no NFT binding (tokenId == 0)
+        assertEq(registry.getProviderTokenId(v1Id), 0);
+        assertFalse(registry.isNFTBound(v1Id));
+
+        // v2 has NFT binding
+        assertEq(registry.getProviderTokenId(v2Id), NFT_TOKEN_ID);
+        assertTrue(registry.isNFTBound(v2Id));
+
+        // both providers are independently active
+        assertTrue(registry.getProvider(v1Id).active);
+        assertTrue(registry.getProvider(v2Id).active);
+    }
+
+    function test_v2_reputation_works_same_as_v1() public {
+        _mockNFTOwner();
+        _fundAndApproveV2(nftOwner);
+
+        vm.prank(nftOwner);
+        uint256 id = registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+
+        // fresh v2 provider also starts at 66
+        assertEq(registry.getReputationScore(id), 66);
+
+        vm.prank(payPerCall);
+        registry.incCompleted(id);
+        assertEq(registry.getReputationScore(id), 75);
+    }
+
+    // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------
 
@@ -406,4 +581,4 @@ contract ServiceRegistryTest is Test {
         vm.prank(provider1);
         id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api");
     }
-}
+}  
