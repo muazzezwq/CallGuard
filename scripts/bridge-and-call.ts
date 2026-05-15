@@ -20,7 +20,7 @@ import { argv } from "process";
 
 dotenv.config();
 
-const PAY_PER_CALL_ADDRESS = "0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B" as const;
+const PAY_PER_CALL_ADDRESS = "0x1A64e531Dc7498931A658F14AD6801108F372ed8" as const;
 const USDC_DECIMALS = 6;
 export const ARC_MESSAGE_TRANSMITTER = "0x8EF77B696afF6BfDe78F9D6780C1Ade2B4b7e58";
 
