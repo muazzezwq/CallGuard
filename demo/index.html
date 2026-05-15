@@ -3635,7 +3635,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           window.ethereum.removeAllListeners?.("accountsChanged");
           window.ethereum.removeAllListeners?.("chainChanged");
           window.ethereum.on?.("accountsChanged", () => location.reload());
-          window.ethereum.on?.("chainChanged",    () => location.reload());
+          window.ethereum.on?.("chainChanged", () => { if (!window._cctpFlowActive) location.reload(); });
 
         } catch (e) {
           console.error("connect() failed:", e);
@@ -4700,6 +4700,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           toast({ kind: "err", title: "Register failed", detail: friendlyError(e) });
         } finally {
           setLoading(false);
+          window._cctpFlowActive = false;
           btn.disabled = false;
           btn.textContent = origText;
         }
@@ -6223,6 +6224,7 @@ console.log("call opened:", tx.hash);`;
 
       // CCTP cross-chain call flow
       async function doCCTPCall() {
+        window._cctpFlowActive = true;
         const sourceChainKey = document.getElementById("sourceChainSelect")?.value || "arc";
         const idStr = $("callProviderId").value.trim();
         const payload = $("callPayload").value;
