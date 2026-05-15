@@ -3084,6 +3084,7 @@
                 </div>
 
                 <button class="btn btn-primary" id="btnRegister">Stake & register</button>
+                <button class="btn btn-primary" id="btnRegisterV2" style="margin-top:8px">🔐 Register with NFT (v2)</button>
               </div>
             </details>
 
@@ -3401,6 +3402,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         explorerBase: "https://testnet.arcscan.app",
         registry: "0x0FbC2841d0d56a57C3967472DDCaef825a38de02",
         payPerCall: "0x1A64e531Dc7498931A658F14AD6801108F372ed8",
+        registerWithNFT: "0x8910495C2a876c7b59a175CAc09F823B688b0eEb",
         usdc: "0x3600000000000000000000000000000000000000",
       };
 
@@ -4765,6 +4767,77 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         return true;
       }
 
+
+      async function doRegisterV2() {
+        if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
+        if (state.chainId && state.chainId !== CONFIG.chainId) {
+          return toast({ kind: "err", title: "Wrong network", detail: `Switch to Arc Testnet.` });
+        }
+
+        const stake = parseFloat($("regStake").value.trim() || "10");
+        const price = parseFloat($("regPrice").value.trim() || "1");
+        const maxResp = parseInt($("regMaxResp").value.trim() || "30", 10);
+        const slashPct = parseFloat($("regSlashPct").value.trim() || "20");
+        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider/1";
+        const signerAddr = $("regSigner").value.trim() || await state.signer.getAddress();
+
+        if (stake < 10) return toast({ kind: "err", title: "Minimum stake is 10 USDC" });
+
+        const btn = $("btnRegisterV2");
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = "Step 1/2: Approving USDC…";
+
+        try {
+          const stakeRaw = ethers.parseUnits(stake.toString(), state.usdcDecimals);
+          const slashBps = Math.round(slashPct * 100);
+          const priceRaw = ethers.parseUnits(price.toString(), state.usdcDecimals);
+
+          // Step 1: Approve RegisterWithNFT contract to spend USDC
+          const existingAllowance = await state.usdc.allowance(state.address, CONFIG.registerWithNFT);
+          if (existingAllowance < stakeRaw) {
+            const tA = toast({ kind: "info", title: "Approving USDC…", detail: "<span class='spinner'></span> Waiting for MetaMask", timeout: 60000 });
+            const txA = await state.usdc.approve(CONFIG.registerWithNFT, ethers.MaxUint256);
+            await txA.wait();
+            tA.remove();
+            toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
+          }
+
+          btn.textContent = "Step 2/2: Minting NFT & Registering…";
+
+          // Step 2: registerAndBind — one tx mints NFT + registers as provider
+          const helper = new ethers.Contract(
+            CONFIG.registerWithNFT,
+            ["function registerAndBind(uint256,uint256,uint32,uint32,address,string) returns (uint256,uint256)"],
+            state.signer
+          );
+
+          const tR = toast({ kind: "info", title: "Registering with NFT…", detail: "<span class='spinner'></span> Minting AgentIdentity NFT + staking in one tx", timeout: 60000 });
+          const tx = await helper.registerAndBind(stakeRaw, priceRaw, maxResp, slashBps, signerAddr, endpoint);
+          const receipt = await tx.wait();
+          tR.remove();
+
+          // Parse RegisteredWithNFT event
+          const iface = new ethers.Interface([
+            "event RegisteredWithNFT(address indexed provider, uint256 indexed tokenId, uint256 indexed providerId, uint256 stakeAmount)"
+          ]);
+          const log = receipt.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } }).find(Boolean);
+
+          const tokenId = log?.args?.tokenId?.toString() ?? "?";
+          const providerId = log?.args?.providerId?.toString() ?? "?";
+
+          toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash) });
+          btn.textContent = `✅ Provider #${providerId} (NFT #${tokenId})`;
+          btn.disabled = true;
+          await refreshAll();
+        } catch (e) {
+          console.error(e);
+          toast({ kind: "err", title: "Registration failed", detail: friendlyError(e) });
+          btn.disabled = false;
+          btn.textContent = "🔐 Register with NFT (v2)";
+        }
+      }
+
       async function doCall() {
         // Network guard — reject if not on Arc Testnet
         if (state.chainId && state.chainId !== CONFIG.chainId) {
@@ -5612,6 +5685,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("connectBtn").addEventListener("click", connect);
       $("connectBtn2").addEventListener("click", connect);
       $("btnRegister").addEventListener("click", doRegister);
+      $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnCall").addEventListener("click", doCall);
       $("btnReceipt").addEventListener("click", doReceipt);
 
