@@ -6219,7 +6219,7 @@ console.log("call opened:", tx.hash);`;
           } catch {}
           await new Promise(r => setTimeout(r, 3000));
         }
-        throw new Error("CCTP attestation timeout after 120s. Try checking ArcScan manually.");
+        throw new Error("Attestation timeout. Burn tx succeeded — check ArcScan in a few minutes.");
       }
 
       // CCTP cross-chain call flow
