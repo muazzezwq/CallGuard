@@ -6349,6 +6349,7 @@ console.log("call opened:", tx.hash);`;
           console.error(e);
           toast({ kind: "err", title: "CCTP call failed", detail: friendlyError(e) });
         } finally {
+          window._cctpFlowActive = false;
           btn.disabled = false;
           btn.textContent = origText;
         }
