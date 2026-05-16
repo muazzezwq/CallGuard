@@ -3223,8 +3223,12 @@
                   </div>
                 </div>
 
-                <button class="btn btn-primary" id="btnRegister">Stake & register</button>
-                <button class="btn btn-primary" id="btnRegisterV2" style="margin-top:8px">🔐 Register with NFT (v2)</button>
+                <button class="btn btn-primary" id="btnRegisterV2">🔐 Register with NFT — recommended</button>
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                  <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Advanced</div>
+                  <button class="btn" id="btnRegister" style="width:100%;font-size:13px">Register without NFT (basic)</button>
+                  <div style="font-size:11px;color:var(--text-faint);margin-top:6px;line-height:1.5">The NFT version mints an ERC-8004 AgentIdentity and registers in one flow. The basic version skips the NFT.</div>
+                </div>
               </div>
             </details>
 
