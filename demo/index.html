@@ -2639,6 +2639,78 @@
       .budget-bar-fill.warn { background: var(--warn); }
       .budget-bar-fill.crit { background: var(--danger); }
 
+
+      /* ---- Onboarding welcome box ---- */
+      .welcome-box {
+        background: linear-gradient(135deg, rgba(5,150,105,0.06), rgba(37,99,235,0.04));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+      }
+      .welcome-box .wb-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .welcome-box .wb-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .welcome-box .wb-close {
+        background: transparent;
+        border: none;
+        color: var(--text-faint);
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+      }
+      .welcome-box .wb-close:hover { color: var(--text); }
+      .welcome-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .welcome-step {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .welcome-step.done {
+        opacity: 0.55;
+      }
+      .welcome-step .ws-num {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 12px; font-weight: 700;
+        background: var(--accent-bg); color: var(--accent);
+      }
+      .welcome-step.done .ws-num {
+        background: var(--accent); color: #fff;
+      }
+      .welcome-step .ws-body { font-size: 13px; }
+      .welcome-step .ws-body strong { color: var(--text); }
+      .welcome-step .ws-body span { color: var(--text-dim); }
+      .welcome-step .ws-action {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      @media (max-width: 600px) {
+        .welcome-step { grid-template-columns: 24px 1fr; }
+        .welcome-step .ws-action { grid-column: 2; margin-top: 4px; }
+      }
+
       .hidden {
         display: none !important;
       }
@@ -2985,6 +3057,39 @@
                 <div class="gauge-value" id="gaugeValue">—</div>
                 <div class="gauge-caption">honor rate</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="welcome-box" id="welcomeBox" style="display:none">
+          <div class="wb-head">
+            <span class="wb-title">👋 Welcome to ArcSLA — here's how to start</span>
+            <button class="wb-close" id="welcomeClose" title="Dismiss">×</button>
+          </div>
+          <div class="welcome-steps">
+            <div class="welcome-step" id="wsStep1">
+              <div class="ws-num" id="wsNum1">1</div>
+              <div class="ws-body">
+                <strong>Get testnet USDC</strong><br>
+                <span>You need USDC to stake or to pay for calls. On Arc it's also the gas token.</span>
+              </div>
+              <a class="btn btn-sm ws-action" href="https://faucet.circle.com/" target="_blank" rel="noreferrer">Open faucet →</a>
+            </div>
+            <div class="welcome-step" id="wsStep2">
+              <div class="ws-num" id="wsNum2">2</div>
+              <div class="ws-body">
+                <strong>Pick a role</strong><br>
+                <span>Become a provider (stake + earn) or call an existing service as a caller.</span>
+              </div>
+              <button class="btn btn-sm ws-action" id="wsGoRegister">Register →</button>
+            </div>
+            <div class="welcome-step" id="wsStep3">
+              <div class="ws-num" id="wsNum3">3</div>
+              <div class="ws-body">
+                <strong>Make your first call</strong><br>
+                <span>Call provider #1 to see the full SLA lifecycle — escrow, receipt, payout.</span>
+              </div>
+              <button class="btn btn-sm ws-action" id="wsGoCall">Call a service →</button>
             </div>
           </div>
         </div>
@@ -3646,6 +3751,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           await refreshAll();
           await loadMyCalls();
           await loadActivity();
+          await updateWelcomeBox();
 
           // Real-time event listeners
           stopEventListeners(); // clean up any stale listeners first
@@ -6428,6 +6534,8 @@ console.log("call opened:", tx.hash);`;
         if (state.myActivity.some(a => `${a.txHash}:${a.type}` === key)) return;
         state.myActivity.push(item);
         renderActivity();
+        // refresh onboarding progress
+        if (typeof updateWelcomeBox === "function") updateWelcomeBox().catch(() => {});
       }
 
       function renderActivity() {
@@ -6548,6 +6656,70 @@ console.log("call opened:", tx.hash);`;
           console.warn("loadActivity failed:", e);
         }
       }
+
+
+      // ================================================================
+      // ONBOARDING — welcome box for new users
+      // ================================================================
+      let _welcomeDismissed = false;
+
+      async function updateWelcomeBox() {
+        const box = $("welcomeBox");
+        if (!box) return;
+        if (_welcomeDismissed) { box.style.display = "none"; return; }
+
+        // Determine progress
+        let hasUsdc = false;
+        try {
+          const bal = await state.usdc.balanceOf(state.address);
+          hasUsdc = bal > 0n;
+        } catch {}
+        const isProvider = !!state.providerInfo;
+        const hasActivity = state.myActivity.length > 0;
+
+        // If the user has done everything meaningful, hide the box
+        if (isProvider && hasActivity) {
+          box.style.display = "none";
+          return;
+        }
+
+        box.style.display = "";
+
+        // Step 1 — USDC
+        const s1 = $("wsStep1"), n1 = $("wsNum1");
+        if (hasUsdc) { s1.classList.add("done"); n1.textContent = "✓"; }
+        else { s1.classList.remove("done"); n1.textContent = "1"; }
+
+        // Step 2 — role picked (registered as provider)
+        const s2 = $("wsStep2"), n2 = $("wsNum2");
+        if (isProvider) { s2.classList.add("done"); n2.textContent = "✓"; }
+        else { s2.classList.remove("done"); n2.textContent = "2"; }
+
+        // Step 3 — first call / activity
+        const s3 = $("wsStep3"), n3 = $("wsNum3");
+        if (hasActivity) { s3.classList.add("done"); n3.textContent = "✓"; }
+        else { s3.classList.remove("done"); n3.textContent = "3"; }
+      }
+
+      // Wire welcome box buttons
+      (function() {
+        const close = $("welcomeClose");
+        if (close) close.addEventListener("click", () => {
+          _welcomeDismissed = true;
+          const box = $("welcomeBox");
+          if (box) box.style.display = "none";
+        });
+        const goReg = $("wsGoRegister");
+        if (goReg) goReg.addEventListener("click", () => {
+          const a = $("actionRegister");
+          if (a) { a.open = true; a.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        });
+        const goCall = $("wsGoCall");
+        if (goCall) goCall.addEventListener("click", () => {
+          const a = $("actionCall");
+          if (a) { a.open = true; a.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        });
+      })();
 
     </script>
   </body>
