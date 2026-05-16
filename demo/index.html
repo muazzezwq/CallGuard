@@ -3789,6 +3789,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           updateWelcomeBox().catch(() => {});
 
           // Initial full data sync from chain
+          setLoading(false);
           await refreshAll();
           await loadMyCalls();
           await loadActivity();
