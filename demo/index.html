@@ -4080,6 +4080,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             regBtn.style.opacity = "0.5";
             regBtn.style.cursor = "not-allowed";
           }
+          const regV2Btn = $("btnRegisterV2");
+          if (regV2Btn) {
+            regV2Btn.disabled = true;
+            regV2Btn.textContent = `Already registered as #${id}`;
+            regV2Btn.style.opacity = "0.5";
+            regV2Btn.style.cursor = "not-allowed";
+          }
 
           // Once registered, guide to the next natural step.
           if (!state.actionsInitialized) {
@@ -6415,6 +6422,15 @@ console.log("call opened:", tx.hash);`;
       async function doRegisterV2() {
         if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
         if (state.chainId && state.chainId !== CONFIG.chainId) return toast({ kind: "err", title: "Wrong network" });
+        // Already a provider? registerV2 would revert with AlreadyRegistered.
+        if (state.providerInfo && state.providerInfo.id) {
+          return toast({
+            kind: "err",
+            title: "Already registered",
+            detail: `This wallet is already provider #${state.providerInfo.id}. Each address can register only one provider. Use a different wallet to test v2 registration.`,
+            timeout: 9000,
+          });
+        }
         const stake = parseFloat($("regStake").value.trim() || "10");
         const price = parseFloat($("regPrice").value.trim() || "1");
         const maxResp = parseInt($("regMaxResp").value.trim() || "30", 10);
