@@ -3123,6 +3123,7 @@
                   <textarea id="callPayload" rows="2" placeholder="any string — will be hashed on-chain">ping</textarea>
                 </div>
                 <button class="btn btn-primary" id="btnCall">Approve & call</button>
+                <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402 (simulated)</button>
               </div>
             </details>
 
@@ -3291,7 +3292,7 @@
 <span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">JsonRpcProvider</span>(<span class="str">"https://rpc.testnet.arc.network"</span>);
 <span class="kw">const</span> wallet   = <span class="kw">new</span> ethers.<span class="fn">Wallet</span>(PRIVATE_KEY, provider);
 <span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x3600000000000000000000000000000000000000"</span>, [<span class="str">"function approve(address,uint256) returns(bool)"</span>], wallet);
-<span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
+<span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x1A64e531Dc7498931A658F14AD6801108F372ed8"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
 
 <span class="cm">// 1. Approve USDC</span>
 <span class="kw">await</span> usdc.<span class="fn">approve</span>(arc.target, ethers.<span class="fn">parseUnits</span>(<span class="str">"1"</span>, <span class="str">6</span>));
@@ -3385,9 +3386,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <span>ArcSLA · built on Arc Testnet</span>
           </div>
           <div>
-            <a href="https://testnet.arcscan.app/address/0x74635245CfF23a7F261CD5ECF72693cbc75481e4" target="_blank" rel="noreferrer">Registry</a>
+            <a href="https://testnet.arcscan.app/address/0x0FbC2841d0d56a57C3967472DDCaef825a38de02" target="_blank" rel="noreferrer">Registry</a>
             &nbsp;·&nbsp;
-            <a href="https://testnet.arcscan.app/address/0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE" target="_blank" rel="noreferrer">PayPerCall</a>
+            <a href="https://testnet.arcscan.app/address/0x1A64e531Dc7498931A658F14AD6801108F372ed8" target="_blank" rel="noreferrer">PayPerCall</a>
             &nbsp;·&nbsp; MIT License
           </div>
         </div>
@@ -5670,7 +5671,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 const provider = new ethers.JsonRpcProvider("https://rpc.testnet.arc.network");
 const wallet   = new ethers.Wallet(PRIVATE_KEY, provider);
 const usdc     = new ethers.Contract("0x3600000000000000000000000000000000000000", ["function approve(address,uint256) returns(bool)"], wallet);
-const arc      = new ethers.Contract("0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
+const arc      = new ethers.Contract("0x1A64e531Dc7498931A658F14AD6801108F372ed8", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
 await usdc.approve(arc.target, ethers.parseUnits("1", 6));
 const requestHash = ethers.keccak256(ethers.toUtf8Bytes("summarize this document"));
 const tx = await arc.callService(1, requestHash);
