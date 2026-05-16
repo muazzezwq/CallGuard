@@ -3575,6 +3575,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         registry: "0x0FbC2841d0d56a57C3967472DDCaef825a38de02",
         payPerCall: "0x1A64e531Dc7498931A658F14AD6801108F372ed8",
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
+        identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
       };
 
@@ -6436,53 +6437,117 @@ console.log("call opened:", tx.hash);`;
         }
       }
 
-      // doRegisterV2
+      // doRegisterV2 — direct flow: mint ERC-8004 NFT, then ServiceRegistry.registerV2.
+      // The old RegisterWithNFT helper contract registered ITSELF as the provider
+      // owner (msg.sender = helper), so it could only ever be used once and the
+      // provider was un-usable. This flow runs every step from the user's wallet.
       async function doRegisterV2() {
         if (!state.signer) return toast({ kind: "err", title: "Connect wallet first" });
         if (state.chainId && state.chainId !== CONFIG.chainId) return toast({ kind: "err", title: "Wrong network" });
-        // Already a provider? registerV2 would revert with AlreadyRegistered.
-        if (state.providerInfo && state.providerInfo.id) {
-          return toast({
-            kind: "err",
-            title: "Already registered",
-            detail: `This wallet is already provider #${state.providerInfo.id}. Each address can register only one provider. Use a different wallet to test v2 registration.`,
-            timeout: 9000,
-          });
-        }
+        // Authoritative on-chain check — don't trust possibly-stale state.providerInfo
+        try {
+          const existingId = Number(await state.registry.providerIdOf(state.address));
+          if (existingId !== 0) {
+            return toast({
+              kind: "err",
+              title: "Already registered",
+              detail: `This wallet is already provider #${existingId}. Each address can register only one provider. Use a different wallet.`,
+              timeout: 9000,
+            });
+          }
+        } catch {}
         const stake = parseFloat($("regStake").value.trim() || "10");
         const price = parseFloat($("regPrice").value.trim() || "1");
-        const maxResp = parseInt($("regMaxResp").value.trim() || "30", 10);
-        const slashPct = parseFloat($("regSlashPct").value.trim() || "20");
-        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider/1";
-        const signerAddr = $("regSigner").value.trim() || await state.signer.getAddress();
+        const maxResp = parseInt($("regMaxResp").value.trim() || "120", 10);
+        const slashPct = parseFloat($("regSlashPct").value.trim() || "10");
+        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider";
+        const signerAddr = $("regSigner").value.trim() || state.address;
         if (stake < 10) return toast({ kind: "err", title: "Minimum stake is 10 USDC" });
+        if (maxResp < 10) return toast({ kind: "err", title: "Min response time is 10 seconds" });
         const btn = $("btnRegisterV2");
         if (btn.disabled) return;
         btn.disabled = true;
-        btn.textContent = "Step 1/2: Approving USDC…";
+        const origText = btn.textContent;
         try {
           const stakeRaw = ethers.parseUnits(stake.toString(), state.usdcDecimals);
           const priceRaw = ethers.parseUnits(price.toString(), state.usdcDecimals);
           const slashBps = Math.round(slashPct * 100);
-          const existingAllowance = await state.usdc.allowance(state.address, CONFIG.registerWithNFT);
-          if (existingAllowance < stakeRaw) {
-            const tA = toast({ kind: "info", title: "Approving USDC…", detail: "<span class='spinner'></span>", timeout: 60000 });
-            const txA = await state.usdc.approve(CONFIG.registerWithNFT, ethers.MaxUint256);
-            await txA.wait();
-            tA.remove();
-            toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
+          // ── Step 1/3 — mint an ERC-8004 AgentIdentity NFT to the user ──
+          btn.textContent = "Step 1/3: Minting identity NFT…";
+          const identity = new ethers.Contract(
+            CONFIG.identityRegistry,
+            [
+              "function register(string agentURI) returns (uint256)",
+              "event Registered(uint256 indexed agentId, address indexed owner, string agentURI)",
+            ],
+            state.signer
+          );
+          const agentURI = endpoint || "https://arcsla.vercel.app/provider";
+          const tMint = toast({ kind: "info", title: "Minting AgentIdentity NFT…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+          let tokenId;
+          try {
+            const mintTx = await identity.register(agentURI);
+            const mintRc = await mintTx.wait();
+            // Pull tokenId from the Registered event, or fall back to a Transfer event
+            const idIface = new ethers.Interface([
+              "event Registered(uint256 indexed agentId, address indexed owner, string agentURI)",
+              "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+            ]);
+            for (const lg of mintRc.logs) {
+              try {
+                const p = idIface.parseLog(lg);
+                if (p && p.name === "Registered") { tokenId = p.args.agentId; break; }
+                if (p && p.name === "Transfer" && p.args.from === ethers.ZeroAddress) { tokenId = p.args.tokenId; }
+              } catch {}
+            }
+            tMint.remove();
+            if (tokenId === undefined) throw new Error("Could not read minted tokenId from logs");
+            toast({ kind: "ok", title: `Identity NFT minted ✓ #${tokenId}`, link: txLink(mintTx.hash), timeout: 4000 });
+          } catch (mintErr) {
+            tMint.remove();
+            throw mintErr;
           }
-          btn.textContent = "Step 2/2: Minting NFT & Registering…";
-          const helper = new ethers.Contract(CONFIG.registerWithNFT, ["function registerAndBind(uint256,uint256,uint32,uint32,address,string) returns (uint256,uint256)"], state.signer);
-          const tR = toast({ kind: "info", title: "Registering with NFT…", detail: "<span class='spinner'></span>", timeout: 60000 });
-          const tx = await helper.registerAndBind(stakeRaw, priceRaw, maxResp, slashBps, signerAddr, endpoint);
-          const receipt = await tx.wait();
-          tR.remove();
-          const iface = new ethers.Interface(["event RegisteredWithNFT(address indexed provider, uint256 indexed tokenId, uint256 indexed providerId, uint256 stakeAmount)"]);
-          const log = receipt.logs.map(l => { try { return iface.parseLog(l); } catch { return null; } }).find(Boolean);
-          const tokenId = log?.args?.tokenId?.toString() ?? "?";
-          const providerId = log?.args?.providerId?.toString() ?? "?";
-          toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash) });
+          // ── Step 2/3 — approve USDC to ServiceRegistry ──
+          btn.textContent = "Step 2/3: Approving USDC…";
+          const existingAllowance = await state.usdc.allowance(state.address, CONFIG.registry);
+          if (existingAllowance < stakeRaw) {
+            const tA = toast({ kind: "info", title: "Approving USDC…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+            try {
+              const txA = await state.usdc.approve(CONFIG.registry, ethers.MaxUint256);
+              await txA.wait();
+              tA.remove();
+              toast({ kind: "ok", title: "USDC approved ✓", timeout: 3000 });
+            } catch (apprErr) {
+              tA.remove();
+              throw apprErr;
+            }
+          }
+          // ── Step 3/3 — registerV2 on ServiceRegistry (binds the NFT) ──
+          btn.textContent = "Step 3/3: Registering provider…";
+          const registryV2 = new ethers.Contract(
+            CONFIG.registry,
+            ["function registerV2(uint256 erc8004TokenId, address signer, uint256 stakeAmount, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, string endpoint) returns (uint256)"],
+            state.signer
+          );
+          const tReg = toast({ kind: "info", title: "Registering with NFT…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+          let tx, receipt;
+          try {
+            tx = await registryV2.registerV2(tokenId, signerAddr, stakeRaw, priceRaw, maxResp, slashBps, endpoint);
+            receipt = await tx.wait();
+            tReg.remove();
+          } catch (regErr) {
+            tReg.remove();
+            throw regErr;
+          }
+          // Read providerId from the ProviderRegistered event
+          let providerId = "?";
+          for (const lg of receipt.logs) {
+            try {
+              const p = state.registry.interface.parseLog(lg);
+              if (p && p.name === "ProviderRegistered") { providerId = p.args.providerId.toString(); break; }
+            } catch {}
+          }
+          toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash), timeout: 9000 });
           pushActivity({
             type: "register",
             icon: "🔐",
@@ -6497,10 +6562,9 @@ console.log("call opened:", tx.hash);`;
           console.error(e);
           toast({ kind: "err", title: "Registration failed", detail: friendlyError(e) });
           btn.disabled = false;
-          btn.textContent = "🔐 Register with NFT (v2)";
+          btn.textContent = origText || "🔐 Register with NFT — recommended";
         }
       }
-
       // ================================================================
       // x402 SIMULATED FLOW (browser, no HTTP server needed)
       // ================================================================
