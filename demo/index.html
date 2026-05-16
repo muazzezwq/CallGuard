@@ -2640,6 +2640,35 @@
       .budget-bar-fill.crit { background: var(--danger); }
 
 
+
+      /* ---- Actionable empty state ---- */
+      .empty-cta {
+        padding: 28px 18px;
+        text-align: center;
+      }
+      .empty-cta .ec-icon { font-size: 28px; margin-bottom: 8px; }
+      .empty-cta .ec-text {
+        font-size: 13px;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+      .empty-cta .ec-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .empty-cta .ec-btn:hover { background: #047857; }
+
       /* ---- Onboarding welcome box ---- */
       .welcome-box {
         background: linear-gradient(135deg, rgba(5,150,105,0.06), rgba(37,99,235,0.04));
@@ -3079,7 +3108,7 @@
               <div class="ws-num" id="wsNum2">2</div>
               <div class="ws-body">
                 <strong>Pick a role</strong><br>
-                <span>Become a provider (stake + earn) or call an existing service as a caller.</span>
+                <span><strong style="color:var(--accent)">Provider</strong> = sell API calls, stake USDC, earn per request. &nbsp;<strong style="color:var(--info)">Caller</strong> = pay USDC to use a service with an SLA guarantee.</span>
               </div>
               <button class="btn btn-sm ws-action" id="wsGoRegister">Register →</button>
             </div>
@@ -3233,6 +3262,9 @@
                   <label>Request payload <span class="tip" data-tip="Any string describing what you want from the provider. On-chain we only store its keccak256 hash, so providers can't read your request by just watching the chain.">?</span></label>
                   <textarea id="callPayload" rows="2" placeholder="any string — will be hashed on-chain">ping</textarea>
                 </div>
+                <div id="callPreview" style="display:none; margin:4px 0 10px; padding:10px 12px; background:var(--info-bg); border:1px solid rgba(37,99,235,0.2); border-radius:8px; font-size:12px; line-height:1.5; color:var(--text-dim)">
+                  <strong style="color:var(--info)">What happens:</strong> <span id="callPreviewText">—</span>
+                </div>
                 <button class="btn btn-primary" id="btnCall">Approve & call</button>
                 <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402 (simulated)</button>
               </div>
@@ -3322,7 +3354,11 @@
             <button class="btn btn-sm" id="btnRefreshProvider">Refresh</button>
           </div>
           <div class="panel-body" id="providerBox">
-            <div class="empty-state">not registered — use the left panel to stake</div>
+            <div class="empty-cta">
+              <div class="ec-icon">🏗️</div>
+              <div class="ec-text">You're not a provider yet.<br>Stake USDC to start earning from service calls.</div>
+              <button class="ec-btn" id="ecRegister">Register as provider →</button>
+            </div>
           </div>
         </section>
 
@@ -5395,7 +5431,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       function renderCalls() {
         const calls = Array.from(state.myCalls.values()).reverse();
         if (calls.length === 0) {
-          $("callsBox").innerHTML = `<div class="empty-state">no calls yet — make one or submit a receipt</div>`;
+          $("callsBox").innerHTML = `<div class="empty-cta"><div class="ec-icon">📞</div><div class="ec-text">No calls yet.<br>Call a service to see the SLA lifecycle in action.</div><button class="ec-btn" id="ecCall">Call a service →</button></div>`;
+          const ecc = document.getElementById("ecCall");
+          if (ecc) ecc.addEventListener("click", () => { const a = $("actionCall"); if (a) { a.open = true; a.scrollIntoView({behavior:"smooth",block:"center"}); } });
           $("callsSummary").textContent = "";
           return;
         }
@@ -5537,6 +5575,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           if (p.owner === ethers.ZeroAddress) {
             $("callProviderHint").textContent = `no provider with id ${idStr}`;
             $("callerRiskBox").style.display = "none";
+          const _cp = $("callPreview"); if (_cp) _cp.style.display = "none";
             return;
           }
           const d = state.usdcDecimals;
@@ -5565,9 +5604,17 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           $("crRep").textContent = `${rep}/100`;
           $("crRep").style.color = repColor;
           $("callerRiskBox").style.display = "block";
+          // Plain-language preview
+          const preview = $("callPreview");
+          const previewText = $("callPreviewText");
+          if (preview && previewText) {
+            previewText.innerHTML = `You'll approve and pay <strong>${price} USDC</strong>. The provider has <strong>${p.maxResponseTime}s</strong> to respond with a signed receipt. If they miss the deadline, you can claim a refund of <strong>${price} USDC</strong> plus a <strong>${slashAmount} USDC</strong> bonus from their stake.`;
+            preview.style.display = "block";
+          }
         } catch (e) {
           $("callProviderHint").textContent = "could not fetch provider info";
           $("callerRiskBox").style.display = "none";
+          const _cp = $("callPreview"); if (_cp) _cp.style.display = "none";
         }
       });
 
@@ -6546,7 +6593,7 @@ console.log("call opened:", tx.hash);`;
           return;
         }
         if (state.myActivity.length === 0) {
-          box.innerHTML = `<div class="empty-state">no activity yet — register, call a service, or submit a receipt</div>`;
+          box.innerHTML = `<div class="empty-cta"><div class="ec-icon">✨</div><div class="ec-text">No activity yet.<br>Your registrations, calls, receipts and timeouts will appear here.</div></div>`;
           $("activitySummary").textContent = "";
           return;
         }
@@ -6718,6 +6765,17 @@ console.log("call opened:", tx.hash);`;
         if (goCall) goCall.addEventListener("click", () => {
           const a = $("actionCall");
           if (a) { a.open = true; a.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        });
+      })();
+
+
+      // Empty-state CTA buttons
+      (function() {
+        document.addEventListener("click", (e) => {
+          if (e.target && e.target.id === "ecRegister") {
+            const a = $("actionRegister");
+            if (a) { a.open = true; a.scrollIntoView({ behavior: "smooth", block: "center" }); }
+          }
         });
       })();
 
