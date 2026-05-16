@@ -71,16 +71,17 @@ Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts
 
 **Try the live demo:** [**arcsla.vercel.app**](https://arcsla.vercel.app) — open in any modern browser with MetaMask.
 
-### v3 contracts (current — ERC-8004 NFT + CCTP)
+### v3 contracts (current — ERC-8004 NFT + CCTP + x402)
 
 | Contract | Address |
 | --- | --- |
 | ServiceRegistry | [`0x0FbC2841d0d56a57C3967472DDCaef825a38de02`](https://testnet.arcscan.app/address/0x0FbC2841d0d56a57C3967472DDCaef825a38de02) |
 | PayPerCall | [`0x1A64e531Dc7498931A658F14AD6801108F372ed8`](https://testnet.arcscan.app/address/0x1A64e531Dc7498931A658F14AD6801108F372ed8) |
 | CrossChainReceiver | [`0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04`](https://testnet.arcscan.app/address/0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04) |
+| RegisterWithNFT | [`0x8910495C2a876c7b59a175CAc09F823B688b0eEb`](https://testnet.arcscan.app/address/0x8910495C2a876c7b59a175CAc09F823B688b0eEb) |
 | USDC (native gas) | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
 
-Deployed May 15, 2026. Frontend points here.
+Deployed May 2026. Frontend points here.
 
 ### v1 contracts (legacy — EIP-191 signing)
 
@@ -89,40 +90,106 @@ Deployed May 15, 2026. Frontend points here.
 | ServiceRegistry | [`0x74635245CfF23a7F261CD5ECF72693cbc75481e4`](https://testnet.arcscan.app/address/0x74635245CfF23a7F261CD5ECF72693cbc75481e4) |
 | PayPerCall | [`0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE`](https://testnet.arcscan.app/address/0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE) |
 
-Live since April 2026 with 9 active providers. Remains operational; new registrations are routed to v2.
+Live since April 2026 with 9 active providers. Remains operational; new registrations are routed to v3.
 
 ---
 
 ## What's in the demo
 
-The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol through a polished interface:
+The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol:
 
 ### On the landing page (no wallet required)
 
-- **Live network stats** — registered providers, calls on chain, slashes enforced, all read directly from the contracts
-- **"How to try this" walkthrough** — three-step guide that tells a first-time visitor exactly what to do
-- **Live activity feed** — streams the 10 most recent `CallStarted`, `ReceiptSubmitted`, `CallSlashed`, and `ProviderRegistered` events from Arc Testnet. Every row links to the exact transaction on ArcScan. Updates in real time as new events happen.
-- **Contract address bar** — all three contract addresses with one-click links to ArcScan
-- **Tab title counter** — if you switch to another tab, the title shows `(3) ArcSLA · New activity` when new events arrive so you don't miss anything
+- **Live network stats** — registered providers, calls on chain, slashes enforced
+- **Live activity feed** — streams recent `CallStarted`, `ReceiptSubmitted`, `CallSlashed`, `ProviderRegistered` events from Arc Testnet
+- **Contract address bar** — all contract addresses with one-click links to ArcScan
 
 ### Inside the app (after connecting a wallet)
 
-- **Network stats bar** — providers count, total calls, receipts submitted, USDC slashed, with honor-rate percentage
-- **Actions panel** — register as provider, call a service, submit a receipt, or claim a timeout, each with inline tooltips explaining every field (stake, slash%, signer, etc.)
-- **Live calculator** — inside the register form, shows in real time: stake locked, loss per SLA violation, max slashes before stake is drained, revenue per 10 calls, break-even point. Adjust the inputs and watch the numbers update.
-- **Your provider panel** — full details of your registered provider: stake, price, SLA terms, pending calls, endpoint
-- **Your calls panel** — every call you've opened with live status (pending/completed/slashed) and countdown to SLA deadline
-- **All providers table** — public directory of every registered provider, sortable, clickable. Your own provider is highlighted.
-- **Leaderboard** — top 10 providers by reputation with medal emojis for the top 3, progress bars scaled to each score, and a "you" badge on your own row
-- **24-hour activity chart** — hourly bars of call volume, with slashed calls highlighted in red. Hover any bar for exact numbers.
-- **Provider detail modal** — click any provider to see their on-chain reputation score (Bayesian), honor rate, total calls, slashed count, full terms, and recent call history. Includes a "Call this provider" shortcut.
-- **Live event feed** — same feed as the landing page but full-width and higher-volume once connected
-- **Human-readable errors** — every contract revert is decoded to a plain-English message (e.g. `Already registered (one provider per address)` instead of `execution reverted`)
-- **Input validation** — client-side checks prevent you from sending obviously invalid transactions and wasting gas
+- **Register as provider** — stake USDC, set SLA terms, choose slash %
+- **Register with NFT (v2)** — mint an ERC-8004 AgentIdentity NFT and register in one transaction via `RegisterWithNFT` helper
+- **Multi-chain payments** — pay from Ethereum Sepolia, Base Sepolia, or Polygon Amoy via CCTP V2; Arc enforces the SLA
+- **x402 simulated flow** — HTTP 402 payment protocol simulation in-browser; shows the full x402 → pay → callService() lifecycle
+- **Submit receipt** — EIP-712 typed signing (structured fields in wallet)
+- **Claim timeout** — auto-slash when provider misses deadline
+- **Auto-router** — picks highest-reputation active provider within price/rep filters
+- **Session budget cap** — spending limit for agent flows
+- **Live event feed** — real-time contract events
+- **Leaderboard** — top 10 providers by Bayesian reputation score
+- **24-hour activity chart** — hourly call volume with slash overlay
+- **Provider detail modal** — full stats, call history, honor rate per provider
 
-### Resources footer
+---
 
-Every page includes a footer with links to Arc, Circle, testnet tools (faucet, ArcScan, thirdweb), and every piece of project documentation.
+## x402 Integration
+
+ArcSLA implements the [x402 HTTP Payment Protocol](https://x402.org) as a composable layer on top of the existing pay-per-call flow.
+
+**How it composes:**
+
+```
+x402  → answers "how does the agent pay?" (HTTP 402, Circle Gateway rail)
+ArcSLA → answers "what does the agent get for that payment?" (stake-backed SLA)
+```
+
+**Flow:**
+
+```
+1. Agent → GET /service (no payment)
+2. Provider → 402 Payment Required + payment details
+3. Agent → calls X402Middleware.executePayment() with USDC
+4. Middleware → calls PayPerCall.callService() atomically
+5. SLA clock starts on-chain
+6. Provider delivers off-chain → submits EIP-712 receipt → gets paid
+```
+
+**Provider server:**
+
+```bash
+# Install dependencies
+npm install
+
+# Set env vars
+PRIVATE_KEY=0x...
+PROVIDER_ID=1
+ARC_RPC_URL=https://rpc.testnet.arc.network
+
+# Start x402 provider
+npm run x402:provider
+# → http://localhost:3000/service
+```
+
+**Test with curl:**
+
+```bash
+# Should return 402
+curl http://localhost:3000/service
+
+# Health check
+curl http://localhost:3000/health
+```
+
+---
+
+## CCTP Multi-chain
+
+Callers on any supported chain can pay for ArcSLA calls using USDC from their native chain. Circle CCTP V2 bridges the payment to Arc Testnet, where SLA enforcement happens.
+
+**Supported source chains (testnet):**
+- Ethereum Sepolia (domain 0)
+- Base Sepolia (domain 6)
+- Polygon Amoy (domain 7)
+
+**Flow:**
+```
+depositForBurn() on source chain
+    → Circle Iris attestation (~20-60s)
+    → receiveMessage() on Arc
+    → CrossChainReceiver.handleReceiveFinalizedTransfer()
+    → callService() fires automatically
+```
+
+Caller never needs to touch Arc directly.
 
 ---
 
@@ -149,7 +216,7 @@ sequenceDiagram
     PPC-->>Caller: callId, CallStarted event
 
     Provider->>Provider: process request off-chain
-    Provider->>Provider: sign Receipt (EIP-191)
+    Provider->>Provider: sign Receipt (EIP-712)
 
     Provider->>PPC: submitReceipt(callId, hash, signature)
     PPC->>PPC: verify signature, check deadline
@@ -162,46 +229,30 @@ sequenceDiagram
 
     Anyone->>PPC: claimTimeout(callId)
     PPC->>PPC: verify deadline expired
-    PPC->>USDC: transfer(Caller, amount + slash)
+    PPC->>USDC: transfer(Caller, escrowed amount)
+    PPC->>SR: slash(providerId, slashAmount, Caller)
     PPC->>SR: incSlashed(providerId) — reputation down
     end
 ```
 
-Every transfer of value is contract-enforced. There is no custodian, no arbiter, no dispute committee.
-
 ---
 
-## Reputation
+## Getting started
 
-ArcSLA tracks two counters per provider — `completedCalls` and `slashedCalls` — and computes a Bayesian reputation score on-chain:
-
-```
-score = (completed + 2) / (completed + slashed + 3) × 100
-```
-
-- Fresh provider → 66 (neither trusted nor distrusted)
-- 1 successful call → 75
-- 10 successful calls → 92
-- 0 successes, 1 slash → 50
-- 100 successes, 5 slashes → 94
-
-This formula prevents the "single lucky call = perfect score" spam vector, rewards long-term providers who occasionally slip, and is readable as a view function (`getReputationScore(id)`) by any other contract — for example a routing contract that picks the best provider for each call.
-
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full rationale.
-
----
-
-## Quick start
-
-**Prerequisites:** [Foundry](https://getfoundry.sh), a browser with [MetaMask](https://metamask.io), and a wallet funded from [faucet.circle.com](https://faucet.circle.com) for Arc Testnet.
-
-### Clone and install
+### Prerequisites
 
 ```bash
-git clone https://github.com/muazzezwq/arcsla.git
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+### Install and build
+
+```bash
+git clone https://github.com/muazzezwq/arcsla
 cd arcsla
-forge install foundry-rs/forge-std
-forge install OpenZeppelin/openzeppelin-contracts
+forge install
+forge build
 ```
 
 ### Run tests
@@ -210,16 +261,18 @@ forge install OpenZeppelin/openzeppelin-contracts
 forge test -vv
 ```
 
-Expected: **57 tests passed, 0 failed.**
+Expected: **66 tests passed, 0 failed.**
 
 ### Try the demo
+
+Open [arcsla.vercel.app](https://arcsla.vercel.app) with MetaMask — Arc Testnet will be added automatically.
+
+Or run locally:
 
 ```bash
 cd demo
 python3 -m http.server 8080
 ```
-
-Open `http://localhost:8080`, connect MetaMask (Arc Testnet will be added automatically), and use the pre-deployed contracts above.
 
 ### Deploy your own copy
 
@@ -227,12 +280,10 @@ Open `http://localhost:8080`, connect MetaMask (Arc Testnet will be added automa
 cp .env.example .env
 # Fill USDC_ADDRESS (0x3600...0000 on Arc Testnet)
 
-# Import your deployer wallet as an encrypted keystore
-cast wallet import main --interactive
+cast wallet import deployer --interactive
 
-# Deploy
 forge script script/Deploy.s.sol:Deploy \
-  --account main \
+  --account deployer \
   --sender 0xYOUR_DEPLOYER \
   --rpc-url arc_testnet \
   --broadcast
@@ -252,11 +303,9 @@ usdc.approve(payPerCall, 1e6);
 bytes32 requestHash = keccak256(abi.encode("summarize this document"));
 bytes32 callId = payPerCall.callService(1, requestHash);
 
-// 3. Provider delivers the response off-chain, signs the response hash
+// 3. Provider delivers the response off-chain, signs EIP-712 receipt
 bytes32 responseHash = keccak256(responseBytes);
-bytes32 digest = keccak256(abi.encodePacked(callId, responseHash))
-    .toEthSignedMessageHash();
-bytes memory signature = providerSigner.sign(digest);
+bytes memory signature = providerSigner.signTypedData(domain, types, value);
 
 // 4. Provider submits the receipt on-chain — escrow released, reputation bumped
 payPerCall.submitReceipt(callId, responseHash, signature);
@@ -273,67 +322,64 @@ payPerCall.claimTimeout(callId);
 ```
 arcsla/
 ├── src/
-│   ├── ServiceRegistry.sol          # provider registry, stake, slashing, Bayesian reputation
-│   ├── PayPerCall.sol               # call escrow, ECDSA receipt verification, timeout enforcement
+│   ├── ServiceRegistry.sol          # provider registry, stake, ERC-8004 NFT binding, Bayesian reputation
+│   ├── PayPerCall.sol               # call escrow, EIP-712 receipt verification, timeout enforcement
+│   ├── CrossChainReceiver.sol       # CCTP V2 receiver — bridges multi-chain USDC to callService()
+│   ├── RegisterWithNFT.sol          # helper: mint ERC-8004 NFT + registerV2() in one tx
+│   ├── X402Middleware.sol           # x402 payment middleware — bridges HTTP 402 payments to callService()
 │   └── interfaces/
-│       └── IServiceRegistry.sol
+│       ├── IServiceRegistry.sol
+│       └── IPayPerCall.sol
 ├── test/
-│   ├── ServiceRegistry.t.sol        # 36 unit tests
-│   ├── PayPerCall.t.sol             # 21 unit tests
+│   ├── ServiceRegistry.t.sol        # 57 unit tests (v1 + v2 + ERC-8004 NFT)
+│   ├── PayPerCall.t.sol             # 9 unit tests
 │   └── helpers/
-│       └── MockUSDC.sol             # 6-decimal ERC-20 for tests
+│       └── MockUSDC.sol
 ├── script/
-│   └── Deploy.s.sol                 # deterministic deployment + wiring
+│   └── Deploy.s.sol                 # deploys ServiceRegistry + PayPerCall + CrossChainReceiver
+├── scripts/
+│   ├── x402-provider.js             # Node.js x402 provider server (Express + ethers v6)
+│   └── bridge-and-call.ts           # CCTP bridge helper script
 ├── demo/
-│   └── index.html                   # single-file dapp UI (ethers.js v6)
+│   └── index.html                   # single-file dapp (ethers.js v6, no build step)
 ├── docs/
-│   └── v2-design.md                 # formal v2 design document
-├── SPEC.md                          # technical specification
-├── ARCHITECTURE.md                  # design deep-dive
-├── SECURITY.md                      # trade-offs and attack surface
-├── DEPLOY.md                        # step-by-step deployment guide
-└── README.md                        # this file
+│   └── v2-design.md
+├── SPEC.md
+├── ARCHITECTURE.md
+├── SECURITY.md
+├── DEPLOY.md
+└── README.md
 ```
 
 ---
 
 ## Known limitations
 
-- **Receipt signing shows raw bytes in the wallet.** The current implementation uses EIP-191 `signMessage` over `keccak256(callId, responseHash)`. MetaMask (and most wallets) attempt to render those raw bytes as a string, which comes out as unreadable characters. The signature is correct and the protocol works, but the UX is not ideal — v2 will switch to EIP-712 typed data so wallets can show a human-readable receipt preview.
-- **USDC decimals fetched at runtime.** Standard USDC uses 6 decimals, but Arc's testnet USDC uses 18. The demo reads `decimals()` from the token contract at boot, so any deployment works, but amounts displayed before wallet connection assume the detected value.
-- **Event scan window is 50,000 blocks.** For historical `CallStarted`/`ReceiptSubmitted`/`CallSlashed` counts, the demo scans the last ~27 hours of blocks only. Provider count comes from contract state (`nextProviderId`) so it's always accurate, but very old calls won't appear in the "Calls" stat. A proper indexer (subgraph or similar) is planned for v2.
+- **CCTP attestation takes 1-4 minutes.** Sepolia requires ~12-19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
+- **x402 flow is simulated in browser.** The demo's "Call via x402" button simulates the HTTP 402 → pay → callService() lifecycle without a real HTTP server. For production x402, run `scripts/x402-provider.js`.
+- **Event scan window is 100,000 blocks.** Very old calls won't appear in the "Calls" stat. A proper indexer is planned.
 
 ---
 
 ## Roadmap
 
-A full design document for v2 is available at [`docs/v2-design.md`](./docs/v2-design.md). The summary below.
+### ✅ Completed
 
-### v2 — Currently in design
+- **EIP-712 typed signing** — structured receipt previews in wallet
+- **ERC-8004 NFT identity binding** — `registerV2()` requires AgentIdentity NFT; `RegisterWithNFT` helper mints NFT + registers in one tx
+- **CCTP multi-chain payments** — Ethereum/Base/Polygon → Arc via Circle CCTP V2
+- **x402 HTTP payment protocol** — `X402Middleware.sol` + `x402-provider.js` server
+- **Bayesian on-chain reputation** — `(completed + 2) / (total + 3) × 100`
+- **Auto-router** — picks best provider by reputation + price filters
+- **Session budget cap** — spending limit for agent flows
+- **66/66 Foundry tests**
 
-**Tier 1 (must ship)**
-- **EIP-712 typed signing** — replace raw-bytes EIP-191 with structured data; signers see field-by-field receipt previews in wallet
-- **Pre-specified `refundTo` address** — caller specifies where slash proceeds go at call submission, making the protocol fully non-custodial
-- **Lockup period with early withdrawal** — payments enter a configurable lockup before provider withdrawal, with optional EIP-712-signed fee for early access
-- **Stake-weighted reputation** — Bayesian score weighted by stake at risk per call, preventing low-stake reputation farming
+### Planned
 
-**Tier 2 (should ship)**
-- **ERC-8004 NFT identity binding** — backwards-compatible hybrid (v1 wallet-only preserved, v2 NFT required); see [`docs/v2-design.md §2.6`](./docs/v2-design.md)
-- **Multi-chain via CCTP** — Arc remains the enforcement layer; callers may originate payments from Ethereum, Base, Polygon, Solana via Circle's Cross-Chain Transfer Protocol
-- **EIP-1271 support** — for contract-wallet recipients (agents may be smart contract accounts)
-
-**Tier 3 (explore)**
+- EIP-1271 support (contract-wallet callers)
 - Optional DisputeModule for subjective-quality services
-- Debt accounting for over-slashed providers
-- Yield-bearing stake wrapper (Aave/Compound integration)
-
-### Beyond v2
-
-- Reputation-weighted routing contract (any consumer reads `getReputationScore(id)` and picks best provider)
-- Off-chain endpoint monitoring (complementary to on-chain cryptoeconomic monitoring)
-- Mainnet deployment once Arc Mainnet is live and audited
-
-See [`docs/v2-design.md`](./docs/v2-design.md) for the full motivation, design rationale, and open questions.
+- Mainnet deployment once Arc Mainnet is live
+- Reputation-weighted routing contract
 
 ---
 
@@ -345,17 +391,15 @@ See [`docs/v2-design.md`](./docs/v2-design.md) for the full motivation, design r
 - [Arc documentation](https://docs.arc.network/arc/concepts/welcome-to-arc) — concepts, architecture, guides
 - [Circle Developers](https://developers.circle.com/) — SDKs, CCTP, Gateway, Paymaster
 - [Circle Console](https://console.circle.com/signin) — API keys, testnet dashboards
-- [Circle](https://www.circle.com/) — the company behind USDC and Arc
 
 ### Testnet tools
 
 - [Arc Testnet Faucet](https://faucet.circle.com/) — free testnet USDC (also serves as gas)
-- [ArcScan Testnet](https://testnet.arcscan.app/) — block explorer, contract verification, transaction details
-- [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer, developer dashboard
+- [ArcScan Testnet](https://testnet.arcscan.app/) — block explorer
+- [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer
 
 ### Project documents
 
-- [`docs/v2-design.md`](./docs/v2-design.md) — formal v2 design document
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — design decisions and rationale
 - [`SECURITY.md`](./SECURITY.md) — threat model and known trade-offs
 - [`DEPLOY.md`](./DEPLOY.md) — step-by-step deployment guide
