@@ -3765,8 +3765,20 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         try {
           state.provider = new ethers.BrowserProvider(window.ethereum);
 
-          // Request accounts — eth_requestAccounts is the safest primary method.
-          // wallet_requestPermissions can hang if MetaMask already has a pending request.
+          // Force the MetaMask approval prompt on every connect, even if the
+          // site was connected before. wallet_requestPermissions re-opens the
+          // account-selection / permission dialog so the user always confirms.
+          try {
+            await window.ethereum.request({
+              method: "wallet_requestPermissions",
+              params: [{ eth_accounts: {} }],
+            });
+          } catch (permErr) {
+            // 4001 = user rejected the permission prompt
+            if (permErr.code === 4001) throw permErr;
+            // Any other error (e.g. method unsupported by the wallet) —
+            // fall through to eth_requestAccounts below.
+          }
           await window.ethereum.request({ method: "eth_requestAccounts" });
 
           state.signer  = await state.provider.getSigner();
