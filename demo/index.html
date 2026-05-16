@@ -2811,6 +2811,30 @@
               </div>
             </div>
 
+            <div class="scenario">
+              <span class="scenario-badge neutral">⚡ v3</span>
+              <h3>Composable payment rails</h3>
+              <p class="lead">v3 adds three ways to pay and a verifiable provider identity — all settling into the same SLA enforcement.</p>
+              <div class="scenario-steps">
+                <div class="scenario-step">
+                  <span class="arrow">·</span>
+                  <span><strong>x402</strong> — agents pay via the HTTP 402 protocol; <code>callService()</code> fires on payment.</span>
+                </div>
+                <div class="scenario-step">
+                  <span class="arrow">·</span>
+                  <span><strong>CCTP</strong> — pay from Ethereum, Base or Polygon; Circle bridges USDC, Arc enforces the SLA.</span>
+                </div>
+                <div class="scenario-step">
+                  <span class="arrow">·</span>
+                  <span><strong>ERC-8004 NFT</strong> — providers bind an on-chain AgentIdentity NFT to their registration.</span>
+                </div>
+                <div class="scenario-step highlight">
+                  <span class="arrow">→</span>
+                  <span>Every path ends the same way: staked USDC, signed receipt, automatic slash on timeout.</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -2829,7 +2853,7 @@
             <p class="guide-lead">ArcSLA is an <strong>on-chain marketplace</strong> where service providers stake USDC to commit to SLAs, and callers pay per request. If a provider fails to respond in time, their stake is automatically slashed — no arbitrator or intermediary required.</p>
             <div class="guide-steps">
               <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Get testnet USDC</strong><span><a href="https://faucet.circle.com/" target="_blank" rel="noreferrer">faucet.circle.com</a> → select Arc Testnet → paste your wallet address. On Arc, USDC is both the gas token and currency — one token is all you need.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Connect your wallet</strong><span>Click the "Connect wallet" button. MetaMask will prompt you to add the Arc Testnet network automatically — approve it.</span></div></div>
+              <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Connect your wallet</strong><span>Click the "Connect wallet" button. MetaMask will add Arc Testnet automatically. You can also pay from Ethereum, Base, or Polygon via CCTP — see the chain selector when calling a service.</span></div></div>
               <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Choose your role</strong><span>Follow the <em>Caller</em> or <em>Provider</em> flow step by step using the tabs above.</span></div></div>
             </div>
             <div class="guide-callout info"><strong>💡 Tip:</strong> You can use the same wallet as both caller and provider. For separate testing, two different MetaMask accounts are recommended.</div>
@@ -2853,7 +2877,7 @@
             <div class="guide-steps">
               <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Register &amp; stake</strong><span>Open the <em>Register as provider</em> section. Set a minimum <strong>10 USDC</strong> stake, price, response time, and slash %. Leave the signer address blank to use your own wallet.</span></div></div>
               <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Respond when called</strong><span>When a CallStarted event arrives, the SLA clock starts. Open the <em>Submit receipt</em> section — the Call ID is pre-filled, just enter your response payload.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Sign &amp; submit the receipt</strong><span>Click <em>Sign &amp; submit</em>. MetaMask will first ask for an off-chain signature, then an on-chain transaction. Unreadable characters are normal — you are signing raw bytes.</span></div></div>
+              <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Sign &amp; submit the receipt</strong><span>Click <em>Sign &amp; submit</em>. MetaMask will first ask for an EIP-712 typed-data signature (readable Receipt fields), then an on-chain transaction.</span></div></div>
               <div class="guide-step"><div class="guide-step-icon">4</div><div class="guide-step-body"><strong>Collect payment &amp; earn reputation</strong><span>Once the receipt is accepted, the escrowed USDC is transferred to you. Each successful response increases your on-chain reputation score.</span></div></div>
             </div>
             <div class="guide-callout danger"><strong>🚨 Critical:</strong> You must be connected with the <strong>signer address</strong> to submit a receipt. If your provider panel shows <em>"✓ matches your wallet"</em>, you are ready.</div>
@@ -2880,7 +2904,7 @@
           <div class="guide-content" data-content="faq">
             <div class="guide-section-title">Frequently Asked Questions</div>
             <div class="faq-list">
-              <div class="faq-item"><div class="faq-q">I see unreadable characters in MetaMask — is that normal?</div><div class="faq-a">Yes, completely normal. When signing a receipt you are signing raw bytes (a keccak256 hash). EIP-712 typed-data signing is planned for v2.</div></div>
+              <div class="faq-item"><div class="faq-q">How does receipt signing work?</div><div class="faq-a">Receipts use EIP-712 typed-data signing. When you sign, MetaMask shows the structured Receipt fields (callId, responseHash) in a readable format — not raw hex.</div></div>
               <div class="faq-item"><div class="faq-q">What is the Call ID and where does it come from?</div><div class="faq-a">It is the unique 32-byte identifier generated on-chain when <code>callService()</code> is invoked. It is auto-filled after you click <em>Approve &amp; call</em>.</div></div>
               <div class="faq-item"><div class="faq-q">Can I submit a receipt after the SLA deadline?</div><div class="faq-a">No. The contract rejects <code>submitReceipt()</code> once the deadline has passed. Keep an eye on the countdown timer!</div></div>
               <div class="faq-item"><div class="faq-q">Can I be both a provider and a caller with the same wallet?</div><div class="faq-a">Technically yes, but two separate accounts are recommended for testing.</div></div>
@@ -2918,6 +2942,14 @@
           <div>
             <span class="label">USDC</span>
             <a id="usdcLink" target="_blank" rel="noreferrer"></a>
+          </div>
+          <div>
+            <span class="label">CrossChainReceiver</span>
+            <a href="https://testnet.arcscan.app/address/0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04" target="_blank" rel="noreferrer">0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04</a>
+          </div>
+          <div>
+            <span class="label">RegisterWithNFT</span>
+            <a href="https://testnet.arcscan.app/address/0x8910495C2a876c7b59a175CAc09F823B688b0eEb" target="_blank" rel="noreferrer">0x8910495C2a876c7b59a175CAc09F823B688b0eEb</a>
           </div>
         </div>
       </div>
@@ -3109,14 +3141,14 @@
                   <input type="text" id="rcpCallId" placeholder="0x… — auto-filled after Approve & call" />
                 </div>
                 <div class="field">
-                  <label>Response payload <span class="tip" data-tip="The response you delivered off-chain. It gets hashed and the hash is signed with your provider's signer key (EIP-191). On-chain stores only the hash — your response content stays off-chain.">?</span></label>
+                  <label>Response payload <span class="tip" data-tip="The response you delivered off-chain. It gets hashed and the hash is signed with your provider's signer key (EIP-712 typed data). On-chain stores only the hash — your response content stays off-chain.">?</span></label>
                   <textarea id="rcpPayload" rows="2" placeholder="your service's response">pong</textarea>
                   <div class="hint">
-                    Response is hashed and signed with EIP-191. On-chain stores only the hash.
+                    Response is hashed and signed with EIP-712 typed data. On-chain stores only the hash.
                   </div>
                 </div>
                 <div class="info-box">
-                  <strong>Heads up:</strong> when MetaMask opens the signature prompt, the "Message" field will show unreadable characters. This is expected — you're signing raw bytes (the keccak256 of callId + responseHash), not a human-readable string. EIP-712 typed-data signing is planned for v2.
+                  <strong>EIP-712 signing:</strong> when MetaMask opens the signature prompt, you'll see structured Receipt fields (callId, responseHash) — readable typed data, not raw hex.
                 </div>
                 <button class="btn btn-primary" id="btnReceipt">Sign & submit</button>
               </div>
