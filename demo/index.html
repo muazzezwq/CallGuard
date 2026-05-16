@@ -3786,6 +3786,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           try { state.usdcDecimals = Number(await state.usdc.decimals()); } catch { state.usdcDecimals = 6; }
 
           showConnected();
+          updateWelcomeBox().catch(() => {});
 
           // Initial full data sync from chain
           await refreshAll();
