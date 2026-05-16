@@ -3261,6 +3261,16 @@
 
         <section class="panel full-width">
           <div class="panel-head">
+            <h2>My Activity</h2>
+            <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="activitySummary"></span>
+          </div>
+          <div class="panel-body compact" id="activityBox">
+            <div class="empty-state">connect wallet to see your on-chain activity</div>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">
             <h2>Your calls</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="callsSummary"
               ></span>
@@ -3476,6 +3486,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         myCalls: new Map(),   // callId → call obj (sourced from chain events)
         providerInfo: null,   // { id, data } — sourced from registry contract
         seenEvents: new Set(),// dedupe: `${txHash}:${logIndex}`
+        myActivity: [],       // unified activity log: {type, label, icon, time, txHash, detail}
+        x402TxHashes: new Set(),  // tx hashes done via x402 this session
+        cctpTxHashes: new Set(),  // tx hashes done via CCTP this session
         allProviders: [],     // full provider directory from contract
         networkStats: null,   // aggregate metrics from contract events
         actionsInitialized: false,
@@ -3632,6 +3645,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // Initial full data sync from chain
           await refreshAll();
           await loadMyCalls();
+          await loadActivity();
 
           // Real-time event listeners
           stopEventListeners(); // clean up any stale listeners first
@@ -4699,6 +4713,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             link: txLink(tx.hash),
             detail: `stake: ${stake} usdc`,
           });
+          pushActivity({
+            type: "register",
+            icon: "🏗️",
+            label: "Registered as provider",
+            detail: `${stake} USDC staked`,
+            txHash: tx.hash,
+          });
           await refreshAll();
           $("actionRegister").open = false;
           $("actionCall").open = true;
@@ -4882,6 +4903,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               detail: `call id ${short(callId, 8)}`,
               link: txLink(tx.hash),
             });
+            pushActivity({
+              type: "call",
+              icon: "📞",
+              label: `Call opened → provider #${providerId}`,
+              detail: `${ethers.formatUnits(price, state.usdcDecimals)} USDC escrowed`,
+              txHash: tx.hash,
+            });
             // Auto-fill receipt/timeout fields for convenience
             $("rcpCallId").value = callId;
             $("toCallId").value = callId;
@@ -5036,6 +5064,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             link: txLink(tx.hash),
             detail: "escrow released to provider",
           });
+          pushActivity({
+            type: "receipt",
+            icon: "📝",
+            label: "Receipt submitted",
+            detail: `call ${short(callId, 6)} · escrow released`,
+            txHash: tx.hash,
+          });
           await refreshAll();
         } catch (e) {
           console.error(e);
@@ -5088,6 +5123,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             kind: "ok",
             title: "Timeout claimed — provider slashed",
             link: txLink(tx.hash),
+          });
+          pushActivity({
+            type: "timeout",
+            icon: "⚡",
+            label: "Timeout claimed — provider slashed",
+            detail: `call ${short(callId, 6)}`,
+            txHash: tx.hash,
           });
           await refreshAll();
         } catch (e) {
@@ -6193,6 +6235,14 @@ console.log("call opened:", tx.hash);`;
           const mintTx = await messageTransmitter.receiveMessage(cctpMessage, attestation);
           await mintTx.wait();
           tMint.remove();
+          state.cctpTxHashes.add(mintTx.hash);
+          pushActivity({
+            type: "call",
+            icon: "🌐",
+            label: `CCTP call from ${sourceChain.name}`,
+            detail: `provider #${providerId} · ${amountFormatted} USDC bridged`,
+            txHash: mintTx.hash,
+          });
           toast({ kind: "ok", title: "✅ Cross-chain call complete!", detail: `USDC bridged → Arc. CrossChainReceiver executed callService().`, link: `https://testnet.arcscan.app/address/${CCTP_CONFIG.crossChainReceiver}`, timeout: 12000 });
           state.provider = arcBrowserProvider;
           state.signer = arcSigner;
@@ -6246,6 +6296,13 @@ console.log("call opened:", tx.hash);`;
           const tokenId = log?.args?.tokenId?.toString() ?? "?";
           const providerId = log?.args?.providerId?.toString() ?? "?";
           toast({ kind: "ok", title: `✅ Registered! Provider #${providerId} · NFT #${tokenId}`, link: txLink(tx.hash) });
+          pushActivity({
+            type: "register",
+            icon: "🔐",
+            label: `Registered with NFT — provider #${providerId}`,
+            detail: `AgentIdentity NFT #${tokenId} bound`,
+            txHash: tx.hash,
+          });
           btn.textContent = `✅ Provider #${providerId} (NFT #${tokenId})`;
           btn.disabled = true;
           await refreshAll();
@@ -6331,6 +6388,14 @@ console.log("call opened:", tx.hash);`;
           }
 
           // Step 5 — Success
+          state.x402TxHashes.add(tx.hash);
+          pushActivity({
+            type: "call",
+            icon: "⚡",
+            label: `x402 call → provider #${providerId}`,
+            detail: `${priceFormatted} USDC · HTTP 402 flow`,
+            txHash: tx.hash,
+          });
           toast({
             kind: "ok",
             title: "✅ x402 call complete!",
@@ -6348,6 +6413,139 @@ console.log("call opened:", tx.hash);`;
           toast({ kind: "err", title: "x402 call failed", detail: friendlyError(e) });
           btn.disabled = false;
           btn.textContent = origText;
+        }
+      }
+
+
+      // ================================================================
+      // MY ACTIVITY — unified on-chain activity log for connected wallet
+      // ================================================================
+      function pushActivity(item) {
+        // item: {type, icon, label, txHash, time?}
+        if (!item.time) item.time = Date.now();
+        // dedupe by txHash + type
+        const key = `${item.txHash}:${item.type}`;
+        if (state.myActivity.some(a => `${a.txHash}:${a.type}` === key)) return;
+        state.myActivity.push(item);
+        renderActivity();
+      }
+
+      function renderActivity() {
+        const box = $("activityBox");
+        if (!box) return;
+        if (!state.address) {
+          box.innerHTML = `<div class="empty-state">connect wallet to see your on-chain activity</div>`;
+          return;
+        }
+        if (state.myActivity.length === 0) {
+          box.innerHTML = `<div class="empty-state">no activity yet — register, call a service, or submit a receipt</div>`;
+          $("activitySummary").textContent = "";
+          return;
+        }
+        // newest first
+        const items = [...state.myActivity].sort((a, b) => b.time - a.time);
+        box.innerHTML = items.map(a => {
+          const t = new Date(a.time).toLocaleTimeString("en-US", { hour12: false });
+          const link = a.txHash
+            ? `<a class="feed-link" href="${txLink(a.txHash)}" target="_blank" rel="noreferrer">${short(a.txHash, 4)} ↗</a>`
+            : "";
+          return `
+            <div class="call-row">
+              <div style="min-width:0;flex:1">
+                <div class="head-line">
+                  <span>${a.icon}</span>
+                  <span class="hi">${a.label}</span>
+                </div>
+                ${a.detail ? `<div class="sub-line">${a.detail}</div>` : ""}
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">${t}</span>
+                ${link}
+              </div>
+            </div>`;
+        }).join("");
+        $("activitySummary").textContent = `${state.myActivity.length} action${state.myActivity.length === 1 ? "" : "s"}`;
+      }
+
+      // Load past activity from on-chain events for the connected wallet
+      async function loadActivity() {
+        if (!state.address || !state.payPerCall || !state.registry) return;
+        try {
+          const me = state.address.toLowerCase();
+
+          // 1. Provider registrations (owner = me)
+          const regLogs = await safeQuery(state.registry, "ProviderRegistered");
+          for (const l of regLogs) {
+            if (l.args.owner?.toLowerCase() === me) {
+              pushActivity({
+                type: "register",
+                icon: "🏗️",
+                label: `Registered as provider #${l.args.providerId}`,
+                detail: `${ethers.formatUnits(l.args.stake, state.usdcDecimals)} USDC staked`,
+                txHash: l.transactionHash,
+                time: Date.now() - 1, // past events slightly older
+              });
+            }
+          }
+
+          // 2. Calls opened (caller = me)
+          const callFilter = state.payPerCall.filters.CallStarted(null, null, state.address);
+          const callLogs = await safeQuery(state.payPerCall, "CallStarted", callFilter);
+          for (const l of callLogs) {
+            const isX402 = state.x402TxHashes.has(l.transactionHash);
+            const isCCTP = state.cctpTxHashes.has(l.transactionHash);
+            let icon = "📞", label = `Call opened → provider #${l.args.providerId}`;
+            if (isX402) { icon = "⚡"; label = `x402 call → provider #${l.args.providerId}`; }
+            if (isCCTP) { icon = "🌐"; label = `CCTP call → provider #${l.args.providerId}`; }
+            pushActivity({
+              type: "call",
+              icon, label,
+              detail: `${ethers.formatUnits(l.args.amount, state.usdcDecimals)} USDC escrowed`,
+              txHash: l.transactionHash,
+            });
+          }
+
+          // 3. Receipts submitted — match callId to calls where I'm the provider
+          // We can only attribute receipts to ourselves if we own the called provider.
+          const myProviderId = state.providerInfo?.id;
+          if (myProviderId) {
+            const myProviderCalls = await safeQuery(
+              state.payPerCall, "CallStarted",
+              state.payPerCall.filters.CallStarted(null, myProviderId)
+            );
+            const myCallIds = new Set(myProviderCalls.map(l => l.args.callId));
+            const receiptLogs = await safeQuery(state.payPerCall, "ReceiptSubmitted");
+            for (const l of receiptLogs) {
+              if (myCallIds.has(l.args.callId)) {
+                pushActivity({
+                  type: "receipt",
+                  icon: "📝",
+                  label: `Receipt submitted`,
+                  detail: `call ${short(l.args.callId, 6)}`,
+                  txHash: l.transactionHash,
+                });
+              }
+            }
+          }
+
+          // 4. Timeouts / slashes — calls where I was the caller
+          const myCallIdSet = new Set(callLogs.map(l => l.args.callId));
+          const slashLogs = await safeQuery(state.payPerCall, "CallSlashed");
+          for (const l of slashLogs) {
+            if (myCallIdSet.has(l.args.callId)) {
+              pushActivity({
+                type: "timeout",
+                icon: "⚡",
+                label: `Timeout claimed — provider slashed`,
+                detail: `refund ${ethers.formatUnits(l.args.refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(l.args.slashed, state.usdcDecimals)} USDC`,
+                txHash: l.transactionHash,
+              });
+            }
+          }
+
+          renderActivity();
+        } catch (e) {
+          console.warn("loadActivity failed:", e);
         }
       }
 
