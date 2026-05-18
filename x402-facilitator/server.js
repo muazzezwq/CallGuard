@@ -66,6 +66,13 @@ app.post("/settle", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get("/", (_, res) => res.json({
+  service: "ArcSLA x402 facilitator",
+  status: "live",
+  network: "arc-testnet",
+  endpoints: ["/health", "/api/service", "/verify", "/settle"],
+}));
+
 app.get("/health", (_, res) =>
   res.json({ ok: true, facilitator: fac.facilitatorAddress }));
 
