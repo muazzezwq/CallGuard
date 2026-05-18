@@ -3270,7 +3270,7 @@
                   <strong style="color:var(--info)">What happens:</strong> <span id="callPreviewText">—</span>
                 </div>
                 <button class="btn btn-primary" id="btnCall">Approve & call</button>
-                <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402 (simulated)</button>
+                <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402</button>
               </div>
             </details>
 
@@ -3577,6 +3577,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
+        facilitatorUrl: "https://arcsla.onrender.com",
       };
 
       // -------- ABIs (minimal — only what we call) --------
@@ -6590,9 +6591,24 @@ console.log("call opened:", tx.hash);`;
           const price = p.pricePerCall;
           const priceFormatted = ethers.formatUnits(price, state.usdcDecimals);
 
-          // Step 1 — Simulate 402
-          toast({ kind: "info", title: "⚡ x402: GET /service", detail: "→ 402 Payment Required received", timeout: 3000 });
-          await new Promise(r => setTimeout(r, 1000));
+          // Step 1 — REAL x402 handshake: GET the facilitator, expect HTTP 402
+          let x402Terms = null;
+          try {
+            const fres = await fetch(CONFIG.facilitatorUrl + "/api/service");
+            const fbody = await fres.json();
+            if (fres.status === 402 && fbody.accepts && fbody.accepts[0]) {
+              x402Terms = fbody.accepts[0];
+              toast({ kind: "info", title: "⚡ x402: GET /api/service",
+                detail: `→ HTTP 402 · ${x402Terms.network} · facilitator live`, timeout: 3500 });
+            } else {
+              toast({ kind: "info", title: "⚡ x402: facilitator responded",
+                detail: `status ${fres.status} — proceeding with on-chain SLA call`, timeout: 3000 });
+            }
+          } catch (fe) {
+            toast({ kind: "info", title: "⚡ x402: facilitator unreachable",
+              detail: "proceeding with on-chain SLA call", timeout: 3000 });
+          }
+          await new Promise(r => setTimeout(r, 400));
 
           // Step 2 — Approve if needed
           const allowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
@@ -6611,7 +6627,7 @@ console.log("call opened:", tx.hash);`;
             network: "arc-testnet",
             payload: { from: state.address, amount: price.toString(), asset: CONFIG.usdc },
           };
-          toast({ kind: "info", title: "⚡ x402: Sending X-Payment header", detail: `amount: ${priceFormatted} USDC · scheme: exact`, timeout: 3000 });
+          toast({ kind: "info", title: "⚡ x402: X-Payment", detail: `amount: ${priceFormatted} USDC · scheme: ${x402Terms ? x402Terms.scheme : "exact"} · settles to escrow`, timeout: 3000 });
           await new Promise(r => setTimeout(r, 800));
 
           // Step 4 — callService (simulating provider executing after payment)
