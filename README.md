@@ -109,7 +109,7 @@ The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp
 - **Register as provider** — stake USDC, set SLA terms, choose slash %
 - **Register with NFT (v2)** — mint an ERC-8004 AgentIdentity NFT and register in one transaction via `RegisterWithNFT` helper
 - **Multi-chain payments** — pay from Ethereum Sepolia, Base Sepolia, or Polygon Amoy via CCTP V2; Arc enforces the SLA
-- **x402 simulated flow** — HTTP 402 payment protocol simulation in-browser; shows the full x402 → pay → callService() lifecycle
+- **x402 live facilitator** — real HTTP 402 payment flow backed by a deployed facilitator; client signs an EIP-3009 authorization, the facilitator verifies it and settles `transferWithAuthorization` on Arc
 - **Submit receipt** — EIP-712 typed signing (structured fields in wallet)
 - **Claim timeout** — auto-slash when provider misses deadline
 - **Auto-router** — picks highest-reputation active provider within price/rep filters
@@ -356,7 +356,7 @@ arcsla/
 ## Known limitations
 
 - **CCTP attestation takes 1-4 minutes.** Sepolia requires ~12-19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
-- **x402 flow is simulated in browser.** The demo's "Call via x402" button simulates the HTTP 402 → pay → callService() lifecycle without a real HTTP server. For production x402, run `scripts/x402-provider.js`.
+- **x402 runs against a live facilitator.** The demo's "Call via x402" button performs a real HTTP 402 handshake against the deployed facilitator (`x402-facilitator/`, hosted at arcsla.onrender.com), which verifies the EIP-3009 signature and settles on Arc. Note: x402 settlement and the SLA escrow payment are currently separate transfers — full unification needs a contract-level change.
 - **Event scan window is 100,000 blocks.** Very old calls won't appear in the "Calls" stat. A proper indexer is planned.
 
 ---
