@@ -3612,6 +3612,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       const PAY_ABI = [
         "function callService(uint256 providerId, bytes32 requestHash) returns (bytes32)",
+        "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) returns (bytes32)",
         "function submitReceipt(bytes32 callId, bytes32 responseHash, bytes signature)",
         "function claimTimeout(bytes32 callId)",
         "function getCall(bytes32) view returns (tuple(uint256 providerId, address caller, uint256 amount, uint32 startedAt, uint32 deadline, bytes32 requestHash, bytes32 responseHash, uint8 status))",
@@ -6618,31 +6619,53 @@ console.log("call opened:", tx.hash);`;
           }
           await new Promise(r => setTimeout(r, 400));
 
-          // Step 2 — Approve if needed
-          const allowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
-          if (allowance < price) {
-            btn.textContent = "Approving USDC…";
-            const tA = toast({ kind: "info", title: `Approving ${priceFormatted} USDC…`, detail: "<span class='spinner'></span>", timeout: 60000 });
-            const txA = await state.usdc.approve(CONFIG.payPerCall, ethers.MaxUint256);
-            await txA.wait();
-            tA.remove();
-            toast({ kind: "ok", title: "USDC approved ✓", timeout: 2000 });
-          }
-
-          // Step 3 — Simulate payment proof
-          const paymentProof = {
-            scheme: "exact",
-            network: "arc-testnet",
-            payload: { from: state.address, amount: price.toString(), asset: CONFIG.usdc },
-          };
-          toast({ kind: "info", title: "⚡ x402: X-Payment", detail: `amount: ${priceFormatted} USDC · scheme: ${x402Terms ? x402Terms.scheme : "exact"} · settles to escrow`, timeout: 3000 });
-          await new Promise(r => setTimeout(r, 800));
-
-          // Step 4 — callService (simulating provider executing after payment)
-          btn.textContent = "Calling callService()…";
+          // Step 2 — EIP-3009 authorization (no approve needed)
+          const now = Math.floor(Date.now() / 1000);
+          const validAfter  = 0;
+          const validBefore = now + 120;
+          const authNonce   = ethers.hexlify(ethers.randomBytes(32));
           const requestHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
-          const tC = toast({ kind: "info", title: "⚡ x402: Provider calling callService()…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
-          const tx = await state.payPerCall.callService(providerId, requestHash);
+
+          // Step 3 — Sign EIP-3009 TransferWithAuthorization (off-chain, no gas)
+          btn.textContent = "Sign authorization…";
+          const eip3009Domain = {
+            name: "USDC",
+            version: "2",
+            chainId: CONFIG.chainId,
+            verifyingContract: CONFIG.usdc,
+          };
+          const eip3009Types = {
+            TransferWithAuthorization: [
+              { name: "from",        type: "address" },
+              { name: "to",          type: "address" },
+              { name: "value",       type: "uint256" },
+              { name: "validAfter",  type: "uint256" },
+              { name: "validBefore", type: "uint256" },
+              { name: "nonce",       type: "bytes32" },
+            ],
+          };
+          const eip3009Value = {
+            from:        state.address,
+            to:          CONFIG.payPerCall,
+            value:       price,
+            validAfter,
+            validBefore,
+            nonce:       authNonce,
+          };
+          toast({ kind: "info", title: "⚡ x402: Sign EIP-3009", detail: "Sign the authorization in MetaMask — no gas, off-chain", timeout: 10000 });
+          const rawSig = await state.signer.signTypedData(eip3009Domain, eip3009Types, eip3009Value);
+          const sig = ethers.Signature.from(rawSig);
+
+          toast({ kind: "info", title: "⚡ x402: X-Payment", detail: `amount: ${priceFormatted} USDC · EIP-3009 signed · settling to escrow`, timeout: 3000 });
+
+          // Step 4 — callServiceWithAuthorization (single tx: payment + SLA)
+          btn.textContent = "Calling callServiceWithAuthorization()…";
+          const tC = toast({ kind: "info", title: "⚡ x402: callServiceWithAuthorization", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
+          const tx = await state.payPerCall.callServiceWithAuthorization(
+            providerId, requestHash,
+            state.address, validAfter, validBefore, authNonce,
+            sig.v, sig.r, sig.s
+          );
           const rc = await tx.wait();
           tC.remove();
 
