@@ -147,6 +147,14 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         emit PayPerCallSet(_payPerCall);
     }
 
+    /// @notice Update the authorized PayPerCall contract (admin only).
+    /// @dev    Use when upgrading PayPerCall to a new version.
+    function updatePayPerCall(address _payPerCall) external onlyAdmin {
+        require(_payPerCall != address(0), "zero address");
+        payPerCall = _payPerCall;
+        emit PayPerCallSet(_payPerCall);
+    }
+
     // ---------------------------------------------------------------------
     // Provider lifecycle
     // ---------------------------------------------------------------------
