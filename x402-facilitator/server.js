@@ -66,6 +66,28 @@ app.post("/settle", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ---- /callService : facilitator tx'i gonderir, kullanici gas odemez ----
+app.post("/callService", async (req, res) => {
+  try {
+    const { providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s: sig } = req.body;
+    if (!providerId || !requestHash || !from || !v || !r || !sig) {
+      return res.status(400).json({ error: "Eksik parametre" });
+    }
+    const result = await fac.callService({
+      providerId: BigInt(providerId),
+      requestHash,
+      from,
+      validAfter: Number(validAfter),
+      validBefore: Number(validBefore),
+      authNonce,
+      v: Number(v),
+      r,
+      s: sig,
+    });
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get("/", (_, res) => res.json({
   service: "ArcSLA x402 facilitator",
   status: "live",

@@ -6658,28 +6658,36 @@ console.log("call opened:", tx.hash);`;
 
           toast({ kind: "info", title: "⚡ x402: X-Payment", detail: `amount: ${priceFormatted} USDC · EIP-3009 signed · settling to escrow`, timeout: 3000 });
 
-          // Step 4 — callServiceWithAuthorization (single tx: payment + SLA)
-          btn.textContent = "Calling callServiceWithAuthorization()…";
-          const tC = toast({ kind: "info", title: "⚡ x402: callServiceWithAuthorization", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
-          const tx = await state.payPerCall.callServiceWithAuthorization(
-            providerId, requestHash,
-            state.address, validAfter, validBefore, authNonce,
-            sig.v, sig.r, sig.s
-          );
-          const rc = await tx.wait();
+          // Step 4 — POST imzayi facilitator'a, o tx'i gonderir (kullanici gas odemez)
+          btn.textContent = "Settling via facilitator…";
+          const tC = toast({ kind: "info", title: "⚡ x402: Facilitator settling", detail: "<span class='spinner'></span> Facilitator sending tx — no gas from you", timeout: 60000 });
+          const facRes = await fetch(CONFIG.facilitatorUrl + "/callService", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              providerId: providerId.toString(),
+              requestHash,
+              from: state.address,
+              validAfter,
+              validBefore,
+              authNonce,
+              v: sig.v,
+              r: sig.r,
+              s: sig.s,
+            }),
+          });
+          const facData = await facRes.json();
+          if (!facRes.ok || !facData.success) throw new Error(facData.error || "Facilitator error");
           tC.remove();
 
-          // Parse callId
-          const parsed = rc.logs.map(l => { try { return state.payPerCall.interface.parseLog(l); } catch { return null; } }).filter(Boolean).find(x => x.name === "CallStarted");
-          const callId = parsed?.args?.callId;
-
+          // facData.txHash ve facData.callId facilitator'dan geliyor
+          const tx = fakeTx;
+          const callId = facData.callId || null;
           if (callId) {
-            $("rcpCallId").value = callId;
-            $("toCallId").value = callId;
             state.myCalls.set(callId, {
               callId, providerId, caller: state.address,
-              amount: price, deadline: Number(parsed.args.deadline),
-              startedAt: Number(parsed.args.deadline) - Number(p.maxResponseTime),
+              amount: price, deadline: 0,
+              startedAt: 0,
               totalSec: Number(p.maxResponseTime), status: 1,
             });
             renderCalls();

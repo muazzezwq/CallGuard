@@ -6,6 +6,11 @@ const USDC_ABI = [
   "function balanceOf(address) view returns (uint256)",
 ];
 
+const PAY_ABI = [
+  "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) returns (bytes32)",
+  "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
+];
+
 export function makeFacilitator(env) {
   const provider = new ethers.JsonRpcProvider(env.RPC_URL);
   const wallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, provider);
@@ -77,5 +82,27 @@ export function makeFacilitator(env) {
     return { success: true, txHash: tx.hash, blockNumber: rc.blockNumber };
   }
 
-  return { verify, settle, facilitatorAddress: wallet.address };
+  // ---- /callService : facilitator kendi cuzdanindan callServiceWithAuthorization cagirır ----
+  async function callService({ providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s }) {
+    const payPerCall = new ethers.Contract(env.PAY_PER_CALL, PAY_ABI, wallet);
+    const tx = await payPerCall.callServiceWithAuthorization(
+      providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s
+    );
+    const rc = await tx.wait();
+    // parse CallStarted event
+    const iface = new ethers.Interface(PAY_ABI);
+    let callId = null;
+    for (const log of rc.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed && parsed.name === "CallStarted") {
+          callId = parsed.args.callId;
+          break;
+        }
+      } catch {}
+    }
+    return { success: true, txHash: tx.hash, blockNumber: rc.blockNumber, callId };
+  }
+
+  return { verify, settle, callService, facilitatorAddress: wallet.address };
 }
