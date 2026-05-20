@@ -766,9 +766,8 @@
       </div>
       <h1>Service guarantees,<br/><em>enforced on-chain.</em></h1>
       <p class="hero-sub">
-        ArcSLA is an on-chain marketplace where service providers stake USDC against
-        a service-level agreement. Callers — including AI agents — pay per request.
-        If the provider misses the deadline, the contract slashes their stake automatically.
+        ArcSLA is a marketplace where providers put USDC on the line for every request.
+        Miss the deadline — lose the stake. No court, no dispute process, no waiting.
         No arbiter. No middleman.
       </p>
       <div class="hero-actions">
@@ -939,7 +938,7 @@
       <div class="outcome bad">
         <span class="outcome-tag">✕ Timeout · SLA missed</span>
         <h3>The provider misses the deadline</h3>
-        <p>What keeps the marketplace honest. No response in time means the caller is made whole — automatically.</p>
+        <p>No response, no excuse. The caller gets their money back plus a cut of the provider's stake. The contract handles it.</p>
         <div class="outcome-flow">
           <div class="of-row"><span class="of-mark">1</span><span>The SLA window expires with no receipt submitted.</span></div>
           <div class="of-row"><span class="of-mark">2</span><span>Anyone calls <code style="font-family:var(--mono);font-size:12px">claimTimeout()</code> — no privileged role needed.</span></div>
@@ -1171,7 +1170,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
   <div class="wrap">
     <div class="section-head center reveal">
       <span class="eyebrow">Why Arc</span>
-      <h2>A per-call marketplace needs the right chain.</h2>
+      <h2>Per-call payments only work if settlement is instant.</h2>
       <p>ArcSLA is built on Arc Testnet — Circle's stablecoin-native L1. Three properties
         make it the natural home for machine-to-machine payments.</p>
     </div>
