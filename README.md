@@ -71,7 +71,7 @@ Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts
 
 **Try the live demo:** [**arcsla.vercel.app**](https://arcsla.vercel.app) — open in any modern browser with MetaMask.
 
-### v3 contracts (current — ERC-8004 NFT + CCTP + x402)
+### v4 contracts (current — ERC-8004 NFT + CCTP + x402 full integration)
 
 | Contract | Address |
 | --- | --- |
@@ -356,7 +356,7 @@ arcsla/
 ## Known limitations
 
 - **CCTP attestation takes 1-4 minutes.** Sepolia requires ~12-19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
-- **x402 runs against a live facilitator.** The demo's "Call via x402" button performs a real HTTP 402 handshake against the deployed facilitator (`x402-facilitator/`, hosted at arcsla.onrender.com), which verifies the EIP-3009 signature and settles on Arc. Note: x402 settlement and the SLA escrow payment are currently separate transfers — full unification needs a contract-level change.
+- **x402 full integration live.** The "Call via x402" button performs a real HTTP 402 handshake, the user signs an EIP-3009 `TransferWithAuthorization` off-chain (no gas), and the facilitator (`x402-facilitator/`, hosted at arcsla.onrender.com) calls `callServiceWithAuthorization()` on-chain — USDC goes straight into SLA escrow in a single transaction. The payer signs; the facilitator pays gas.
 - **Event scan window is 100,000 blocks.** Very old calls won't appear in the "Calls" stat. A proper indexer is planned.
 
 ---
