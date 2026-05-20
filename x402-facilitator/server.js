@@ -92,7 +92,7 @@ app.get("/", (_, res) => res.json({
   service: "ArcSLA x402 facilitator",
   status: "live",
   network: "arc-testnet",
-  endpoints: ["/health", "/api/service", "/verify", "/settle"],
+  endpoints: ["/health", "/api/service", "/verify", "/settle", "/callService"],
 }));
 
 app.get("/health", (_, res) =>
