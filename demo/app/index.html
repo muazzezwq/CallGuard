@@ -30,7 +30,7 @@
     <!-- Ethers.js v6 UMD -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
     
-    <!-- ✅ Arc App Kits CDN (Safe Load) -->
+    <!-- ✅ App Kits CDN (Safe Load) -->
     <script src="https://unpkg.com/@arc-io/app-kit@latest/dist/app-kit.umd.js" defer></script>
 
     <style>
@@ -414,10 +414,10 @@ console.log("call opened:", tx.hash);</code></pre>
                 base: { chainId: '0x14a34', name: 'Base Sepolia' },
                 amoy: { chainId: '0x13882', name: 'Polygon Amoy' }
             },
-            // ✅ App Kits Config (Safe, enabled:false by default)
+            // ✅ App Kits Config
             appKits: {
-                enabled: false, // true yapınca App Kits aktif olur
-                clientId: '', // Circle Console'dan alınacak
+                enabled: true,
+                clientId: '',
                 environment: 'testnet'
             }
         };
@@ -550,8 +550,10 @@ console.log("call opened:", tx.hash);</code></pre>
                 fetchBalances();
                 loadProviders();
                 listenToEvents();
-                // ✅ App Kits'i başlat (safe init)
-                initAppKits();
+                // ✅ App Kits Safe Init
+                if (CONFIG.appKits?.enabled) {
+                    setTimeout(() => initAppKits(), 500);
+                }
                 showToast('Wallet connected', 'success');
 
             } catch (err) {
@@ -796,36 +798,25 @@ console.log("call opened:", tx.hash);</code></pre>
         });
 
         // =====================================================================
-        // ✅ APP KITS SAFE INIT (Fail-Safe, Fallback Garantili)
+        // ✅ APP KITS SAFE INIT
         // =====================================================================
         async function initAppKits() {
-            // App Kits disabled ise veya global obje yoksa sessizce çık
-            if (!CONFIG.appKits?.enabled || !window.ArcAppKit) {
-                console.log('ℹ️ App Kits disabled or not loaded — using native flow');
-                return;
-            }
-            
+            if (!CONFIG.appKits?.enabled || !window.ArcAppKit) return;
             try {
                 const { AppKit, EthersAdapter } = window.ArcAppKit;
-                
-                // Adapter oluştur
                 const adapter = new EthersAdapter({
                     provider: STATE.provider,
                     signer: STATE.signer
                 });
-
-                // App Kit'i başlat
                 window.appKit = new AppKit({
-                    clientId: CONFIG.appKits.clientId || 'demo-fallback',
+                    clientId: CONFIG.appKits.clientId || 'demo',
                     environment: CONFIG.appKits.environment,
                     adapters: [adapter],
                     chains: ['arc-testnet', 'ethereum-sepolia', 'base-sepolia', 'polygon-amoy']
                 });
-                
-                console.log('✅ App Kits initialized successfully');
-            } catch (err) {
-                console.warn('⚠️ App Kits init failed — falling back to native CCTP/direct flow:', err);
-                // Hata durumunda sistem mevcut flow'a devam eder, bozulmaz
+                console.log('✅ App Kits initialized');
+            } catch (e) {
+                console.warn('⚠️ App Kits init skipped — using native flow', e);
             }
         }
 
