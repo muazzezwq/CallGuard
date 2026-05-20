@@ -11,6 +11,17 @@ const PAY_ABI = [
   "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
 ];
 
+// Agresif polling — her 100ms'de tx receipt kontrol eder
+async function waitFast(provider, txHash, timeoutMs = 10000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (receipt && receipt.blockNumber) return receipt;
+    await new Promise(r => setTimeout(r, 100)); // 100ms bekle
+  }
+  throw new Error("tx timeout: " + txHash);
+}
+
 export function makeFacilitator(env) {
   const provider = new ethers.JsonRpcProvider(env.RPC_URL);
   const wallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, provider);
@@ -78,7 +89,7 @@ export function makeFacilitator(env) {
       a.from, a.to, a.value, a.validAfter, a.validBefore, a.nonce,
       sig.v, sig.r, sig.s
     );
-    const rc = await tx.wait();
+    const rc = await waitFast(provider, tx.hash);
     return { success: true, txHash: tx.hash, blockNumber: rc.blockNumber };
   }
 
@@ -88,7 +99,7 @@ export function makeFacilitator(env) {
     const tx = await payPerCall.callServiceWithAuthorization(
       providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s
     );
-    const rc = await tx.wait();
+    const rc = await waitFast(provider, tx.hash);
     // parse CallStarted event
     const iface = new ethers.Interface(PAY_ABI);
     let callId = null;
