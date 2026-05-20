@@ -6681,7 +6681,7 @@ console.log("call opened:", tx.hash);`;
           tC.remove();
 
           // facData.txHash ve facData.callId facilitator'dan geliyor
-          const tx = fakeTx;
+          const tx = facData.txHash ? { hash: facData.txHash, from: state.address, to: CONFIG.facilitatorUrl } : { hash: null };
           const callId = facData.callId || null;
           if (callId) {
             state.myCalls.set(callId, {
