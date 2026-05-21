@@ -5949,6 +5949,14 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnX402Call").addEventListener("click", doX402Call);
+
+      // ERC-8183 Jobs
+      $("btnCreateJob").addEventListener("click", doCreateJob);
+      $("btnJobSetBudget").addEventListener("click", doSetBudget);
+      $("btnFundJob").addEventListener("click", doFundJob);
+      $("btnSubmitJob").addEventListener("click", doSubmitJob);
+      $("btnCompleteJob").addEventListener("click", doCompleteJob);
+      $("btnCheckJob").addEventListener("click", doCheckJob);
       $("btnCall").addEventListener("click", () => {
         const chain = document.getElementById("sourceChainSelect")?.value || "arc";
         if (chain === "arc") doCall(); else doCCTPCall();
