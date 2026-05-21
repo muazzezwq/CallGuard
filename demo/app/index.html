@@ -3446,6 +3446,80 @@
           </div>
         </section>
 
+        <section class="panel full-width" id="jobsPanel">
+          <div class="panel-head">
+            <h2>⚙️ ERC-8183 Jobs</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Arc standard — trustless job settlement</span>
+          </div>
+          <div class="panel-body">
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
+              Create and manage ERC-8183 jobs on Arc. Providers stake deliverables, evaluators approve, USDC settles automatically.
+            </p>
+
+            <div style="display:grid;gap:12px;margin-bottom:16px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+                <div style="flex:1;min-width:160px">
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider address</label>
+                  <input id="jobProvider" class="inp" placeholder="0x..." style="width:100%"/>
+                </div>
+                <div style="flex:1;min-width:120px">
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Budget (USDC)</label>
+                  <input id="jobBudget" class="inp" type="number" placeholder="5" style="width:100%"/>
+                </div>
+                <div style="flex:1;min-width:160px">
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Description</label>
+                  <input id="jobDesc" class="inp" placeholder="Describe the job..." style="width:100%"/>
+                </div>
+                <button class="btn" id="btnCreateJob">+ Create Job</button>
+              </div>
+            </div>
+
+            <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr;margin-bottom:16px">
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Set Budget (Provider)</label>
+                <div style="display:flex;gap:6px">
+                  <input id="jobSetBudgetId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
+                  <input id="jobSetBudgetAmount" class="inp" type="number" placeholder="USDC" style="flex:1"/>
+                  <button class="btn" id="btnJobSetBudget">Set Budget</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Fund Escrow (Client)</label>
+                <div style="display:flex;gap:6px">
+                  <input id="jobFundId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
+                  <button class="btn" id="btnFundJob">Fund</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Submit Deliverable</label>
+                <div style="display:flex;gap:6px">
+                  <input id="jobSubmitId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
+                  <input id="jobDeliverable" class="inp" placeholder="deliverable payload" style="flex:2"/>
+                  <button class="btn" id="btnSubmitJob">Submit</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Complete (Evaluator)</label>
+                <div style="display:flex;gap:6px">
+                  <input id="jobCompleteId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
+                  <button class="btn" id="btnCompleteJob">Complete ✓</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Check Status</label>
+                <div style="display:flex;gap:6px">
+                  <input id="jobCheckId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
+                  <button class="btn" id="btnCheckJob">Check</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="jobsOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono)">
+              Job results will appear here.
+            </div>
+          </div>
+        </section>
+
         <section class="panel full-width">
           <div class="panel-head">
             <h2>SDK — Quick Integration</h2>
@@ -3586,6 +3660,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: "https://arcsla-eu.onrender.com",
+        agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
       };
 
       // -------- ABIs (minimal — only what we call) --------
@@ -3620,6 +3695,16 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
         "event ReceiptSubmitted(bytes32 indexed callId, bytes32 responseHash)",
         "event CallSlashed(bytes32 indexed callId, uint256 refunded, uint256 slashed)",
+      ];
+
+      const JOBS_ABI = [
+        "function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook) returns (uint256 jobId)",
+        "function setBudget(uint256 jobId, uint256 amount, bytes optParams)",
+        "function fund(uint256 jobId, bytes optParams)",
+        "function submit(uint256 jobId, bytes32 deliverable, bytes optParams)",
+        "function complete(uint256 jobId, bytes32 reason, bytes optParams)",
+        "function getJob(uint256 jobId) view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook))",
+        "event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 expiredAt, address hook)",
       ];
 
       // ================================================================
@@ -6575,6 +6660,127 @@ console.log("call opened:", tx.hash);`;
           btn.textContent = origText || "🔐 Register with NFT — recommended";
         }
       }
+      // ================================================================
+      // ERC-8183 JOBS
+      // ================================================================
+
+      function getJobsContract() {
+        return new ethers.Contract(CONFIG.agenticCommerce, JOBS_ABI, state.signer);
+      }
+
+      const JOB_STATUS = ["Open","Funded","Submitted","Completed","Rejected","Expired"];
+
+      function jobOut(msg) {
+        const el = $("jobsOutput");
+        if (el) el.textContent = msg;
+      }
+
+      async function doCreateJob() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const provider = $("jobProvider").value.trim();
+        const desc     = $("jobDesc").value.trim();
+        if (!provider || !desc) return toast({ kind:"err", title:"Fill provider address and description" });
+        try {
+          jobOut("Creating job...");
+          const jobs = getJobsContract();
+          const expiredAt = Math.floor(Date.now()/1000) + 3600;
+          const tx = await jobs.createJob(provider, state.address, expiredAt, desc, "0x0000000000000000000000000000000000000000");
+          const rc = await tx.wait();
+          const iface = new ethers.Interface(JOBS_ABI);
+          let jobId = null;
+          for (const log of rc.logs) {
+            try { const p = iface.parseLog(log); if (p && p.name === "JobCreated") { jobId = p.args.jobId; break; } } catch {}
+          }
+          jobOut(`Job created! ID: ${jobId ?? "?"} | tx: ${tx.hash.slice(0,10)}...`);
+          toast({ kind:"ok", title:"Job created", detail:`ID: ${jobId}`, link: txLink(tx.hash), timeout:8000 });
+          if (jobId !== null) {
+            ["jobSetBudgetId","jobFundId","jobSubmitId","jobCompleteId","jobCheckId"].forEach(id => { const el = $(id); if(el) el.value = jobId.toString(); });
+          }
+        } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Create job failed", detail: friendlyError(e) }); }
+      }
+
+      async function doSetBudget() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const jobId = $("jobSetBudgetId").value.trim();
+        const amount = $("jobSetBudgetAmount").value.trim();
+        if (!jobId || !amount) return toast({ kind:"err", title:"Enter Job ID and amount" });
+        try {
+          jobOut("Setting budget for job " + jobId + "...");
+          const jobs = getJobsContract();
+          const tx = await jobs.setBudget(BigInt(jobId), ethers.parseUnits(amount, 6), "0x");
+          await tx.wait();
+          jobOut(`Budget set: ${amount} USDC for job ${jobId} | tx: ${tx.hash.slice(0,10)}...`);
+          toast({ kind:"ok", title:"Budget set", link: txLink(tx.hash), timeout:6000 });
+        } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"setBudget failed", detail: friendlyError(e) }); }
+      }
+
+      async function doFundJob() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const jobId = $("jobFundId").value.trim();
+        if (!jobId) return toast({ kind:"err", title:"Enter Job ID" });
+        try {
+          jobOut("Funding job " + jobId + "...");
+          const jobs = getJobsContract();
+          const job = await jobs.getJob(BigInt(jobId));
+          const allowance = await state.usdc.allowance(state.address, CONFIG.agenticCommerce);
+          if (allowance < job.budget) {
+            jobOut("Approving USDC...");
+            const txA = await state.usdc.approve(CONFIG.agenticCommerce, ethers.MaxUint256);
+            await txA.wait();
+          }
+          const tx = await jobs.fund(BigInt(jobId), "0x");
+          await tx.wait();
+          jobOut(`Job ${jobId} funded! tx: ${tx.hash.slice(0,10)}...`);
+          toast({ kind:"ok", title:"Job funded", link: txLink(tx.hash), timeout:6000 });
+        } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Fund failed", detail: friendlyError(e) }); }
+      }
+
+      async function doSubmitJob() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const jobId   = $("jobSubmitId").value.trim();
+        const payload = $("jobDeliverable").value.trim() || "deliverable";
+        if (!jobId) return toast({ kind:"err", title:"Enter Job ID" });
+        try {
+          jobOut("Submitting deliverable for job " + jobId + "...");
+          const jobs = getJobsContract();
+          const deliverableHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
+          const tx = await jobs.submit(BigInt(jobId), deliverableHash, "0x");
+          await tx.wait();
+          jobOut(`Deliverable submitted for job ${jobId}! tx: ${tx.hash.slice(0,10)}...`);
+          toast({ kind:"ok", title:"Deliverable submitted", link: txLink(tx.hash), timeout:6000 });
+        } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Submit failed", detail: friendlyError(e) }); }
+      }
+
+      async function doCompleteJob() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const jobId = $("jobCompleteId").value.trim();
+        if (!jobId) return toast({ kind:"err", title:"Enter Job ID" });
+        try {
+          jobOut("Completing job " + jobId + "...");
+          const jobs = getJobsContract();
+          const reasonHash = ethers.keccak256(ethers.toUtf8Bytes("work-delivered-and-approved"));
+          const tx = await jobs.complete(BigInt(jobId), reasonHash, "0x");
+          await tx.wait();
+          jobOut(`Job ${jobId} completed! tx: ${tx.hash.slice(0,10)}...`);
+          toast({ kind:"ok", title:"Job completed", link: txLink(tx.hash), timeout:6000 });
+        } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Complete failed", detail: friendlyError(e) }); }
+      }
+
+      async function doCheckJob() {
+        if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
+        const jobId = $("jobCheckId").value.trim();
+        if (!jobId) return toast({ kind:"err", title:"Enter Job ID" });
+        try {
+          const jobs = getJobsContract();
+          const job = await jobs.getJob(BigInt(jobId));
+          const status = JOB_STATUS[Number(job.status)] || "Unknown";
+          const budget = ethers.formatUnits(job.budget, 6);
+          jobOut(`Job #${jobId} | Status: ${status} | Budget: ${budget} USDC | Provider: ${job.provider.slice(0,10)}... | Client: ${job.client.slice(0,10)}...`);
+        } catch(e) { jobOut("Error: "+e.message); }
+      }
+
+      // ================================================================
+      // x402 SIMULATED FLOW (browser, no HTTP server needed)
       // ================================================================
       // x402 SIMULATED FLOW (browser, no HTTP server needed)
       // ================================================================
