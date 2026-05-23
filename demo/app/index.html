@@ -13,28 +13,30 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
     <style>
       :root {
-        /* Premium light theme — Linear/Stripe/Vercel inspired */
-        --bg-0: #fafafa;           /* page background, slightly warm off-white */
-        --bg-1: #ffffff;           /* panel background, pure white */
-        --bg-2: #f5f5f5;           /* subtle panel accent (table headers, hover) */
-        --bg-3: #eeeeee;           /* deeper accent (progress track, disabled) */
-        --border: #e5e7eb;         /* soft hairline */
-        --border-hi: #d1d5db;      /* emphasized border on hover / focus */
-        --text: #0a0a0a;           /* near-black charcoal, not pure black */
-        --text-dim: #525252;       /* secondary body text */
-        --text-faint: #9ca3af;     /* labels, hints, timestamps */
-        --accent: #059669;         /* emerald 600 — readable on white */
-        --accent-dim: #10b981;     /* emerald 500 — brighter variant */
-        --accent-bg: rgba(5, 150, 105, 0.08);
-        --danger: #dc2626;         /* red 600 */
-        --danger-bg: rgba(220, 38, 38, 0.08);
-        --warn: #d97706;           /* amber 600 */
-        --warn-bg: rgba(217, 119, 6, 0.08);
-        --info: #2563eb;           /* blue 600 */
-        --info-bg: rgba(37, 99, 235, 0.08);
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-        --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-        --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+        /* Dark theme — Futuristic financial analytics */
+        --bg-0: #0f1115;           /* deep dark blue-black */
+        --bg-1: #181a20;           /* card background */
+        --bg-2: #1e2028;           /* subtle panel accent */
+        --bg-3: #2b3139;           /* deeper accent */
+        --border: #2b3139;         /* card border */
+        --border-hi: #3b4149;      /* emphasized border on hover */
+        --text: #ffffff;           /* primary text white */
+        --text-dim: #848e9c;       /* secondary text muted gray */
+        --text-faint: #515a67;     /* labels, hints, timestamps */
+        --accent: #22c55e;         /* vibrant green */
+        --accent-dim: #16a34a;     /* darker green variant */
+        --accent-bg: rgba(34, 197, 94, 0.10);
+        --danger: #ef4444;
+        --danger-bg: rgba(239, 68, 68, 0.10);
+        --warn: #f59e0b;
+        --warn-bg: rgba(245, 158, 11, 0.10);
+        --info: #3b82f6;
+        --info-bg: rgba(59, 130, 246, 0.10);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+        --glow: 0 0 20px rgba(34, 197, 94, 0.15);
+        --glow-strong: 0 0 30px rgba(34, 197, 94, 0.25);
         --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Menlo", monospace;
         --font-sans: "Spline Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --font-display: "Fraunces", Georgia, serif;
@@ -42,6 +44,85 @@
 
       * {
         box-sizing: border-box;
+      }
+
+      /* ---- Dark theme glow effects ---- */
+      body {
+        background: var(--bg-0) !important;
+        color: var(--text) !important;
+      }
+      .panel {
+        background: var(--bg-1) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 16px !important;
+        transition: border-color .2s, box-shadow .2s !important;
+      }
+      .panel:hover {
+        border-color: var(--border-hi) !important;
+        box-shadow: var(--glow) !important;
+      }
+      .btn-primary {
+        background: var(--accent) !important;
+        color: #000 !important;
+        font-weight: 600 !important;
+        box-shadow: 0 0 12px rgba(34,197,94,0.3) !important;
+        transition: all .2s !important;
+      }
+      .btn-primary:hover {
+        box-shadow: var(--glow-strong) !important;
+        transform: translateY(-1px) !important;
+      }
+      .btn {
+        border: 1px solid var(--border-hi) !important;
+        color: var(--text) !important;
+        background: var(--bg-2) !important;
+        transition: all .2s !important;
+      }
+      .btn:hover {
+        border-color: var(--accent) !important;
+        color: var(--accent) !important;
+      }
+      input, textarea, select {
+        background: var(--bg-2) !important;
+        border-color: var(--border) !important;
+        color: var(--text) !important;
+      }
+      input:focus, textarea:focus {
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 0 2px rgba(34,197,94,0.15) !important;
+      }
+      .badge.active {
+        background: rgba(34,197,94,0.15) !important;
+        color: var(--accent) !important;
+        border: 1px solid rgba(34,197,94,0.3) !important;
+      }
+      .badge.inactive {
+        background: rgba(132,142,156,0.1) !important;
+        color: var(--text-dim) !important;
+      }
+      table thead th {
+        background: var(--bg-2) !important;
+        color: var(--text-faint) !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      table tbody tr:hover {
+        background: var(--bg-2) !important;
+      }
+      .rep-bar-fill, .progress-fill {
+        background: var(--accent) !important;
+        box-shadow: 0 0 6px rgba(34,197,94,0.4) !important;
+      }
+      .live-dot-pulse {
+        background: var(--accent) !important;
+        box-shadow: 0 0 8px var(--accent) !important;
+      }
+      /* Panel category fade animation */
+      [data-category].cat-visible {
+        animation: catFade .25s ease both !important;
+      }
+      @keyframes catFade {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
       }
 
       /* ---- Sidebar layout ---- */
