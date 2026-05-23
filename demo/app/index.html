@@ -44,6 +44,95 @@
         box-sizing: border-box;
       }
 
+      /* ---- Sidebar layout ---- */
+      .app-shell {
+        display: flex;
+        min-height: 100vh;
+      }
+      .app-sidebar {
+        width: 200px;
+        background: var(--bg-1);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 100;
+        padding-top: 60px;
+        overflow-y: auto;
+      }
+      .app-content {
+        margin-left: 200px;
+        flex: 1;
+        min-width: 0;
+      }
+      .sb-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+      .sb-dot {
+        width: 28px;
+        height: 28px;
+        background: var(--accent);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .sb-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .sb-net {
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+      .sb-section {
+        font-size: 9px;
+        color: var(--text-faint);
+        padding: 10px 14px 3px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+      }
+      .sb-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: var(--text-dim);
+        cursor: pointer;
+        transition: all .15s;
+        border-left: 2px solid transparent;
+        user-select: none;
+      }
+      .sb-item:hover {
+        background: var(--bg-2);
+        color: var(--text);
+      }
+      .sb-item.on {
+        background: var(--accent-bg);
+        color: var(--accent);
+        font-weight: 500;
+        border-left-color: var(--accent);
+      }
+      /* Panel category visibility */
+      [data-category] { display: none; }
+      [data-category].cat-visible { display: block; }
+      @media (max-width: 768px) {
+        .app-sidebar { display: none; }
+        .app-content { margin-left: 0; }
+      }
+
       /* Corporate display type — match landing page (Fraunces serif headings) */
       h1, h2, h3 {
         font-family: var(--font-display);
@@ -3068,6 +3157,30 @@
     <!-- Connected view                                               -->
     <!-- ============================================================ -->
     <main id="connectedView" class="hidden">
+      <div class="app-shell">
+        <!-- SIDEBAR -->
+        <nav class="app-sidebar" id="appSidebar">
+          <div class="sb-logo">
+            <div class="sb-dot">⚡</div>
+            <div>
+              <div class="sb-name">ArcSLA</div>
+              <div class="sb-net">Arc Testnet</div>
+            </div>
+          </div>
+          <div class="sb-section">Dashboard</div>
+          <div class="sb-item on" data-nav="overview">📊 Overview</div>
+          <div class="sb-item" data-nav="providers">🖥️ Providers</div>
+          <div class="sb-item" data-nav="calls">📞 My Calls</div>
+          <div class="sb-section">Payments</div>
+          <div class="sb-item" data-nav="x402">⚡ x402</div>
+          <div class="sb-item" data-nav="jobs">💼 Jobs</div>
+          <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
+          <div class="sb-section">Account</div>
+          <div class="sb-item" data-nav="register">🔐 Register</div>
+          <div class="sb-item" data-nav="settings">⚙️ Settings</div>
+        </nav>
+        <!-- MAIN CONTENT -->
+        <div class="app-content">
       <div style="max-width: 1800px; margin: 0 auto; padding: 32px 48px 0;">
         <div class="live-bar">
           <div class="live-bar-left">
@@ -3157,8 +3270,7 @@
 
       <div class="grid">
         <!-- Left: Actions -->
-        <section class="panel">
-          <div class="panel-head">
+        <section class="panel cat-visible" data-category="overview register calls x402 bridge">          <div class="panel-head">
             <h2>Actions</h2>
           </div>
           <div class="panel-body compact">
@@ -3360,7 +3472,7 @@
         </section>
 
         <!-- Right: Live state -->
-        <section class="panel">
+        <section class="panel" data-category="providers">
           <div class="panel-head">
             <h2>Your provider</h2>
             <button class="btn btn-sm" id="btnRefreshProvider">Refresh</button>
@@ -3375,7 +3487,7 @@
         </section>
 
         <!-- ===== PROVIDER DASHBOARD ===== -->
-        <section class="panel" id="providerDashPanel" style="display:none">
+        <section class="panel" id="providerDashPanel" data-category="providers" style="display:none">
           <div class="panel-head">
             <h2>Provider Dashboard</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)" id="dashLastUpdate">—</span>
@@ -3386,7 +3498,7 @@
         </section>
 
         <!-- ===== BUDGET / SPENDING CAP ===== -->
-        <section class="panel" id="budgetPanel">
+        <section class="panel" id="budgetPanel" data-category="settings">
           <div class="panel-head">
             <h2>Session Budget</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">spending cap</span>
@@ -3412,7 +3524,7 @@
           </div>
         </section>
 
-        <section class="panel full-width">
+        <section class="panel full-width cat-visible" data-category="overview">
           <div class="panel-head">
             <h2>My Activity</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="activitySummary"></span>
@@ -3422,7 +3534,7 @@
           </div>
         </section>
 
-        <section class="panel full-width">
+        <section class="panel full-width" data-category="calls">
           <div class="panel-head">
             <h2>Your calls</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="callsSummary"
@@ -3433,7 +3545,7 @@
           </div>
         </section>
 
-        <section class="panel full-width">
+        <section class="panel full-width" data-category="providers">
           <div class="panel-head">
             <h2>All providers</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
@@ -3446,7 +3558,7 @@
           </div>
         </section>
 
-        <section class="panel full-width" id="jobsPanel">
+        <section class="panel full-width" id="jobsPanel" data-category="jobs">
           <div class="panel-head">
             <h2>⚙️ ERC-8183 Jobs</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">Arc standard — trustless job settlement</span>
@@ -3520,7 +3632,7 @@
           </div>
         </section>
 
-        <section class="panel full-width">
+        <section class="panel full-width" data-category="settings">
           <div class="panel-head">
             <h2>SDK — Quick Integration</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">5-line setup</span>
@@ -3548,7 +3660,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-category="overview">
           <div class="panel-head">
             <h2>Leaderboard</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
@@ -3560,7 +3672,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-category="overview">
           <div class="panel-head">
             <h2>Activity — last 24h</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
@@ -3572,7 +3684,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           </div>
         </section>
 
-        <section class="panel full-width">
+        <section class="panel full-width" data-category="overview">
           <div class="panel-head">
             <h2>Live event feed</h2>
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
@@ -3586,6 +3698,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           </div>
         </section>
       </div>
+      </div> <!-- /app-content -->
+      </div> <!-- /app-shell -->
     </main>
 
     <!-- ============================================================ -->
@@ -5949,6 +6063,39 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnX402Call").addEventListener("click", doX402Call);
+
+      // ---- Sidebar navigation ----
+      function showCategory(cat) {
+        // Tüm panelleri gizle
+        document.querySelectorAll("[data-category]").forEach(el => {
+          el.classList.remove("cat-visible");
+          el.style.display = "none";
+        });
+        // Seçili kategorinin panellerini göster
+        document.querySelectorAll("[data-category]").forEach(el => {
+          const cats = el.getAttribute("data-category").split(" ");
+          if (cats.includes(cat)) {
+            el.style.display = "";
+            el.classList.add("cat-visible");
+          }
+        });
+        // Sidebar item'ları güncelle
+        document.querySelectorAll(".sb-item").forEach(el => {
+          el.classList.toggle("on", el.dataset.nav === cat);
+        });
+        // Aktif kategoriyi kaydet
+        window._activeCat = cat;
+      }
+
+      // Sidebar click handlers
+      document.querySelectorAll(".sb-item").forEach(el => {
+        el.addEventListener("click", () => {
+          showCategory(el.dataset.nav);
+        });
+      });
+
+      // Başlangıçta overview göster
+      showCategory("overview");
 
       // ERC-8183 Jobs
       $("btnCreateJob").addEventListener("click", doCreateJob);
