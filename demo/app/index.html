@@ -46,6 +46,48 @@
         box-sizing: border-box;
       }
 
+      /* ---- Gradient theme — white to black ---- */
+      body {
+        background: linear-gradient(160deg, #ffffff 0%, #1a1a1a 40%, #000000 100%) !important;
+        background-attachment: fixed !important;
+        min-height: 100vh !important;
+      }
+      .app-sidebar {
+        background: linear-gradient(180deg, #f0f0f0 0%, #1a1a1a 50%, #000000 100%) !important;
+        border-right: 1px solid rgba(255,255,255,0.1) !important;
+      }
+      .sb-item {
+        color: #333 !important;
+        transition: all .2s !important;
+      }
+      .sb-item:hover {
+        background: rgba(255,255,255,0.1) !important;
+        color: #000 !important;
+      }
+      .sb-item.on {
+        background: rgba(34,197,94,0.15) !important;
+        color: var(--accent) !important;
+        border-left-color: var(--accent) !important;
+      }
+      .sb-name { color: #111 !important; }
+      .sb-net { color: #555 !important; }
+      .sb-section { color: #777 !important; }
+      .panel {
+        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(20,20,20,0.85) 100%) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 16px !important;
+        transition: all .2s !important;
+      }
+      .panel:hover {
+        border-color: rgba(34,197,94,0.4) !important;
+        box-shadow: 0 0 24px rgba(34,197,94,0.15) !important;
+      }
+      header {
+        background: linear-gradient(90deg, #ffffff 0%, #888888 50%, #000000 100%) !important;
+        border-bottom: 1px solid rgba(255,255,255,0.15) !important;
+      }
+
       /* ---- Dark theme glow effects ---- */
       body {
         background: var(--bg-0) !important;
