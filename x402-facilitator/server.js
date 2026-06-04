@@ -134,9 +134,19 @@ app.post("/nano/service", async (req, res) => {
       return res.status(402).json({ error: "No payment signature" });
     }
     
-    const payment = JSON.parse(Buffer.from(paymentSig, "base64").toString());
-    const verifyResult = await fac.verify(payment);
+    let payment;
+      try {
+        payment = JSON.parse(Buffer.from(paymentSig, "base64").toString());
+        console.log("[nano] Payment parsed:", JSON.stringify(payment, null, 2));
+      } catch(parseErr) {
+        console.error("[nano] Parse error:", parseErr.message);
+        return res.status(400).json({ error: "Invalid payment format", details: parseErr.message });
+      }
+    try {
+      const verifyResult = await fac.verify(payment);
+      console.log("[nano] Verify result:", verifyResult);
     if (!verifyResult.isValid) {
+      console.error("[nano] Payment verification failed:", verifyResult.reason);
       return res.status(402).json({ error: "Invalid payment", reason: verifyResult.reason });
     }
     
