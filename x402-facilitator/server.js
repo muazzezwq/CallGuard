@@ -107,7 +107,7 @@ app.listen(env.PORT || 4021, () =>
 app.get("/nano/service", async (req, res) => {
   try {
     const amountAtomic = "1000"; // 0.001 USDC in atomic
-    const payTo = env.FACILITATOR_ADDRESS || wallet.address;
+    const payTo = env.FACILITATOR_ADDRESS || fac.facilitatorAddress;
     
     res.status(402).json({
       status: 402,
@@ -163,7 +163,7 @@ app.post("/nano/service", async (req, res) => {
 app.get("/api/premium/report", async (req, res) => {
   try {
     const amountAtomic = "1000";
-    const payTo = env.FACILITATOR_ADDRESS || wallet.address;
+    const payTo = env.FACILITATOR_ADDRESS || fac.facilitatorAddress;
     
     res.status(402).json({
       status: 402,
