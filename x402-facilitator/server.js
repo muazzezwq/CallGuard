@@ -134,7 +134,7 @@ app.post("/nano/service", async (req, res) => {
       return res.status(402).json({ error: "No payment signature" });
     }
     
-    const payment = JSON.parse(atob(paymentSig));
+    const payment = JSON.parse(Buffer.from(paymentSig, "base64").toString());
     const verifyResult = await fac.verify(payment);
     if (!verifyResult.isValid) {
       return res.status(402).json({ error: "Invalid payment", reason: verifyResult.reason });
@@ -188,7 +188,7 @@ app.post("/api/premium/report", async (req, res) => {
       return res.status(402).json({ error: "No payment signature" });
     }
     
-    const payment = JSON.parse(atob(paymentSig));
+    const payment = JSON.parse(Buffer.from(paymentSig, "base64").toString());
     const verifyResult = await fac.verify(payment);
     if (!verifyResult.isValid) {
       return res.status(402).json({ error: "Invalid payment", reason: verifyResult.reason });    }
