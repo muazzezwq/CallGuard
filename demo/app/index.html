@@ -3981,8 +3981,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
-        facilitatorUrl: "",
-        nanoFacilitatorUrl: "",
+        facilitatorUrl: window.location.origin,
+        nanoFacilitatorUrl: window.location.origin,
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
       };
 
@@ -7165,7 +7165,7 @@ console.log("call opened:", tx.hash);`;
         for (let i = 0; i < count; i++) {
           try {
             const nanoUrl = CONFIG.nanoFacilitatorUrl || CONFIG.facilitatorUrl;
-            const res1 = await fetch("/api/premium-report");
+            const res1 = await fetch("/api/premium-report.js");
             if (res1.status !== 402) throw new Error("Expected 402");
             const data = await res1.json();
             const requirements = data.accepts[0];
@@ -7185,7 +7185,7 @@ console.log("call opened:", tx.hash);`;
             const paymentPayload = { authorization: value, signature: rawSig };
             const paymentSigBase64 = btoa(JSON.stringify(paymentPayload));
 
-            const res2 = await fetch("/api/premium-report", { headers: { "payment-signature": paymentSigBase64 } });
+            const res2 = await fetch("/api/premium-report.js", { headers: { "payment-signature": paymentSigBase64 } });
             const report = await res2.json();
 
             if (res2.status === 200) {
@@ -7229,7 +7229,7 @@ console.log("call opened:", tx.hash);`;
 
         try {
           const nanoUrl = CONFIG.nanoFacilitatorUrl || CONFIG.facilitatorUrl;
-          const res1 = await fetch("/api/nano-service");
+          const res1 = await fetch("/api/nano-service.js");
           if (res1.status !== 402) throw new Error("Expected 402, got " + res1.status);
           const data = await res1.json();          const requirements = data.accepts[0];
           out.textContent = "Step 2: Got 402 · Signing…";
@@ -7250,7 +7250,7 @@ console.log("call opened:", tx.hash);`;
           const paymentSigBase64 = btoa(JSON.stringify(paymentPayload));
 
           out.textContent = "Step 3: Sending payment…";
-          const res2 = await fetch("/api/nano-service", { headers: { "payment-signature": paymentSigBase64 } });
+          const res2 = await fetch("/api/nano-service.js", { headers: { "payment-signature": paymentSigBase64 } });
           const resData = await res2.json();
 
           if (res2.status === 200) {
