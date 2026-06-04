@@ -1,13 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "demo/app/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/app/(.*)", "dest": "/demo/app/$1" },
-    { "src": "/app", "dest": "/demo/app/index.html" },
-    { "src": "/", "dest": "/demo/app/index.html" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/app/(.*)", "destination": "/demo/app/$1" },
+    { "source": "/app", "destination": "/demo/app/index.html" },
+    { "source": "/(.*)", "destination": "/demo/app/$1" }
   ]
 }
