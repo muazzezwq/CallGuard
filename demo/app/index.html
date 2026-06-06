@@ -7246,13 +7246,9 @@ console.log("call opened:", tx.hash);`;
             validAfter: 0, validBefore: now + 345600, nonce: authNonce };
 
           const rawSig = await state.signer.signTypedData(domain, types, value);
-          const sig = ethers.Signature.from(rawSig);
           const paymentPayload = {
             x402Version: 2,
-            resource: { url: 'https://arcsla-eu.onrender.com/nano/service', description: 'ArcSLA nanopayment', mimeType: 'application/json' },
-            accepted: requirements,
             payload: {
-              signature: rawSig,
               authorization: {
                 from: value.from,
                 to: value.to,
@@ -7260,10 +7256,8 @@ console.log("call opened:", tx.hash);`;
                 validAfter: value.validAfter.toString(),
                 validBefore: value.validBefore.toString(),
                 nonce: value.nonce,
-                v: sig.v,
-                r: sig.r,
-                s: sig.s,
-              }
+              },
+              signature: rawSig,
             }
           };
           const paymentSigBase64 = btoa(JSON.stringify(paymentPayload));
