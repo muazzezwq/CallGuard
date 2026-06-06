@@ -110,7 +110,7 @@ app.get("/nano/service", async (req, res) => {
   const requirements = buildNanoRequirements("0.001");
 
   if (!paymentSig) {
-    return res.status(402).json({
+    const paymentRequired = {
       x402Version: 2,
       resource: {
         url: "/nano/service",
@@ -118,7 +118,9 @@ app.get("/nano/service", async (req, res) => {
         mimeType: "application/json",
       },
       accepts: [requirements],
-    });
+    };
+    res.setHeader("PAYMENT-REQUIRED", Buffer.from(JSON.stringify(paymentRequired)).toString("base64"));
+    return res.status(402).json(paymentRequired);
   }
 
   try {
