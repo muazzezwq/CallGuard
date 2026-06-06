@@ -7172,7 +7172,7 @@ console.log("call opened:", tx.hash);`;
 
             const now = Math.floor(Date.now() / 1000);
             const authNonce = ethers.hexlify(ethers.randomBytes(32));
-            const domain = { name: "USDC", version: "2", chainId: CONFIG.chainId, verifyingContract: CONFIG.usdc };
+            const domain = { name: "USDC", version: "2", chainId: 14601, verifyingContract: "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51" };
             const types = { TransferWithAuthorization: [
               { name: "from", type: "address" }, { name: "to", type: "address" },
               { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" },
