@@ -126,6 +126,8 @@ app.get("/nano/service", async (req, res) => {
     const facilitator = new BatchFacilitatorClient();
     const paymentPayload = JSON.parse(Buffer.from(paymentSig, "base64").toString("utf-8"));
 
+    console.log('[nano] paymentPayload:', JSON.stringify(paymentPayload, null, 2));
+    console.log('[nano] requirements:', JSON.stringify(requirements, null, 2));
     const verifyResult = await facilitator.verify(paymentPayload, requirements);
     if (!verifyResult.isValid) {
       return res.status(402).json({ error: "Payment verification failed", reason: verifyResult.invalidReason });
