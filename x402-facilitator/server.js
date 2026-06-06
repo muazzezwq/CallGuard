@@ -123,7 +123,7 @@ app.get("/nano/service", async (req, res) => {
 
   try {
     const { BatchFacilitatorClient } = await import("@circle-fin/x402-batching/server");
-    const facilitator = new BatchFacilitatorClient();
+    const facilitator = new BatchFacilitatorClient({ url: "https://gateway-api-testnet.circle.com" });
     const paymentPayload = JSON.parse(Buffer.from(paymentSig, "base64").toString("utf-8"));
 
     console.log('[nano] paymentPayload:', JSON.stringify(paymentPayload, null, 2));
