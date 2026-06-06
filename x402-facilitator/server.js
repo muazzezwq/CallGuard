@@ -129,7 +129,9 @@ app.get("/nano/service", async (req, res) => {
     console.log('[nano] paymentPayload:', JSON.stringify(paymentPayload, null, 2));
     console.log('[nano] requirements:', JSON.stringify(requirements, null, 2));
     const verifyResult = await facilitator.verify(paymentPayload, requirements);
+    console.log('[nano] verifyResult:', JSON.stringify(verifyResult));
     if (!verifyResult.isValid) {
+      console.log('[nano] verify failed:', verifyResult.invalidReason);
       return res.status(402).json({ error: "Payment verification failed", reason: verifyResult.invalidReason });
     }
 
