@@ -7248,6 +7248,8 @@ console.log("call opened:", tx.hash);`;
           const rawSig = await state.signer.signTypedData(domain, types, value);
           const paymentPayload = {
             x402Version: 2,
+            resource: 'https://arcsla-eu.onrender.com/nano/service',
+            accepted: requirements,
             payload: {
               authorization: {
                 from: value.from,
