@@ -96,7 +96,7 @@ function buildNanoRequirements(priceUsdc = "0.001") {
     asset: ARC_TESTNET_USDC,
     amount,
     payTo: env.SELLER_ADDRESS,
-    maxTimeoutSeconds: 345600,
+    maxTimeoutSeconds: 604800,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
