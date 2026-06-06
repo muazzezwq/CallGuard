@@ -7242,7 +7242,7 @@ console.log("call opened:", tx.hash);`;
             { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" },
             { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
           ]};
-          const value = { from: state.address, to: requirements.payTo, value: requirements.maxAmountRequired,
+          const value = { from: state.address, to: requirements.payTo, value: requirements.amount || requirements.maxAmountRequired,
             validAfter: 0, validBefore: now + 345600, nonce: authNonce };
 
           const rawSig = await state.signer.signTypedData(domain, types, value);
