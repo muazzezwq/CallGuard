@@ -7183,7 +7183,7 @@ console.log("call opened:", tx.hash);`;
 
             const rawSig = await state.signer.signTypedData(domain, types, value);
             const paymentPayload = { authorization: value, signature: rawSig };
-            const paymentSigBase64 = btoa(JSON.stringify(paymentPayload));
+            const paymentSigBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentPayload))));
 
             const res2 = await fetch("https://arcsla-eu.onrender.com/api/premium/report", { headers: { "payment-signature": paymentSigBase64 } });
             const report = await res2.json();
@@ -7262,7 +7262,7 @@ console.log("call opened:", tx.hash);`;
               signature: rawSig,
             }
           };
-          const paymentSigBase64 = btoa(JSON.stringify(paymentPayload));
+          const paymentSigBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentPayload))));
 
           out.textContent = "Step 3: Sending payment…";
           const res2 = await fetch("https://arcsla-eu.onrender.com/nano/service", { headers: { "payment-signature": paymentSigBase64 } });
