@@ -166,6 +166,23 @@ app.get("/", (_, res) => res.json({
   endpoints: ["/health", "/api/service", "/verify", "/settle", "/callService", "/nano/service"],
 }));
 
+// ---- /nano/call — facilitator GatewayClient ile odemeyı yapar ----
+app.post("/nano/call", async (req, res) => {
+  try {
+    const { GatewayClient } = await import("@circle-fin/x402-batching/client");
+    const gateway = new GatewayClient({
+      chain: "arcTestnet",
+      privateKey: env.BUYER_PRIVATE_KEY,
+    });
+    const result = await gateway.pay("https://arcsla-eu.onrender.com/nano/service");
+    console.log(`[nano/call] Paid: ${result.formattedAmount} USDC`);
+    res.json({ ok: true, amount: result.formattedAmount, result });
+  } catch (e) {
+    console.error("[nano/call] Error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/health", (_, res) =>
   res.json({ ok: true, facilitator: fac.facilitatorAddress }));
 
