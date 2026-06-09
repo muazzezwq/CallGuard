@@ -174,6 +174,7 @@ app.post("/nano/call", async (req, res) => {
       chain: "arcTestnet",
       privateKey: env.BUYER_PRIVATE_KEY,
     });
+    gateway.chainConfig.chain.id = 14601;
     const result = await gateway.pay("https://arcsla-eu.onrender.com/nano/service");
     console.log(`[nano/call] Paid: ${result.formattedAmount} USDC`);
     res.json({ ok: true, amount: result.formattedAmount, result });
