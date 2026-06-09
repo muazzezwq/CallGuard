@@ -180,7 +180,8 @@ app.post("/nano/call", async (req, res) => {
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
     console.error("[nano/call] Error:", e.message);
-    res.status(500).json({ error: e.message });
+    console.error("[nano/call] Stack:", e.stack);
+    res.status(500).json({ error: e.message, detail: e.stack });
   }
 });
 
