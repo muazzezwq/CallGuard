@@ -158,6 +158,40 @@ app.get("/nano/service", async (req, res) => {
   }
 });
 
+app.post("/nano/service", async (req, res) => {
+  const paymentSig = req.headers["payment-signature"];
+  if (!paymentSig) {
+    return res.status(402).json({ error: "Payment Required" });
+  }
+  try {
+    const { BatchFacilitatorClient } = await import("@circle-fin/x402-batching/server");
+    const facilitator = new BatchFacilitatorClient({ url: "https://gateway-api-testnet.circle.com" });
+    const requirements = buildNanoRequirements("0.001");
+    const paymentPayload = JSON.parse(Buffer.from(paymentSig, "base64").toString("utf-8"));
+    console.log("[nano POST] verifying...");
+    const verifyResult = await facilitator.verify(paymentPayload, requirements);
+    console.log("[nano POST] verify:", JSON.stringify(verifyResult));
+    if (!verifyResult.isValid) {
+      return res.status(402).json({ error: "Payment verification failed", reason: verifyResult.invalidReason });
+    }
+    const settleResult = await facilitator.settle(paymentPayload, requirements);
+    console.log("[nano POST] settle:", JSON.stringify(settleResult));
+    if (!settleResult.success) {
+      return res.status(402).json({ error: "Settlement failed", reason: settleResult.errorReason });
+    }
+    res.setHeader("PAYMENT-RESPONSE", Buffer.from(JSON.stringify({
+      success: true,
+      transaction: settleResult.transaction,
+      network: ARC_TESTNET_NETWORK,
+      payer: settleResult.payer,
+    })).toString("base64"));
+    return res.json({ ok: true, data: "pong", payer: settleResult.payer, tx: settleResult.transaction });
+  } catch (e) {
+    console.error("[nano POST] Error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Root & Health ----
 app.get("/", (_, res) => res.json({
   service: "ArcSLA x402 facilitator",
