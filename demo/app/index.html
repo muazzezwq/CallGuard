@@ -3297,6 +3297,7 @@
           <div class="sb-section">Payments</div>
           <div class="sb-item" data-nav="x402">⚡ x402</div>
           <div class="sb-item" data-nav="jobs">💼 Jobs</div>
+          <div class="sb-item" data-nav="nano">⚡ Nanopayment</div>
           <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
           <div class="sb-section">Account</div>
           <div class="sb-item" data-nav="register">🔐 Register</div>
@@ -3684,6 +3685,20 @@
         
         
 
+
+        <section class="panel full-width" data-category="nano">
+          <div class="panel-head">
+            <h2>⚡ Nanopayment</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Circle Gateway · 0.001 USDC · gasless</span>
+          </div>
+          <div class="panel-body">
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
+              Gasless micro-payments via Circle Gateway. Facilitator handles payment server-side.
+            </p>
+            <button class="btn btn-primary" id="btnNanoCall">⚡ Call /nano/service (0.001 USDC)</button>
+            <div id="nanoOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono);margin-top:12px;white-space:pre-wrap">Result will appear here.</div>
+          </div>
+        </section>
 
         <section class="panel full-width" id="jobsPanel" data-category="jobs">
           <div class="panel-head">
@@ -6191,6 +6206,33 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnX402Call").addEventListener("click", doX402Call);
 
+      // ---- Nanopayment ----
+      async function doNanoCall() {
+        const btn = $("btnNanoCall");
+        const out = $("nanoOutput");
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = "Processing…";
+        out.textContent = "Calling facilitator…";
+        try {
+          const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
+          const data = await res.json();
+          if (res.ok) {
+            out.textContent = "✅ Paid: " + data.amount + " USDC";
+            toast({ kind: "ok", title: "Nanopayment successful!", detail: data.amount + " USDC", timeout: 5000 });
+          } else {
+            throw new Error(data.error || "HTTP " + res.status);
+          }
+        } catch (e) {
+          out.textContent = "❌ " + e.message;
+          toast({ kind: "err", title: "Nanopayment failed", detail: e.message, timeout: 5000 });
+        } finally {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      }
+
       // ---- Sidebar navigation ----
       function showCategory(cat) {
         // Tüm panelleri gizle
@@ -6223,6 +6265,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // Başlangıçta overview göster
       showCategory("overview");
+
+      $("btnNanoCall").addEventListener("click", doNanoCall);
 
       // ERC-8183 Jobs
       $("btnCreateJob").addEventListener("click", doCreateJob);
