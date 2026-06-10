@@ -175,9 +175,11 @@ app.post("/nano/service", async (req, res) => {
       return res.status(402).json({ error: "Payment verification failed", reason: verifyResult.invalidReason });
     }
     const settleResult = await facilitator.settle(paymentPayload, requirements);
-    console.log("[nano POST] settle:", JSON.stringify(settleResult));
+    console.log("[nano POST] settle FULL:", JSON.stringify(settleResult, null, 2));
     if (!settleResult.success) {
-      return res.status(402).json({ error: "Settlement failed", reason: settleResult.errorReason });
+      console.log("[nano POST] settle errorReason:", settleResult.errorReason);
+      console.log("[nano POST] settle transaction:", settleResult.transaction);
+      return res.status(402).json({ error: "Settlement failed", reason: settleResult.errorReason, full: settleResult });
     }
     res.setHeader("PAYMENT-RESPONSE", Buffer.from(JSON.stringify({
       success: true,
