@@ -84,8 +84,8 @@ app.post("/callService", async (req, res) => {
 });
 
 // ---- Circle Gateway Nanopayments ----
-const ARC_TESTNET_NETWORK = "eip155:14601";
-const ARC_TESTNET_USDC = "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51";
+const ARC_TESTNET_NETWORK = "eip155:5042002";
+const ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
 const ARC_TESTNET_GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 
 function buildNanoRequirements(priceUsdc = "0.001") {
@@ -214,8 +214,8 @@ app.post("/nano/call", async (req, res) => {
     console.log("[nano/call] Creating payment payload...");
     const paymentPayload = await gateway.createPaymentPayload(2, {
       scheme: "exact",
-      network: "eip155:14601",
-      asset: "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51",
+      network: "eip155:5042002",
+      asset: "0x3600000000000000000000000000000000000000",
       amount: "1000",
       payTo: env.SELLER_ADDRESS,
       maxTimeoutSeconds: 604800,
@@ -236,8 +236,8 @@ app.post("/nano/call", async (req, res) => {
       },
       accepted: {
         scheme: "exact",
-        network: "eip155:14601",
-        asset: "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51",
+        network: "eip155:5042002",
+        asset: "0x3600000000000000000000000000000000000000",
         amount: "1000",
         payTo: env.SELLER_ADDRESS,
         maxTimeoutSeconds: 604800,
