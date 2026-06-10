@@ -133,7 +133,6 @@ app.get("/nano/service", async (req, res) => {
     const verifyResult = await facilitator.verify(paymentPayload, requirements);
     console.log('[nano] verifyResult:', JSON.stringify(verifyResult));
     if (!verifyResult.isValid) {
-      console.log('[nano] verify failed:', verifyResult.invalidReason);
       return res.status(402).json({ error: "Payment verification failed", reason: verifyResult.invalidReason });
     }
 
@@ -143,7 +142,6 @@ app.get("/nano/service", async (req, res) => {
     }
 
     const payer = settleResult.payer ?? verifyResult.payer ?? "unknown";
-    console.log(`[nano] Settled: 0.001 USDC from ${payer}`);
 
     res.setHeader("PAYMENT-RESPONSE", Buffer.from(JSON.stringify({
       success: true,
@@ -168,7 +166,6 @@ app.post("/nano/service", async (req, res) => {
     const facilitator = new BatchFacilitatorClient({ url: "https://gateway-api-testnet.circle.com" });
     const requirements = buildNanoRequirements("0.001");
     const paymentPayload = JSON.parse(Buffer.from(paymentSig, "base64").toString("utf-8"));
-    console.log("[nano POST] verifying...");
     const verifyResult = await facilitator.verify(paymentPayload, requirements);
     console.log("[nano POST] verify:", JSON.stringify(verifyResult));
     if (!verifyResult.isValid) {
@@ -177,8 +174,6 @@ app.post("/nano/service", async (req, res) => {
     const settleResult = await facilitator.settle(paymentPayload, requirements);
     console.log("[nano POST] settle FULL:", JSON.stringify(settleResult, null, 2));
     if (!settleResult.success) {
-      console.log("[nano POST] settle errorReason:", settleResult.errorReason);
-      console.log("[nano POST] settle transaction:", settleResult.transaction);
       return res.status(402).json({ error: "Settlement failed", reason: settleResult.errorReason, full: settleResult });
     }
     res.setHeader("PAYMENT-RESPONSE", Buffer.from(JSON.stringify({
@@ -189,7 +184,6 @@ app.post("/nano/service", async (req, res) => {
     })).toString("base64"));
     return res.json({ ok: true, data: "pong", payer: settleResult.payer, tx: settleResult.transaction });
   } catch (e) {
-    console.error("[nano POST] Error:", e.message);
     return res.status(500).json({ error: e.message });
   }
 });
@@ -211,7 +205,6 @@ app.post("/nano/call", async (req, res) => {
       privateKey: env.BUYER_PRIVATE_KEY,
     });
     gateway.chainConfig.chain.id = 14601;
-    console.log("[nano/call] Creating payment payload...");
     const paymentPayload = await gateway.createPaymentPayload(2, {
       scheme: "exact",
       network: "eip155:5042002",
@@ -225,8 +218,6 @@ app.post("/nano/call", async (req, res) => {
         verifyingContract: "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
       },
     });
-    console.log("[nano/call] Payment payload created");
-    console.log("[nano/call] payload from:", paymentPayload?.payload?.authorization?.from);
     const fullPayload = {
       ...paymentPayload,
       resource: {
@@ -253,16 +244,12 @@ app.post("/nano/call", async (req, res) => {
       method: "POST",
       headers: { "Payment-Signature": paymentHeader },
     });
-    console.log("[nano/call] POST /nano/service status:", paidRes.status);
     const paidData = await paidRes.json();
     console.log("[nano/call] Response:", JSON.stringify(paidData));
     if (!paidRes.ok) throw new Error(paidData.error || "HTTP " + paidRes.status);
     const result = { formattedAmount: "0.001" };
-    console.log(`[nano/call] Paid: ${result.formattedAmount} USDC`);
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
-    console.error("[nano/call] Error:", e.message);
-    console.error("[nano/call] Stack:", e.stack);
     res.status(500).json({ error: e.message, detail: e.stack });
   }
 });
