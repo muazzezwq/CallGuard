@@ -267,8 +267,17 @@ app.post("/nano/call", async (req, res) => {
   }
 });
 
-app.get("/health", (_, res) =>
-  res.json({ ok: true, facilitator: fac.facilitatorAddress }));
+app.get("/health", async (_, res) => {
+  let buyerAddr = "not set";
+  try {
+    if (env.BUYER_PRIVATE_KEY) {
+      const { privateKeyToAccount } = await import("viem/accounts");
+      const acc = privateKeyToAccount(env.BUYER_PRIVATE_KEY);
+      buyerAddr = acc.address;
+    }
+  } catch(e) { buyerAddr = "error: " + e.message; }
+  res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr });
+});
 
 app.listen(env.PORT || 4021, () =>
   console.log(`x402 facilitator :${env.PORT || 4021}`));
