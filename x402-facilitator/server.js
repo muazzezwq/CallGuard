@@ -159,7 +159,7 @@ app.get("/nano/service", async (req, res) => {
 });
 
 app.post("/nano/service", async (req, res) => {
-  const paymentSig = req.headers["payment-signature"];
+  const paymentSig = req.headers["payment-signature"] || req.headers["Payment-Signature"];
   if (!paymentSig) {
     return res.status(402).json({ error: "Payment Required" });
   }
