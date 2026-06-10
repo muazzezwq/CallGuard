@@ -209,16 +209,31 @@ app.post("/nano/call", async (req, res) => {
       privateKey: env.BUYER_PRIVATE_KEY,
     });
     gateway.chainConfig.chain.id = 14601;
-    // Debug: intercept fetch
-    const origFetch = globalThis.fetch;
-    globalThis.fetch = async (url, opts) => {
-      console.log("[nano/call fetch]", url, JSON.stringify(opts?.headers));
-      const res = await origFetch(url, opts);
-      console.log("[nano/call fetch response]", res.status, url);
-      return res;
-    };
-    const result = await gateway.pay("https://arcsla-eu.onrender.com/nano/service");
-    globalThis.fetch = origFetch;
+    console.log("[nano/call] Creating payment payload...");
+    const paymentPayload = await gateway.createPaymentPayload(2, {
+      scheme: "exact",
+      network: "eip155:14601",
+      asset: "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51",
+      amount: "1000",
+      payTo: env.SELLER_ADDRESS,
+      maxTimeoutSeconds: 604800,
+      extra: {
+        name: "GatewayWalletBatched",
+        version: "1",
+        verifyingContract: "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
+      },
+    });
+    console.log("[nano/call] Payment payload created");
+    const paymentHeader = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
+    const paidRes = await fetch("https://arcsla-eu.onrender.com/nano/service", {
+      method: "POST",
+      headers: { "Payment-Signature": paymentHeader },
+    });
+    console.log("[nano/call] POST /nano/service status:", paidRes.status);
+    const paidData = await paidRes.json();
+    console.log("[nano/call] Response:", JSON.stringify(paidData));
+    if (!paidRes.ok) throw new Error(paidData.error || "HTTP " + paidRes.status);
+    const result = { formattedAmount: "0.001" };
     console.log(`[nano/call] Paid: ${result.formattedAmount} USDC`);
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
