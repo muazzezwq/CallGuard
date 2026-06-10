@@ -209,7 +209,16 @@ app.post("/nano/call", async (req, res) => {
       privateKey: env.BUYER_PRIVATE_KEY,
     });
     gateway.chainConfig.chain.id = 14601;
+    // Debug: intercept fetch
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (url, opts) => {
+      console.log("[nano/call fetch]", url, JSON.stringify(opts?.headers));
+      const res = await origFetch(url, opts);
+      console.log("[nano/call fetch response]", res.status, url);
+      return res;
+    };
     const result = await gateway.pay("https://arcsla-eu.onrender.com/nano/service");
+    globalThis.fetch = origFetch;
     console.log(`[nano/call] Paid: ${result.formattedAmount} USDC`);
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
