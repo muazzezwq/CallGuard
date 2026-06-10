@@ -252,8 +252,41 @@
       [data-category] { display: none; }
       [data-category].cat-visible { display: block; }
       @media (max-width: 768px) {
-        .app-sidebar { display: none; }
+        .app-sidebar {
+          display: flex;
+          transform: translateX(-100%);
+          transition: transform .25s ease;
+          z-index: 200;
+        }
+        .app-sidebar.open {
+          transform: translateX(0);
+        }
         .app-content { margin-left: 0; }
+        .sidebar-overlay {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 199;
+        }
+        .sidebar-overlay.open { display: block; }
+        .hamburger-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: var(--bg-2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 18px;
+          color: var(--text);
+        }
+      }
+      @media (min-width: 769px) {
+        .hamburger-btn { display: none; }
+        .sidebar-overlay { display: none !important; }
       }
 
       /* Corporate display type — match landing page (Fraunces serif headings) */
@@ -3305,7 +3338,9 @@
         </nav>
         <!-- MAIN CONTENT -->
         <div class="app-content">
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
       <div style="max-width: 1800px; margin: 0 auto; padding: 32px 48px 0;">
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">☰</button>
         <div class="live-bar">
           <div class="live-bar-left">
             <span class="live-dot-pulse"></span>
@@ -6231,6 +6266,21 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           btn.disabled = false;
           btn.textContent = origText;
         }
+      }
+
+      // ---- Mobile sidebar ----
+      const hamburgerBtn = document.getElementById("hamburgerBtn");
+      const sidebarOverlay = document.getElementById("sidebarOverlay");
+      const appSidebar = document.getElementById("appSidebar");
+      if (hamburgerBtn) {
+        hamburgerBtn.addEventListener("click", () => {
+          appSidebar.classList.toggle("open");
+          sidebarOverlay.classList.toggle("open");
+        });
+        sidebarOverlay.addEventListener("click", () => {
+          appSidebar.classList.remove("open");
+          sidebarOverlay.classList.remove("open");
+        });
       }
 
       // ---- Sidebar navigation ----
