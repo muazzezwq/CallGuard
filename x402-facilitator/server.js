@@ -224,7 +224,28 @@ app.post("/nano/call", async (req, res) => {
       },
     });
     console.log("[nano/call] Payment payload created");
-    const paymentHeader = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
+    const fullPayload = {
+      ...paymentPayload,
+      resource: {
+        url: "https://arcsla-eu.onrender.com/nano/service",
+        description: "ArcSLA nanopayment — 0.001 USDC per call",
+        mimeType: "application/json",
+      },
+      accepted: {
+        scheme: "exact",
+        network: "eip155:14601",
+        asset: "0x0ba304580ee7c9a980cf72e55f5ed2e9fd30bc51",
+        amount: "1000",
+        payTo: env.SELLER_ADDRESS,
+        maxTimeoutSeconds: 604800,
+        extra: {
+          name: "GatewayWalletBatched",
+          version: "1",
+          verifyingContract: "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
+        },
+      },
+    };
+    const paymentHeader = Buffer.from(JSON.stringify(fullPayload)).toString("base64");
     const paidRes = await fetch("https://arcsla-eu.onrender.com/nano/service", {
       method: "POST",
       headers: { "Payment-Signature": paymentHeader },
