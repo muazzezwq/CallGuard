@@ -224,6 +224,7 @@ app.post("/nano/call", async (req, res) => {
       },
     });
     console.log("[nano/call] Payment payload created");
+    console.log("[nano/call] payload from:", paymentPayload?.payload?.authorization?.from);
     const fullPayload = {
       ...paymentPayload,
       resource: {
