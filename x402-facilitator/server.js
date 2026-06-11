@@ -254,6 +254,29 @@ app.post("/nano/call", async (req, res) => {
   }
 });
 
+// ---- Gateway balance endpoint ----
+app.get("/nano/balance", async (req, res) => {
+  try {
+    const result = await fetch("https://gateway-api-testnet.circle.com/v1/balances", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: "USDC",
+        sources: [{ domain: 26, depositor: env.SELLER_ADDRESS }]
+      })
+    });
+    const data = await result.json();
+    const bal = data.balances?.[0] || {};
+    res.json({
+      seller: env.SELLER_ADDRESS,
+      balance: bal.balance || "0",
+      pendingBatch: bal.pendingBatch || "0",
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/health", async (_, res) => {
   let buyerAddr = "not set";
   try {
