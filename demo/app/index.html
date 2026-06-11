@@ -425,31 +425,7 @@
       .wallet-box {
         display: flex;
         align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-      }
-      #connectBtn {
-        padding: 6px 14px !important;
-        font-size: 12px !important;
-        height: 32px !important;
-        min-width: 120px !important;
-        border-radius: 100px !important;
-      }
-      .addr-pill {
-        height: 32px !important;
-        padding: 0 12px !important;
-        border-radius: 100px !important;
-        font-size: 12px !important;
-      }
-      .network-pill {
-        height: 32px !important;
-        padding: 0 10px !important;
-        border-radius: 100px !important;
-      }
-      .usdc-balance {
-        height: 32px !important;
-        padding: 0 10px !important;
-        border-radius: 100px !important;
+        gap: 12px;
       }
 
       .usdc-balance {
@@ -3059,7 +3035,7 @@
           </div>
         </div>
         <div class="wallet-box">
-          <div class="network-pill hidden" id="netPill">
+          <div class="network-pill" id="netPill">
             <span class="net-dot" id="netDot"></span>
             <span id="netLabel">Disconnected</span>
           </div>
@@ -3067,6 +3043,7 @@
             <span class="label">USDC</span>
             <span class="amount" id="usdcBal">0.00</span>
           </div>
+          <button class="btn btn-primary" id="connectBtn">Connect wallet</button>
           <div class="addr-pill hidden" id="addrPill" title="Click to copy">
             <span id="addrText"></span>
           </div>
@@ -3086,7 +3063,7 @@
           per request and receive a cryptographically signed receipt. If the provider misses the
           deadline, the stake is slashed automatically. No arbiter, no middleman.
         </p>
-        <button class="btn btn-primary" id="connectBtn">Connect wallet</button>
+        <button class="btn btn-primary" id="connectBtn2">Connect wallet</button>
 
         <div class="hero-stat-row">
           <div class="hero-stat">
@@ -3359,7 +3336,6 @@
         </nav>
         <!-- MAIN CONTENT -->
         <div class="app-content">
-      <button class="btn btn-primary hidden" id="connectBtnConnected" style="display:none">Connect wallet</button>
       <div class="sidebar-overlay" id="sidebarOverlay"></div>
       <div style="max-width: 1800px; margin: 0 auto; padding: 32px 48px 0;">
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">☰</button>
@@ -4318,7 +4294,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       function showConnected() {
         $("disconnectedView").classList.add("hidden");
         $("connectedView").classList.remove("hidden");
-        if ($("connectBtn")) $("connectBtn").classList.add("hidden");
+        $("connectBtn").classList.add("hidden");
         $("addrPill").classList.remove("hidden");
         $("addrText").textContent = short(state.address, 6);
         $("balanceBox").classList.remove("hidden");
@@ -4364,7 +4340,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       function showDisconnected() {
         $("netLabel").textContent = "Disconnected";
         $("netDot").className = "net-dot";
-        if ($("connectBtn")) $("connectBtn").classList.remove("hidden");
+        $("connectBtn").classList.remove("hidden");
         $("addrPill").classList.add("hidden");
         $("balanceBox").classList.add("hidden");
       }
@@ -6291,42 +6267,19 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       }
 
       // ---- Mobile sidebar ----
-      function initHamburger() {
-        const hamburgerBtn = document.getElementById("hamburgerBtn");
-        const sidebarOverlay = document.getElementById("sidebarOverlay");
-        const appSidebar = document.getElementById("appSidebar");
-        if (hamburgerBtn && appSidebar) {
-          hamburgerBtn.addEventListener("click", () => {
-            appSidebar.classList.toggle("open");
-            if (sidebarOverlay) sidebarOverlay.classList.toggle("open");
-          });
-          if (sidebarOverlay) {
-            sidebarOverlay.addEventListener("click", () => {
-              appSidebar.classList.remove("open");
-              sidebarOverlay.classList.remove("open");
-            });
-          }
-          // Sidebar item tıklanınca kapat
-          appSidebar.querySelectorAll(".sb-item").forEach(item => {
-            item.addEventListener("click", () => {
-              appSidebar.classList.remove("open");
-              if (sidebarOverlay) sidebarOverlay.classList.remove("open");
-            });
-          });
-        }
-      }
-      // connectedView gösterilince hamburger'ı başlat
-      const _origShowConnected = typeof showConnected === "function" ? showConnected : null;
-      document.addEventListener("DOMContentLoaded", () => {
-        const observer = new MutationObserver(() => {
-          const cv = document.getElementById("connectedView");
-          if (cv && !cv.classList.contains("hidden")) {
-            initHamburger();
-            observer.disconnect();
-          }
+      const hamburgerBtn = document.getElementById("hamburgerBtn");
+      const sidebarOverlay = document.getElementById("sidebarOverlay");
+      const appSidebar = document.getElementById("appSidebar");
+      if (hamburgerBtn) {
+        hamburgerBtn.addEventListener("click", () => {
+          appSidebar.classList.toggle("open");
+          sidebarOverlay.classList.toggle("open");
         });
-        observer.observe(document.body, { attributes: true, subtree: true });
-      });
+        sidebarOverlay.addEventListener("click", () => {
+          appSidebar.classList.remove("open");
+          sidebarOverlay.classList.remove("open");
+        });
+      }
 
       // ---- Sidebar navigation ----
       function showCategory(cat) {
