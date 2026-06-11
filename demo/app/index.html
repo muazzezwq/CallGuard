@@ -3359,6 +3359,7 @@
         </nav>
         <!-- MAIN CONTENT -->
         <div class="app-content">
+      <button class="btn btn-primary hidden" id="connectBtnConnected" style="display:none">Connect wallet</button>
       <div class="sidebar-overlay" id="sidebarOverlay"></div>
       <div style="max-width: 1800px; margin: 0 auto; padding: 32px 48px 0;">
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">☰</button>
@@ -4317,7 +4318,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       function showConnected() {
         $("disconnectedView").classList.add("hidden");
         $("connectedView").classList.remove("hidden");
-        $("connectBtn").classList.add("hidden");
+        if ($("connectBtn")) $("connectBtn").classList.add("hidden");
         $("addrPill").classList.remove("hidden");
         $("addrText").textContent = short(state.address, 6);
         $("balanceBox").classList.remove("hidden");
@@ -4363,7 +4364,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       function showDisconnected() {
         $("netLabel").textContent = "Disconnected";
         $("netDot").className = "net-dot";
-        $("connectBtn").classList.remove("hidden");
+        if ($("connectBtn")) $("connectBtn").classList.remove("hidden");
         $("addrPill").classList.add("hidden");
         $("balanceBox").classList.add("hidden");
       }
@@ -6290,19 +6291,42 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       }
 
       // ---- Mobile sidebar ----
-      const hamburgerBtn = document.getElementById("hamburgerBtn");
-      const sidebarOverlay = document.getElementById("sidebarOverlay");
-      const appSidebar = document.getElementById("appSidebar");
-      if (hamburgerBtn) {
-        hamburgerBtn.addEventListener("click", () => {
-          appSidebar.classList.toggle("open");
-          sidebarOverlay.classList.toggle("open");
-        });
-        sidebarOverlay.addEventListener("click", () => {
-          appSidebar.classList.remove("open");
-          sidebarOverlay.classList.remove("open");
-        });
+      function initHamburger() {
+        const hamburgerBtn = document.getElementById("hamburgerBtn");
+        const sidebarOverlay = document.getElementById("sidebarOverlay");
+        const appSidebar = document.getElementById("appSidebar");
+        if (hamburgerBtn && appSidebar) {
+          hamburgerBtn.addEventListener("click", () => {
+            appSidebar.classList.toggle("open");
+            if (sidebarOverlay) sidebarOverlay.classList.toggle("open");
+          });
+          if (sidebarOverlay) {
+            sidebarOverlay.addEventListener("click", () => {
+              appSidebar.classList.remove("open");
+              sidebarOverlay.classList.remove("open");
+            });
+          }
+          // Sidebar item tıklanınca kapat
+          appSidebar.querySelectorAll(".sb-item").forEach(item => {
+            item.addEventListener("click", () => {
+              appSidebar.classList.remove("open");
+              if (sidebarOverlay) sidebarOverlay.classList.remove("open");
+            });
+          });
+        }
       }
+      // connectedView gösterilince hamburger'ı başlat
+      const _origShowConnected = typeof showConnected === "function" ? showConnected : null;
+      document.addEventListener("DOMContentLoaded", () => {
+        const observer = new MutationObserver(() => {
+          const cv = document.getElementById("connectedView");
+          if (cv && !cv.classList.contains("hidden")) {
+            initHamburger();
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { attributes: true, subtree: true });
+      });
 
       // ---- Sidebar navigation ----
       function showCategory(cat) {
