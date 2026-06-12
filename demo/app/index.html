@@ -525,6 +525,24 @@
         font-size: 13px;
       }
 
+      .btn-nano {
+        background: var(--accent-bg) !important;
+        color: var(--accent) !important;
+        border-color: rgba(5, 150, 105, 0.25) !important;
+        font-size: 11px !important;
+        padding: 5px 9px !important;
+        white-space: nowrap;
+      }
+      .btn-nano:hover:not(:disabled) {
+        background: var(--accent) !important;
+        color: #fff !important;
+        border-color: var(--accent) !important;
+      }
+      .feed-tag.nanopay {
+        background: var(--accent-bg);
+        color: var(--accent);
+      }
+
       .addr-pill {
         display: inline-flex;
         align-items: center;
@@ -5077,10 +5095,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             }
 
             ${
-              !isSelf && provider.active
+              provider.active
                 ? `
-              <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end">
-                <button class="btn btn-sm" id="modalCallBtn">Call this provider</button>
+              <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-wrap:wrap">
+                <button class="btn btn-sm btn-nano" id="modalNanoBtn" data-nano-provider="${providerId}">
+                  ⚡ Nanopay 0.001 USDC
+                </button>
+                ${!isSelf ? `<button class="btn btn-sm" id="modalCallBtn">Call this provider</button>` : ""}
               </div>
             `
                 : ""
@@ -6024,7 +6045,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           if (p.owner === ethers.ZeroAddress) {
             $("callProviderHint").textContent = `no provider with id ${idStr}`;
             $("callerRiskBox").style.display = "none";
-          const _cp = $("callPreview"); if (_cp) _cp.style.display = "none";
+          const _cp = $("callPreview"); if (_cp) cp.style.display = "none";
             return;
           }
           const d = state.usdcDecimals;
@@ -6063,7 +6084,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         } catch (e) {
           $("callProviderHint").textContent = "could not fetch provider info";
           $("callerRiskBox").style.display = "none";
-          const _cp = $("callPreview"); if (_cp) _cp.style.display = "none";
+          const _cp = $("callPreview"); if (_cp) cp.style.display = "none";
         }
       });
 
@@ -6295,32 +6316,108 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         }
       }
 
-      async function doNanoCall() {
-        const btn = $("btnNanoCall");
+      async function doNanoCall(providerId = null) {
+        const btn = providerId
+          ? document.querySelector(`[data-nano-provider="${providerId}"]`)
+          : $("btnNanoCall");
+
         const out = $("nanoOutput");
-        if (btn.disabled) return;
-        btn.disabled = true;
-        const origText = btn.textContent;
-        btn.textContent = "Processing…";
-        out.textContent = "Calling facilitator…";
+        if (btn && btn.disabled) return;
+
+        if (btn) {
+          btn.disabled = true;
+          btn.dataset.origText = btn.textContent;
+          btn.textContent = "Paying…";
+        }
+
+        if (out) out.textContent = "Calling facilitator…";
+
         try {
-          const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
+          const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              providerId: providerId ? String(providerId) : null,
+              amount: "0.001"
+            })
+          });
+
           const data = await res.json();
-          if (res.ok) {
-            _nanoCallCount++;
-            if ($("nanoCallCount")) $("nanoCallCount").textContent = _nanoCallCount;
-            out.textContent = "✅ Paid: " + data.amount + " USDC\nFacilitator settled via Circle Gateway.\nBatch pending on-chain settlement.";
-            toast({ kind: "ok", title: "Nanopayment successful!", detail: data.amount + " USDC", timeout: 5000 });
-            setTimeout(fetchNanoBalance, 2000);
-          } else {
+
+          if (!res.ok) {
             throw new Error(data.error || "HTTP " + res.status);
           }
+
+          const amount = data.amount || "0.001";
+
+          _nanoCallCount++;
+          if ($("nanoCallCount")) $("nanoCallCount").textContent = _nanoCallCount;
+
+          if (out) {
+            out.textContent =
+              "✅ Paid: " + amount + " USDC\n" +
+              (providerId ? "Provider #" + providerId + "\n" : "") +
+              "Facilitator settled via Circle Gateway.\n" +
+              "Batch pending on-chain settlement.";
+          }
+
+          toast({
+            kind: "ok",
+            title: "Nanopayment successful!",
+            detail: `${amount} USDC${providerId ? " → Provider #" + providerId : ""}`,
+            timeout: 5000
+          });
+
+          pushActivity({
+            type: "nanopay",
+            icon: "⚡",
+            label: providerId ? `Nanopay settled → provider #${providerId}` : "Nanopay settled",
+            detail: `${amount} USDC · Circle Gateway`,
+            txHash: data.txHash || null
+          });
+
+          if ($("feed")) {
+            addFeed({
+              tag: "nanopay",
+              tagText: "nanopay",
+              txHash: data.txHash || null,
+              body: `⚡ Nanopay settled: <span class="hi">${amount} USDC</span>${providerId ? ` → provider #${providerId}` : ""}`
+            });
+          }
+
+          setTimeout(fetchNanoBalance, 2000);
+
+          if (btn) {
+            btn.textContent = "Paid ✓";
+            setTimeout(() => {
+              btn.textContent = btn.dataset.origText || "⚡ Nanopay 0.001";
+            }, 1800);
+          }
         } catch (e) {
-          out.textContent = "❌ " + e.message;
-          toast({ kind: "err", title: "Nanopayment failed", detail: e.message, timeout: 5000 });
+          if (out) out.textContent = "❌ " + e.message;
+
+          toast({
+            kind: "err",
+            title: "Nanopayment failed",
+            detail: e.message,
+            timeout: 5000
+          });
+
+          if ($("feed")) {
+            addFeed({
+              tag: "slashed",
+              tagText: "nano fail",
+              txHash: null,
+              body: `Nanopay failed${providerId ? ` → provider #${providerId}` : ""}: <span class="hi">${e.message}</span>`
+            });
+          }
         } finally {
-          btn.disabled = false;
-          btn.textContent = origText;
+          if (btn) {
+            btn.disabled = false;
+            if (btn.textContent === "Paying…") {
+              btn.textContent = btn.dataset.origText || "⚡ Nanopay 0.001";
+            }
+          }
         }
       }
 
@@ -6372,7 +6469,18 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // Başlangıçta overview göster
       showCategory("overview");
 
-      $("btnNanoCall").addEventListener("click", doNanoCall);
+      $("btnNanoCall").addEventListener("click", () => doNanoCall());
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-nano-provider]");
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        doNanoCall(btn.dataset.nanoProvider);
+      });
+
       $("btnNanoRefresh").addEventListener("click", () => {
         fetchNanoBalance();
         toast({ kind: "ok", title: "Balance refreshed", timeout: 2000 });
@@ -6523,6 +6631,11 @@ console.log("call opened:", tx.hash);`;
               <td class="col-sla">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
               <td style="text-align:right;color:${repColor};font-weight:600">${rep}</td>
               <td class="col-status">${badge}</td>
+              <td style="text-align:right">
+                <button class="btn btn-sm btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">
+                  ⚡ Nanopay 0.001
+                </button>
+              </td>
             </tr>`;
         }).join("");
 
@@ -6535,6 +6648,7 @@ console.log("call opened:", tx.hash);`;
               <th style="text-align:right">SLA · slash</th>
               <th style="text-align:right">Rep</th>
               <th style="text-align:right">Status</th>
+              <th style="text-align:right">Nano</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
