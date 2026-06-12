@@ -3736,10 +3736,39 @@
           </div>
           <div class="panel-body">
             <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
-              Gasless micro-payments via Circle Gateway. Facilitator handles payment server-side.
+              Gasless micro-payments via Circle Gateway. No MetaMask, no gas, no tx confirmation — facilitator handles everything server-side.
             </p>
-            <button class="btn btn-primary" id="btnNanoCall">⚡ Call /nano/service (0.001 USDC)</button>
-            <div id="nanoOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono);margin-top:12px;white-space:pre-wrap">Result will appear here.</div>
+
+            <!-- Stats -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div style="background:var(--bg-2);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px">CALLS MADE</div>
+                <div id="nanoCallCount" style="font-size:22px;font-weight:600;color:var(--text);font-family:var(--font-mono)">0</div>
+              </div>
+              <div style="background:var(--bg-2);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px">PENDING BATCH</div>
+                <div id="nanoPending" style="font-size:22px;font-weight:600;color:var(--warn);font-family:var(--font-mono)">—</div>
+              </div>
+              <div style="background:var(--bg-2);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px">SETTLED BALANCE</div>
+                <div id="nanoBalance" style="font-size:22px;font-weight:600;color:var(--accent);font-family:var(--font-mono)">—</div>
+              </div>
+            </div>
+
+            <!-- How it works -->
+            <div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--text-dim)">
+              <strong style="color:var(--accent)">How it works:</strong>
+              1. You click → 2. Facilitator signs EIP-3009 off-chain → 3. Circle Gateway verifies instantly → 4. Batch settles on-chain later.
+              No wallet prompt. No gas. Payments batch into a single on-chain tx.
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <button class="btn btn-primary" id="btnNanoCall">⚡ Call /nano/service (0.001 USDC)</button>
+              <button class="btn" id="btnNanoRefresh">↻ Refresh balance</button>
+            </div>
+
+            <div id="nanoOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono);margin-top:4px;white-space:pre-wrap">Result will appear here.</div>
           </div>
         </section>
 
@@ -6250,6 +6279,22 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("btnX402Call").addEventListener("click", doX402Call);
 
       // ---- Nanopayment ----
+      let _nanoCallCount = 0;
+
+      async function fetchNanoBalance() {
+        try {
+          const res = await fetch(CONFIG.facilitatorUrl + "/nano/balance");
+          const data = await res.json();
+          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.balance || 0).toFixed(4) + " USDC";
+          if ($("nanoPending")) {
+            const p = parseFloat(data.pendingBatch || 0);
+            $("nanoPending").textContent = p > 0 ? p.toFixed(4) + " USDC" : "0 USDC";
+          }
+        } catch(e) {
+          if ($("nanoBalance")) $("nanoBalance").textContent = "—";
+        }
+      }
+
       async function doNanoCall() {
         const btn = $("btnNanoCall");
         const out = $("nanoOutput");
@@ -6262,8 +6307,11 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
           const data = await res.json();
           if (res.ok) {
-            out.textContent = "✅ Paid: " + data.amount + " USDC";
+            _nanoCallCount++;
+            if ($("nanoCallCount")) $("nanoCallCount").textContent = _nanoCallCount;
+            out.textContent = "✅ Paid: " + data.amount + " USDC\nFacilitator settled via Circle Gateway.\nBatch pending on-chain settlement.";
             toast({ kind: "ok", title: "Nanopayment successful!", detail: data.amount + " USDC", timeout: 5000 });
+            setTimeout(fetchNanoBalance, 2000);
           } else {
             throw new Error(data.error || "HTTP " + res.status);
           }
@@ -6325,6 +6373,12 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       showCategory("overview");
 
       $("btnNanoCall").addEventListener("click", doNanoCall);
+      $("btnNanoRefresh").addEventListener("click", () => {
+        fetchNanoBalance();
+        toast({ kind: "ok", title: "Balance refreshed", timeout: 2000 });
+      });
+      // Sayfa açılışında bakiye çek
+      fetchNanoBalance();
 
       // ERC-8183 Jobs
       $("btnCreateJob").addEventListener("click", doCreateJob);
