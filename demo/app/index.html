@@ -6150,23 +6150,21 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           return;
         }
 
-        const best = candidates.sort((a, b) => (b.reputation ?? 0) - (a.reputation ?? 0))[0];
+        const sorted = candidates.sort((a, b) => {
+          const repDiff = (b.reputation ?? 0) - (a.reputation ?? 0);
+          if (repDiff !== 0) return repDiff;
+          return Number(a.pricePerCall - b.pricePerCall);
+        });
+        const best = sorted[0];
+        const top3 = sorted.slice(0, 3);
         resultEl.style.display = "block";
         resultEl.style.background = "var(--accent-bg)";
         resultEl.style.border = "1px solid rgba(5,150,105,0.2)";
-        resultEl.innerHTML = `
-          ✓ Best match: <strong>Provider #${best.id}</strong> · rep <strong>${best.reputation}</strong> · 
-          ${ethers.formatUnits(best.pricePerCall, state.usdcDecimals)} USDC/call · 
-          ${best.maxResponseTime}s SLA<br>
-          <button class="btn btn-sm btn-primary" style="margin-top:8px" id="btnRouterUse">Use this provider →</button>
-        `;
-        document.getElementById("btnRouterUse")?.addEventListener("click", () => {
-          $("callProviderId").value = best.id.toString();
-          $("callProviderId").dispatchEvent(new Event("blur"));
-          $("actionCall").open = true;
-          $("actionRouter").open = false;
-          $("actionCall").scrollIntoView({ behavior: "smooth", block: "center" });
-        });
+        resultEl.innerHTML = "<div style=\"font-size:13px;font-weight:500;color:var(--accent);margin-bottom:8px\">✓ Best match found</div><div id=\"routerTop3\"></div><div style=\"display:flex;gap:8px\"><button class=\"btn btn-sm btn-primary\" id=\"btnRouterUse\">Use Provider #" + best.id + " →</button><button class=\"btn btn-sm\" id=\"btnRouterAutoCall\">⚡ Auto-call best</button></div>";
+        const top3El = document.getElementById("routerTop3");
+        if (top3El) top3El.innerHTML = top3.map((p,i) => "<div style=\"display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-1);border-radius:6px;border:1px solid " + (i===0?"var(--accent)":"var(--border)") + ";margin-bottom:6px\">" + (i===0?"🥇":i===1?"🥈":"🥉") + " <strong>Provider #" + p.id + "</strong><span style=\"font-size:11px;color:var(--text-dim)\">Rep: " + p.reputation + " · " + ethers.formatUnits(p.pricePerCall, state.usdcDecimals) + " USDC · " + p.maxResponseTime + "s</span></div>").join("");
+        document.getElementById("btnRouterUse")?.addEventListener("click", () => { $("callProviderId").value = best.id.toString(); $("callProviderId").dispatchEvent(new Event("blur")); $("actionCall").open = true; $("actionRouter").open = false; });
+        document.getElementById("btnRouterAutoCall")?.addEventListener("click", async () => { $("callProviderId").value = best.id.toString(); $("callProviderId").dispatchEvent(new Event("blur")); await new Promise(r => setTimeout(r,500)); $("btnX402Call").click(); });
       }
 
       // -------- Multi-provider call --------
