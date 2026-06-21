@@ -3232,6 +3232,69 @@
         .job-rail-label { display: none; }
         .job-field-row { flex-direction: column; }
       }
+
+      .job-section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 20px 0 10px;
+      }
+      .my-jobs-list {
+        display: grid;
+        gap: 8px;
+      }
+      .my-job-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: border-color .15s;
+      }
+      .my-job-card:hover {
+        border-color: var(--accent);
+      }
+      .my-job-id {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-faint);
+        width: 36px;
+        flex-shrink: 0;
+      }
+      .my-job-desc {
+        flex: 1;
+        font-size: 12px;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .my-job-role {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 100px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+      }
+      .my-job-status {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 100px;
+        flex-shrink: 0;
+      }
+      .status-open { background: rgba(59,130,246,0.12); color: #3b82f6; }
+      .status-funded { background: rgba(245,158,11,0.12); color: #d97706; }
+      .status-submitted { background: rgba(168,85,247,0.12); color: #a855f7; }
+      .status-completed { background: var(--accent-bg); color: var(--accent); }
+      .status-rejected, .status-expired { background: var(--danger-bg); color: var(--danger); }
     </style>
   </head>
   <body>
@@ -4125,11 +4188,15 @@
                 <input id="jobCheckId" class="inp" type="number" placeholder="Job ID"/>
               </div>
               <button class="btn" id="btnCheckJob">Check status</button>
+              <button class="btn" id="btnLoadMyJobs" style="margin-left:auto">↻ My Jobs</button>
             </div>
 
             <div id="jobsOutput" class="job-output">
               Job results will appear here.
             </div>
+
+            <div class="job-section-title" id="myJobsTitle" style="display:none">My Jobs</div>
+            <div id="myJobsList" class="my-jobs-list"></div>
           </div>
         </section>
 
@@ -6786,6 +6853,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       $("btnSubmitJob").addEventListener("click", doSubmitJob);
       $("btnCompleteJob").addEventListener("click", doCompleteJob);
       $("btnCheckJob").addEventListener("click", doCheckJob);
+      $("btnLoadMyJobs").addEventListener("click", loadMyJobs);
       $("btnCall").addEventListener("click", () => {
         const chain = document.getElementById("sourceChainSelect")?.value || "arc";
         if (chain === "arc") doCall(); else doCCTPCall();
@@ -7628,6 +7696,63 @@ console.log("call opened:", tx.hash);`;
           toast({ kind:"ok", title:"Job completed", link: txLink(tx.hash), timeout:6000 });
           setJobRailStep(6);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Complete failed", detail: friendlyError(e) }); }
+      }
+
+      async function loadMyJobs() {
+        if (!state.signer || !state.address) return toast({ kind:"err", title:"Connect wallet first" });
+        const listEl = $("myJobsList");
+        const titleEl = $("myJobsTitle");
+        titleEl.style.display = "block";
+        listEl.innerHTML = '<div class="empty-state" style="font-size:12px">loading your jobs…</div>';
+        try {
+          const jobs = getJobsContract();
+          const iface = new ethers.Interface(JOBS_ABI);
+          const asClient = await safeQuery(jobs, "JobCreated", jobs.filters.JobCreated(null, state.address, null));
+          const asProvider = await safeQuery(jobs, "JobCreated", jobs.filters.JobCreated(null, null, state.address));
+
+          const seen = new Map();
+          [...asClient, ...asProvider].forEach(log => {
+            const id = log.args.jobId.toString();
+            seen.set(id, { jobId: log.args.jobId, role: log.args.client.toLowerCase() === state.address.toLowerCase() ? "Client" : "Provider" });
+          });
+
+          if (seen.size === 0) {
+            listEl.innerHTML = '<div class="empty-state" style="font-size:12px">No jobs yet — create one above.</div>';
+            return;
+          }
+
+          const entries = Array.from(seen.values()).sort((a, b) => Number(b.jobId) - Number(a.jobId));
+          const details = await Promise.all(entries.map(async (e) => {
+            try {
+              const job = await jobs.getJob(e.jobId);
+              return { ...e, job };
+            } catch { return null; }
+          }));
+
+          listEl.innerHTML = details.filter(Boolean).map(({ jobId, role, job }) => {
+            const statusName = (JOB_STATUS[Number(job.status)] || "unknown").toLowerCase();
+            const roleClass = role === "Client" ? "role-client" : "role-provider";
+            return `
+              <div class="my-job-card" data-job-id="${jobId}">
+                <span class="my-job-id">#${jobId}</span>
+                <span class="my-job-desc">${job.description || "(no description)"}</span>
+                <span class="my-job-role ${roleClass}">${role}</span>
+                <span class="my-job-status status-${statusName}">${statusName}</span>
+              </div>
+            `;
+          }).join("");
+
+          listEl.querySelectorAll(".my-job-card").forEach(card => {
+            card.addEventListener("click", () => {
+              const id = card.dataset.jobId;
+              $("jobCheckId").value = id;
+              doCheckJob();
+              $("jobsOutput").scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          });
+        } catch (e) {
+          listEl.innerHTML = '<div class="empty-state" style="font-size:12px;color:var(--danger)">Failed to load jobs: ' + e.message + '</div>';
+        }
       }
 
       async function doCheckJob() {
