@@ -5453,6 +5453,30 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               $("actionCall").scrollIntoView({ behavior: "smooth", block: "center" });
             });
           }
+
+          const nanoBtn = document.getElementById("modalNanoBtn");
+          if (nanoBtn) {
+            nanoBtn.addEventListener("click", async () => {
+              const origText = nanoBtn.textContent;
+              nanoBtn.disabled = true;
+              nanoBtn.textContent = "Processing…";
+              try {
+                const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
+                const data = await res.json();
+                if (res.ok) {
+                  toast({ kind: "ok", title: "⚡ Nanopayment sent", detail: data.amount + " USDC to Provider #" + providerId, timeout: 5000 });
+                  nanoBtn.textContent = "✓ Paid " + data.amount + " USDC";
+                  setTimeout(() => { nanoBtn.textContent = origText; nanoBtn.disabled = false; }, 3000);
+                } else {
+                  throw new Error(data.error || "HTTP " + res.status);
+                }
+              } catch (e) {
+                toast({ kind: "err", title: "Nanopayment failed", detail: e.message, timeout: 5000 });
+                nanoBtn.textContent = origText;
+                nanoBtn.disabled = false;
+              }
+            });
+          }
         } catch (e) {
           console.error(e);
           const body = getBody();
