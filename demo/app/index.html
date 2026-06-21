@@ -3047,6 +3047,191 @@
         padding: 1px 6px;
         border-radius: 3px;
       }
+
+      /* ---- ERC-8183 Jobs — step wizard ---- */
+      .job-rail {
+        display: flex;
+        align-items: center;
+        margin-bottom: 22px;
+        padding: 4px 0;
+      }
+      .job-rail-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .job-rail-dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--bg-2);
+        border: 1.5px solid var(--border);
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        transition: all .2s;
+      }
+      .job-rail-step.active .job-rail-dot,
+      .job-rail-step.done .job-rail-dot {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .job-rail-label {
+        font-size: 10px;
+        color: var(--text-faint);
+        white-space: nowrap;
+        font-weight: 500;
+      }
+      .job-rail-step.active .job-rail-label,
+      .job-rail-step.done .job-rail-label {
+        color: var(--text);
+      }
+      .job-rail-line {
+        flex: 1;
+        height: 1.5px;
+        background: var(--border);
+        margin: 0 4px;
+        margin-bottom: 16px;
+      }
+
+      .job-step {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        background: var(--bg-1);
+        overflow: hidden;
+      }
+      .job-step[open] {
+        border-color: var(--accent);
+      }
+      .job-step-summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        user-select: none;
+      }
+      .job-step-summary::-webkit-details-marker { display: none; }
+      .job-step-num {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--bg-2);
+        color: var(--text-dim);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: var(--font-mono);
+      }
+      .job-step[open] .job-step-num {
+        background: var(--accent);
+        color: #fff;
+      }
+      .job-step-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        flex: 1;
+      }
+      .job-step-role {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 100px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .role-client {
+        background: rgba(59,130,246,0.12);
+        color: #3b82f6;
+      }
+      .role-provider {
+        background: var(--accent-bg);
+        color: var(--accent);
+      }
+      .role-evaluator {
+        background: rgba(245,158,11,0.12);
+        color: #d97706;
+      }
+      .job-step-chev {
+        color: var(--text-faint);
+        font-size: 16px;
+        transition: transform .2s;
+        flex-shrink: 0;
+      }
+      .job-step[open] .job-step-chev {
+        transform: rotate(90deg);
+        color: var(--accent);
+      }
+      .job-step-body {
+        padding: 4px 14px 16px;
+        border-top: 1px solid var(--border);
+        margin-top: 2px;
+        padding-top: 14px;
+      }
+      .job-step-hint {
+        font-size: 12px;
+        color: var(--text-faint);
+        margin: 0 0 12px;
+        line-height: 1.5;
+      }
+      .job-field-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .job-field {
+        flex: 1;
+        min-width: 140px;
+      }
+      .job-field label {
+        font-size: 11px;
+        color: var(--text-faint);
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+      .job-check-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        margin: 18px 0 12px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border);
+      }
+      .job-check-row .job-field {
+        flex: 1;
+        max-width: 200px;
+      }
+      .job-output {
+        font-size: 12px;
+        color: var(--text-dim);
+        min-height: 40px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-family: var(--font-mono);
+        white-space: pre-wrap;
+        line-height: 1.6;
+      }
+      @media (max-width: 640px) {
+        .job-rail-label { display: none; }
+        .job-field-row { flex-direction: column; }
+      }
     </style>
   </head>
   <body>
@@ -3796,69 +3981,153 @@
             <span class="mono" style="font-size:11px;color:var(--text-faint)">Arc standard — trustless job settlement</span>
           </div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
-              Create and manage ERC-8183 jobs on Arc. Providers stake deliverables, evaluators approve, USDC settles automatically.
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 18px">
+              A job moves through five steps, each performed by a specific role. Open a step when it's your turn — you don't need to fill in all of them at once.
             </p>
 
-            <div style="display:grid;gap:12px;margin-bottom:16px">
-              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-                <div style="flex:1;min-width:160px">
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider address</label>
-                  <input id="jobProvider" class="inp" placeholder="0x..." style="width:100%"/>
-                </div>
-                <div style="flex:1;min-width:120px">
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Budget (USDC)</label>
-                  <input id="jobBudget" class="inp" type="number" placeholder="5" style="width:100%"/>
-                </div>
-                <div style="flex:1;min-width:160px">
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Description</label>
-                  <input id="jobDesc" class="inp" placeholder="Describe the job..." style="width:100%"/>
-                </div>
-                <button class="btn" id="btnCreateJob">+ Create Job</button>
+            <div class="job-rail" id="jobRail">
+              <div class="job-rail-step active" data-step="1">
+                <div class="job-rail-dot">1</div>
+                <div class="job-rail-label">Create</div>
+              </div>
+              <div class="job-rail-line"></div>
+              <div class="job-rail-step" data-step="2">
+                <div class="job-rail-dot">2</div>
+                <div class="job-rail-label">Set Budget</div>
+              </div>
+              <div class="job-rail-line"></div>
+              <div class="job-rail-step" data-step="3">
+                <div class="job-rail-dot">3</div>
+                <div class="job-rail-label">Fund</div>
+              </div>
+              <div class="job-rail-line"></div>
+              <div class="job-rail-step" data-step="4">
+                <div class="job-rail-dot">4</div>
+                <div class="job-rail-label">Submit</div>
+              </div>
+              <div class="job-rail-line"></div>
+              <div class="job-rail-step" data-step="5">
+                <div class="job-rail-dot">5</div>
+                <div class="job-rail-label">Complete</div>
               </div>
             </div>
 
-            <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr;margin-bottom:16px">
-              <div>
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Set Budget (Provider)</label>
-                <div style="display:flex;gap:6px">
-                  <input id="jobSetBudgetId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
-                  <input id="jobSetBudgetAmount" class="inp" type="number" placeholder="USDC" style="flex:1"/>
-                  <button class="btn" id="btnJobSetBudget">Set Budget</button>
+            <details class="job-step" id="jobStep1" open>
+              <summary class="job-step-summary">
+                <span class="job-step-num">1</span>
+                <span class="job-step-title">Create a job</span>
+                <span class="job-step-role role-client">Client</span>
+                <span class="job-step-chev">›</span>
+              </summary>
+              <div class="job-step-body">
+                <p class="job-step-hint">Open a job with the provider you want to work with. No funds move yet.</p>
+                <div class="job-field-row">
+                  <div class="job-field" style="flex:2">
+                    <label>Provider address</label>
+                    <input id="jobProvider" class="inp" placeholder="0x..."/>
+                  </div>
+                  <div class="job-field">
+                    <label>Description</label>
+                    <input id="jobDesc" class="inp" placeholder="Describe the job..."/>
+                  </div>
                 </div>
+                <button class="btn btn-primary" id="btnCreateJob">+ Create job</button>
               </div>
-              <div>
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Fund Escrow (Client)</label>
-                <div style="display:flex;gap:6px">
-                  <input id="jobFundId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
-                  <button class="btn" id="btnFundJob">Fund</button>
+            </details>
+
+            <details class="job-step" id="jobStep2">
+              <summary class="job-step-summary">
+                <span class="job-step-num">2</span>
+                <span class="job-step-title">Set the budget</span>
+                <span class="job-step-role role-provider">Provider</span>
+                <span class="job-step-chev">›</span>
+              </summary>
+              <div class="job-step-body">
+                <p class="job-step-hint">The provider names their price for the work. This is filled in automatically after you create a job above.</p>
+                <div class="job-field-row">
+                  <div class="job-field">
+                    <label>Job ID</label>
+                    <input id="jobSetBudgetId" class="inp" type="number" placeholder="e.g. 1"/>
+                  </div>
+                  <div class="job-field">
+                    <label>Budget (USDC)</label>
+                    <input id="jobSetBudgetAmount" class="inp" type="number" placeholder="5"/>
+                  </div>
                 </div>
+                <button class="btn btn-primary" id="btnJobSetBudget">Set budget</button>
               </div>
-              <div>
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Submit Deliverable</label>
-                <div style="display:flex;gap:6px">
-                  <input id="jobSubmitId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
-                  <input id="jobDeliverable" class="inp" placeholder="deliverable payload" style="flex:2"/>
-                  <button class="btn" id="btnSubmitJob">Submit</button>
+            </details>
+
+            <details class="job-step" id="jobStep3">
+              <summary class="job-step-summary">
+                <span class="job-step-num">3</span>
+                <span class="job-step-title">Fund the escrow</span>
+                <span class="job-step-role role-client">Client</span>
+                <span class="job-step-chev">›</span>
+              </summary>
+              <div class="job-step-body">
+                <p class="job-step-hint">Once a budget is set, the client locks that amount of USDC into the job's escrow.</p>
+                <div class="job-field-row">
+                  <div class="job-field">
+                    <label>Job ID</label>
+                    <input id="jobFundId" class="inp" type="number" placeholder="e.g. 1"/>
+                  </div>
                 </div>
+                <button class="btn btn-primary" id="btnFundJob">Fund escrow</button>
               </div>
-              <div>
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Complete (Evaluator)</label>
-                <div style="display:flex;gap:6px">
-                  <input id="jobCompleteId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
-                  <button class="btn" id="btnCompleteJob">Complete ✓</button>
+            </details>
+
+            <details class="job-step" id="jobStep4">
+              <summary class="job-step-summary">
+                <span class="job-step-num">4</span>
+                <span class="job-step-title">Submit the deliverable</span>
+                <span class="job-step-role role-provider">Provider</span>
+                <span class="job-step-chev">›</span>
+              </summary>
+              <div class="job-step-body">
+                <p class="job-step-hint">The provider submits proof of completed work. This gets hashed and recorded on-chain.</p>
+                <div class="job-field-row">
+                  <div class="job-field">
+                    <label>Job ID</label>
+                    <input id="jobSubmitId" class="inp" type="number" placeholder="e.g. 1"/>
+                  </div>
+                  <div class="job-field" style="flex:2">
+                    <label>Deliverable</label>
+                    <input id="jobDeliverable" class="inp" placeholder="deliverable payload"/>
+                  </div>
                 </div>
+                <button class="btn btn-primary" id="btnSubmitJob">Submit deliverable</button>
               </div>
-              <div>
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Job ID — Check Status</label>
-                <div style="display:flex;gap:6px">
-                  <input id="jobCheckId" class="inp" type="number" placeholder="Job ID" style="flex:1"/>
-                  <button class="btn" id="btnCheckJob">Check</button>
+            </details>
+
+            <details class="job-step" id="jobStep5">
+              <summary class="job-step-summary">
+                <span class="job-step-num">5</span>
+                <span class="job-step-title">Approve &amp; settle</span>
+                <span class="job-step-role role-evaluator">Evaluator</span>
+                <span class="job-step-chev">›</span>
+              </summary>
+              <div class="job-step-body">
+                <p class="job-step-hint">The evaluator approves the work. USDC releases from escrow to the provider automatically.</p>
+                <div class="job-field-row">
+                  <div class="job-field">
+                    <label>Job ID</label>
+                    <input id="jobCompleteId" class="inp" type="number" placeholder="e.g. 1"/>
+                  </div>
                 </div>
+                <button class="btn btn-primary" id="btnCompleteJob">Complete &amp; settle ✓</button>
               </div>
+            </details>
+
+            <div class="job-check-row">
+              <div class="job-field">
+                <label>Check any job's status</label>
+                <input id="jobCheckId" class="inp" type="number" placeholder="Job ID"/>
+              </div>
+              <button class="btn" id="btnCheckJob">Check status</button>
             </div>
 
-            <div id="jobsOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono)">
+            <div id="jobsOutput" class="job-output">
               Job results will appear here.
             </div>
           </div>
@@ -7225,6 +7494,22 @@ console.log("call opened:", tx.hash);`;
         if (el) el.textContent = msg;
       }
 
+      function setJobRailStep(n) {
+        document.querySelectorAll('.job-rail-step').forEach(el => {
+          const s = Number(el.dataset.step);
+          el.classList.remove('active', 'done');
+          if (s < n) el.classList.add('done');
+          else if (s === n) el.classList.add('active');
+        });
+      }
+      function openJobStep(n) {
+        for (let i = 1; i <= 5; i++) {
+          const el = $("jobStep" + i);
+          if (el) el.open = (i === n);
+        }
+        setJobRailStep(n);
+      }
+
       async function doCreateJob() {
         if (!state.signer) return toast({ kind:"err", title:"Connect wallet first" });
         const provider = $("jobProvider").value.trim();
@@ -7241,10 +7526,11 @@ console.log("call opened:", tx.hash);`;
           for (const log of rc.logs) {
             try { const p = iface.parseLog(log); if (p && p.name === "JobCreated") { jobId = p.args.jobId; break; } } catch {}
           }
-          jobOut(`Job created! ID: ${jobId ?? "?"} | tx: ${tx.hash.slice(0,10)}...`);
+          jobOut(`✓ Job created — ID #${jobId ?? "?"}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the provider sets a budget for this job.`);
           toast({ kind:"ok", title:"Job created", detail:`ID: ${jobId}`, link: txLink(tx.hash), timeout:8000 });
           if (jobId !== null) {
             ["jobSetBudgetId","jobFundId","jobSubmitId","jobCompleteId","jobCheckId"].forEach(id => { const el = $(id); if(el) el.value = jobId.toString(); });
+            openJobStep(2);
           }
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Create job failed", detail: friendlyError(e) }); }
       }
@@ -7259,8 +7545,9 @@ console.log("call opened:", tx.hash);`;
           const jobs = getJobsContract();
           const tx = await jobs.setBudget(BigInt(jobId), ethers.parseUnits(amount, 6), "0x");
           await tx.wait();
-          jobOut(`Budget set: ${amount} USDC for job ${jobId} | tx: ${tx.hash.slice(0,10)}...`);
+          jobOut(`✓ Budget set — ${amount} USDC on job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the client funds the escrow.`);
           toast({ kind:"ok", title:"Budget set", link: txLink(tx.hash), timeout:6000 });
+          openJobStep(3);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"setBudget failed", detail: friendlyError(e) }); }
       }
 
@@ -7280,8 +7567,9 @@ console.log("call opened:", tx.hash);`;
           }
           const tx = await jobs.fund(BigInt(jobId), "0x");
           await tx.wait();
-          jobOut(`Job ${jobId} funded! tx: ${tx.hash.slice(0,10)}...`);
+          jobOut(`✓ Escrow funded — job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the provider submits the deliverable.`);
           toast({ kind:"ok", title:"Job funded", link: txLink(tx.hash), timeout:6000 });
+          openJobStep(4);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Fund failed", detail: friendlyError(e) }); }
       }
 
@@ -7296,8 +7584,9 @@ console.log("call opened:", tx.hash);`;
           const deliverableHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
           const tx = await jobs.submit(BigInt(jobId), deliverableHash, "0x");
           await tx.wait();
-          jobOut(`Deliverable submitted for job ${jobId}! tx: ${tx.hash.slice(0,10)}...`);
+          jobOut(`✓ Deliverable submitted — job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the evaluator approves and settles.`);
           toast({ kind:"ok", title:"Deliverable submitted", link: txLink(tx.hash), timeout:6000 });
+          openJobStep(5);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Submit failed", detail: friendlyError(e) }); }
       }
 
@@ -7311,8 +7600,9 @@ console.log("call opened:", tx.hash);`;
           const reasonHash = ethers.keccak256(ethers.toUtf8Bytes("work-delivered-and-approved"));
           const tx = await jobs.complete(BigInt(jobId), reasonHash, "0x");
           await tx.wait();
-          jobOut(`Job ${jobId} completed! tx: ${tx.hash.slice(0,10)}...`);
+          jobOut(`✓ Job #${jobId} completed and settled\ntx: ${tx.hash.slice(0,10)}...\n\nUSDC has been released to the provider.`);
           toast({ kind:"ok", title:"Job completed", link: txLink(tx.hash), timeout:6000 });
+          setJobRailStep(6);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Complete failed", detail: friendlyError(e) }); }
       }
 
@@ -7325,7 +7615,9 @@ console.log("call opened:", tx.hash);`;
           const job = await jobs.getJob(BigInt(jobId));
           const status = JOB_STATUS[Number(job.status)] || "Unknown";
           const budget = ethers.formatUnits(job.budget, 6);
-          jobOut(`Job #${jobId} | Status: ${status} | Budget: ${budget} USDC | Provider: ${job.provider.slice(0,10)}... | Client: ${job.client.slice(0,10)}...`);
+          jobOut(`Job #${jobId}\nStatus: ${status}\nBudget: ${budget} USDC\nProvider: ${job.provider.slice(0,10)}...\nClient: ${job.client.slice(0,10)}...`);
+          const stepByStatus = { Open: 2, Funded: 4, Submitted: 5, Completed: 6, Rejected: 6, Expired: 6 };
+          if (stepByStatus[status]) setJobRailStep(stepByStatus[status]);
         } catch(e) { jobOut("Error: "+e.message); }
       }
 
