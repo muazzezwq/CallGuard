@@ -4044,9 +4044,18 @@
             <span class="mono" style="font-size:11px;color:var(--text-faint)">Arc standard — trustless job settlement</span>
           </div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--text-dim);margin:0 0 18px">
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px">
               A job moves through five steps, each performed by a specific role. Open a step when it's your turn — you don't need to fill in all of them at once.
             </p>
+            <div style="background:var(--info-bg);border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:12px;line-height:1.7;color:var(--text-dim)">
+              <strong style="color:var(--info)">Who enters what?</strong><br>
+              · <strong>Create job</strong> — Client enters the provider wallet address and a description. The client is you (your connected wallet).<br>
+              · <strong>Set budget</strong> — Provider sets the price in USDC. Solo testing? Use your own address as provider and do this step too.<br>
+              · <strong>Fund</strong> — Client locks USDC into escrow. Your wallet needs USDC on Arc Testnet.<br>
+              · <strong>Submit</strong> — Provider submits proof of completed work (any text).<br>
+              · <strong>Complete</strong> — Evaluator approves and USDC releases automatically. Default evaluator is the client.<br>
+              <span style="color:var(--text-faint);font-size:11px">💡 Solo test: enter your own wallet as provider and evaluator — you can do all 5 steps yourself.</span>
+            </div>
 
             <div class="job-rail" id="jobRail">
               <div class="job-rail-step active" data-step="1">
