@@ -6982,6 +6982,36 @@ console.log("call opened:", tx.hash);`;
       // ================================================================
       // Provider list render (chain data only, no session tags)
       // ================================================================
+      async function pingProviderEndpoints() {
+        const endpoints = await Promise.all(
+          (state.allProviders || []).filter(p => p.active).map(async p => {
+            try {
+              const ep = await state.registry.getEndpoint(p.id).catch(() => null);
+              return { id: p.id, endpoint: ep };
+            } catch { return { id: p.id, endpoint: null }; }
+          })
+        );
+        for (const { id, endpoint } of endpoints) {
+          const cell = document.getElementById("health-" + id);
+          if (!cell) continue;
+          if (!endpoint) {
+            cell.innerHTML = '<span style="color:var(--text-faint)">no endpoint</span>';
+            continue;
+          }
+          try {
+            const res = await fetch(CONFIG.facilitatorUrl + "/ping?url=" + encodeURIComponent(endpoint));
+            const data = await res.json();
+            if (data.ok) {
+              cell.innerHTML = '<span style="color:var(--accent)">🟢 ' + (data.ms || "?") + 'ms</span>';
+            } else {
+              cell.innerHTML = '<span style="color:var(--danger)">🔴 down</span>';
+            }
+          } catch {
+            cell.innerHTML = '<span style="color:var(--danger)">🔴 err</span>';
+          }
+        }
+      }
+
       function renderAllProvidersFiltered() {
         const d = state.usdcDecimals;
         const myAddr = state.address?.toLowerCase();
@@ -6999,6 +7029,9 @@ console.log("call opened:", tx.hash);`;
               <td class="col-sla">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
               <td style="text-align:right;color:${repColor};font-weight:600">${rep}</td>
               <td class="col-status">${badge}</td>
+              <td style="text-align:right;font-size:11px" class="col-health" id="health-${p.id}">
+                <span style="color:var(--text-faint)">…</span>
+              </td>
               <td style="text-align:right">
                 <button class="btn btn-sm btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">
                   ⚡ Nanopay 0.001
@@ -7016,6 +7049,7 @@ console.log("call opened:", tx.hash);`;
               <th style="text-align:right">SLA · slash</th>
               <th style="text-align:right">Rep</th>
               <th style="text-align:right">Status</th>
+              <th style="text-align:right">Health</th>
               <th style="text-align:right">Nano</th>
             </tr></thead>
             <tbody>${rows}</tbody>
@@ -7024,6 +7058,8 @@ console.log("call opened:", tx.hash);`;
         $("allProvidersBox").querySelectorAll("tbody tr[data-pid]").forEach(tr => {
           tr.addEventListener("click", () => openProviderModal(Number(tr.dataset.pid)));
         });
+        // Ping endpoints after render
+        setTimeout(pingProviderEndpoints, 500);
       }
 
       // -------- Ping endpoint button --------

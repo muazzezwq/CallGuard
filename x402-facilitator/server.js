@@ -277,6 +277,22 @@ app.get("/nano/balance", async (req, res) => {
   }
 });
 
+app.get("/ping", async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).json({ ok: false, error: "url required" });
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const start = Date.now();
+    const r = await fetch(url, { method: "GET", signal: controller.signal });
+    clearTimeout(timeout);
+    const ms = Date.now() - start;
+    res.json({ ok: r.ok || r.status < 500, status: r.status, ms });
+  } catch (e) {
+    res.json({ ok: false, error: e.message, ms: null });
+  }
+});
+
 app.get("/health", async (_, res) => {
   let buyerAddr = "not set";
   try {
