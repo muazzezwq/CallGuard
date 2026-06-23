@@ -538,6 +538,10 @@
         color: #fff !important;
         border-color: var(--accent) !important;
       }
+      .feed-tag.job {
+        background: rgba(168,85,247,0.15);
+        color: #a855f7;
+      }
       .feed-tag.nanopay {
         background: var(--accent-bg);
         color: var(--accent);
@@ -7665,6 +7669,7 @@ console.log("call opened:", tx.hash);`;
           }
           jobOut(`✓ Job created — ID #${jobId ?? "?"}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the provider sets a budget for this job.`);
           toast({ kind:"ok", title:"Job created", detail:`ID: ${jobId}`, link: txLink(tx.hash), timeout:8000 });
+          if ($("feed")) addFeed({ tag:"job", tagText:"job", body:`⚙️ Job #${jobId} created`, txHash: tx.hash });
           if (jobId !== null) {
             ["jobSetBudgetId","jobFundId","jobSubmitId","jobCompleteId","jobCheckId"].forEach(id => { const el = $(id); if(el) el.value = jobId.toString(); });
             openJobStep(2);
@@ -7684,6 +7689,7 @@ console.log("call opened:", tx.hash);`;
           await tx.wait();
           jobOut(`✓ Budget set — ${amount} USDC on job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the client funds the escrow.`);
           toast({ kind:"ok", title:"Budget set", link: txLink(tx.hash), timeout:6000 });
+          if ($("feed")) addFeed({ tag:"job", tagText:"job", body:`💰 Job #${jobId} budget set: ${amount} USDC`, txHash: tx.hash });
           openJobStep(3);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"setBudget failed", detail: friendlyError(e) }); }
       }
@@ -7706,6 +7712,7 @@ console.log("call opened:", tx.hash);`;
           await tx.wait();
           jobOut(`✓ Escrow funded — job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the provider submits the deliverable.`);
           toast({ kind:"ok", title:"Job funded", link: txLink(tx.hash), timeout:6000 });
+          if ($("feed")) addFeed({ tag:"job", tagText:"job", body:`🔒 Job #${jobId} escrow funded`, txHash: tx.hash });
           openJobStep(4);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Fund failed", detail: friendlyError(e) }); }
       }
@@ -7723,6 +7730,7 @@ console.log("call opened:", tx.hash);`;
           await tx.wait();
           jobOut(`✓ Deliverable submitted — job #${jobId}\ntx: ${tx.hash.slice(0,10)}...\n\nNext: the evaluator approves and settles.`);
           toast({ kind:"ok", title:"Deliverable submitted", link: txLink(tx.hash), timeout:6000 });
+          if ($("feed")) addFeed({ tag:"job", tagText:"job", body:`📦 Job #${jobId} deliverable submitted`, txHash: tx.hash });
           openJobStep(5);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Submit failed", detail: friendlyError(e) }); }
       }
@@ -7739,6 +7747,7 @@ console.log("call opened:", tx.hash);`;
           await tx.wait();
           jobOut(`✓ Job #${jobId} completed and settled\ntx: ${tx.hash.slice(0,10)}...\n\nUSDC has been released to the provider.`);
           toast({ kind:"ok", title:"Job completed", link: txLink(tx.hash), timeout:6000 });
+          if ($("feed")) addFeed({ tag:"job", tagText:"job", body:`✅ Job #${jobId} completed — USDC released to provider`, txHash: tx.hash });
           setJobRailStep(6);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Complete failed", detail: friendlyError(e) }); }
       }
