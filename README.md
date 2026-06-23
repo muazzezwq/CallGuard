@@ -110,14 +110,18 @@ The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp
 - **Register with NFT (v2)** — mint an ERC-8004 AgentIdentity NFT and register in one transaction via `RegisterWithNFT` helper
 - **Multi-chain payments** — pay from Ethereum Sepolia, Base Sepolia, or Polygon Amoy via CCTP V2; Arc enforces the SLA
 - **x402 live facilitator** — real HTTP 402 payment flow backed by a deployed facilitator; client signs an EIP-3009 authorization, the facilitator verifies it and settles `transferWithAuthorization` on Arc
+- **Circle Gateway Nanopayments** — gasless 0.001 USDC micro-payments via Circle Gateway; no MetaMask prompt, no gas, no tx confirmation; facilitator handles payment server-side with batch on-chain settlement
+- **ERC-8183 Jobs wizard** — 5-step job lifecycle (Create → Set Budget → Fund → Submit → Complete) with role badges (Client / Provider / Evaluator), progress rail, and auto-advance between steps
+- **My Jobs list** — one-click list of all jobs where you are client or provider, pulled from on-chain events
+- **Provider health check** — live 🟢/🔴 endpoint ping for each active provider via facilitator proxy
+- **Multi-provider routing** — top-3 display sorted by reputation then price, with auto-call best provider
 - **Submit receipt** — EIP-712 typed signing (structured fields in wallet)
 - **Claim timeout** — auto-slash when provider misses deadline
-- **Auto-router** — picks highest-reputation active provider within price/rep filters
 - **Session budget cap** — spending limit for agent flows
-- **Live event feed** — real-time contract events
+- **Live activity feed** — real-time contract events including SLA calls, nanopayments, and job lifecycle events
 - **Leaderboard** — top 10 providers by Bayesian reputation score
 - **24-hour activity chart** — hourly call volume with slash overlay
-- **Provider detail modal** — full stats, call history, honor rate per provider
+- **Provider detail modal** — full stats, call history, honor rate, nanopay button per provider
 
 ---
 
@@ -368,7 +372,13 @@ arcsla/
 - **EIP-712 typed signing** — structured receipt previews in wallet
 - **ERC-8004 NFT identity binding** — `registerV2()` requires AgentIdentity NFT; `RegisterWithNFT` helper mints NFT + registers in one tx
 - **CCTP multi-chain payments** — Ethereum/Base/Polygon → Arc via Circle CCTP V2
-- **x402 HTTP payment protocol** — `X402Middleware.sol` + `x402-provider.js` server
+- **x402 HTTP payment protocol** — full EIP-3009 authorization flow via Frankfurt facilitator
+- **Circle Gateway Nanopayments** — gasless micro-payments, server-side EIP-3009, Circle batch settlement
+- **ERC-8183 Jobs** — full lifecycle wizard (Create → Set Budget → Fund → Submit → Complete)
+- **My Jobs list** — on-chain event-sourced job history per wallet
+- **Provider endpoint health check** — live ping via facilitator proxy
+- **Multi-provider routing** — top-3 ranked by reputation + price, auto-call
+- **Activity feed** — SLA calls, nanopayments, and job events all in one stream
 - **Bayesian on-chain reputation** — `(completed + 2) / (total + 3) × 100`
 - **Auto-router** — picks best provider by reputation + price filters
 - **Session budget cap** — spending limit for agent flows
@@ -376,6 +386,7 @@ arcsla/
 
 ### Planned
 
+- Subgraph indexer — replace block-range scan with real-time event index
 - EIP-1271 support (contract-wallet callers)
 - Optional DisputeModule for subjective-quality services
 - Mainnet deployment once Arc Mainnet is live
