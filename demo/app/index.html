@@ -4367,7 +4367,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: "https://arcsla-eu.onrender.com",
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.0.0/gn",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn",
         subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.0.0/gn",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
       };
@@ -4972,6 +4972,42 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             return;
           }
 
+          // Try Goldsky subgraph first, fallback to RPC
+          let subgraphLoaded = false;
+          if (CONFIG.subgraphUrl) {
+            try {
+              const gql = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  providers(first: 1000, orderBy: id, orderDirection: asc) {
+                    id owner signer stake pricePerCall maxResponseTime slashBps active reputation completedCalls slashedCalls registeredAt
+                  }
+                }` })
+              });
+              const gdata = await gql.json();
+              if (gdata.data && gdata.data.providers && gdata.data.providers.length > 0) {
+                state.allProviders = gdata.data.providers.map(p => ({
+                  id: Number(p.id),
+                  owner: p.owner,
+                  signer: p.signer,
+                  stake: BigInt(p.stake),
+                  pricePerCall: BigInt(p.pricePerCall),
+                  maxResponseTime: Number(p.maxResponseTime),
+                  slashBps: Number(p.slashBps),
+                  active: p.active,
+                  endpoint: "",
+                  reputation: p.reputation,
+                }));
+                subgraphLoaded = true;
+                console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
+              }
+            } catch (e) {
+              console.warn("[subgraph] Failed, falling back to RPC:", e.message);
+            }
+          }
+
+          if (!subgraphLoaded) {
           // Fetch all providers and their reputation scores in parallel
           const ids = [];
           for (let i = 1; i <= total; i++) ids.push(i);
@@ -4996,6 +5032,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               reputation: Number(scores[i]),
             };
           });
+          }
 
           renderAllProviders();
         } catch (e) {
