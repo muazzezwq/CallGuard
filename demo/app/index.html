@@ -4997,6 +4997,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   active: p.active,
                   endpoint: "",
                   reputation: p.reputation,
+                  completedCalls: Number(p.completedCalls),
+                  slashedCalls: Number(p.slashedCalls),
                 }));
                 subgraphLoaded = true;
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
@@ -5216,7 +5218,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                     ${isSelf ? `<span class="self-tag">you</span>` : ""}
                   </div>
                   <div class="lb-bar"><div class="lb-bar-fill ${fillClass}" style="width: ${rep}%"></div></div>
-                  <div class="lb-score">${rep}</div>
+                  <div class="lb-score">${rep}<span style="font-size:9px;color:var(--text-faint);font-weight:400;margin-left:4px">${(p.completedCalls||0)+(p.slashedCalls||0) > 0 ? Math.round((p.completedCalls||0)/((p.completedCalls||0)+(p.slashedCalls||0))*100)+'%' : ''}</span></div>
                 </div>
               `;
             })
