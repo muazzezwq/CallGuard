@@ -4980,26 +4980,32 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query: `{
                   providers(first: 1000, orderBy: id, orderDirection: asc) {
-                    id owner signer stake pricePerCall maxResponseTime slashBps active reputation completedCalls slashedCalls registeredAt
+                    id owner signer stake pricePerCall active completedCalls slashedCalls createdAt
                   }
                 }` })
               });
               const gdata = await gql.json();
               if (gdata.data && gdata.data.providers && gdata.data.providers.length > 0) {
-                state.allProviders = gdata.data.providers.map(p => ({
-                  id: Number(p.id),
-                  owner: p.owner,
-                  signer: p.signer,
-                  stake: BigInt(p.stake),
-                  pricePerCall: BigInt(p.pricePerCall),
-                  maxResponseTime: Number(p.maxResponseTime),
-                  slashBps: Number(p.slashBps),
-                  active: p.active,
-                  endpoint: "",
-                  reputation: p.reputation,
-                  completedCalls: Number(p.completedCalls),
-                  slashedCalls: Number(p.slashedCalls),
-                }));
+                state.allProviders = gdata.data.providers.map(p => {
+                  const completed = Number(p.completedCalls || 0);
+                  const slashed = Number(p.slashedCalls || 0);
+                  const total = completed + slashed;
+                  const reputation = total > 0 ? Math.round((completed + 2) * 100 / (total + 3)) : 66;
+                  return {
+                    id: Number(p.id),
+                    owner: p.owner,
+                    signer: p.signer || p.owner,
+                    stake: BigInt(p.stake || 0),
+                    pricePerCall: BigInt(p.pricePerCall || 0),
+                    maxResponseTime: 30,
+                    slashBps: 2000,
+                    active: p.active,
+                    endpoint: "",
+                    reputation,
+                    completedCalls: completed,
+                    slashedCalls: slashed,
+                  };
+                });
                 subgraphLoaded = true;
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
               }
