@@ -3621,6 +3621,7 @@
           <div class="sb-item" data-nav="x402">⚡ x402</div>
           <div class="sb-item" data-nav="jobs">💼 Jobs</div>
           <div class="sb-item" data-nav="nano">⚡ Nanopayment</div>
+          <div class="sb-item" data-nav="mcp">🤖 MCP Agent</div>
           <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
           <div class="sb-section">Account</div>
           <div class="sb-item" data-nav="register">🔐 Register</div>
@@ -4051,6 +4052,67 @@
             </div>
 
             <div id="nanoOutput" style="font-size:13px;color:var(--text-dim);min-height:40px;background:var(--bg-2);border-radius:6px;padding:10px 12px;font-family:var(--font-mono);margin-top:4px;white-space:pre-wrap">Result will appear here.</div>
+          </div>
+        </section>
+
+        <section class="panel full-width" data-category="mcp">
+          <div class="panel-head">
+            <h2>🤖 MCP Agent</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Model Context Protocol · AI agent integration</span>
+          </div>
+          <div class="panel-body">
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
+              ArcSLA ships a built-in MCP server. Any MCP-compatible AI agent — Claude Desktop, Cursor, or any other client — can discover providers, check health, and send payments without writing any integration code.
+            </p>
+
+            <div style="background:var(--info-bg);border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:14px;margin-bottom:16px">
+              <div style="font-size:12px;font-weight:600;color:var(--info);margin-bottom:8px">Available tools</div>
+              <div style="display:grid;gap:6px;font-size:12px;color:var(--text-dim)">
+                <div><code style="color:var(--accent)">list_providers</code> — query active providers from Goldsky subgraph</div>
+                <div><code style="color:var(--accent)">get_leaderboard</code> — top providers by on-chain reputation</div>
+                <div><code style="color:var(--accent)">get_provider_health</code> — live endpoint ping for any provider</div>
+                <div><code style="color:var(--accent)">nanopay</code> — send 0.001 USDC via Circle Gateway, gasless</div>
+                <div><code style="color:var(--accent)">get_network_stats</code> — total providers, calls, network overview</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">1 · Clone the repo</div>
+              <div class="sdk-panel" style="position:relative">
+                <button class="sdk-copy-btn" id="btnCopyMcpClone">Copy</button>
+                <pre style="margin:0;font-size:12px">git clone https://github.com/muazzezwq/arcsla.git
+cd arcsla/x402-facilitator
+npm install</pre>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">2 · Add to Claude Desktop config</div>
+              <div class="sdk-panel" style="position:relative">
+                <button class="sdk-copy-btn" id="btnCopyMcpConfig">Copy</button>
+                <pre style="margin:0;font-size:12px">{
+  "mcpServers": {
+    "arcsla": {
+      "command": "node",
+      "args": ["/path/to/arcsla/x402-facilitator/mcp-server.js"]
+    }
+  }
+}</pre>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">3 · Test the server</div>
+              <div class="sdk-panel" style="position:relative">
+                <button class="sdk-copy-btn" id="btnCopyMcpTest">Copy</button>
+                <pre style="margin:0;font-size:12px">echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js</pre>
+              </div>
+            </div>
+
+            <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text-dim)">
+              <strong style="color:var(--accent)">Example agent prompt:</strong><br>
+              "Use ArcSLA to find the highest-reputation provider, check if they're online, and send a nanopayment."
+            </div>
           </div>
         </section>
 
@@ -6899,6 +6961,23 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       showCategory("overview");
 
       $("btnNanoCall").addEventListener("click", () => doNanoCall());
+
+      // MCP copy buttons
+      document.getElementById("btnCopyMcpClone")?.addEventListener("click", () => {
+        navigator.clipboard.writeText("git clone https://github.com/muazzezwq/arcsla.git
+cd arcsla/x402-facilitator
+npm install");
+        toast({ kind: "ok", title: "Copied!", timeout: 2000 });
+      });
+      document.getElementById("btnCopyMcpConfig")?.addEventListener("click", () => {
+        const config = JSON.stringify({ mcpServers: { arcsla: { command: "node", args: ["/path/to/arcsla/x402-facilitator/mcp-server.js"] } } }, null, 2);
+        navigator.clipboard.writeText(config);
+        toast({ kind: "ok", title: "Copied!", timeout: 2000 });
+      });
+      document.getElementById("btnCopyMcpTest")?.addEventListener("click", () => {
+        navigator.clipboard.writeText('echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js');
+        toast({ kind: "ok", title: "Copied!", timeout: 2000 });
+      });
 
       document.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-nano-provider]");
