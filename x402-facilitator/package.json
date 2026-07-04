@@ -12,11 +12,15 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@circle-fin/adapter-viem-v2": "^1.11.2",
+    "@circle-fin/app-kit": "^1.7.0",
     "@circle-fin/x402-batching": "^3.0.4",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@x402/evm": "^2.14.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "ethers": "^6.16.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "viem": "^2.53.1"
   }
 }
