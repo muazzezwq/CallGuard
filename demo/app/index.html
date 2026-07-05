@@ -6979,9 +6979,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // MCP copy buttons
       document.getElementById("btnCopyMcpClone")?.addEventListener("click", () => {
-        navigator.clipboard.writeText("git clone https://github.com/muazzezwq/arcsla.git
-cd arcsla/x402-facilitator
-npm install");
+        navigator.clipboard.writeText("git clone https://github.com/muazzezwq/arcsla.git\ncd arcsla/x402-facilitator\nnpm install");
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
       document.getElementById("btnCopyMcpConfig")?.addEventListener("click", () => {
@@ -6990,7 +6988,7 @@ npm install");
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
       document.getElementById("btnCopyMcpTest")?.addEventListener("click", () => {
-        navigator.clipboard.writeText('echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js');
+        navigator.clipboard.writeText(`echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js`);
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
       document.getElementById("btnCopyMcpRemote")?.addEventListener("click", () => {
