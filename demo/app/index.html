@@ -4109,6 +4109,21 @@ npm install</pre>
               </div>
             </div>
 
+            <div style="margin-bottom:16px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">4 · Or use remote MCP (no clone needed)</div>
+              <div class="sdk-panel" style="position:relative">
+                <button class="sdk-copy-btn" id="btnCopyMcpRemote">Copy</button>
+                <pre style="margin:0;font-size:12px">{
+  "mcpServers": {
+    "arcsla": {
+      "type": "sse",
+      "url": "https://arcsla-eu.onrender.com/sse"
+    }
+  }
+}</pre>
+              </div>
+            </div>
+
             <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text-dim)">
               <strong style="color:var(--accent)">Example agent prompt:</strong><br>
               "Use ArcSLA to find the highest-reputation provider, check if they're online, and send a nanopayment."
@@ -6785,7 +6800,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // -------- Button wiring --------
       $("connectBtn").addEventListener("click", connect);
-      $("connectBtn2").addEventListener("click", connect);
+      
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnX402Call").addEventListener("click", doX402Call);
@@ -6976,6 +6991,11 @@ npm install");
       });
       document.getElementById("btnCopyMcpTest")?.addEventListener("click", () => {
         navigator.clipboard.writeText('echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js');
+        toast({ kind: "ok", title: "Copied!", timeout: 2000 });
+      });
+      document.getElementById("btnCopyMcpRemote")?.addEventListener("click", () => {
+        const config = JSON.stringify({ mcpServers: { arcsla: { type: "sse", url: "https://arcsla-eu.onrender.com/sse" } } }, null, 2);
+        navigator.clipboard.writeText(config);
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
 
