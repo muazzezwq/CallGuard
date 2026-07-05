@@ -3323,7 +3323,7 @@
             <span class="label">USDC</span>
             <span class="amount" id="usdcBal">0.00</span>
           </div>
-          <button class="btn btn-primary" id="connectBtn">Connect wallet</button>
+          <button class="btn btn-primary" id="connectBtn" style="pointer-events:auto">Connect wallet</button>
           <div class="addr-pill hidden" id="addrPill" title="Click to copy">
             <span id="addrText"></span>
           </div>
@@ -6800,6 +6800,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // -------- Button wiring --------
       $("connectBtn").addEventListener("click", connect);
+      document.getElementById("connectBtn2")?.addEventListener("click", connect);
       
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
