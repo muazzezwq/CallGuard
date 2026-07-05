@@ -3585,7 +3585,7 @@
           </div>
           <div>
             <span class="label">CrossChainReceiver</span>
-            <a href="https://testnet.arcscan.app/address/0xf345Bf875A6A4aB9dBb47b0D17bcbd67f7A26AA5" target="_blank" rel="noreferrer">0xf345Bf875A6A4aB9dBb47b0D17bcbd67f7A26AA5</a>
+            <a href="https://testnet.arcscan.app/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer">0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c</a>
           </div>
           <div>
             <span class="label">RegisterWithNFT</span>
@@ -4357,7 +4357,7 @@ npm install</pre>
 <span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">JsonRpcProvider</span>(<span class="str">"https://rpc.testnet.arc.network"</span>);
 <span class="kw">const</span> wallet   = <span class="kw">new</span> ethers.<span class="fn">Wallet</span>(PRIVATE_KEY, provider);
 <span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x3600000000000000000000000000000000000000"</span>, [<span class="str">"function approve(address,uint256) returns(bool)"</span>], wallet);
-<span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x486d751532e362768FE590B95874B118b2dB691b"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
+<span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
 
 <span class="cm">// 1. Approve USDC</span>
 <span class="kw">await</span> usdc.<span class="fn">approve</span>(arc.target, ethers.<span class="fn">parseUnits</span>(<span class="str">"1"</span>, <span class="str">6</span>));
@@ -4453,9 +4453,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <span>ArcSLA · built on Arc Testnet</span>
           </div>
           <div>
-            <a href="https://testnet.arcscan.app/address/0xdcAa0a5f99822D81dcbAD8A4501cD5Cfd725CD53" target="_blank" rel="noreferrer">Registry</a>
+            <a href="https://testnet.arcscan.app/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">Registry</a>
             &nbsp;·&nbsp;
-            <a href="https://testnet.arcscan.app/address/0x486d751532e362768FE590B95874B118b2dB691b" target="_blank" rel="noreferrer">PayPerCall</a>
+            <a href="https://testnet.arcscan.app/address/0x10387347678d9f7106D5625bE0BD6C915158B130" target="_blank" rel="noreferrer">PayPerCall</a>
             &nbsp;·&nbsp; MIT License
           </div>
         </div>
@@ -4478,8 +4478,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         chainName: "Arc Testnet",
         rpcUrl: "https://rpc.testnet.arc.network",
         explorerBase: "https://testnet.arcscan.app",
-        registry: "0xdcAa0a5f99822D81dcbAD8A4501cD5Cfd725CD53",
-        payPerCall: "0x486d751532e362768FE590B95874B118b2dB691b",
+        registry: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF",
+        payPerCall: "0x10387347678d9f7106D5625bE0BD6C915158B130",
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
@@ -7107,7 +7107,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 const provider = new ethers.JsonRpcProvider("https://rpc.testnet.arc.network");
 const wallet   = new ethers.Wallet(PRIVATE_KEY, provider);
 const usdc     = new ethers.Contract("0x3600000000000000000000000000000000000000", ["function approve(address,uint256) returns(bool)"], wallet);
-const arc      = new ethers.Contract("0x486d751532e362768FE590B95874B118b2dB691b", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
+const arc      = new ethers.Contract("0x10387347678d9f7106D5625bE0BD6C915158B130", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
 await usdc.approve(arc.target, ethers.parseUnits("1", 6));
 const requestHash = ethers.keccak256(ethers.toUtf8Bytes("summarize this document"));
 const tx = await arc.callService(1, requestHash);
@@ -7543,7 +7543,7 @@ console.log("call opened:", tx.hash);`;
           arc:     { chainId: "0x4CEF52", chainIdDecimal: 5042002,  rpcUrl: "https://rpc.testnet.arc.network", name: "Arc Testnet", explorer: "https://testnet.arcscan.app" },
         },
         irisApi: "https://iris-api-sandbox.circle.com/v2/messages",
-        crossChainReceiver: "0xf345Bf875A6A4aB9dBb47b0D17bcbd67f7A26AA5",
+        crossChainReceiver: "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c",
       };
 
       // Chain selector UI
