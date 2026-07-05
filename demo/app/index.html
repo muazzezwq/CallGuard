@@ -4125,11 +4125,40 @@ npm install</pre>
             </div>
 
             <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text-dim)">
-              <strong style="color:var(--text)">📁 Where is the config file?</strong><br><br>
-              <strong>macOS:</strong> <code style="color:var(--accent)">~/Library/Application Support/Claude/claude_desktop_config.json</code><br>
-              <strong>Windows:</strong> <code style="color:var(--accent)">%APPDATA%\Claude\claude_desktop_config.json</code><br>
-              <strong>Linux:</strong> <code style="color:var(--accent)">~/.config/Claude/claude_desktop_config.json</code><br><br>
-              Create the file if it doesn't exist. Restart Claude Desktop after saving.
+              <strong style="color:var(--text)">📁 Where is the config file?</strong>
+              <span style="font-size:10px;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:100px;margin-left:8px" id="mcpOsDetected">detecting...</span>
+              <br><br>
+              <div id="mcpMac" style="padding:6px 0"><strong>macOS:</strong> <code style="color:var(--accent)">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+                <button onclick="navigator.clipboard.writeText('~/Library/Application Support/Claude/claude_desktop_config.json');toast({kind:'ok',title:'Copied!',timeout:2000})" style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);cursor:pointer;color:var(--text)">Copy</button>
+              </div>
+              <div id="mcpWin" style="padding:6px 0"><strong>Windows:</strong> <code style="color:var(--accent)">%APPDATA%\Claude\claude_desktop_config.json</code>
+                <button onclick="navigator.clipboard.writeText('%APPDATA%\\Claude\\claude_desktop_config.json');toast({kind:'ok',title:'Copied!',timeout:2000})" style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);cursor:pointer;color:var(--text)">Copy</button>
+              </div>
+              <div id="mcpLinux" style="padding:6px 0"><strong>Linux:</strong> <code style="color:var(--accent)">~/.config/Claude/claude_desktop_config.json</code>
+                <button onclick="navigator.clipboard.writeText('~/.config/Claude/claude_desktop_config.json');toast({kind:'ok',title:'Copied!',timeout:2000})" style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);cursor:pointer;color:var(--text)">Copy</button>
+              </div>
+              <br>
+              <span style="color:var(--text-faint)">Create the file if it doesn't exist. Restart Claude Desktop after saving.</span>
+              <script>
+                (function() {
+                  const ua = navigator.userAgent;
+                  const isMac = /Mac/.test(ua);
+                  const isWin = /Win/.test(ua);
+                  const isLinux = /Linux/.test(ua) && !/Android/.test(ua);
+                  const label = isMac ? 'macOS detected' : isWin ? 'Windows detected' : isLinux ? 'Linux detected' : 'select your OS';
+                  const el = document.getElementById('mcpOsDetected');
+                  if (el) el.textContent = label;
+                  ['mcpMac','mcpWin','mcpLinux'].forEach(id => {
+                    const div = document.getElementById(id);
+                    if (div) div.style.opacity = '0.5';
+                  });
+                  const highlight = isMac ? 'mcpMac' : isWin ? 'mcpWin' : isLinux ? 'mcpLinux' : null;
+                  if (highlight) {
+                    const div = document.getElementById(highlight);
+                    if (div) { div.style.opacity = '1'; div.style.background = 'var(--accent-bg)'; div.style.borderRadius = '6px'; div.style.padding = '6px 8px'; }
+                  }
+                })();
+              </script>
             </div>
 
             <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text-dim)">
