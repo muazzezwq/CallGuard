@@ -305,5 +305,24 @@ app.get("/health", async (_, res) => {
   res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr });
 });
 
+// MCP SSE endpoints
+const { SSEServerTransport } = await import("@modelcontextprotocol/sdk/server/sse.js");
+const { default: createArcslaServer } = await import("./mcp-server-factory.js");
+const mcpSessions = {};
+
+app.get("/sse", async (req, res) => {
+  const transport = new SSEServerTransport("/messages", res);
+  mcpSessions[transport.sessionId] = transport;
+  res.on("close", () => delete mcpSessions[transport.sessionId]);
+  const server = createArcslaServer();
+  await server.connect(transport);
+});
+
+app.post("/messages", async (req, res) => {
+  const t = mcpSessions[req.query.sessionId];
+  if (!t) return res.status(404).json({ error: "Session not found" });
+  await t.handlePostMessage(req, res);
+});
+
 app.listen(env.PORT || 4021, () =>
   console.log(`x402 facilitator :${env.PORT || 4021}`));
