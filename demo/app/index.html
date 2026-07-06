@@ -4485,6 +4485,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: "https://arcsla-eu.onrender.com",
         subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn",
+        bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
       };
 
@@ -6983,6 +6984,30 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         });
       }
 
+      // ---- Band Oracle price feed ----
+      let _usdcUsdRate = 1.0;
+      async function fetchUsdcUsdRate() {
+        try {
+          const oracle = new ethers.Contract(
+            CONFIG.bandOracle,
+            ["function getReferenceData(string base, string quote) view returns (uint256 rate, uint256 lastUpdatedBase, uint256 lastUpdatedQuote)"],
+            state.provider || new ethers.JsonRpcProvider("https://rpc.testnet.arc.network")
+          );
+          const [rate] = await oracle.getReferenceData("USDC", "USD");
+          _usdcUsdRate = parseFloat(ethers.formatUnits(rate, 18));
+          console.log("[oracle] USDC/USD:", _usdcUsdRate);
+        } catch(e) {
+          console.warn("[oracle] Failed:", e.message);
+        }
+      }
+      // Fetch on load and every 60s
+      fetchUsdcUsdRate();
+      setInterval(fetchUsdcUsdRate, 60000);
+
+      function usdPrice(usdc) {
+        return (parseFloat(usdc) * _usdcUsdRate).toFixed(4);
+      }
+
       // ---- Sidebar navigation ----
       function showCategory(cat) {
         // Tüm panelleri gizle
@@ -7220,11 +7245,13 @@ console.log("call opened:", tx.hash);`;
           const badge = p.active ? `<span class="badge active">active</span>` : `<span class="badge inactive">inactive</span>`;
           const rep = p.reputation ?? 0;
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
+          const priceUsdc = ethers.formatUnits(p.pricePerCall, d);
+          const priceUsd = usdPrice(priceUsdc);
           return `
             <tr data-pid="${p.id}" class="${isSelf ? "is-self" : ""}">
               <td class="col-id">#${p.id}</td>
               <td class="col-owner">${short(p.owner, 4)}${isSelf ? `<span class="self-tag">you</span>` : ""}</td>
-              <td class="col-price">${ethers.formatUnits(p.pricePerCall, d)}</td>
+              <td class="col-price">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">${priceUsd}</span></td>
               <td class="col-stake">${ethers.formatUnits(p.stake, d)}</td>
               <td class="col-sla">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
               <td style="text-align:right;color:${repColor};font-weight:600">${rep}</td>
