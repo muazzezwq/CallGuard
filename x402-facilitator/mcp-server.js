@@ -136,3 +136,26 @@ server.tool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("ArcSLA MCP Server running...");
+
+// Tool 6: search_arc_docs
+server.tool(
+  "arc_docs_search",
+  "Search Arc Network official documentation for any topic — ERC standards, USDC, CCTP, oracle, App Kit etc.",
+  { query: z.string() },
+  async ({ query }) => {
+    try {
+      const res = await fetch("https://docs.arc.io/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "search_arc_docs", arguments: { query } } })
+      });
+      const raw = await res.text();
+      const dataLine = raw.split('\n').find(l => l.startsWith('data: '));
+      const data = dataLine ? JSON.parse(dataLine.slice(6)) : {};
+      const text = data.result?.content?.[0]?.text || "No results found.";
+      return { content: [{ type: "text", text }] };
+    } catch(e) {
+      return { content: [{ type: "text", text: `❌ Error: ${e.message}` }] };
+    }
+  }
+);
