@@ -3323,6 +3323,10 @@
             <span class="label">USDC</span>
             <span class="amount" id="usdcBal">0.00</span>
           </div>
+          <div class="usdc-balance hidden" id="eurcBalBox">
+            <span class="label">EURC</span>
+            <span class="amount" id="eurcBal">0.00</span>
+          </div>
           <button class="btn btn-primary" id="connectBtn" style="pointer-events:auto">Connect wallet</button>
           <div class="addr-pill hidden" id="addrPill" title="Click to copy">
             <span id="addrText"></span>
@@ -4487,6 +4491,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         facilitatorUrl: "https://arcsla-eu.onrender.com",
         subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
+        eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
       };
 
@@ -4975,6 +4980,18 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           const formatted = ethers.formatUnits(b, state.usdcDecimals);
           // Show up to 4 decimal places
           $("usdcBal").textContent = parseFloat(formatted).toFixed(4).replace(/\.?0+$/, "") || "0";
+
+          // EURC balance
+          try {
+            const eurc = new ethers.Contract(CONFIG.eurc, ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"], state.provider);
+            const eurcDecimals = await eurc.decimals().catch(() => 6);
+            const eurcBal = await eurc.balanceOf(state.address);
+            const eurcFormatted = ethers.formatUnits(eurcBal, eurcDecimals);
+            const eurcEl = $("eurcBal");
+            const eurcBox = $("eurcBalBox");
+            if (eurcEl) eurcEl.textContent = parseFloat(eurcFormatted).toFixed(4).replace(/\.?0+$/, "") || "0";
+            if (eurcBox) eurcBox.classList.remove("hidden");
+          } catch(e) { console.warn("EURC balance failed:", e.message); }
         } catch (e) {
           console.warn("refreshBalance failed:", e.message);
           $("usdcBal").textContent = "—";
