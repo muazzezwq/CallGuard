@@ -1,0 +1,129 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ServiceRegistry
+    network: arc-testnet
+    source:
+      address: "0xdcAa0a5f99822D81dcbAD8A4501cD5Cfd725CD53"
+      abi: ServiceRegistry
+      startBlock: 43046517
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Provider
+      abis:
+        - name: ServiceRegistry
+          file: ./abis/ServiceRegistry.json
+      eventHandlers:
+        - event: ProviderRegistered(indexed uint256,indexed address,address,uint256,uint256,uint32,uint32,string)
+          handler: handleProviderRegistered
+        - event: ProviderDeactivated(indexed uint256,uint32)
+          handler: handleProviderDeactivated
+        - event: ProviderUnstaked(indexed uint256,uint256)
+          handler: handleProviderUnstaked
+        - event: ProviderSlashed(indexed uint256,uint256,address)
+          handler: handleProviderSlashed
+        - event: PriceUpdated(indexed uint256,uint256)
+          handler: handlePriceUpdated
+        - event: SignerUpdated(indexed uint256,address)
+          handler: handleSignerUpdated
+        - event: ReputationUpdated(indexed uint256,uint32,uint32)
+          handler: handleReputationUpdated
+        - event: NFTBound(indexed uint256,indexed uint256)
+          handler: handleNFTBound
+      file: ./src/mapping.ts
+
+  - kind: ethereum
+    name: PayPerCall
+    network: arc-testnet
+    source:
+      address: "0x486d751532e362768FE590B95874B118b2dB691b"
+      abi: PayPerCall
+      startBlock: 43046517
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Call
+        - Provider
+      abis:
+        - name: PayPerCall
+          file: ./abis/PayPerCall.json
+      eventHandlers:
+        - event: CallStarted(indexed bytes32,indexed uint256,indexed address,uint256,bytes32,uint32)
+          handler: handleCallStarted
+        - event: ReceiptSubmitted(indexed bytes32,bytes32)
+          handler: handleReceiptSubmitted
+        - event: CallSlashed(indexed bytes32,uint256,uint256)
+          handler: handleCallSlashed
+      file: ./src/mapping.ts
+
+  - kind: ethereum
+    name: CrossChainReceiver
+    network: arc-testnet
+    source:
+      address: "0xf345Bf875A6A4aB9dBb47b0D17bcbd67f7A26AA5"
+      abi: CrossChainReceiver
+      startBlock: 43046517
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - CrossChainCall
+        - Provider
+      abis:
+        - name: CrossChainReceiver
+          file: ./abis/CrossChainReceiver.json
+      eventHandlers:
+        - event: CrossChainCallTriggered(indexed bytes32,indexed uint256,indexed address,uint256)
+          handler: handleCrossChainCallTriggered
+      file: ./src/mapping.ts
+
+  - kind: ethereum
+    name: RegisterWithNFT
+    network: arc-testnet
+    source:
+      address: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169"
+      abi: RegisterWithNFT
+      startBlock: 43046517
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - NFTRegistration
+        - Provider
+      abis:
+        - name: RegisterWithNFT
+          file: ./abis/RegisterWithNFT.json
+      eventHandlers:
+        - event: RegisteredWithNFT(indexed address,indexed uint256,indexed uint256,uint256)
+          handler: handleRegisteredWithNFT
+      file: ./src/mapping.ts
+  - kind: ethereum
+    name: AgenticCommerce
+    network: arc-testnet
+    source:
+      address: "0x0747EEf0706327138c69792bF28Cd525089e4583"
+      abi: AgenticCommerce
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Job
+        - JobCreated
+      abis:
+        - name: AgenticCommerce
+          file: ./abis/AgenticCommerce.json
+      eventHandlers:
+        - event: JobCreated(indexed uint256,indexed address,indexed address,address,uint256,address)
+          handler: handleJobCreated
+      file: ./src/agenticCommerce.ts

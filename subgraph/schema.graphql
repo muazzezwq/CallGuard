@@ -1,0 +1,83 @@
+type Provider @entity {
+  id: ID!
+  owner: Bytes!
+  signer: Bytes!
+  stake: BigInt!
+  pricePerCall: BigInt!
+  active: Boolean!
+  deactivatedAt: BigInt
+  completedCalls: Int!
+  slashedCalls: Int!
+  nftTokenId: BigInt
+  nftBound: Boolean!
+  totalSlashed: BigInt!
+  totalUnstaked: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  calls: [Call!]! @derivedFrom(field: "provider")
+  crossChainCalls: [CrossChainCall!]! @derivedFrom(field: "provider")
+}
+
+type Call @entity {
+  id: ID!
+  provider: Provider!
+  providerId: BigInt!
+  caller: Bytes!
+  amount: BigInt!
+  requestHash: Bytes!
+  responseHash: Bytes
+  status: CallStatus!
+  refunded: BigInt!
+  slashed: BigInt!
+  createdAt: BigInt!
+  completedAt: BigInt
+}
+
+enum CallStatus {
+  STARTED
+  COMPLETED
+  SLASHED
+}
+
+type CrossChainCall @entity {
+  id: ID!
+  provider: Provider!
+  providerId: BigInt!
+  originalCaller: Bytes!
+  amount: BigInt!
+  createdAt: BigInt!
+}
+
+type NFTRegistration @entity {
+  id: ID!
+  provider: Provider!
+  providerId: BigInt!
+  tokenId: BigInt!
+  stakeAmount: BigInt!
+  providerAddress: Bytes!
+  createdAt: BigInt!
+}
+
+type Job @entity(immutable: false) {
+  id: ID!
+  jobId: BigInt!
+  client: Bytes!
+  provider: Bytes!
+  evaluator: Bytes!
+  description: String!
+  expiredAt: BigInt!
+  status: String!
+  createdAt: BigInt!
+  txHash: Bytes!
+}
+
+type JobCreated @entity(immutable: true) {
+  id: ID!
+  jobId: BigInt!
+  client: Bytes!
+  provider: Bytes!
+  evaluator: Bytes!
+  expiredAt: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}

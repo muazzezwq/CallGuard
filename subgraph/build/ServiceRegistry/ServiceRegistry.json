@@ -1,0 +1,88 @@
+[
+  {
+    "type": "event",
+    "name": "ProviderRegistered",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "signer",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "stake",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "pricePerCall",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "maxResponseTime",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "slashBps",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ProviderUpdated",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ReputationUpdated",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "score",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "completed",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "slashed",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  }
+]

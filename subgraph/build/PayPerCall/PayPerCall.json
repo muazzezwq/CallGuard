@@ -1,0 +1,83 @@
+[
+  {
+    "type": "event",
+    "name": "CallStarted",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "callId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "requestHash",
+        "type": "bytes32",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ReceiptSubmitted",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "callId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "responseHash",
+        "type": "bytes32",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "CallSlashed",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "callId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "slashed",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  }
+]

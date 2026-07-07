@@ -1,0 +1,39 @@
+[
+  {
+    "type": "event",
+    "name": "JobCreated",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "client",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "provider",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "evaluator",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "expiredAt",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "hook",
+        "type": "address",
+        "indexed": false
+      }
+    ]
+  }
+]
