@@ -8000,6 +8000,44 @@ console.log("call opened:", tx.hash);`;
         titleEl.style.display = "block";
         listEl.innerHTML = '<div class="empty-state" style="font-size:12px">loading your jobs…</div>';
         try {
+          // Try Goldsky subgraph first
+          if (CONFIG.subgraphUrl) {
+            try {
+              const addr = state.address.toLowerCase();
+              const gql = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  asClient: jobs(first:100, where:{client:"${addr}"}, orderBy:jobId, orderDirection:desc) { id jobId client provider status createdAt }
+                  asProvider: jobs(first:100, where:{provider:"${addr}"}, orderBy:jobId, orderDirection:desc) { id jobId client provider status createdAt }
+                }` })
+              });
+              const gdata = await gql.json();
+              if (gdata.data) {
+                const seen = new Map();
+                (gdata.data.asClient||[]).forEach(j => seen.set(j.jobId, { jobId: j.jobId, role: "Client", status: j.status }));
+                (gdata.data.asProvider||[]).forEach(j => { if (!seen.has(j.jobId)) seen.set(j.jobId, { jobId: j.jobId, role: "Provider", status: j.status }); });
+                if (seen.size > 0) {
+                  const entries = Array.from(seen.values()).sort((a,b) => Number(b.jobId)-Number(a.jobId));
+                  listEl.innerHTML = entries.map(({ jobId, role, status }) => {
+                    const roleClass = role === "Client" ? "role-client" : "role-provider";
+                    return `<div class="my-job-card" data-job-id="${jobId}">
+                      <span class="my-job-id">#${jobId}</span>
+                      <span class="my-job-desc">Job #${jobId}</span>
+                      <span class="my-job-role ${roleClass}">${role}</span>
+                      <span class="my-job-status status-${status}">${status}</span>
+                    </div>`;
+                  }).join("");
+                  listEl.querySelectorAll(".my-job-card").forEach(card => {
+                    card.addEventListener("click", () => { $("jobCheckId").value = card.dataset.jobId; doCheckJob(); });
+                  });
+                  return;
+                }
+              }
+            } catch(e) { console.warn("[subgraph] jobs failed:", e.message); }
+          }
+
+          // Fallback to RPC
           const jobs = getJobsContract();
           const iface = new ethers.Interface(JOBS_ABI);
           const asClient = await safeQuery(jobs, "JobCreated", jobs.filters.JobCreated(null, state.address, null));
