@@ -3811,8 +3811,11 @@
             </details>
 
             <details class="action" id="actionCall">
-              <summary>Call a service</summary>
+              <summary>Call a service <span style="font-size:11px;background:rgba(5,150,105,0.15);color:var(--accent);padding:2px 8px;border-radius:100px;margin-left:6px;font-weight:600">⚡ Gas-free</span></summary>
               <div class="action-body">
+                <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim)">
+                  <strong style="color:var(--accent)">No gas required.</strong> You sign an EIP-3009 authorization off-chain — no USDC approval tx, no gas fee. The facilitator pays gas on your behalf and settles the payment on Arc in a single transaction.
+                </div>
                 <div class="field">
                   <label>Pay from chain</label>
                   <select id="sourceChainSelect" style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:var(--font-mono);font-size:14px;color:var(--text);outline:none;width:100%">
