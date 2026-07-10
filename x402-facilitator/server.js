@@ -12,6 +12,11 @@ app.use(express.json());
 const fac = makeFacilitator(env);
 console.log("Facilitator cuzdani:", fac.facilitatorAddress);
 
+// Facilitator wallet for Memo transactions
+import { ethers } from "ethers";
+const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.network");
+const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
+
 const PRICE = "1000000";
 const PAY_TO = fac.facilitatorAddress;
 
@@ -79,6 +84,25 @@ app.post("/callService", async (req, res) => {
       r,
       s: sig,
     });
+
+    // Attach Arc Memo to the call for on-chain reconciliation
+    try {
+      const MEMO_CONTRACT = "0x5294E9927c3306DcBaDb03fe70b92e01cCede505";
+      const USDC_ADDR = env.USDC_ADDRESS || "0x3600000000000000000000000000000000000000";
+      const memoAbi = ["function memo(address target, bytes data, bytes32 memoId, bytes memoData) external"];
+      const memoContract = new ethers.Contract(MEMO_CONTRACT, memoAbi, facilitatorWallet);
+      const memoId = ethers.keccak256(ethers.toUtf8Bytes("arcsla-" + (result.callId || requestHash)));
+      const memoText = "ArcSLA payment — Provider #" + providerId;
+      const memoData = ethers.toUtf8Bytes(memoText);
+      const usdcIface = new ethers.Interface(["function transfer(address to, uint256 amount) returns (bool)"]);
+      const dummyData = usdcIface.encodeFunctionData("transfer", [from, 0n]);
+      const memoTx = await memoContract.memo(USDC_ADDR, dummyData, memoId, memoData);
+      result.memoTx = memoTx.hash;
+      console.log("[memo] Attached:", memoText, "tx:", memoTx.hash);
+    } catch(e) {
+      console.warn("[memo] Failed:", e.message);
+    }
+
     res.json(result);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
