@@ -1,3 +1,4 @@
+import { slh_dsa_sha2_128s } from "@noble/post-quantum/slh-dsa.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -16,6 +17,20 @@ console.log("Facilitator cuzdani:", fac.facilitatorAddress);
 import { ethers } from "ethers";
 const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.network");
 const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
+
+// Post-quantum SLH-DSA-SHA2-128s (Arc 0x1800..0004 precompile compatible)
+const _pqSeed = new Uint8Array(48);
+const _seedBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes("arcsla-pq-seed-v1")));
+_pqSeed.set(_seedBytes.slice(0, 32));
+_pqSeed.set(_seedBytes.slice(0, 16), 32);
+const PQ_KEYS = slh_dsa_sha2_128s.keygen(_pqSeed);
+const PQ_PUBLIC_KEY = Buffer.from(PQ_KEYS.publicKey).toString("hex");
+console.log("[PQ] SLH-DSA public key:", PQ_PUBLIC_KEY);
+function pqSign(data) {
+  const msg = new TextEncoder().encode(typeof data === "string" ? data : JSON.stringify(data));
+  const sig = slh_dsa_sha2_128s.sign(msg, PQ_KEYS.secretKey);
+  return Buffer.from(sig).toString("base64");
+}
 
 const PRICE = "1000000";
 const PAY_TO = fac.facilitatorAddress;
@@ -103,6 +118,13 @@ app.post("/callService", async (req, res) => {
       console.warn("[memo] Failed:", e.message);
     }
 
+    // Add PQ signature to result
+    if (result && typeof result === "object") {
+      const payload = JSON.stringify({ callId: result.callId, providerId, from, timestamp: Date.now() });
+      result.pqSignature = pqSign(payload);
+      result.pqPublicKey = PQ_PUBLIC_KEY;
+      result.pqAlgorithm = "SLH-DSA-SHA2-128s";
+    }
     res.json(result);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -326,7 +348,7 @@ app.get("/health", async (_, res) => {
       buyerAddr = acc.address;
     }
   } catch(e) { buyerAddr = "error: " + e.message; }
-  res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr });
+  res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr, pqPublicKey: PQ_PUBLIC_KEY, pqAlgorithm: "SLH-DSA-SHA2-128s" });
 });
 
 // MCP SSE endpoints

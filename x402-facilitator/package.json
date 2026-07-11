@@ -16,6 +16,7 @@
     "@circle-fin/app-kit": "^1.7.0",
     "@circle-fin/x402-batching": "^3.0.4",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@noble/post-quantum": "^0.6.1",
     "@x402/evm": "^2.14.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
