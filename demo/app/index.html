@@ -3633,6 +3633,7 @@
           <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
           <div class="sb-section">Account</div>
           <div class="sb-item" data-nav="register">🔐 Register</div>
+          <div class="sb-item" data-nav="privacy">🔒 Privacy (APS)</div>
           <div class="sb-item" data-nav="settings">⚙️ Settings</div>
         </nav>
         <!-- MAIN CONTENT -->
@@ -3960,6 +3961,41 @@
         </section>
 
         <!-- ===== BUDGET / SPENDING CAP ===== -->
+        <section class="panel full-width" data-category="privacy">
+          <div class="panel-head">
+            <h2>🔒 Arc Privacy Sector</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">APS · opt-in private SLA calls</span>
+          </div>
+          <div class="panel-body">
+            <div style="background:var(--info-bg);border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px;line-height:1.7;color:var(--text-dim)">
+              <strong style="color:var(--info)">Coming soon — Arc Privacy Sector is in development.</strong><br>
+              APS runs a second execution environment alongside Arc's public chain. Private transactions are encrypted with the APS network key and executed inside hardware enclaves — validators can't read the payload, and no event logs are exposed to the public ledger.
+            </div>
+
+            <div style="display:grid;gap:10px;margin-bottom:18px">
+              <div style="padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:12px">
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">🔐 Private SLA calls</div>
+                <div style="color:var(--text-faint)">Call a provider without revealing your wallet address. The provider receives the request and USDC but cannot see who called — enforced by the enclave, not by trust.</div>
+              </div>
+              <div style="padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:12px">
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">🕵️ Confidential payloads</div>
+                <div style="color:var(--text-faint)">Request hashes and response data stay encrypted on-chain. Only the caller and provider can decrypt the content — slashing still works on the encrypted proof.</div>
+              </div>
+              <div style="padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:12px">
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">⚡ Same SLA enforcement</div>
+                <div style="color:var(--text-faint)">Private calls use the same staking and slashing rules as public calls. The SLA is enforced by the contract — privacy doesn't weaken the guarantee.</div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-2);border:1px dashed var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text-faint);text-align:center">
+              <div style="font-size:20px;margin-bottom:8px">🔒</div>
+              <div>APS private transactions require X-Wing KEM encryption and Arc enclave RPC nodes.</div>
+              <div style="margin-top:6px">ArcSLA will integrate APS private calls when the precompile API is public.</div>
+              <div style="margin-top:8px"><a href="https://docs.arc.io/arc/concepts/opt-in-privacy" target="_blank" style="color:var(--accent)">Read the APS docs →</a></div>
+            </div>
+          </div>
+        </section>
+
         <section class="panel" id="budgetPanel" data-category="settings">
           <div class="panel-head">
             <h2>Session Budget</h2>
