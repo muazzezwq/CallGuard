@@ -3633,6 +3633,7 @@
           <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
           <div class="sb-section">Account</div>
           <div class="sb-item" data-nav="register">🔐 Register</div>
+          <div class="sb-item" data-nav="analytics">📈 Analytics</div>
           <div class="sb-item" data-nav="privacy">🔒 Privacy (APS)</div>
           <div class="sb-item" data-nav="settings">⚙️ Settings</div>
         </nav>
@@ -3961,6 +3962,80 @@
         </section>
 
         <!-- ===== BUDGET / SPENDING CAP ===== -->
+        <section class="panel full-width" data-category="analytics">
+          <div class="panel-head">
+            <h2>📈 Analytics</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:20px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
+              <div id="anProviderBars"></div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
+              <div id="anRecentCalls"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width" data-category="analytics">
+          <div class="panel-head">
+            <h2>📈 Analytics</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:20px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
+              <div id="anProviderBars"></div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
+              <div id="anRecentCalls"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="panel full-width" data-category="privacy">
           <div class="panel-head">
             <h2>🔒 Arc Privacy Sector</h2>
@@ -7134,6 +7209,79 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         });
       }
 
+      // ---- Analytics ----
+      async function loadAnalytics() {
+        try {
+          const res = await fetch(CONFIG.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{
+              providers(first: 1000) { id active completedCalls slashedCalls pricePerCall }
+              calls: callStarteds(first: 100, orderBy: timestamp, orderDirection: desc) { id providerId amount timestamp }
+              completed: receiptSubmitteds(first: 1000) { id }
+              slashed: callSlasheds(first: 1000) { id }
+            }` })
+          });
+          const data = await res.json();
+          const providers = data.data?.providers || [];
+          const calls = data.data?.calls || [];
+          const completed = data.data?.completed || [];
+          const slashed = data.data?.slashed || [];
+
+          const active = providers.filter(p => p.active).length;
+          const totalCompleted = providers.reduce((a,p) => a + Number(p.completedCalls||0), 0);
+          const totalSlashed = providers.reduce((a,p) => a + Number(p.slashedCalls||0), 0);
+          const totalClosed = totalCompleted + totalSlashed;
+          const honorRate = totalClosed > 0 ? Math.round(totalCompleted/totalClosed*100) : 100;
+          const avgPrice = providers.length > 0 ? providers.reduce((a,p) => a + Number(p.pricePerCall||0), 0) / providers.length / 1e6 : 0;
+
+          if ($("anTotalCalls")) $("anTotalCalls").textContent = calls.length + "+";
+          if ($("anHonorRate")) $("anHonorRate").textContent = honorRate + "%";
+          if ($("anActiveProviders")) $("anActiveProviders").textContent = active;
+          if ($("anAvgPrice")) $("anAvgPrice").textContent = avgPrice.toFixed(3) + " USDC";
+
+          // Provider bars
+          const topProviders = providers
+            .map(p => ({ id: p.id, total: Number(p.completedCalls||0) + Number(p.slashedCalls||0), completed: Number(p.completedCalls||0), slashed: Number(p.slashedCalls||0) }))
+            .filter(p => p.total > 0)
+            .sort((a,b) => b.total - a.total)
+            .slice(0, 8);
+
+          const maxTotal = topProviders[0]?.total || 1;
+          const barsEl = $("anProviderBars");
+          if (barsEl) {
+            barsEl.innerHTML = topProviders.map(p => {
+              const pct = Math.round(p.total / maxTotal * 100);
+              const honor = p.total > 0 ? Math.round(p.completed/p.total*100) : 100;
+              const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+                <span style="width:40px;color:var(--text-faint)">#${p.id}</span>
+                <div style="flex:1;background:var(--bg-2);border-radius:4px;height:20px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;transition:width .3s"></div>
+                </div>
+                <span style="width:60px;color:var(--text-faint);${honor<50?'color:var(--danger)':''}">${p.total} calls</span>
+                <span style="width:40px;color:${barColor}">${honor}%</span>
+              </div>`;
+            }).join("") || '<div class="empty-state" style="font-size:12px">No call data yet</div>';
+          }
+
+          // Recent calls
+          const recentEl = $("anRecentCalls");
+          if (recentEl) {
+            recentEl.innerHTML = calls.slice(0, 10).map(c => {
+              const date = new Date(Number(c.timestamp) * 1000).toLocaleString();
+              return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+                <span style="color:var(--text-faint);font-family:var(--font-mono)">#${c.providerId}</span>
+                <span style="color:var(--text-faint)">${(Number(c.amount)/1e6).toFixed(3)} USDC</span>
+                <span style="margin-left:auto;color:var(--text-faint)">${date}</span>
+              </div>`;
+            }).join("") || '<div class="empty-state" style="font-size:12px">No recent calls</div>';
+          }
+        } catch(e) {
+          console.warn("[analytics] Failed:", e.message);
+        }
+      }
+
       // ---- Band Oracle price feed ----
       let _usdcUsdRate = 1.0;
       async function fetchUsdcUsdRate() {
@@ -7179,6 +7327,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         });
         // Aktif kategoriyi kaydet
         window._activeCat = cat;
+        // Analytics paneli açıldığında yükle
+        if (cat === "analytics") loadAnalytics();
       }
 
       // Sidebar click handlers
