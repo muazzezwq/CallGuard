@@ -5775,6 +5775,11 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                 : `<div class="section-title">No calls yet</div>`
             }
 
+            <div id="modalGoldskyStats" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+              <div class="section-title">On-chain analytics</div>
+              <div style="font-size:12px;color:var(--text-faint)">loading from Goldsky…</div>
+            </div>
+
             ${
               provider.active
                 ? `
@@ -5854,6 +5859,112 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               });
             }
           }
+
+          // Load Goldsky analytics for this provider
+          (async () => {
+            const statsEl = document.getElementById("modalGoldskyStats");
+            if (!statsEl || !CONFIG.subgraphUrl) return;
+            try {
+              const res = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  provider(id: "${providerId}") {
+                    completedCalls slashedCalls pricePerCall stake
+                  }
+                  recentCalls: callStarteds(first: 10, where: {providerId: "${providerId}"}, orderBy: timestamp, orderDirection: desc) {
+                    id amount timestamp
+                  }
+                }` })
+              });
+              const data = await res.json();
+              const p = data.data?.provider;
+              const recent = data.data?.recentCalls || [];
+              if (!p) { statsEl.innerHTML = '<div class="section-title">On-chain analytics</div><div style="font-size:12px;color:var(--text-faint)">No data indexed yet</div>'; return; }
+              const completed = Number(p.completedCalls || 0);
+              const slashed = Number(p.slashedCalls || 0);
+              const total = completed + slashed;
+              const honor = total > 0 ? Math.round(completed/total*100) : 100;
+              const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
+              const vol = recent.reduce((a,c) => a + Number(c.amount||0), 0) / 1e6;
+              statsEl.innerHTML = `
+                <div class="section-title">On-chain analytics <span style="font-size:10px;color:var(--text-faint);font-weight:400">via Goldsky</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:${barColor}">${honor}%</div>
+                    <div style="font-size:10px;color:var(--text-faint)">Honor rate</div>
+                  </div>
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--text)">${total}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">Total calls</div>
+                  </div>
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--accent)">${vol.toFixed(2)}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">USDC vol (10)</div>
+                  </div>
+                </div>
+                <div style="background:var(--bg-2);border-radius:6px;padding:6px;height:8px;margin-bottom:8px">
+                  <div style="height:100%;width:${honor}%;background:${barColor};border-radius:4px;transition:width .5s"></div>
+                </div>
+              `;
+            } catch(e) {
+              const statsEl2 = document.getElementById("modalGoldskyStats");
+              if (statsEl2) statsEl2.innerHTML = '<div class="section-title">On-chain analytics</div>';
+            }
+          })();
+
+          // Load Goldsky analytics for this provider
+          (async () => {
+            const statsEl = document.getElementById("modalGoldskyStats");
+            if (!statsEl || !CONFIG.subgraphUrl) return;
+            try {
+              const res = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  provider(id: "${providerId}") {
+                    completedCalls slashedCalls pricePerCall stake
+                  }
+                  recentCalls: callStarteds(first: 10, where: {providerId: "${providerId}"}, orderBy: timestamp, orderDirection: desc) {
+                    id amount timestamp
+                  }
+                }` })
+              });
+              const data = await res.json();
+              const p = data.data?.provider;
+              const recent = data.data?.recentCalls || [];
+              if (!p) { statsEl.innerHTML = '<div class="section-title">On-chain analytics</div><div style="font-size:12px;color:var(--text-faint)">No data indexed yet</div>'; return; }
+              const completed = Number(p.completedCalls || 0);
+              const slashed = Number(p.slashedCalls || 0);
+              const total = completed + slashed;
+              const honor = total > 0 ? Math.round(completed/total*100) : 100;
+              const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
+              const vol = recent.reduce((a,c) => a + Number(c.amount||0), 0) / 1e6;
+              statsEl.innerHTML = `
+                <div class="section-title">On-chain analytics <span style="font-size:10px;color:var(--text-faint);font-weight:400">via Goldsky</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:${barColor}">${honor}%</div>
+                    <div style="font-size:10px;color:var(--text-faint)">Honor rate</div>
+                  </div>
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--text)">${total}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">Total calls</div>
+                  </div>
+                  <div style="background:var(--bg-2);border-radius:6px;padding:8px;text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--accent)">${vol.toFixed(2)}</div>
+                    <div style="font-size:10px;color:var(--text-faint)">USDC vol (10)</div>
+                  </div>
+                </div>
+                <div style="background:var(--bg-2);border-radius:6px;padding:6px;height:8px;margin-bottom:8px">
+                  <div style="height:100%;width:${honor}%;background:${barColor};border-radius:4px;transition:width .5s"></div>
+                </div>
+              `;
+            } catch(e) {
+              const statsEl2 = document.getElementById("modalGoldskyStats");
+              if (statsEl2) statsEl2.innerHTML = '<div class="section-title">On-chain analytics</div>';
+            }
+          })();
 
           const callBtn = document.getElementById("modalCallBtn");
           if (callBtn) {
