@@ -71,7 +71,22 @@ Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts
 
 **Try the live demo:** [**arcsla.vercel.app**](https://arcsla.vercel.app) — open in any modern browser with MetaMask.
 
-### v4 contracts (current — ERC-8004 NFT + CCTP + x402 full integration)
+### v5 contracts (current — July 2026 redeployment)
+
+| Contract | Address |
+| --- | --- |
+| ServiceRegistry | [`0xea00f898C0eA249de7226b283e93C13eFa7BbcFF`](https://testnet.arcscan.app/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF) |
+| PayPerCall | [`0x10387347678d9f7106D5625bE0BD6C915158B130`](https://testnet.arcscan.app/address/0x10387347678d9f7106D5625bE0BD6C915158B130) |
+| CrossChainReceiver | [`0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c`](https://testnet.arcscan.app/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c) |
+| AgenticCommerce (ERC-8183) | [`0x0747EEf0706327138c69792bF28Cd525089e4583`](https://testnet.arcscan.app/address/0x0747EEf0706327138c69792bF28Cd525089e4583) |
+| USDC (native gas) | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
+| EURC | [`0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a`](https://testnet.arcscan.app/address/0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a) |
+| USYC | [`0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C`](https://testnet.arcscan.app/address/0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C) |
+| Band Oracle | [`0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68`](https://testnet.arcscan.app/address/0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68) |
+| Memo | [`0x5294E9927c3306DcBaDb03fe70b92e01cCede505`](https://testnet.arcscan.app/address/0x5294E9927c3306DcBaDb03fe70b92e01cCede505) |
+| Multicall3From | [`0x522fAf9A91c41c443c66765030741e4AaCe147D0`](https://testnet.arcscan.app/address/0x522fAf9A91c41c443c66765030741e4AaCe147D0) |
+
+Deployed July 2026. Frontend points here.
 
 | Contract | Address |
 | --- | --- |
@@ -112,16 +127,25 @@ The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp
 - **x402 live facilitator** — real HTTP 402 payment flow backed by a deployed facilitator; client signs an EIP-3009 authorization, the facilitator verifies it and settles `transferWithAuthorization` on Arc
 - **Circle Gateway Nanopayments** — gasless 0.001 USDC micro-payments via Circle Gateway; no MetaMask prompt, no gas, no tx confirmation; facilitator handles payment server-side with batch on-chain settlement
 - **ERC-8183 Jobs wizard** — 5-step job lifecycle (Create → Set Budget → Fund → Submit → Complete) with role badges (Client / Provider / Evaluator), progress rail, and auto-advance between steps
-- **My Jobs list** — one-click list of all jobs where you are client or provider, pulled from on-chain events
+- **My Jobs list** — one-click list of all jobs where you are client or provider, pulled from Goldsky subgraph
 - **Provider health check** — live 🟢/🔴 endpoint ping for each active provider via facilitator proxy
 - **Multi-provider routing** — top-3 display sorted by reputation then price, with auto-call best provider
+- **Multicall3From** — batch calls to multiple providers in a single tx using Arc's native batching contract; preserves msg.sender via CallFrom precompile
+- **Arc Memo extension** — every x402 call attaches a human-readable on-chain memo via Arc's native Memo contract; visible on ArcScan for reconciliation
+- **Post-quantum receipt signing** — every receipt carries a SLH-DSA-SHA2-128s signature (NIST FIPS 205), compatible with Arc's PQ precompile (0x1800..0004)
+- **Band Protocol oracle** — live USDC/USD price feed from Band oracle on Arc; provider prices shown in USD alongside USDC
+- **MCP server** — 6 tools for AI agents: list providers, leaderboard, health check, nanopay, network stats, Arc docs search
+- **Analytics panel** — provider activity bars, honor rate, call volume from Goldsky subgraph
+- **Provider modal analytics** — honor rate, call volume, activity bar inline in every provider modal
+- **EURC + USYC balances** — header shows EURC and USYC balances alongside USDC
+- **Arc Privacy Sector (APS)** — vision panel for private SLA calls; integration ready when APS precompile API is public
+- **Goldsky subgraph v1.3.0** — Provider, Call, Job events indexed; real-time GraphQL queries
 - **Submit receipt** — EIP-712 typed signing (structured fields in wallet)
 - **Claim timeout** — auto-slash when provider misses deadline
 - **Session budget cap** — spending limit for agent flows
 - **Live activity feed** — real-time contract events including SLA calls, nanopayments, and job lifecycle events
-- **Leaderboard** — top 10 providers by Bayesian reputation score
-- **24-hour activity chart** — hourly call volume with slash overlay
-- **Provider detail modal** — full stats, call history, honor rate, nanopay button per provider
+- **Leaderboard** — top 10 providers by Bayesian reputation score with honor rate
+- **Provider detail modal** — full stats, call history, honor rate, nanopay button, Goldsky analytics per provider
 
 ---
 
@@ -375,9 +399,18 @@ arcsla/
 - **x402 HTTP payment protocol** — full EIP-3009 authorization flow via Frankfurt facilitator
 - **Circle Gateway Nanopayments** — gasless micro-payments, server-side EIP-3009, Circle batch settlement
 - **ERC-8183 Jobs** — full lifecycle wizard (Create → Set Budget → Fund → Submit → Complete)
-- **My Jobs list** — on-chain event-sourced job history per wallet
+- **My Jobs list** — Goldsky subgraph event-sourced job history per wallet
 - **Provider endpoint health check** — live ping via facilitator proxy
 - **Multi-provider routing** — top-3 ranked by reputation + price, auto-call
+- **Multicall3From** — Arc native batch calls in single tx, msg.sender preserved via CallFrom precompile
+- **Arc Memo extension** — on-chain human-readable memo on every x402 call via Arc's native Memo contract
+- **Post-quantum receipt signing** — SLH-DSA-SHA2-128s (NIST FIPS 205), Arc PQ precompile compatible
+- **Band Protocol oracle** — live USDC/USD price feed; provider prices shown in USD
+- **MCP server** — 6 tools for AI agents; local stdio + remote SSE; arc_docs_search tool
+- **Goldsky subgraph v1.3.0** — Provider, Call, Job events indexed; real-time GraphQL
+- **Analytics panel** — provider activity bars, honor rate, call volume from Goldsky
+- **EURC + USYC balances** — header shows all Arc ecosystem token balances
+- **Arc Privacy Sector (APS) panel** — vision for private SLA calls
 - **Activity feed** — SLA calls, nanopayments, and job events all in one stream
 - **Bayesian on-chain reputation** — `(completed + 2) / (total + 3) × 100`
 - **Auto-router** — picks best provider by reputation + price filters
@@ -386,11 +419,12 @@ arcsla/
 
 ### Planned
 
-- Subgraph indexer — replace block-range scan with real-time event index
+- APS private SLA calls — when Arc Privacy Sector precompile API is public
 - EIP-1271 support (contract-wallet callers)
 - Optional DisputeModule for subjective-quality services
 - Mainnet deployment once Arc Mainnet is live
 - Reputation-weighted routing contract
+- Railway facilitator migration
 
 ---
 
