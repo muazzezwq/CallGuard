@@ -69,7 +69,7 @@ Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts
 
 ## Live on Arc Testnet
 
-**Try the live demo:** [**arcsla.vercel.app**](https://arcsla.vercel.app) — open in any modern browser with MetaMask.
+**Try the live demo:** [**callguard.vercel.app**](https://callguard.vercel.app) — open in any modern browser with MetaMask.
 
 ### v5 contracts (current — July 2026 redeployment)
 
@@ -111,7 +111,7 @@ Live since April 2026 with 9 active providers. Remains operational; new registra
 
 ## What's in the demo
 
-The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol:
+The demo at [callguard.vercel.app](https://callguard.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol:
 
 ### On the landing page (no wallet required)
 
@@ -151,13 +151,13 @@ The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp
 
 ## x402 Integration
 
-ArcSLA implements the [x402 HTTP Payment Protocol](https://x402.org) as a composable layer on top of the existing pay-per-call flow.
+CallGuard implements the [x402 HTTP Payment Protocol](https://x402.org) as a composable layer on top of the existing pay-per-call flow.
 
 **How it composes:**
 
 ```
 x402  → answers "how does the agent pay?" (HTTP 402, Circle Gateway rail)
-ArcSLA → answers "what does the agent get for that payment?" (stake-backed SLA)
+CallGuard → answers "what does the agent get for that payment?" (stake-backed SLA)
 ```
 
 **Flow:**
@@ -201,7 +201,7 @@ curl http://localhost:3000/health
 
 ## CCTP Multi-chain
 
-Callers on any supported chain can pay for ArcSLA calls using USDC from their native chain. Circle CCTP V2 bridges the payment to Arc Testnet, where SLA enforcement happens.
+Callers on any supported chain can pay for CallGuard calls using USDC from their native chain. Circle CCTP V2 bridges the payment to Arc Testnet, where SLA enforcement happens.
 
 **Supported source chains (testnet):**
 - Ethereum Sepolia (domain 0)
@@ -277,8 +277,8 @@ foundryup
 ### Install and build
 
 ```bash
-git clone https://github.com/muazzezwq/arcsla
-cd arcsla
+git clone https://github.com/muazzezwq/callguard
+cd callguard
 forge install
 forge build
 ```
@@ -293,7 +293,7 @@ Expected: **66 tests passed, 0 failed.**
 
 ### Try the demo
 
-Open [arcsla.vercel.app](https://arcsla.vercel.app) with MetaMask — Arc Testnet will be added automatically.
+Open [callguard.vercel.app](https://callguard.vercel.app) with MetaMask — Arc Testnet will be added automatically.
 
 Or run locally:
 
@@ -348,7 +348,7 @@ payPerCall.claimTimeout(callId);
 ## Project layout
 
 ```
-arcsla/
+callguard/
 ├── src/
 │   ├── ServiceRegistry.sol          # provider registry, stake, ERC-8004 NFT binding, Bayesian reputation
 │   ├── PayPerCall.sol               # call escrow, EIP-712 receipt verification, timeout enforcement
@@ -384,7 +384,7 @@ arcsla/
 ## Known limitations
 
 - **CCTP attestation takes 1-4 minutes.** Sepolia requires ~12-19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
-- **x402 full integration live.** The "Call via x402" button performs a real HTTP 402 handshake, the user signs an EIP-3009 `TransferWithAuthorization` off-chain (no gas), and the facilitator (`x402-facilitator/`, hosted at arcsla.onrender.com) calls `callServiceWithAuthorization()` on-chain — USDC goes straight into SLA escrow in a single transaction. The payer signs; the facilitator pays gas.
+- **x402 full integration live.** The "Call via x402" button performs a real HTTP 402 handshake, the user signs an EIP-3009 `TransferWithAuthorization` off-chain (no gas), and the facilitator (`x402-facilitator/`, hosted at callguard.onrender.com) calls `callServiceWithAuthorization()` on-chain — USDC goes straight into SLA escrow in a single transaction. The payer signs; the facilitator pays gas.
 - **Event scan window is 100,000 blocks.** Very old calls won't appear in the "Calls" stat. A proper indexer is planned.
 
 ---

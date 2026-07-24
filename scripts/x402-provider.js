@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ArcSLA x402 Provider Server
+ * CallGuard x402 Provider Server
  * 
  * Implements HTTP 402 Payment Required flow:
  * 1. GET /service (no header) → 402 + payment instructions
@@ -41,7 +41,7 @@ function build402Response(providerId, payTo, amount, asset) {
       network: "arc-testnet",
       maxAmountRequired: amount.toString(),
       resource: `http://localhost:${CONFIG.port}/service`,
-      description: "ArcSLA provider service call",
+      description: "CallGuard provider service call",
       mimeType: "application/json",
       payTo,
       maxTimeoutSeconds: CONFIG.maxTimeoutSeconds,
@@ -112,7 +112,7 @@ app.get('/service', async (req, res) => {
       return res.status(400).json({ error: 'Invalid asset' });
     }
 
-    // ── Call ArcSLA contract ─────────────────────────────────────────
+    // ── Call CallGuard contract ─────────────────────────────────────────
     const provider = new ethers.JsonRpcProvider(CONFIG.arcRpc);
     const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
@@ -159,7 +159,7 @@ app.get('/service', async (req, res) => {
 });
 
 app.listen(CONFIG.port, () => {
-  console.log(`⚡ ArcSLA x402 Provider running on http://localhost:${CONFIG.port}`);
+  console.log(`⚡ CallGuard x402 Provider running on http://localhost:${CONFIG.port}`);
   console.log(`   Provider ID: ${CONFIG.providerId}`);
   console.log(`   Price per call: ${ethers.formatUnits(CONFIG.pricePerCall, 6)} USDC`);
   console.log(`   Test: curl http://localhost:${CONFIG.port}/service`);

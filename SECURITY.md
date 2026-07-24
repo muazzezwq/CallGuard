@@ -1,6 +1,6 @@
 # Security
 
-Honest disclosure of ArcSLA's known risks, intentional trade-offs, and the invariants the contracts rely on.
+Honest disclosure of CallGuard's known risks, intentional trade-offs, and the invariants the contracts rely on.
 
 This is a testnet project built for the Arc Architects community. **Do not deploy this code to mainnet without a professional audit.** The sections below describe what the code does correctly, what it deliberately doesn't do, and what an attacker could attempt.
 

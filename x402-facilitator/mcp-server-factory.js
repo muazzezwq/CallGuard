@@ -1,13 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn";
-const FACILITATOR_URL = "https://arcsla-eu.onrender.com";
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
+const FACILITATOR_URL = "https://callguard-eu.onrender.com";
 
 export default function createArcslaServer() {
-  const server = new McpServer({ name: "arcsla", version: "1.0.0" });
+  const server = new McpServer({ name: "callguard", version: "1.0.0" });
 
-  server.tool("list_providers", "List active ArcSLA providers.",
+  server.tool("list_providers", "List active CallGuard providers.",
     { limit: z.number().optional().default(10) },
     async ({ limit }) => {
       const res = await fetch(SUBGRAPH_URL, {
@@ -25,7 +25,7 @@ export default function createArcslaServer() {
     }
   );
 
-  server.tool("get_network_stats", "ArcSLA network statistics.", {}, async () => {
+  server.tool("get_network_stats", "CallGuard network statistics.", {}, async () => {
     const res = await fetch(SUBGRAPH_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: `{ providers(first:1000){id active} callStarteds(first:1000){id} }` })

@@ -1,6 +1,6 @@
 # Architecture
 
-Design decisions, trade-offs, and the reasoning behind each in ArcSLA.
+Design decisions, trade-offs, and the reasoning behind each in CallGuard.
 
 ---
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ArcSLA · Arc Testnet</title>
+    <title>CallGuard · Arc Testnet</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -3310,7 +3310,7 @@
         <div class="brand">
           <div class="brand-mark">A</div>
           <div>
-            <div class="brand-title">ArcSLA</div>
+            <div class="brand-title">CallGuard</div>
             <div class="brand-sub">on-chain SLA marketplace · arc testnet</div>
           </div>
         </div>
@@ -3497,8 +3497,8 @@
           </div>
 
           <div class="guide-content active" data-content="start">
-            <div class="guide-section-title">What is ArcSLA?</div>
-            <p class="guide-lead">ArcSLA is an <strong>on-chain marketplace</strong> where service providers stake USDC to commit to SLAs, and callers pay per request. If a provider fails to respond in time, their stake is automatically slashed — no arbitrator or intermediary required.</p>
+            <div class="guide-section-title">What is CallGuard?</div>
+            <p class="guide-lead">CallGuard is an <strong>on-chain marketplace</strong> where service providers stake USDC to commit to SLAs, and callers pay per request. If a provider fails to respond in time, their stake is automatically slashed — no arbitrator or intermediary required.</p>
             <div class="guide-steps">
               <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Get testnet USDC</strong><span><a href="https://faucet.circle.com/" target="_blank" rel="noreferrer">faucet.circle.com</a> → select Arc Testnet → paste your wallet address. On Arc, USDC is both the gas token and currency — one token is all you need.</span></div></div>
               <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Connect your wallet</strong><span>Click the "Connect wallet" button. MetaMask will add Arc Testnet automatically. You can also pay from Ethereum, Base, or Polygon via CCTP — see the chain selector when calling a service.</span></div></div>
@@ -3617,7 +3617,7 @@
           <div class="sb-logo">
             <div class="sb-dot">⚡</div>
             <div>
-              <div class="sb-name">ArcSLA</div>
+              <div class="sb-name">CallGuard</div>
               <div class="sb-net">Arc Testnet</div>
             </div>
           </div>
@@ -3673,7 +3673,7 @@
 
         <div class="welcome-box" id="welcomeBox" style="display:none">
           <div class="wb-head">
-            <span class="wb-title">👋 Welcome to ArcSLA — here's how to start</span>
+            <span class="wb-title">👋 Welcome to CallGuard — here's how to start</span>
             <button class="wb-close" id="welcomeClose" title="Dismiss">×</button>
           </div>
           <div class="welcome-steps">
@@ -4065,7 +4065,7 @@
             <div style="background:var(--bg-2);border:1px dashed var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text-faint);text-align:center">
               <div style="font-size:20px;margin-bottom:8px">🔒</div>
               <div>APS private transactions require X-Wing KEM encryption and Arc enclave RPC nodes.</div>
-              <div style="margin-top:6px">ArcSLA will integrate APS private calls when the precompile API is public.</div>
+              <div style="margin-top:6px">CallGuard will integrate APS private calls when the precompile API is public.</div>
               <div style="margin-top:8px"><a href="https://docs.arc.io/arc/concepts/opt-in-privacy" target="_blank" style="color:var(--accent)">Read the APS docs →</a></div>
             </div>
           </div>
@@ -4185,7 +4185,7 @@
           </div>
           <div class="panel-body">
             <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px">
-              ArcSLA ships a built-in MCP server. Any MCP-compatible AI agent — Claude Desktop, Cursor, or any other client — can discover providers, check health, and send payments without writing any integration code.
+              CallGuard ships a built-in MCP server. Any MCP-compatible AI agent — Claude Desktop, Cursor, or any other client — can discover providers, check health, and send payments without writing any integration code.
             </p>
 
             <div style="background:var(--info-bg);border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:14px;margin-bottom:16px">
@@ -4204,8 +4204,8 @@
               <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">1 · Clone the repo</div>
               <div class="sdk-panel" style="position:relative">
                 <button class="sdk-copy-btn" id="btnCopyMcpClone">Copy</button>
-                <pre style="margin:0;font-size:12px">git clone https://github.com/muazzezwq/arcsla.git
-cd arcsla/x402-facilitator
+                <pre style="margin:0;font-size:12px">git clone https://github.com/muazzezwq/callguard.git
+cd callguard/x402-facilitator
 npm install</pre>
               </div>
             </div>
@@ -4216,9 +4216,9 @@ npm install</pre>
                 <button class="sdk-copy-btn" id="btnCopyMcpConfig">Copy</button>
                 <pre style="margin:0;font-size:12px">{
   "mcpServers": {
-    "arcsla": {
+    "callguard": {
       "command": "node",
-      "args": ["/path/to/arcsla/x402-facilitator/mcp-server.js"]
+      "args": ["/path/to/callguard/x402-facilitator/mcp-server.js"]
     }
   }
 }</pre>
@@ -4239,9 +4239,9 @@ npm install</pre>
                 <button class="sdk-copy-btn" id="btnCopyMcpRemote">Copy</button>
                 <pre style="margin:0;font-size:12px">{
   "mcpServers": {
-    "arcsla": {
+    "callguard": {
       "type": "sse",
-      "url": "https://arcsla-eu.onrender.com/sse"
+      "url": "https://callguard-eu.onrender.com/sse"
     }
   }
 }</pre>
@@ -4287,10 +4287,10 @@ npm install</pre>
 
             <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text-dim)">
               <strong style="color:var(--accent)">Example agent prompts:</strong><br>
-              · "List the top 5 ArcSLA providers by reputation"<br>
+              · "List the top 5 CallGuard providers by reputation"<br>
               · "Check if provider #3 is online"<br>
-              · "Send a nanopayment via ArcSLA"<br>
-              · "What are the current ArcSLA network stats?"
+              · "Send a nanopayment via CallGuard"<br>
+              · "What are the current CallGuard network stats?"
             </div>
           </div>
         </section>
@@ -4472,7 +4472,7 @@ npm install</pre>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">5-line setup</span>
           </div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px">Integrate ArcSLA into any JavaScript app or AI agent. Copy the snippet below and replace the provider ID and payload.</p>
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px">Integrate CallGuard into any JavaScript app or AI agent. Copy the snippet below and replace the provider ID and payload.</p>
             <div class="sdk-panel" id="sdkSnippet">
               <button class="sdk-copy-btn" id="btnCopySdk">Copy</button>
 <span class="cm">// npm install ethers   (ethers v6)</span>
@@ -4563,18 +4563,18 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           <div class="footer-col">
             <h4>Project</h4>
             <ul>
-              <li><a href="https://github.com/muazzezwq/arcsla" target="_blank" rel="noreferrer">GitHub repo</a></li>
-              <li><a href="https://github.com/muazzezwq/arcsla/blob/main/README.md" target="_blank" rel="noreferrer">README</a></li>
-              <li><a href="https://github.com/muazzezwq/arcsla/blob/main/ARCHITECTURE.md" target="_blank" rel="noreferrer">Architecture</a></li>
-              <li><a href="https://github.com/muazzezwq/arcsla/blob/main/SECURITY.md" target="_blank" rel="noreferrer">Security</a></li>
-              <li><a href="https://github.com/muazzezwq/arcsla/blob/main/DEPLOY.md" target="_blank" rel="noreferrer">Deploy guide</a></li>
+              <li><a href="https://github.com/muazzezwq/callguard" target="_blank" rel="noreferrer">GitHub repo</a></li>
+              <li><a href="https://github.com/muazzezwq/callguard/blob/main/README.md" target="_blank" rel="noreferrer">README</a></li>
+              <li><a href="https://github.com/muazzezwq/callguard/blob/main/ARCHITECTURE.md" target="_blank" rel="noreferrer">Architecture</a></li>
+              <li><a href="https://github.com/muazzezwq/callguard/blob/main/SECURITY.md" target="_blank" rel="noreferrer">Security</a></li>
+              <li><a href="https://github.com/muazzezwq/callguard/blob/main/DEPLOY.md" target="_blank" rel="noreferrer">Deploy guide</a></li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
           <div class="brand-lockup">
             <div class="mini-mark">A</div>
-            <span>ArcSLA · built on Arc Testnet</span>
+            <span>CallGuard · built on Arc Testnet</span>
           </div>
           <div>
             <a href="https://testnet.arcscan.app/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">Registry</a>
@@ -4607,8 +4607,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
-        facilitatorUrl: "https://arcsla-eu.onrender.com",
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.3.0/gn",
+        facilitatorUrl: "https://callguard-eu.onrender.com",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.3.0/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
@@ -4714,7 +4714,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       }
 
       // -------- Tab title counter (unseen events) --------
-      const titleBase = "ArcSLA · Arc Testnet";
+      const titleBase = "CallGuard · Arc Testnet";
       let unseenCount = 0;
       function bumpUnseen() {
         if (!document.hidden) return;
@@ -6454,7 +6454,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // Wallet will display structured Receipt fields (callId, responseHash)
           // instead of an opaque hex blob.
           const domain = {
-            name: "ArcSLA",
+            name: "CallGuard",
             version: "1",
             chainId: CONFIG.chainId,
             verifyingContract: CONFIG.payPerCall,
@@ -7456,11 +7456,11 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // MCP copy buttons
       document.getElementById("btnCopyMcpClone")?.addEventListener("click", () => {
-        navigator.clipboard.writeText("git clone https://github.com/muazzezwq/arcsla.git\ncd arcsla/x402-facilitator\nnpm install");
+        navigator.clipboard.writeText("git clone https://github.com/muazzezwq/callguard.git\ncd callguard/x402-facilitator\nnpm install");
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
       document.getElementById("btnCopyMcpConfig")?.addEventListener("click", () => {
-        const config = JSON.stringify({ mcpServers: { arcsla: { command: "node", args: ["/path/to/arcsla/x402-facilitator/mcp-server.js"] } } }, null, 2);
+        const config = JSON.stringify({ mcpServers: { callguard: { command: "node", args: ["/path/to/callguard/x402-facilitator/mcp-server.js"] } } }, null, 2);
         navigator.clipboard.writeText(config);
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
@@ -7469,7 +7469,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
       document.getElementById("btnCopyMcpRemote")?.addEventListener("click", () => {
-        const config = JSON.stringify({ mcpServers: { arcsla: { type: "sse", url: "https://arcsla-eu.onrender.com/sse" } } }, null, 2);
+        const config = JSON.stringify({ mcpServers: { callguard: { type: "sse", url: "https://callguard-eu.onrender.com/sse" } } }, null, 2);
         navigator.clipboard.writeText(config);
         toast({ kind: "ok", title: "Copied!", timeout: 2000 });
       });
@@ -8150,7 +8150,7 @@ console.log("call opened:", tx.hash);`;
         const price = parseFloat($("regPrice").value.trim() || "1");
         const maxResp = parseInt($("regMaxResp").value.trim() || "120", 10);
         const slashPct = parseFloat($("regSlashPct").value.trim() || "10");
-        const endpoint = $("regEndpoint").value.trim() || "https://arcsla.vercel.app/provider";
+        const endpoint = $("regEndpoint").value.trim() || "https://callguard.vercel.app/provider";
         const signerAddr = $("regSigner").value.trim() || state.address;
         if (stake < 10) return toast({ kind: "err", title: "Minimum stake is 10 USDC" });
         if (maxResp < 10) return toast({ kind: "err", title: "Min response time is 10 seconds" });
@@ -8172,7 +8172,7 @@ console.log("call opened:", tx.hash);`;
             ],
             state.signer
           );
-          const agentURI = endpoint || "https://arcsla.vercel.app/provider";
+          const agentURI = endpoint || "https://callguard.vercel.app/provider";
           const tMint = toast({ kind: "info", title: "Minting AgentIdentity NFT…", detail: "<span class='spinner'></span> Confirm in MetaMask", timeout: 60000 });
           let tokenId;
           try {

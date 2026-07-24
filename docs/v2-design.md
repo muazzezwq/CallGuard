@@ -1,4 +1,4 @@
-# ArcSLA v2 — Design Document
+# CallGuard v2 — Design Document
 
 **Version:** 0.1 (Draft)
 **Date:** May 2026
@@ -9,13 +9,13 @@
 
 ## Overview
 
-ArcSLA is a trustless, on-chain marketplace where AI agents transact with each other under enforceable service-level agreements (SLAs). Providers stake USDC against their commitments. Callers pay per request. Missed deadlines slash the stake automatically. No arbiter, no custodian.
+CallGuard is a trustless, on-chain marketplace where AI agents transact with each other under enforceable service-level agreements (SLAs). Providers stake USDC against their commitments. Callers pay per request. Missed deadlines slash the stake automatically. No arbiter, no custodian.
 
 v1 is live on Arc Testnet:
 - **ServiceRegistry:** `0x74635245CfF23a7F261CD5ECF72693cbc75481e4`
 - **PayPerCall:** `0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE`
-- **Frontend:** [arcsla.vercel.app](https://arcsla.vercel.app)
-- **Repository:** [github.com/muazzezwq/arcsla](https://github.com/muazzezwq/arcsla)
+- **Frontend:** [callguard.vercel.app](https://callguard.vercel.app)
+- **Repository:** [github.com/muazzezwq/callguard](https://github.com/muazzezwq/callguard)
 - **Stats at time of writing:** 9 providers, 95+ on-chain calls, 1 automated slash. Submitted to Arc's Agentic Economy hackathon, ranked 1st in technical scoring.
 
 v2 extends the protocol along four dimensions: security (EIP-712 typed signing), economic alignment (stake-weighted reputation, dispute lockups), identity (DID/SBT binding), and accessibility (multi-chain payment origination via CCTP).
@@ -31,7 +31,7 @@ The agentic economy thesis posits that within a few years, AI agents will conduc
 3. Payments **finalize quickly** with predictable costs
 4. The infrastructure is **chain-agnostic** at the user-facing layer
 
-Arc's design (USDC as gas, sub-second finality, EVM compatibility) provides the underlying chain. ArcSLA provides the protocol-level layer above it.
+Arc's design (USDC as gas, sub-second finality, EVM compatibility) provides the underlying chain. CallGuard provides the protocol-level layer above it.
 
 v2 sharpens this layer in response to a month of deployed-system learnings and a review of adjacent Circle Research work — particularly the [Refund Protocol](https://www.circle.com/blog/refund-protocol-non-custodial-dispute-resolution-for-stablecoin-payments) for non-custodial dispute resolution patterns.
 
@@ -95,7 +95,7 @@ Contracts are deployed on Arc as the **enforcement layer**. Caller-side payments
 ```solidity
 // Domain
 EIP712Domain({
-    name: "ArcSLA",
+    name: "CallGuard",
     version: "1",
     chainId: block.chainid,
     verifyingContract: address(this)
@@ -207,7 +207,7 @@ function registerV2(
 
 **Considerations:**
 - ERC-8004 NFT ownership lookup adds ~5k gas per relevant operation. Acceptable for register/rotate flows; avoided in per-call hot paths.
-- Reputation remains stored in ArcSLA's ServiceRegistry (not written to ERC-8004 ReputationRegistry — see §8 Ecosystem Positioning).
+- Reputation remains stored in CallGuard's ServiceRegistry (not written to ERC-8004 ReputationRegistry — see §8 Ecosystem Positioning).
 - Identity binding is non-blocking: a provider whose ERC-8004 NFT becomes inaccessible can still operate via the existing v1 wallet path.
 
 ### 2.7 Multi-chain Payment Origination via CCTP
@@ -219,7 +219,7 @@ function registerV2(
 ```
 Caller chain (e.g. Base):
 1. Caller signs CCTP burn intent for paid amount
-2. Caller submits CallRequest to ArcSLA on Arc with attestation pointer
+2. Caller submits CallRequest to CallGuard on Arc with attestation pointer
 3. CCTP attestation arrives on Arc, USDC mints to PayPerCall
 4. Lifecycle proceeds as in §2.2
 
@@ -230,7 +230,7 @@ Provider chain (still Arc):
 
 **Why Arc-only enforcement:** Slashing requires atomic state transitions on stake and reputation. Splitting this across chains introduces consistency problems (what if attestation is lost? what if the provider's chain has different finality semantics?). Keep the hard guarantees on one chain.
 
-**Reference:** Circle's `arc-multichain-wallet` sample demonstrates the EIP-712 burn intent → Gateway attestation pattern. ArcSLA's CCTP integration will mirror this approach.
+**Reference:** Circle's `arc-multichain-wallet` sample demonstrates the EIP-712 burn intent → Gateway attestation pattern. CallGuard's CCTP integration will mirror this approach.
 
 ### 2.8 Optional Dispute Module
 
@@ -270,59 +270,59 @@ This pattern mirrors Refund Protocol's non-custodial arbiter.
 
 ## Positioning Within the Circle Ecosystem
 
-ArcSLA is not a competitor to existing Circle primitives. It extends them.
+CallGuard is not a competitor to existing Circle primitives. It extends them.
 
-| Circle Primitive | ArcSLA Relationship |
+| Circle Primitive | CallGuard Relationship |
 |---|---|
 | **USDC** | Underlying settlement asset |
 | **CCTP** | Cross-chain caller-payment origination (v2) |
 | **Circle Wallets** | Recommended onboarding path for non-crypto-native callers |
 | **App Kit** | Caller-side integration layer (Bridge, Swap, Send, Unified Balance) |
-| **Refund Protocol** | Sister protocol — same trust philosophy applied to human-to-human commerce; ArcSLA applies it to agent-to-agent |
-| **Smart Contract Platform** | Deployment and management tooling for ArcSLA contracts |
+| **Refund Protocol** | Sister protocol — same trust philosophy applied to human-to-human commerce; CallGuard applies it to agent-to-agent |
+| **Smart Contract Platform** | Deployment and management tooling for CallGuard contracts |
 
-The clearest framing: **Refund Protocol** addresses dispute resolution in stablecoin commerce between humans. **ArcSLA** addresses SLA enforcement in stablecoin commerce between AI agents. Same trust philosophy, different counterparty model.
+The clearest framing: **Refund Protocol** addresses dispute resolution in stablecoin commerce between humans. **CallGuard** addresses SLA enforcement in stablecoin commerce between AI agents. Same trust philosophy, different counterparty model.
 
 ---
 
 ## Section 8 — Ecosystem Positioning (ERC-8004 and ERC-8183)
 
-After reviewing Arc's [agentic economy documentation](https://docs.arc.network/build/agentic-economy), [ERC-8004 Identity Registry tutorial](https://docs.arc.network/arc/tutorials/register-your-first-ai-agent), and [ERC-8183 job lifecycle tutorial](https://docs.arc.network/arc/tutorials/create-your-first-erc-8183-job), the following decisions clarify ArcSLA's place in the Arc agentic economy stack.
+After reviewing Arc's [agentic economy documentation](https://docs.arc.network/build/agentic-economy), [ERC-8004 Identity Registry tutorial](https://docs.arc.network/arc/tutorials/register-your-first-ai-agent), and [ERC-8183 job lifecycle tutorial](https://docs.arc.network/arc/tutorials/create-your-first-erc-8183-job), the following decisions clarify CallGuard's place in the Arc agentic economy stack.
 
-### ArcSLA vs Arc's standards — a clear positioning
+### CallGuard vs Arc's standards — a clear positioning
 
 Arc promotes two standards for agent-based commerce:
 
 - **ERC-8004** — agent identity (IdentityRegistry), reputation (ReputationRegistry), and validation (ValidationRegistry)
 - **ERC-8183** — programmable job contracts with deterministic lifecycle (open → funded → submitted → completed/rejected/expired)
 
-ArcSLA solves a problem these standards intentionally do not address: **high-frequency pay-per-call SLA enforcement with stake-backed commitment**.
+CallGuard solves a problem these standards intentionally do not address: **high-frequency pay-per-call SLA enforcement with stake-backed commitment**.
 
-ERC-8183 covers job-based commerce — one client, one provider, one deliverable, one evaluator decision. ArcSLA covers per-call commerce — a provider committing capital against ongoing service availability, with thousands of calls per hour and deadline-based automatic enforcement.
+ERC-8183 covers job-based commerce — one client, one provider, one deliverable, one evaluator decision. CallGuard covers per-call commerce — a provider committing capital against ongoing service availability, with thousands of calls per hour and deadline-based automatic enforcement.
 
 These are different commerce patterns. Together they cover the agentic economy spectrum.
 
-### What ArcSLA v2 integrates
+### What CallGuard v2 integrates
 
 **ERC-8004 IdentityRegistry — yes, with backwards compatibility.** New v2 providers register via `registerV2()`, which requires ownership of an ERC-8004 IdentityRegistry NFT. The token ID is recorded in the provider record. Existing v1 providers continue with wallet-based identity; migration is opt-in. (See §2.6 for implementation.)
 
-### What ArcSLA v2 does not integrate
+### What CallGuard v2 does not integrate
 
-**ERC-8183 — no integration in v2.** ERC-8183's `claimRefund` function is explicitly not hookable in the spec ("claimRefund is deliberately not hookable so that refunds after expiry cannot be blocked"). This prevents ArcSLA's core slash logic from being implemented as an ERC-8183 hook contract. A separate ArcSLA-SLAHook product targeting ERC-8183 jobs may be explored in v3.
+**ERC-8183 — no integration in v2.** ERC-8183's `claimRefund` function is explicitly not hookable in the spec ("claimRefund is deliberately not hookable so that refunds after expiry cannot be blocked"). This prevents CallGuard's core slash logic from being implemented as an ERC-8183 hook contract. A separate CallGuard-SLAHook product targeting ERC-8183 jobs may be explored in v3.
 
-**ERC-8004 ReputationRegistry — no direct writes in v2.** Reputation events are not pushed from ArcSLA to ERC-8004 ReputationRegistry for two reasons:
+**ERC-8004 ReputationRegistry — no direct writes in v2.** Reputation events are not pushed from CallGuard to ERC-8004 ReputationRegistry for two reasons:
 1. Gas overhead is significant for high-frequency pay-per-call (~15-25k extra gas per receipt write)
-2. ERC-8004's validator-registration model adds authorization complexity that doesn't align with ArcSLA's permissionless registration
+2. ERC-8004's validator-registration model adds authorization complexity that doesn't align with CallGuard's permissionless registration
 
-Composability is preserved through the NFT identity binding: any contract on Arc can query `providerToTokenId(providerId)` to get the ERC-8004 NFT, then check ArcSLA's `getReputationScore(providerId)` for the Bayesian score. Future aggregator services may bridge ArcSLA reputation events to ERC-8004 ReputationRegistry without contract modification.
+Composability is preserved through the NFT identity binding: any contract on Arc can query `providerToTokenId(providerId)` to get the ERC-8004 NFT, then check CallGuard's `getReputationScore(providerId)` for the Bayesian score. Future aggregator services may bridge CallGuard reputation events to ERC-8004 ReputationRegistry without contract modification.
 
 ### Hackathon submission framing
 
-For the Stablecoin Commerce Stack Challenge (Track 4 — Agentic Economy on Arc), ArcSLA positions as a **complementary layer** within Arc's standards stack:
+For the Stablecoin Commerce Stack Challenge (Track 4 — Agentic Economy on Arc), CallGuard positions as a **complementary layer** within Arc's standards stack:
 
-> ArcSLA addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and ArcSLA target different commerce patterns — together they cover the agentic economy spectrum.
+> CallGuard addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and CallGuard target different commerce patterns — together they cover the agentic economy spectrum.
 
-This positions ArcSLA as a builder that:
+This positions CallGuard as a builder that:
 - Understands Arc's stated standards
 - Respects them where they fit (ERC-8004 NFT for identity)
 - Departs from them where architecture demands (ERC-8183 hook constraint)
@@ -338,7 +338,7 @@ This positions ArcSLA as a builder that:
 4. **Fee destination for early withdrawal** (§2.4). Treasury vs insurance pool vs stake-yield backstop. Each has different long-term implications.
 5. **EIP-1271 verification cost** (§2.6 / Tier 2). For contract-wallet providers, every receipt verification calls into an external contract. May materially impact gas if widespread.
 
-Feedback on any of these welcome via [GitHub issues](https://github.com/muazzezwq/arcsla/issues) or directly.
+Feedback on any of these welcome via [GitHub issues](https://github.com/muazzezwq/callguard/issues) or directly.
 
 ---
 
@@ -356,4 +356,4 @@ Feedback on any of these welcome via [GitHub issues](https://github.com/muazzezw
 
 *Building solo from Adana, Turkey. Feedback and questions welcome.*
 
-*— Onur Akdemir | [arcsla.vercel.app](https://arcsla.vercel.app) | [github.com/muazzezwq/arcsla](https://github.com/muazzezwq/arcsla) | [@EthOnr72414](https://x.com/EthOnr72414)*
+*— Onur Akdemir | [callguard.vercel.app](https://callguard.vercel.app) | [github.com/muazzezwq/callguard](https://github.com/muazzezwq/callguard) | [@EthOnr72414](https://x.com/EthOnr72414)*

@@ -1,6 +1,6 @@
-# ArcSLA v2 — EIP-712 Implementation Guide
+# CallGuard v2 — EIP-712 Implementation Guide
 
-*Step-by-step implementation plan for migrating ArcSLA receipts from EIP-191 to EIP-712 typed data signing. Modeled on Circle Research's [Refund Protocol](https://github.com/circlefin/refund-protocol) reference.*
+*Step-by-step implementation plan for migrating CallGuard receipts from EIP-191 to EIP-712 typed data signing. Modeled on Circle Research's [Refund Protocol](https://github.com/circlefin/refund-protocol) reference.*
 
 **Status:** Implementation plan — branch `eip712-typed-signing` exists in repo, ready to start.
 **Estimated effort:** 4-6 hours of focused work + 2-3 hours of testing.
@@ -107,7 +107,7 @@ constructor(IServiceRegistry _registry, IERC20 _usdc) {
 
 // after
 constructor(IServiceRegistry _registry, IERC20 _usdc)
-    EIP712("ArcSLA", "1")
+    EIP712("CallGuard", "1")
 {
     registry = _registry;
     usdc = _usdc;
@@ -115,7 +115,7 @@ constructor(IServiceRegistry _registry, IERC20 _usdc)
 ```
 
 The domain becomes:
-- name: `"ArcSLA"`
+- name: `"CallGuard"`
 - version: `"1"`
 - chainId: `block.chainid` (handled by OpenZeppelin automatically)
 - verifyingContract: `address(this)` (handled by OpenZeppelin automatically)
@@ -245,7 +245,7 @@ const signature = await signer.signMessage(ethers.getBytes(digest));
 
 // after (v2, EIP-712)
 const domain = {
-    name: "ArcSLA",
+    name: "CallGuard",
     version: "1",
     chainId: 5042002, // Arc Testnet
     verifyingContract: payPerCallAddress
@@ -286,7 +286,7 @@ The existing `PayPerCall.t.sol` has 21 tests. Most will need minor updates to us
 function test_EIP712_DomainSeparatorMatches() public {
     bytes32 expected = keccak256(abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-        keccak256("ArcSLA"),
+        keccak256("CallGuard"),
         keccak256("1"),
         block.chainid,
         address(payPerCall)
@@ -322,7 +322,7 @@ Run with `forge test -vv` and expect all v1 tests to still pass after migration.
 
 ### Breaking change
 
-This is a **breaking change** — receipts signed under v1 cannot be submitted to v2 contracts. Any provider integrating with ArcSLA must update their signing code.
+This is a **breaking change** — receipts signed under v1 cannot be submitted to v2 contracts. Any provider integrating with CallGuard must update their signing code.
 
 Plan:
 - Deploy v2 contracts to new addresses (do not upgrade in place)
@@ -409,6 +409,6 @@ Estimated total time: **6-9 hours of focused work**, ideally split into 2-3 sess
 
 ---
 
-*ArcSLA v2 EIP-712 Implementation Guide. Last updated: May 2026.*
+*CallGuard v2 EIP-712 Implementation Guide. Last updated: May 2026.*
 
-*— Onur Akdemir | [arcsla.vercel.app](https://arcsla.vercel.app) | [github.com/muazzezwq/arcsla](https://github.com/muazzezwq/arcsla)*
+*— Onur Akdemir | [callguard.vercel.app](https://callguard.vercel.app) | [github.com/muazzezwq/callguard](https://github.com/muazzezwq/callguard)*

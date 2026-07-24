@@ -1,6 +1,6 @@
-# ArcSLA v2 — Research Notes
+# CallGuard v2 — Research Notes
 
-*Notes from reviewing Circle Research's Refund Protocol (Apr 2025) and `circlefin/arc-escrow` sample app, for planning ArcSLA v2 design choices.*
+*Notes from reviewing Circle Research's Refund Protocol (Apr 2025) and `circlefin/arc-escrow` sample app, for planning CallGuard v2 design choices.*
 
 ---
 
@@ -27,22 +27,22 @@ Critically: the arbiter **cannot** send funds to an address of their choosing. T
 
 ---
 
-## Why this matters for ArcSLA
+## Why this matters for CallGuard
 
-ArcSLA and Refund Protocol solve different problems with adjacent primitives:
+CallGuard and Refund Protocol solve different problems with adjacent primitives:
 
 - **Refund Protocol:** Human-to-human commerce, dispute via arbiter
-- **ArcSLA:** Agent-to-agent SLA enforcement, dispute via automatic slash
+- **CallGuard:** Agent-to-agent SLA enforcement, dispute via automatic slash
 
-But the underlying mechanics overlap. Several Refund Protocol design decisions directly improve ArcSLA's design.
+But the underlying mechanics overlap. Several Refund Protocol design decisions directly improve CallGuard's design.
 
 ---
 
-## Direct learnings for ArcSLA v2
+## Direct learnings for CallGuard v2
 
 ### 1. Pre-specified refund address — HIGH PRIORITY
 
-**Current ArcSLA:** When a slash happens, where does the stake go? Need to confirm by reading the contract. Likely back to caller or to protocol treasury.
+**Current CallGuard:** When a slash happens, where does the stake go? Need to confirm by reading the contract. Likely back to caller or to protocol treasury.
 
 **Refund Protocol pattern:** Payer specifies `refundTo` address at payment time:
 
@@ -65,7 +65,7 @@ function pay(
 
 ### 2. Lockup period before withdrawal — HIGH PRIORITY
 
-**Current ArcSLA:** On successful call honor, funds presumably release to provider immediately (or after the deadline check). No dispute window.
+**Current CallGuard:** On successful call honor, funds presumably release to provider immediately (or after the deadline check). No dispute window.
 
 **Refund Protocol pattern:** After payment, funds sit in escrow for a lockup period. During this window:
 - Recipient can NOT withdraw
@@ -114,20 +114,20 @@ function earlyWithdrawByArbiter(
 
 ### 4. Optional arbiter (orchestrator) layer — MEDIUM PRIORITY
 
-**Current ArcSLA:** No arbiter. Dispute happens through automatic slash only. Either the deadline passes or it doesn't. Black and white.
+**Current CallGuard:** No arbiter. Dispute happens through automatic slash only. Either the deadline passes or it doesn't. Black and white.
 
 **Refund Protocol pattern:** A non-custodial arbiter exists for nuanced cases — quality disputes, partial-fulfillment scenarios, etc.
 
-**v2 consideration:** Should ArcSLA add an optional arbiter for cases where automatic slash isn't enough?
+**v2 consideration:** Should CallGuard add an optional arbiter for cases where automatic slash isn't enough?
 
 Cases where slash is insufficient:
 - Call timestamp ambiguity (network delay vs provider negligence)
 - Partial fulfillment (provider returned 50% of expected output)
 - Quality disputes (provider returned data, but wrong data)
 
-**Tradeoff:** Arbiter introduces a third party. Even non-custodial, it's centralization risk. May undermine ArcSLA's "trustless" pitch.
+**Tradeoff:** Arbiter introduces a third party. Even non-custodial, it's centralization risk. May undermine CallGuard's "trustless" pitch.
 
-**Alternative:** Use Refund Protocol's mediator pattern as a separate optional module, not core to v1 ArcSLA contracts. Builders who need dispute resolution opt into the module. Builders who want pure automation skip it.
+**Alternative:** Use Refund Protocol's mediator pattern as a separate optional module, not core to v1 CallGuard contracts. Builders who need dispute resolution opt into the module. Builders who want pure automation skip it.
 
 **Effort:** High if integrated. Low if shipped as separate optional contract.
 
@@ -159,9 +159,9 @@ Cases where slash is insufficient:
 
 ## Considerations Refund Protocol surfaces
 
-The blog post itself lists open issues. Useful for hackathon submission to mention which ones ArcSLA inherits/avoids:
+The blog post itself lists open issues. Useful for hackathon submission to mention which ones CallGuard inherits/avoids:
 
-| Refund Protocol issue | ArcSLA v2 status |
+| Refund Protocol issue | CallGuard v2 status |
 |---|---|
 | 1. Malicious arbiter making fake payments | N/A — no arbiter in v2 by default |
 | 2. Refund address hard to specify in custodial wallet flows | Same risk — handle via DID/SBT binding (#3 of original v2 plan) |
@@ -171,7 +171,7 @@ The blog post itself lists open issues. Useful for hackathon submission to menti
 
 ---
 
-## ArcSLA v2 — Revised priority list
+## CallGuard v2 — Revised priority list
 
 Combining the original v2 plan with Refund Protocol learnings:
 
@@ -195,11 +195,11 @@ Combining the original v2 plan with Refund Protocol learnings:
 
 ## Hackathon positioning
 
-ArcSLA submission to Track 4 (Agentic Economy) can credibly position itself relative to Refund Protocol:
+CallGuard submission to Track 4 (Agentic Economy) can credibly position itself relative to Refund Protocol:
 
-> "Circle Research's Refund Protocol established the pattern for non-custodial dispute resolution in stablecoin payments. ArcSLA extends this primitive to agent-to-agent commerce — where the counterparties are autonomous AI agents, the dispute mechanism is algorithmic (deadline-based slashing), and reputation accumulates on-chain via Bayesian scoring. Same trust philosophy, different domain."
+> "Circle Research's Refund Protocol established the pattern for non-custodial dispute resolution in stablecoin payments. CallGuard extends this primitive to agent-to-agent commerce — where the counterparties are autonomous AI agents, the dispute mechanism is algorithmic (deadline-based slashing), and reputation accumulates on-chain via Bayesian scoring. Same trust philosophy, different domain."
 
-This frames ArcSLA as a **continuation of Circle's research thread**, not a clone. Strong positioning for judges who know the Refund Protocol work.
+This frames CallGuard as a **continuation of Circle's research thread**, not a clone. Strong positioning for judges who know the Refund Protocol work.
 
 ---
 
@@ -207,8 +207,8 @@ This frames ArcSLA as a **continuation of Circle's research thread**, not a clon
 
 1. Read the actual `circlefin/refund-protocol` Solidity code to extract EIP-712 implementation details (next session)
 2. Look at `arc-escrow` UI to see how Refund Protocol is consumed in practice
-3. Update ArcSLA v2 design doc with Tier 1 items
-4. Sketch out the EIP-712 typed data structures for ArcSLA receipts (combining current Receipt fields + lockup metadata)
+3. Update CallGuard v2 design doc with Tier 1 items
+4. Sketch out the EIP-712 typed data structures for CallGuard receipts (combining current Receipt fields + lockup metadata)
 
 ---
 
@@ -272,9 +272,9 @@ Key design rules:
 
 ---
 
-## ArcSLA vs ERC-8004/8183 — direct comparison
+## CallGuard vs ERC-8004/8183 — direct comparison
 
-| Aspect | ArcSLA (v1, current) | ERC-8004 + ERC-8183 |
+| Aspect | CallGuard (v1, current) | ERC-8004 + ERC-8183 |
 |---|---|---|
 | Use case | High-frequency pay-per-call | Lower-frequency job-based commerce |
 | Identity | Wallet address as identity | ERC-721 NFT identity |
@@ -289,7 +289,7 @@ Key design rules:
 
 ---
 
-## Critical observation — ArcSLA fills a gap
+## Critical observation — CallGuard fills a gap
 
 ERC-8004/8183 explicitly **do not** cover:
 
@@ -299,10 +299,10 @@ ERC-8004/8183 explicitly **do not** cover:
 - ❌ Deadline-based slashing
 - ❌ High-frequency pay-per-call patterns (job creation is heavyweight)
 
-These are exactly what ArcSLA provides. The two systems are **not competing — they are addressing different layers of the same problem**:
+These are exactly what CallGuard provides. The two systems are **not competing — they are addressing different layers of the same problem**:
 
 - ERC-8004/8183: identity, job lifecycle, manual evaluation
-- ArcSLA: stake-backed automatic enforcement, reputation built from outcomes, high-frequency calls
+- CallGuard: stake-backed automatic enforcement, reputation built from outcomes, high-frequency calls
 
 ---
 
@@ -310,13 +310,13 @@ These are exactly what ArcSLA provides. The two systems are **not competing — 
 
 ### Strategy A — Integrate with ERC-8004/8183
 
-Position ArcSLA as an **enforcement layer** that sits on top of (or alongside) ERC-8004 and ERC-8183:
+Position CallGuard as an **enforcement layer** that sits on top of (or alongside) ERC-8004 and ERC-8183:
 
 - Providers register their identity via ERC-8004 IdentityRegistry (NFT)
-- ArcSLA stake binding references the agent's ERC-8004 token ID (not just wallet address)
-- Reputation events flow into both ArcSLA's internal counters AND ERC-8004 ReputationRegistry
-- For developers who want job semantics (single deliverable), ArcSLA can integrate ERC-8183 escrow as the payment primitive
-- For high-frequency pay-per-call, ArcSLA's own PayPerCall remains the path
+- CallGuard stake binding references the agent's ERC-8004 token ID (not just wallet address)
+- Reputation events flow into both CallGuard's internal counters AND ERC-8004 ReputationRegistry
+- For developers who want job semantics (single deliverable), CallGuard can integrate ERC-8183 escrow as the payment primitive
+- For high-frequency pay-per-call, CallGuard's own PayPerCall remains the path
 
 **Pros:**
 - Composable with all existing Arc-native tooling
@@ -331,7 +331,7 @@ Position ArcSLA as an **enforcement layer** that sits on top of (or alongside) E
 
 ### Strategy B — Remain independent
 
-Position ArcSLA as a **distinct primitive** that intentionally departs from ERC-8004/8183 because high-frequency pay-per-call has different requirements:
+Position CallGuard as a **distinct primitive** that intentionally departs from ERC-8004/8183 because high-frequency pay-per-call has different requirements:
 
 - Keep wallet-based identity (faster, cheaper)
 - Keep internal reputation only
@@ -353,10 +353,10 @@ Position ArcSLA as a **distinct primitive** that intentionally departs from ERC-
 
 If choosing Strategy A, several open questions remain:
 
-1. **NFT-bound identity** — does ArcSLA require providers to mint an ERC-8004 NFT before registering? Or is it optional?
-2. **Reputation duality** — when a provider honors a call, should it emit feedback to ERC-8004 ReputationRegistry in addition to ArcSLA's internal counter?
-3. **Job vs call** — is a single ArcSLA "call" the same as an ERC-8183 "job"? Or are calls a higher-frequency primitive that aggregates into jobs?
-4. **Hook integration** — ERC-8183's `hook` parameter is meant for extending behavior. Could ArcSLA's slash/stake logic be implemented as a hook contract, making ArcSLA itself an ERC-8183 extension?
+1. **NFT-bound identity** — does CallGuard require providers to mint an ERC-8004 NFT before registering? Or is it optional?
+2. **Reputation duality** — when a provider honors a call, should it emit feedback to ERC-8004 ReputationRegistry in addition to CallGuard's internal counter?
+3. **Job vs call** — is a single CallGuard "call" the same as an ERC-8183 "job"? Or are calls a higher-frequency primitive that aggregates into jobs?
+4. **Hook integration** — ERC-8183's `hook` parameter is meant for extending behavior. Could CallGuard's slash/stake logic be implemented as a hook contract, making CallGuard itself an ERC-8183 extension?
 
 These are not 5-minute decisions. They require deliberate architectural review.
 
@@ -368,18 +368,18 @@ Track 4 is "Best Agentic Economy Experience on Arc." Judges will almost certainl
 
 Two submission angles:
 
-### Angle 1 — "ArcSLA fills the gap ERC-8183 leaves"
+### Angle 1 — "CallGuard fills the gap ERC-8183 leaves"
 
 Submission emphasizes:
 - ERC-8183 is excellent for one-shot job commerce
 - It does not address high-frequency call-by-call enforcement
 - It does not provide stake-backed commitment
-- ArcSLA provides exactly this missing layer
+- CallGuard provides exactly this missing layer
 - Includes a roadmap for ERC-8004 integration (NFT identity)
 
-This positions ArcSLA as **complementary, not competing**.
+This positions CallGuard as **complementary, not competing**.
 
-### Angle 2 — "ArcSLA is independent infrastructure"
+### Angle 2 — "CallGuard is independent infrastructure"
 
 Submission emphasizes:
 - High-frequency pay-per-call has unique requirements
@@ -395,18 +395,18 @@ Riskier — appears to ignore Arc's stated standards.
 
 ## Open questions for evening strategy session
 
-1. Should ArcSLA v2 require ERC-8004 NFT identity, or keep it as opt-in?
-2. Can ArcSLA's PayPerCall be implemented as an ERC-8183 `hook` instead of a separate contract?
-3. How should reputation events bridge between ArcSLA's internal Bayesian formula and ERC-8004 ReputationRegistry feedback?
-4. Is there a meaningful "ArcSLA token ID = agent NFT" binding that creates value beyond a simple address mapping?
+1. Should CallGuard v2 require ERC-8004 NFT identity, or keep it as opt-in?
+2. Can CallGuard's PayPerCall be implemented as an ERC-8183 `hook` instead of a separate contract?
+3. How should reputation events bridge between CallGuard's internal Bayesian formula and ERC-8004 ReputationRegistry feedback?
+4. Is there a meaningful "CallGuard token ID = agent NFT" binding that creates value beyond a simple address mapping?
 5. Does the v2 design document need full rewriting, or is it an addendum?
 
 ---
 
 ## Notes I want to remember
 
-- The strategic decision is **not urgent**. ArcSLA v1 is live, working, and valuable on its own merits.
-- Arc's recommendation does not invalidate ArcSLA — these standards do not duplicate ArcSLA's value (stake, slash, reputation backed by economic commitment).
+- The strategic decision is **not urgent**. CallGuard v1 is live, working, and valuable on its own merits.
+- Arc's recommendation does not invalidate CallGuard — these standards do not duplicate CallGuard's value (stake, slash, reputation backed by economic commitment).
 - The right move is to **integrate thoughtfully**, not to panic-rewrite.
 - The 65-day hackathon timeline allows for proper integration work if Strategy A is chosen.
 - I learned of ERC-8004/8183 only today. Most other builders are likely in the same position. Early movers benefit.
@@ -419,7 +419,7 @@ Riskier — appears to ignore Arc's stated standards.
 
 ## Strategic Decisions — May 11, 2026
 
-After reviewing the ERC-8004 / ERC-8183 specs, the Refund Protocol source, and the Arc team's stated direction, the following architectural decisions were made for ArcSLA v2:
+After reviewing the ERC-8004 / ERC-8183 specs, the Refund Protocol source, and the Arc team's stated direction, the following architectural decisions were made for CallGuard v2:
 
 ### Decision 1 — ERC-8004 NFT Identity: Backwards-Compatible Hybrid
 
@@ -435,30 +435,30 @@ After reviewing the ERC-8004 / ERC-8183 specs, the Refund Protocol source, and t
 
 ### Decision 2 — ERC-8183 Integration: Not for v2
 
-**Choice:** ArcSLA v2 remains an independent protocol. No integration with ERC-8183 AgenticCommerce.
+**Choice:** CallGuard v2 remains an independent protocol. No integration with ERC-8183 AgenticCommerce.
 
 **Rationale:**
-- ERC-8183's `claimRefund` is deliberately not hookable — this prevents ArcSLA's core slash logic from being implemented as a hook
-- ArcSLA addresses high-frequency pay-per-call; ERC-8183 addresses lower-frequency job-based commerce. Different problem spaces.
+- ERC-8183's `claimRefund` is deliberately not hookable — this prevents CallGuard's core slash logic from being implemented as a hook
+- CallGuard addresses high-frequency pay-per-call; ERC-8183 addresses lower-frequency job-based commerce. Different problem spaces.
 - Building two products (independent + hook variant) is not realistic in the 65-day hackathon window
-- v3 may revisit if ERC-8183 spec evolves or if a separate ArcSLA-SLAHook product becomes worthwhile
+- v3 may revisit if ERC-8183 spec evolves or if a separate CallGuard-SLAHook product becomes worthwhile
 
 ### Decision 3 — Reputation Writing: Internal Only
 
-**Choice:** ArcSLA does not write feedback to ERC-8004 ReputationRegistry. Bayesian scoring remains entirely within ArcSLA's own ServiceRegistry.
+**Choice:** CallGuard does not write feedback to ERC-8004 ReputationRegistry. Bayesian scoring remains entirely within CallGuard's own ServiceRegistry.
 
 **Rationale:**
 - Gas overhead of cross-contract writes is significant for high-frequency pay-per-call (~15-25k extra gas per receipt)
 - ERC-8004's validator-registration model adds authorization complexity
-- Soru 1's NFT binding already provides ecosystem composability (any contract can query: "this NFT's ArcSLA reputation is X")
-- Future aggregator services can bridge ArcSLA events → ERC-8004 ReputationRegistry without modifying contracts
+- Soru 1's NFT binding already provides ecosystem composability (any contract can query: "this NFT's CallGuard reputation is X")
+- Future aggregator services can bridge CallGuard events → ERC-8004 ReputationRegistry without modifying contracts
 
 ### Decision 4 — Hackathon Submission Angle: Ecosystem Complement
 
-**Choice:** Submission positions ArcSLA as a **complementary** layer to Arc's stated standards, not an alternative.
+**Choice:** Submission positions CallGuard as a **complementary** layer to Arc's stated standards, not an alternative.
 
 **Submission framing:**
-> "ArcSLA addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and ArcSLA target different commerce patterns — together they cover the agentic economy spectrum."
+> "CallGuard addresses what ERC-8183 leaves uncovered: high-frequency pay-per-call SLA enforcement with stake-backed provider commitment, automatic deadline-based slashing, and sybil-resistant Bayesian reputation. v2 integrates ERC-8004 NFT identity for portable reputation. ERC-8183 and CallGuard target different commerce patterns — together they cover the agentic economy spectrum."
 
 **Rationale:**
 - Shows technical maturity (understands the ecosystem)
@@ -484,4 +484,4 @@ These updates will be made next.
 
 *Decisions captured May 11, 2026 evening, after a full day of research and discussion.*
 
-*— Onur Akdemir | arcsla.vercel.app | github.com/muazzezwq/arcsla*
+*— Onur Akdemir | callguard.vercel.app | github.com/muazzezwq/callguard*

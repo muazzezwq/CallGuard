@@ -20,7 +20,7 @@ const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcPro
 
 // Post-quantum SLH-DSA-SHA2-128s (Arc 0x1800..0004 precompile compatible)
 const _pqSeed = new Uint8Array(48);
-const _seedBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes("arcsla-pq-seed-v1")));
+const _seedBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes("callguard-pq-seed-v1")));
 _pqSeed.set(_seedBytes.slice(0, 32));
 _pqSeed.set(_seedBytes.slice(0, 16), 32);
 const PQ_KEYS = slh_dsa_sha2_128s.keygen(_pqSeed);
@@ -43,7 +43,7 @@ function paymentRequirements() {
     asset: env.USDC_ADDRESS,
     payTo: PAY_TO,
     resource: "/api/service",
-    description: "ArcSLA korumali servis cagrisi",
+    description: "CallGuard korumali servis cagrisi",
     maxTimeoutSeconds: 120,
   };
 }
@@ -106,8 +106,8 @@ app.post("/callService", async (req, res) => {
       const USDC_ADDR = env.USDC_ADDRESS || "0x3600000000000000000000000000000000000000";
       const memoAbi = ["function memo(address target, bytes data, bytes32 memoId, bytes memoData) external"];
       const memoContract = new ethers.Contract(MEMO_CONTRACT, memoAbi, facilitatorWallet);
-      const memoId = ethers.keccak256(ethers.toUtf8Bytes("arcsla-" + (result.callId || requestHash)));
-      const memoText = "ArcSLA payment — Provider #" + providerId;
+      const memoId = ethers.keccak256(ethers.toUtf8Bytes("callguard-" + (result.callId || requestHash)));
+      const memoText = "CallGuard payment — Provider #" + providerId;
       const memoData = ethers.toUtf8Bytes(memoText);
       const usdcIface = new ethers.Interface(["function transfer(address to, uint256 amount) returns (bool)"]);
       const dummyData = usdcIface.encodeFunctionData("transfer", [from, 0n]);
@@ -160,7 +160,7 @@ app.get("/nano/service", async (req, res) => {
       x402Version: 2,
       resource: {
         url: "/nano/service",
-        description: "ArcSLA nanopayment — 0.001 USDC per call",
+        description: "CallGuard nanopayment — 0.001 USDC per call",
         mimeType: "application/json",
       },
       accepts: [requirements],
@@ -236,7 +236,7 @@ app.post("/nano/service", async (req, res) => {
 
 // ---- Root & Health ----
 app.get("/", (_, res) => res.json({
-  service: "ArcSLA x402 facilitator",
+  service: "CallGuard x402 facilitator",
   status: "live",
   network: "arc-testnet",
   endpoints: ["/health", "/api/service", "/verify", "/settle", "/callService", "/nano/service"],
@@ -267,8 +267,8 @@ app.post("/nano/call", async (req, res) => {
     const fullPayload = {
       ...paymentPayload,
       resource: {
-        url: "https://arcsla-eu.onrender.com/nano/service",
-        description: "ArcSLA nanopayment — 0.001 USDC per call",
+        url: "https://callguard-eu.onrender.com/nano/service",
+        description: "CallGuard nanopayment — 0.001 USDC per call",
         mimeType: "application/json",
       },
       accepted: {
@@ -286,7 +286,7 @@ app.post("/nano/call", async (req, res) => {
       },
     };
     const paymentHeader = Buffer.from(JSON.stringify(fullPayload)).toString("base64");
-    const paidRes = await fetch("https://arcsla-eu.onrender.com/nano/service", {
+    const paidRes = await fetch("https://callguard-eu.onrender.com/nano/service", {
       method: "POST",
       headers: { "Payment-Signature": paymentHeader },
     });

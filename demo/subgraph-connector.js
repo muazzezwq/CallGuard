@@ -1,5 +1,5 @@
-// ArcSLA Subgraph Connector
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn";
+// CallGuard Subgraph Connector
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
 
 async function fetchSubgraph() {
   const query = `

@@ -5,18 +5,18 @@ import { ethers } from "ethers";
 import dotenv from "dotenv";
 dotenv.config();
 
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://arcsla-eu.onrender.com";
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn";
+const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://callguard-eu.onrender.com";
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
 
 const server = new McpServer({
-  name: "arcsla",
+  name: "callguard",
   version: "1.0.0",
 });
 
 // Tool 1: list_providers
 server.tool(
   "list_providers",
-  "List active ArcSLA service providers on Arc Testnet. Returns provider ID, owner, price per call, and reputation score.",
+  "List active CallGuard service providers on Arc Testnet. Returns provider ID, owner, price per call, and reputation score.",
   { limit: z.number().optional().default(10) },
   async ({ limit }) => {
     const res = await fetch(SUBGRAPH_URL, {
@@ -60,7 +60,7 @@ server.tool(
 // Tool 3: nanopay
 server.tool(
   "nanopay",
-  "Send a gasless 0.001 USDC nanopayment via Circle Gateway to call the ArcSLA nano service.",
+  "Send a gasless 0.001 USDC nanopayment via Circle Gateway to call the CallGuard nano service.",
   {},
   async () => {
     try {
@@ -80,7 +80,7 @@ server.tool(
 // Tool 4: get_network_stats
 server.tool(
   "get_network_stats",
-  "Get ArcSLA network statistics: total providers, calls, and recent activity.",
+  "Get CallGuard network statistics: total providers, calls, and recent activity.",
   {},
   async () => {
     const res = await fetch(SUBGRAPH_URL, {
@@ -97,7 +97,7 @@ server.tool(
     return {
       content: [{
         type: "text",
-        text: `ArcSLA Network Stats:\n- Total providers: ${providers.length}\n- Active providers: ${active}\n- Total calls indexed: ${calls.length}\n- Network: Arc Testnet\n- dApp: https://arcsla.vercel.app/app`
+        text: `CallGuard Network Stats:\n- Total providers: ${providers.length}\n- Active providers: ${active}\n- Total calls indexed: ${calls.length}\n- Network: Arc Testnet\n- dApp: https://callguard.vercel.app/app`
       }]
     };
   }
@@ -106,7 +106,7 @@ server.tool(
 // Tool 5: get_leaderboard
 server.tool(
   "get_leaderboard",
-  "Get the top providers by reputation score on ArcSLA.",
+  "Get the top providers by reputation score on CallGuard.",
   { limit: z.number().optional().default(5) },
   async ({ limit }) => {
     const res = await fetch(SUBGRAPH_URL, {
@@ -135,7 +135,7 @@ server.tool(
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("ArcSLA MCP Server running...");
+console.error("CallGuard MCP Server running...");
 
 // Tool 6: search_arc_docs
 server.tool(

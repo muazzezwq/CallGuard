@@ -6,8 +6,8 @@ import { z } from "zod";
 import dotenv from "dotenv";
 dotenv.config();
 
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://arcsla-eu.onrender.com";
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn";
+const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://callguard-eu.onrender.com";
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
 const PORT = process.env.MCP_PORT || 4022;
 
 const app = express();
@@ -15,9 +15,9 @@ app.use(cors());
 app.use(express.json());
 
 function createMcpServer() {
-  const server = new McpServer({ name: "arcsla", version: "1.0.0" });
+  const server = new McpServer({ name: "callguard", version: "1.0.0" });
 
-  server.tool("list_providers", "List active ArcSLA service providers on Arc Testnet.",
+  server.tool("list_providers", "List active CallGuard service providers on Arc Testnet.",
     { limit: z.number().optional().default(10) },
     async ({ limit }) => {
       const res = await fetch(SUBGRAPH_URL, {
@@ -61,7 +61,7 @@ function createMcpServer() {
     }
   );
 
-  server.tool("get_network_stats", "Get ArcSLA network statistics.", {},
+  server.tool("get_network_stats", "Get CallGuard network statistics.", {},
     async () => {
       const res = await fetch(SUBGRAPH_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -71,7 +71,7 @@ function createMcpServer() {
       const providers = data.data?.providers || [];
       const calls = data.data?.callStarteds || [];
       const active = providers.filter(p => p.active).length;
-      return { content: [{ type: "text", text: `ArcSLA Network:\n- Total providers: ${providers.length}\n- Active: ${active}\n- Total calls: ${calls.length}\n- dApp: https://arcsla.vercel.app/app` }] };
+      return { content: [{ type: "text", text: `CallGuard Network:\n- Total providers: ${providers.length}\n- Active: ${active}\n- Total calls: ${calls.length}\n- dApp: https://callguard.vercel.app/app` }] };
     }
   );
 
@@ -121,6 +121,6 @@ app.post("/messages", async (req, res) => {
   await transport.handlePostMessage(req, res);
 });
 
-app.get("/health", (_, res) => res.json({ ok: true, server: "ArcSLA MCP Remote", version: "1.0.0" }));
+app.get("/health", (_, res) => res.json({ ok: true, server: "CallGuard MCP Remote", version: "1.0.0" }));
 
-app.listen(PORT, () => console.log(`ArcSLA MCP Remote Server on :${PORT}`));
+app.listen(PORT, () => console.log(`CallGuard MCP Remote Server on :${PORT}`));
