@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ArcSLA — Service guarantees, enforced on-chain</title>
-<meta name="description" content="ArcSLA is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC, callers pay per request, and the contract enforces the guarantee — no arbiter, no middleman." />
+<title>CallGuard — Service guarantees, enforced on-chain</title>
+<meta name="description" content="CallGuard is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC, callers pay per request, and the contract enforces the guarantee — no arbiter, no middleman." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -736,7 +736,7 @@
           <circle cx="9" cy="10.5" r="2.1" fill="#059669"/>
         </svg>
       </span>
-      <span class="brand-name">ArcSLA</span>
+      <span class="brand-name">CallGuard</span>
     </a>
     <div class="nav-links">
       <a class="nav-link" href="#how">How it works</a>
@@ -766,7 +766,7 @@
       </div>
       <h1>Service guarantees,<br/><em>enforced on-chain.</em></h1>
       <p class="hero-sub">
-        ArcSLA is a marketplace where providers put USDC on the line for every request.
+        CallGuard is a marketplace where providers put USDC on the line for every request.
         Miss the deadline — lose the stake. No court, no dispute process, no waiting.
         No arbiter. No middleman.
       </p>
@@ -826,7 +826,7 @@
         </p>
       </div>
       <div class="problem-card">
-        <div class="pc-label">Without ArcSLA</div>
+        <div class="pc-label">Without CallGuard</div>
         <div class="pc-row">
           <span class="pc-x">✕</span>
           <p>Payment is sent up-front and trust is assumed — the provider holds all the leverage.</p>
@@ -957,7 +957,7 @@
         <span class="eyebrow">The enforcement mechanism</span>
         <h2>Slashing turns a promise into an economic position.</h2>
         <p>
-          An SLA is only as strong as its consequence. On ArcSLA, a provider's
+          An SLA is only as strong as its consequence. On CallGuard, a provider's
           commitment is backed by real collateral — and breaking it has an immediate,
           on-chain cost.
         </p>
@@ -1132,7 +1132,7 @@
         <span class="eyebrow">For developers</span>
         <h2>Integrate in a few lines of code.</h2>
         <p>
-          ArcSLA is plain EVM. If you know ethers.js, you already know how to call it.
+          CallGuard is plain EVM. If you know ethers.js, you already know how to call it.
           Approve USDC, open a call, and you are on-chain — the contract handles escrow,
           receipts and enforcement.
         </p>
@@ -1157,7 +1157,7 @@
           <span class="code-dot" style="background:#28c840"></span>
           <span class="code-file">open-call.js</span>
         </div>
-        <div class="code-body"><span class="c-com">// ethers v6 — open a paid call on ArcSLA</span>
+        <div class="code-body"><span class="c-com">// ethers v6 — open a paid call on CallGuard</span>
 <span class="c-kw">import</span> { ethers } <span class="c-kw">from</span> <span class="c-str">"ethers"</span>;
 
 <span class="c-kw">const</span> provider = <span class="c-kw">new</span> ethers.<span class="c-fn">JsonRpcProvider</span>(RPC_URL);
@@ -1185,7 +1185,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
     <div class="section-head center reveal">
       <span class="eyebrow">Why Arc</span>
       <h2>Per-call payments only work if settlement is instant.</h2>
-      <p>ArcSLA is built on Arc Testnet — Circle's stablecoin-native L1. Three properties
+      <p>CallGuard is built on Arc Testnet — Circle's stablecoin-native L1. Three properties
         make it the natural home for machine-to-machine payments.</p>
     </div>
     <div class="why-grid reveal">
@@ -1270,9 +1270,9 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
         </div></div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">Is ArcSLA live on mainnet?<span class="faq-sign"></span></button>
+        <button class="faq-q">Is CallGuard live on mainnet?<span class="faq-sign"></span></button>
         <div class="faq-a"><div class="faq-a-inner">
-          ArcSLA runs on Arc Testnet, which is itself in a pre-mainnet phase. It is a
+          CallGuard runs on Arc Testnet, which is itself in a pre-mainnet phase. It is a
           working demonstration — all contracts are deployed and verifiable on ArcScan,
           and the full lifecycle can be exercised end-to-end with test USDC.
         </div></div>
@@ -1308,7 +1308,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
               <circle cx="9" cy="10.5" r="2.1" fill="#059669"/>
             </svg>
           </span>
-          <span class="brand-name">ArcSLA</span>
+          <span class="brand-name">CallGuard</span>
         </div>
         <p>An on-chain SLA marketplace on Arc Testnet. Service guarantees, enforced by
           smart contracts — no arbiter, no middleman.</p>
@@ -1336,7 +1336,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
     </div>
     <div class="footer-bottom">
       <div>
-        <div>ArcSLA · Built on Arc Testnet · MIT License</div>
+        <div>CallGuard · Built on Arc Testnet · MIT License</div>
         <div class="footer-addr">
           <a href="https://testnet.arcscan.app/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">ServiceRegistry · 0xea00…bcFF</a>
           <a href="https://testnet.arcscan.app/address/0x10387347678d9f7106D5625bE0BD6C915158B130" target="_blank" rel="noreferrer">PayPerCall · 0x1038…B130</a>
