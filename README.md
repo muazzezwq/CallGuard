@@ -1,4 +1,4 @@
-# ArcSLA
+# CallGuard
 
 > 🏗️ Built by an [Arc Architects](https://www.arc.network) program member.
 
@@ -6,7 +6,7 @@
 
 Providers stake USDC to commit to Service-Level Agreements. Callers pay per request. Stake is automatically slashed when SLAs are violated — no arbiter, no oracle, no off-chain dispute system.
 
-ArcSLA is designed for the machine-to-machine economy: AI agents buying API calls, autonomous services transacting with each other, and any pay-per-call use case where trust must be encoded in the contract rather than assumed.
+CallGuard is designed for the machine-to-machine economy: AI agents buying API calls, autonomous services transacting with each other, and any pay-per-call use case where trust must be encoded in the contract rather than assumed.
 
 Built on [Arc Testnet](https://www.arc.network), Circle's stablecoin-native L1 where USDC is the native gas token.
 
@@ -22,7 +22,7 @@ Today those calls happen through three bad options:
 2. **Trust a custodian.** Both parties deposit into an escrow run by a third party. Adds latency, adds a new point of failure, adds a fee.
 3. **Trust a DAO.** Disputes go to human arbitration. Too slow for machine-speed transactions.
 
-ArcSLA is the fourth option: **trust the code**.
+CallGuard is the fourth option: **trust the code**.
 
 A provider stakes USDC, commits to a max response time and slash percentage, and signs a cryptographic receipt when they fulfill a call. If they miss the deadline, anyone can trigger the slash. The contract transfers the escrow back to the caller plus a penalty from the provider's stake. All of this takes seconds on Arc.
 
@@ -34,7 +34,7 @@ The result is a permissionless marketplace where AI agents — or any program ho
 
 Here is a concrete scenario. Agent A is a research assistant running on a user's laptop. It needs to summarize a 200-page PDF. It doesn't have a summarization model locally, but there are dozens of providers offering this as a paid API.
 
-**Without ArcSLA:**
+**Without CallGuard:**
 
 ```
 Agent A → "send me your best summarization provider"
@@ -43,7 +43,7 @@ Agent A → "send me your best summarization provider"
         → Agent A has no recourse except blacklisting
 ```
 
-**With ArcSLA:**
+**With CallGuard:**
 
 ```
 Agent A → reads on-chain registry, picks provider by reputation + price
