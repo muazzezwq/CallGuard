@@ -5102,7 +5102,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             try { state.usdcDecimals = Number(await state.usdc.decimals()); }
             catch { state.usdcDecimals = 6; }
           }
-          const b = await state.usdc.balanceOf(state.address);
+          const b = await state.usdc.connect(state.provider).balanceOf(state.address);
           const formatted = ethers.formatUnits(b, state.usdcDecimals);
           // Show up to 4 decimal places
           $("usdcBal").textContent = parseFloat(formatted).toFixed(4).replace(/\.?0+$/, "") || "0";
@@ -5254,26 +5254,26 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query: `{
                   providers(first: 1000, orderBy: id, orderDirection: asc) {
-                    id owner signer stake pricePerCall active completedCalls slashedCalls createdAt
+                    id owner signer stake
                   }
                 }` })
               });
               const gdata = await gql.json();
               if (gdata.data && gdata.data.providers && gdata.data.providers.length > 0) {
                 state.allProviders = gdata.data.providers.map(p => {
-                  const completed = Number(p.completedCalls || 0);
-                  const slashed = Number(p.slashedCalls || 0);
+                  const completed = Number(p.completedCalls ?? 0);
+                  const slashed = Number(p.slashedCalls ?? 0);
                   const total = completed + slashed;
                   const reputation = total > 0 ? Math.round((completed + 2) * 100 / (total + 3)) : 66;
                   return {
                     id: Number(p.id),
                     owner: p.owner,
                     signer: p.signer || p.owner,
-                    stake: BigInt(p.stake || 0),
-                    pricePerCall: BigInt(p.pricePerCall || 0),
+                    stake: BigInt(p.stake ?? 0),
+                    pricePerCall: BigInt(p.pricePerCall ?? 0),
                     maxResponseTime: 30,
                     slashBps: 2000,
-                    active: p.active,
+                    active: p.active !== undefined ? p.active : true,
                     endpoint: "",
                     reputation,
                     completedCalls: completed,
@@ -5308,7 +5308,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               pricePerCall: p.pricePerCall,
               maxResponseTime: p.maxResponseTime,
               slashBps: p.slashBps,
-              active: p.active,
+              active: p.active !== undefined ? p.active : true,
               endpoint: endpoints[i],
               reputation: Number(scores[i]),
             };
@@ -5881,8 +5881,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               const p = data.data?.provider;
               const recent = data.data?.recentCalls || [];
               if (!p) { statsEl.innerHTML = '<div class="section-title">On-chain analytics</div><div style="font-size:12px;color:var(--text-faint)">No data indexed yet</div>'; return; }
-              const completed = Number(p.completedCalls || 0);
-              const slashed = Number(p.slashedCalls || 0);
+              const completed = Number(p.completedCalls ?? 0);
+              const slashed = Number(p.slashedCalls ?? 0);
               const total = completed + slashed;
               const honor = total > 0 ? Math.round(completed/total*100) : 100;
               const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
@@ -5934,8 +5934,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               const p = data.data?.provider;
               const recent = data.data?.recentCalls || [];
               if (!p) { statsEl.innerHTML = '<div class="section-title">On-chain analytics</div><div style="font-size:12px;color:var(--text-faint)">No data indexed yet</div>'; return; }
-              const completed = Number(p.completedCalls || 0);
-              const slashed = Number(p.slashedCalls || 0);
+              const completed = Number(p.completedCalls ?? 0);
+              const slashed = Number(p.slashedCalls ?? 0);
               const total = completed + slashed;
               const honor = total > 0 ? Math.round(completed/total*100) : 100;
               const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
@@ -7327,7 +7327,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: `{
-              providers(first: 1000) { id active completedCalls slashedCalls pricePerCall }
+              providers(first: 1000) { id }
               calls: callStarteds(first: 100, orderBy: timestamp, orderDirection: desc) { id providerId amount timestamp }
               completed: receiptSubmitteds(first: 1000) { id }
               slashed: callSlasheds(first: 1000) { id }
