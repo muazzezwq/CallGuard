@@ -5047,26 +5047,32 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // or after any contract event fires.
       // ----------------------------------------------------------------
       async function refreshAll() {
-        // First wave: independent reads — run in parallel
-        await Promise.all([
-          refreshBalance(),
-          refreshProvider(),
-          refreshHero(),
-          refreshAllProviders(),
-          refreshNetworkStats(),
-          refreshActivityChart(),
-        ]);
-        // Second wave: leaderboard (needs state.allProviders)
-        await refreshLeaderboard();
-        // Third wave: provider dashboard (needs state.providerInfo)
-        await refreshProviderDashboard();
-        // Update sync block
         try {
-          const b = await state.provider?.getBlockNumber();
-          if (b) state.lastSyncBlock = b;
-        } catch {}
-      } finally {
-        refreshRunning = false;
+          // First wave: independent reads — run in parallel
+          await Promise.all([
+            refreshBalance(),
+            refreshProvider(),
+            refreshHero(),
+            refreshAllProviders(),
+            refreshNetworkStats(),
+            refreshActivityChart(),
+          ]);
+
+          // Second wave: leaderboard (needs state.allProviders)
+          await refreshLeaderboard();
+
+          // Third wave: provider dashboard (needs state.providerInfo)
+          await refreshProviderDashboard();
+
+          // Update sync block
+          try {
+            const b = await state.provider?.getBlockNumber();
+            if (b) state.lastSyncBlock = b;
+          } catch {}
+
+        } finally {
+          refreshRunning = false;
+        }
       }
 
       // Load existing calls for the connected wallet from on-chain event logs.
