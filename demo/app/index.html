@@ -4792,13 +4792,40 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         return results;
       }
 
+      const safeQueryCache = new Map();
+
       async function safeQuery(contract, eventName, extraFilter) {
         try {
+          const key = eventName + JSON.stringify(extraFilter ?? {});
+          const cached = safeQueryCache.get(key);
+
+          if (cached && Date.now() - cached.time < 60000) {
+            return cached.value;
+          }
+
+          await new Promise(r => setTimeout(r, 2000));
+
           const provider = contract.runner.provider;
           const latest = await provider.getBlockNumber();
+
           const from = Math.max(0, latest - LOG_SCAN_BLOCKS);
           const filter = extraFilter ?? eventName;
-          return await scanRange(contract, filter, from, latest, CHUNK_SIZE);
+
+          const result = await scanRange(
+            contract,
+            filter,
+            from,
+            latest,
+            CHUNK_SIZE
+          );
+
+          safeQueryCache.set(key, {
+            value: result,
+            time: Date.now()
+          });
+
+          return result;
+
         } catch (e) {
           console.warn(`safeQuery(${eventName}) failed:`, e.message);
           return [];
