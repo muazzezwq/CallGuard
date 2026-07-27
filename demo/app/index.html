@@ -7779,14 +7779,39 @@ console.log("call opened:", tx.hash);`;
       // structured-cloned in some browsers.
       let _rpcId = 1;
       async function rpcCall(method, params = []) {
-        const res = await fetch(CONFIG.rpcUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jsonrpc: "2.0", id: _rpcId++, method, params }),
-        });
-        const json = await res.json();
-        if (json.error) throw new Error(json.error.message);
-        return json.result;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const res = await fetch(CONFIG.rpcUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: _rpcId++,
+                method,
+                params
+              }),
+            });
+
+            const json = await res.json();
+
+            if (json.error) {
+              if (
+                json.error.code === -32005 ||
+                json.error.message?.includes("rate")
+              ) {
+                await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+                continue;
+              }
+              throw new Error(json.error.message);
+            }
+
+            return json.result;
+
+          } catch (e) {
+            if (attempt === 4) throw e;
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          }
+        }
       }
 
       // eth_call helper — encodes a simple no-arg view call and decodes uint256
@@ -7873,7 +7898,7 @@ console.log("call opened:", tx.hash);`;
           // --- Phase 2: event scan in background (can take 1-3s) ---
           // Landing page only needs recent activity, so use a shorter window
           // to keep initial load fast. Full 100K window kicks in post-connect.
-          const LANDING_SCAN_BLOCKS = 30_000; // ~1 day on Arc, fast enough
+          const LANDING_SCAN_BLOCKS = 5_000; // ~1 day on Arc, fast enough
           const from = Math.max(0, latest - LANDING_SCAN_BLOCKS);
 
           // Fetch logs sequentially to avoid RPC rate limits
