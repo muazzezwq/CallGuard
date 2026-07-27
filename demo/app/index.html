@@ -4763,7 +4763,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
        * If any chunk still fails we halve the chunk for retry — up to 3 levels.
        */
       const LOG_SCAN_BLOCKS = 100_000; // total window to scan (~2-3 days at 2s block time on Arc)
-      const CHUNK_SIZE = 2_000;        // per-call block window
+      const CHUNK_SIZE = 250;          // Arc RPC rate-limit friendly window
       const MIN_CHUNK = 250;           // smallest we'll shrink to on retry
 
       async function scanRange(contract, filter, from, to, size) {
@@ -7826,7 +7826,11 @@ console.log("call opened:", tx.hash);`;
         const to   = "0x" + toBlock.toString(16);
         try {
           return await rpcCall("eth_getLogs", [{ address, topics: [topic0], fromBlock: from, toBlock: to }]);
-        } catch { return []; }
+        } catch (e) {
+          console.warn("eth_getLogs failed:", e.message);
+          await new Promise(r => setTimeout(r, 3000));
+          return [];
+        }
       }
 
       // Chunked log scan (mirrors scanRange but over raw fetch)
@@ -8017,12 +8021,39 @@ console.log("call opened:", tx.hash);`;
               const nowHex = await rpcCall("eth_blockNumber");
               const nowBlock = Number(BigInt(nowHex));
               if (nowBlock <= lastSeenBlock) return;
-              const [ns, nr, nsl, nrg] = await Promise.all([
-                fetchLogsChunked(CONFIG.payPerCall, TOPICS.CallStarted,        lastSeenBlock + 1, nowBlock),
-                fetchLogsChunked(CONFIG.payPerCall, TOPICS.ReceiptSubmitted,   lastSeenBlock + 1, nowBlock),
-                fetchLogsChunked(CONFIG.payPerCall, TOPICS.CallSlashed,        lastSeenBlock + 1, nowBlock),
-                fetchLogsChunked(CONFIG.registry,   TOPICS.ProviderRegistered, lastSeenBlock + 1, nowBlock),
-              ]);
+                const ns = await fetchLogsChunked(
+                  CONFIG.payPerCall,
+                  TOPICS.CallStarted,
+                  lastSeenBlock + 1,
+                  nowBlock
+                );
+
+                await new Promise(r => setTimeout(r, 1500));
+
+                const nr = await fetchLogsChunked(
+                  CONFIG.payPerCall,
+                  TOPICS.ReceiptSubmitted,
+                  lastSeenBlock + 1,
+                  nowBlock
+                );
+
+                await new Promise(r => setTimeout(r, 1500));
+
+                const nsl = await fetchLogsChunked(
+                  CONFIG.payPerCall,
+                  TOPICS.CallSlashed,
+                  lastSeenBlock + 1,
+                  nowBlock
+                );
+
+                await new Promise(r => setTimeout(r, 1500));
+
+                const nrg = await fetchLogsChunked(
+                  CONFIG.registry,
+                  TOPICS.ProviderRegistered,
+                  lastSeenBlock + 1,
+                  nowBlock
+                );
               lastSeenBlock = nowBlock;
               const newEvts = [];
               for (const l of nrg) {
