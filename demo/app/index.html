@@ -7805,7 +7805,10 @@ console.log("call opened:", tx.hash);`;
         while (cursor <= to) {
           const end = Math.min(cursor + chunkSize - 1, to);
           const logs = await fetchLogs(address, topic0, cursor, end).catch(() => []);
-          results.push(...logs);
+          if (Array.isArray(logs)) {
+            results.push(...logs);
+          }
+          await new Promise(r => setTimeout(r, 1000));
           cursor = end + 1;
         }
         return results;
@@ -7868,12 +7871,39 @@ console.log("call opened:", tx.hash);`;
           const from = Math.max(0, latest - LANDING_SCAN_BLOCKS);
 
           // Fetch logs in parallel
-          const [startedRaw, receiptRaw, slashedRaw, regRaw] = await Promise.all([
-            fetchLogsChunked(CONFIG.payPerCall, TOPICS.CallStarted,        from, latest),
-            fetchLogsChunked(CONFIG.payPerCall, TOPICS.ReceiptSubmitted,   from, latest),
-            fetchLogsChunked(CONFIG.payPerCall, TOPICS.CallSlashed,        from, latest),
-            fetchLogsChunked(CONFIG.registry,   TOPICS.ProviderRegistered, from, latest),
-          ]);
+          const startedRaw = await fetchLogsChunked(
+            CONFIG.payPerCall,
+            TOPICS.CallStarted,
+            from,
+            latest
+          );
+
+          await new Promise(r => setTimeout(r, 1500));
+
+          const receiptRaw = await fetchLogsChunked(
+            CONFIG.payPerCall,
+            TOPICS.ReceiptSubmitted,
+            from,
+            latest
+          );
+
+          await new Promise(r => setTimeout(r, 1500));
+
+          const slashedRaw = await fetchLogsChunked(
+            CONFIG.payPerCall,
+            TOPICS.CallSlashed,
+            from,
+            latest
+          );
+
+          await new Promise(r => setTimeout(r, 1500));
+
+          const regRaw = await fetchLogsChunked(
+            CONFIG.registry,
+            TOPICS.ProviderRegistered,
+            from,
+            latest
+          );
 
           $("heroSlashes").textContent = slashedRaw.length.toString();
 
