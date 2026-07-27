@@ -7876,7 +7876,7 @@ console.log("call opened:", tx.hash);`;
           const LANDING_SCAN_BLOCKS = 30_000; // ~1 day on Arc, fast enough
           const from = Math.max(0, latest - LANDING_SCAN_BLOCKS);
 
-          // Fetch logs in parallel
+          // Fetch logs sequentially to avoid RPC rate limits
           const startedRaw = await fetchLogsChunked(
             CONFIG.payPerCall,
             TOPICS.CallStarted,
