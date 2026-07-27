@@ -4763,7 +4763,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
        * If any chunk still fails we halve the chunk for retry — up to 3 levels.
        */
       const LOG_SCAN_BLOCKS = 100_000; // total window to scan (~2-3 days at 2s block time on Arc)
-      const CHUNK_SIZE = 250;          // Arc RPC rate-limit friendly window
+      const CHUNK_SIZE = 100;          // Arc RPC rate-limit friendly window
       const MIN_CHUNK = 250;           // smallest we'll shrink to on retry
 
       async function scanRange(contract, filter, from, to, size) {
@@ -5048,15 +5048,23 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // ----------------------------------------------------------------
       async function refreshAll() {
         try {
-          // First wave: independent reads — run in parallel
-          await Promise.all([
-            refreshBalance(),
-            refreshProvider(),
-            refreshHero(),
-            refreshAllProviders(),
-            refreshNetworkStats(),
-            refreshActivityChart(),
-          ]);
+          // First wave: sequential RPC reads to avoid Arc rate limits
+          await refreshBalance();
+          await new Promise(r => setTimeout(r, 1000));
+
+          await refreshProvider();
+          await new Promise(r => setTimeout(r, 1000));
+
+          await refreshHero();
+          await new Promise(r => setTimeout(r, 1000));
+
+          await refreshAllProviders();
+          await new Promise(r => setTimeout(r, 1000));
+
+          await refreshNetworkStats();
+          await new Promise(r => setTimeout(r, 1000));
+
+          await refreshActivityChart();
 
           // Second wave: leaderboard (needs state.allProviders)
           await refreshLeaderboard();
@@ -7822,18 +7830,32 @@ console.log("call opened:", tx.hash);`;
 
       // eth_getLogs helper
       async function fetchLogs(address, topic0, fromBlock, toBlock) {
-        const from = "0x" + fromBlock.toString(16);
-        const to   = "0x" + toBlock.toString(16);
-        try {
-          return await rpcCall("eth_getLogs", [{ address, topics: [topic0], fromBlock: from, toBlock: to }]);
-        } catch (e) {
-          console.warn("eth_getLogs failed:", e.message);
-          await new Promise(r => setTimeout(r, 3000));
-          return [];
-        }
-      }
+  const from = "0x" + fromBlock.toString(16);
+  const to   = "0x" + toBlock.toString(16);
 
-      // Chunked log scan (mirrors scanRange but over raw fetch)
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await rpcCall("eth_getLogs", [{
+        address,
+        topics: [topic0],
+        fromBlock: from,
+        toBlock: to
+      }]);
+    } catch (e) {
+      const msg = e?.message || "";
+      console.warn(`eth_getLogs retry ${attempt + 1}/4:`, msg);
+
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+      }
+    }
+  }
+
+  return [];
+}
+
+
+// Chunked log scan (mirrors scanRange but over raw fetch)
       async function fetchLogsChunked(address, topic0, from, to, chunkSize = CHUNK_SIZE) {
         const results = [];
         let cursor = from;
@@ -7843,7 +7865,7 @@ console.log("call opened:", tx.hash);`;
           if (Array.isArray(logs)) {
             results.push(...logs);
           }
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 3000));
           cursor = end + 1;
         }
         return results;
@@ -8084,7 +8106,7 @@ console.log("call opened:", tx.hash);`;
               }
             } catch {}
           };
-          setInterval(pollLanding, 10_000);
+          setInterval(pollLanding, 30_000);
 
         } catch (e) {
           console.warn("boot stats failed:", e);
