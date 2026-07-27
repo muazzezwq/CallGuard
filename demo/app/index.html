@@ -5065,6 +5065,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           const b = await state.provider?.getBlockNumber();
           if (b) state.lastSyncBlock = b;
         } catch {}
+      } finally {
+        refreshRunning = false;
       }
 
       // Load existing calls for the connected wallet from on-chain event logs.
@@ -5073,12 +5075,26 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       async function loadMyCalls() {
         try {
           const myFilter = state.payPerCall.filters.CallStarted(null, null, state.address);
-          // Run all three log queries in parallel to avoid sequential RPC slowness
-          const [startedLogs, receiptLogs, slashedLogs] = await Promise.all([
-            safeQuery(state.payPerCall, "CallStarted", myFilter),
-            safeQuery(state.payPerCall, "ReceiptSubmitted"),
-            safeQuery(state.payPerCall, "CallSlashed"),
-          ]);
+          // Run log queries sequentially to avoid RPC rate limits
+          const startedLogs = await safeQuery(
+            state.payPerCall,
+            "CallStarted",
+            myFilter
+          );
+
+          await new Promise(r => setTimeout(r, 1000));
+
+          const receiptLogs = await safeQuery(
+            state.payPerCall,
+            "ReceiptSubmitted"
+          );
+
+          await new Promise(r => setTimeout(r, 1000));
+
+          const slashedLogs = await safeQuery(
+            state.payPerCall,
+            "CallSlashed"
+          );
 
           const receiptSet = new Set(receiptLogs.map((l) => l.args.callId));
           const slashedSet = new Set(slashedLogs.map((l) => l.args.callId));
