@@ -5088,6 +5088,54 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // before this session.
       async function loadMyCalls() {
         try {
+          // Fast path: load caller calls from Goldsky first
+          if (CONFIG.subgraphUrl) {
+            try {
+              const res = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({
+                  query: `{ calls(first:100, orderBy: startedAt, orderDirection: desc, where:{caller: "${state.address.toLowerCase()}"}) {
+                    id
+                    callId
+                    providerId
+                    caller
+                    amount
+                    startedAt
+                    deadline
+                    status
+                  }}`
+                })
+              });
+
+              const data = await res.json();
+              const calls = data.data?.calls || [];
+
+              for (const c of calls) {
+                const callId = c.callId || c.id;
+
+                if (!state.myCalls.has(callId)) {
+                  state.myCalls.set(callId, {
+                    callId,
+                    providerId: c.providerId,
+                    caller: c.caller,
+                    amount: BigInt(c.amount || 0),
+                    deadline: Number(c.deadline || 0),
+                    startedAt: Number(c.startedAt || 0),
+                    totalSec: 120,
+                    status: Number(c.status || 1)
+                  });
+                }
+              }
+
+              console.log("[GOLDSKY CALLS]", calls.length);
+            } catch(e) {
+              console.warn("[Goldsky calls failed]", e.message);
+            }
+          }
+
+          // RPC fallback
+
           const myFilter = state.payPerCall.filters.CallStarted(null, null, state.address);
           // Run log queries sequentially to avoid RPC rate limits
           const startedLogs = await safeQuery(
