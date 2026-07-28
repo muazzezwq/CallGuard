@@ -4926,7 +4926,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           if (!state.address || !state.payPerCall) return;
           try {
             const latest = await state.provider.getBlockNumber();
-            if (latest > state.lastSyncBlock + 5) {
+            if (latest > state.lastSyncBlock) {
               state.lastSyncBlock = latest;
               await Promise.all([
                 refreshNetworkStats(),
@@ -4935,7 +4935,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               await refreshLeaderboard(); // needs allProviders populated
             }
           } catch {}
-        }, 15_000);
+        }, 5_000);
       }
 
       async function ensureArcNetwork() {
