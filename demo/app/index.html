@@ -5285,6 +5285,21 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       async function refreshHero() {
         try {
+          if (CONFIG.subgraphUrl) {
+            const res = await fetch(CONFIG.subgraphUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: `{ providers(first:1000){ id } }`
+              })
+            });
+
+            const data = await res.json();
+            const count = data.data?.providers?.length || 0;
+            $("heroProviders").textContent = count.toString();
+            return;
+          }
+
           const next = Number(await state.registry.nextProviderId());
           $("heroProviders").textContent = (next - 1).toString();
         } catch {}
@@ -8159,7 +8174,7 @@ console.log("call opened:", tx.hash);`;
               }
             } catch {}
           };
-          setInterval(pollLanding, 30_000);
+          setInterval(pollLanding, 5_000);
 
         } catch (e) {
           console.warn("boot stats failed:", e);
