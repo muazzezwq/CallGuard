@@ -5293,16 +5293,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // -------- All providers (public list) --------
       async function refreshAllProviders() {
         try {
-          const next = Number(await state.registry.nextProviderId());
-          const total = next - 1;
-          if (total === 0) {
-            $("allProvidersBox").innerHTML = `
-              <div class="empty-state">no providers registered yet — be the first!</div>
-            `;
-            return;
-          }
+          let total = 0;
 
-          // Try Goldsky subgraph first, fallback to RPC
+          // Goldsky subgraph is the source of truth
           let subgraphLoaded = false;
           if (CONFIG.subgraphUrl) {
             try {
@@ -5311,17 +5304,28 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query: `{
                   providers(first: 1000, orderBy: id, orderDirection: asc) {
-                    id owner signer stake
+                    id
+                    owner
+                    signer
+                    stake
+                    pricePerCall
+                    active
+                    completedCalls
+                    slashedCalls
                   }
                 }` })
               });
               const gdata = await gql.json();
+              console.log("[GOLDSKY DEBUG]", JSON.stringify(gdata.data?.providers?.slice(0,3)));
+
               if (gdata.data && gdata.data.providers && gdata.data.providers.length > 0) {
                 state.allProviders = gdata.data.providers.map(p => {
                   const completed = Number(p.completedCalls ?? 0);
                   const slashed = Number(p.slashedCalls ?? 0);
                   const total = completed + slashed;
-                  const reputation = total > 0 ? Math.round((completed + 2) * 100 / (total + 3)) : 66;
+                  const reputation = total > 0
+  ? Math.max(0, Math.min(100, Math.round(((completed * 2) / (completed + slashed + 2)) * 100)))
+  : 50;
                   return {
                     id: Number(p.id),
                     owner: p.owner,
@@ -5337,15 +5341,24 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                     slashedCalls: slashed,
                   };
                 });
+                console.log("[MAP RESULT]", state.allProviders.length);
                 subgraphLoaded = true;
+                console.log("[AFTER MAP CHECK]", state.allProviders.length);
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
+                console.log("[REP DEBUG]", state.allProviders.slice(0,5).map(p => ({
+                  id: p.id,
+                  completed: p.completedCalls,
+                  slashed: p.slashedCalls,
+                  reputation: p.reputation
+                })));
               }
             } catch (e) {
               console.warn("[subgraph] Failed, falling back to RPC:", e.message);
             }
           }
 
-          if (!subgraphLoaded) {
+          if (false && !subgraphLoaded && total > 0) {
+          console.log("[RPC FALLBACK] loading providers from chain");
           // Fetch all providers and their reputation scores in parallel
           const ids = [];
           for (let i = 1; i <= total; i++) ids.push(i);
@@ -5388,22 +5401,43 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // Providers and total calls come from contract state (cumulative, all-time).
           // Receipts/slashes still use event scan ("recent activity" only) since the
           // contract doesn't expose counters for those (would cost storage gas per tx).
-          const [nextId, totalCallsBN, receiptLogs, slashedLogs] = await Promise.all([
-            state.registry.nextProviderId().catch(() => 1n),
-            state.payPerCall.nonce().catch(() => 0n),
-            safeQuery(state.payPerCall, "ReceiptSubmitted"),
-            safeQuery(state.payPerCall, "CallSlashed"),
-          ]);
+          const res = await fetch(CONFIG.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `{ 
+                providers(first:1000) {
+                  completedCalls
+                  slashedCalls
+                }
+                calls(first:1000) {
+                  id
+                }
+              }`
+            })
+          });
 
-          const providersCount = Math.max(0, Number(nextId) - 1);
-          const totalCalls = Number(totalCallsBN);
+          const json = await res.json();
+
+          const providers = json.data?.providers || [];
+          const calls = json.data?.calls || [];
+
+          const totalCompleted = providers.reduce(
+            (sum, p) => sum + Number(p.completedCalls || 0),
+            0
+          );
+
+          const totalSlashed = providers.reduce(
+            (sum, p) => sum + Number(p.slashedCalls || 0),
+            0
+          );
 
           state.networkStats = {
-            providers: providersCount,
-            calls: totalCalls,                  // cumulative from contract
-            receipts: receiptLogs.length,        // recent only
-            slashed: slashedLogs.length,         // recent only
-            slashedAmount: slashedLogs.reduce((acc, l) => acc + (l.args?.slashed ?? 0n), 0n),
+            providers: providers.length,
+            calls: calls.length,
+            receipts: totalCompleted,
+            slashed: totalSlashed,
+            slashedAmount: 0n,
           };
 
           const d = state.usdcDecimals;
@@ -7384,17 +7418,28 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: `{
-              providers(first: 1000) { id }
-              calls: calls(first: 100, orderBy: createdAt, orderDirection: desc) { id providerId amount createdAt }
-              completed: receiptSubmitteds(first: 1000) { id }
-              slashed: callSlasheds(first: 1000) { id }
+              providers(first: 1000) {
+                id
+                completedCalls
+                slashedCalls
+                stake
+                pricePerCall
+                active
+              }
+              calls: calls(first: 1000, orderBy: createdAt, orderDirection: desc) { 
+                id 
+                providerId 
+                amount 
+                createdAt
+                status
+              }
             }` })
           });
           const data = await res.json();
           const providers = data.data?.providers || [];
           const calls = data.data?.calls || [];
-          const completed = data.data?.completed || [];
-          const slashed = data.data?.slashed || [];
+          const completed = calls.filter(c => c.status === "COMPLETED");
+          const slashed = calls.filter(c => c.status === "SLASHED");
 
           const active = providers.filter(p => p.active).length;
           const totalCompleted = providers.reduce((a,p) => a + Number(p.completedCalls||0), 0);
