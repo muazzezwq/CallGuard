@@ -5055,10 +5055,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           await refreshProvider();
           await new Promise(r => setTimeout(r, 1000));
 
-          await refreshHero();
+          await refreshAllProviders();
           await new Promise(r => setTimeout(r, 1000));
 
-          await refreshAllProviders();
+          await refreshHero();
           await new Promise(r => setTimeout(r, 1000));
 
           await refreshNetworkStats();
@@ -5296,8 +5296,12 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
             const data = await res.json();
             const count = data.data?.providers?.length || 0;
-            $("heroProviders").textContent = count.toString();
-            return;
+
+            if (count > 0) {
+              $("heroProviders").textContent = count.toString();
+              console.log("[HERO] Goldsky providers:", count);
+              return;
+            }
           }
 
           const next = Number(await state.registry.nextProviderId());
@@ -7961,9 +7965,9 @@ console.log("call opened:", tx.hash);`;
           // --- Phase 1: immediate data (provider count + total calls + USDC decimals) ---
           // These are single-call reads, return in ~200ms.
           // Update hero stats ASAP so the page doesn't feel like it's loading.
-          const [decResult, nextProviderIdRaw, nonceRaw, latestHex] = await Promise.all([
+          const [decResult, nonceRaw, latestHex] = await Promise.all([
             rpcCall("eth_call", [{ to: CONFIG.usdc, data: SEL_DECIMALS }, "latest"]).catch(() => null),
-            rpcCall("eth_call", [{ to: CONFIG.registry, data: SEL_NEXT_PROVIDER_ID }, "latest"]).catch(() => null),
+            
             rpcCall("eth_call", [{ to: CONFIG.payPerCall, data: SEL_NONCE }, "latest"]).catch(() => null),
             rpcCall("eth_blockNumber").catch(() => null),
           ]);
@@ -7973,17 +7977,40 @@ console.log("call opened:", tx.hash);`;
           }
           const safeDecimals = state.usdcDecimals || 6;
 
-          let nextProviderIdVal = 1n;
-          if (nextProviderIdRaw && nextProviderIdRaw !== "0x") {
-            nextProviderIdVal = BigInt(nextProviderIdRaw);
-          }
-          // Show provider count IMMEDIATELY — no event scan needed
-          $("heroProviders").textContent = (Number(nextProviderIdVal) - 1).toString();
+          // Provider count comes from Goldsky
+          // Show hero stats from Goldsky first (fast, no RPC dependency)
+          if (CONFIG.subgraphUrl) {
+            try {
+              const stats = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  query: `{
+                    providers(first:1000) { id }
+                    calls(first:1000) { id }
+                  }`
+                })
+              });
 
-          // Total cumulative calls — read from contract nonce (always accurate, all-time)
-          if (nonceRaw && nonceRaw !== "0x") {
-            const totalCalls = Number(BigInt(nonceRaw));
-            $("heroCalls").textContent = totalCalls.toString();
+              const data = await stats.json();
+
+              if (data.data) {
+                $("heroProviders").textContent =
+                  String(data.data.providers?.length || 0);
+
+                $("heroCalls").textContent =
+                  String(data.data.calls?.length || 0);
+              }
+            } catch (e) {
+              console.warn("[Goldsky hero stats failed]", e.message);
+              $("heroProviders").textContent =
+                0 .toString();
+
+              if (nonceRaw && nonceRaw !== "0x") {
+                $("heroCalls").textContent =
+                  Number(BigInt(nonceRaw)).toString();
+              }
+            }
           }
 
           if (!latestHex) return;
@@ -8174,7 +8201,7 @@ console.log("call opened:", tx.hash);`;
               }
             } catch {}
           };
-          setInterval(pollLanding, 5_000);
+          setInterval(pollLanding, 10_000);
 
         } catch (e) {
           console.warn("boot stats failed:", e);
