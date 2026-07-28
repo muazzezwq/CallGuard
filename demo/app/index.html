@@ -4608,7 +4608,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: "https://callguard-eu.onrender.com",
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.2.0/gn",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.3.0/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
@@ -5929,7 +5929,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   provider(id: "${providerId}") {
                     completedCalls slashedCalls pricePerCall stake
                   }
-                  recentCalls: callStarteds(first: 10, where: {providerId: "${providerId}"}, orderBy: timestamp, orderDirection: desc) {
+                  recentCalls: calls(first: 10, where: {providerId: "${providerId}"}, orderBy: createdAt, orderDirection: desc) {
                     id amount timestamp
                   }
                 }` })
@@ -5982,7 +5982,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   provider(id: "${providerId}") {
                     completedCalls slashedCalls pricePerCall stake
                   }
-                  recentCalls: callStarteds(first: 10, where: {providerId: "${providerId}"}, orderBy: timestamp, orderDirection: desc) {
+                  recentCalls: calls(first: 10, where: {providerId: "${providerId}"}, orderBy: createdAt, orderDirection: desc) {
                     id amount timestamp
                   }
                 }` })
@@ -7385,7 +7385,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: `{
               providers(first: 1000) { id }
-              calls: callStarteds(first: 100, orderBy: timestamp, orderDirection: desc) { id providerId amount timestamp }
+              calls: calls(first: 100, orderBy: createdAt, orderDirection: desc) { id providerId amount createdAt }
               completed: receiptSubmitteds(first: 1000) { id }
               slashed: callSlasheds(first: 1000) { id }
             }` })
@@ -7457,7 +7457,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           const oracle = new ethers.Contract(
             CONFIG.bandOracle,
             ["function getReferenceData(string base, string quote) view returns (uint256 rate, uint256 lastUpdatedBase, uint256 lastUpdatedQuote)"],
-            state.provider || new ethers.JsonRpcProvider("https://rpc.testnet.arc.network")
+            state.provider || (state.provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl, {
+  staticNetwork: true
+}))
           );
           const [rate] = await oracle.getReferenceData("USDC", "USD");
           _usdcUsdRate = parseFloat(ethers.formatUnits(rate, 18));
@@ -7787,7 +7789,7 @@ console.log("call opened:", tx.hash);`;
       // structured-cloned in some browsers.
       let _rpcId = 1;
       async function rpcCall(method, params = []) {
-        for (let attempt = 0; attempt < 5; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt++) {
           try {
             const res = await fetch(CONFIG.rpcUrl, {
               method: "POST",
@@ -7799,6 +7801,12 @@ console.log("call opened:", tx.hash);`;
                 params
               }),
             });
+
+            if (res.status === 429) {
+              console.warn("[RPC] HTTP 429 rate limited");
+              await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
+              continue;
+            }
 
             const json = await res.json();
 
@@ -8214,7 +8222,9 @@ console.log("call opened:", tx.hash);`;
           const sourceChain = CCTP_CONFIG.chains[sourceChainKey];
           const sourceDomain = CCTP_CONFIG.domains[sourceChainKey];
           const sourceUsdcAddr = CCTP_CONFIG.usdc[sourceChainKey];
-          const arcProvider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
+          const arcProvider = state.provider || (state.provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl, {
+  staticNetwork: true
+}));
           const registryReadOnly = new ethers.Contract(CONFIG.registry, REGISTRY_ABI, arcProvider);
           const p = await registryReadOnly.getProvider(providerId);
           if (!p.active) { toast({ kind: "err", title: "Provider is inactive" }); return; }
