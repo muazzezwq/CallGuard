@@ -4762,7 +4762,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
        * last LOG_SCAN_BLOCKS in chunks of CHUNK_SIZE, merging the results.
        * If any chunk still fails we halve the chunk for retry — up to 3 levels.
        */
-      const LOG_SCAN_BLOCKS = 10_000; // total window to scan (~2-3 days at 2s block time on Arc)
+      const LOG_SCAN_BLOCKS = 2_000; // total window to scan (~2-3 days at 2s block time on Arc)
       const CHUNK_SIZE = 500;          // Arc RPC rate-limit friendly window
       const MIN_CHUNK = 250;           // smallest we'll shrink to on retry
 
