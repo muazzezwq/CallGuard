@@ -4845,6 +4845,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         setLoading(true);
         try {
           state.provider = new ethers.BrowserProvider(window.ethereum);
+          state.provider.polling = false; // Disable auto-polling to avoid rate limits
 
           // Force the MetaMask approval prompt on every connect, even if the
           // site was connected before. wallet_requestPermissions re-opens the
