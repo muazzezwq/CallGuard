@@ -5051,7 +5051,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // First wave: sequential RPC reads to avoid Arc rate limits
           await refreshBalance();
           fetchUsdcUsdRate();
-          fetchUsdcUsdRate();
           await new Promise(r => setTimeout(r, 1000));
 
           await refreshProvider();
@@ -6785,6 +6784,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           return true;
         };
 
+/*
         state.payPerCall.on("CallStarted", async (callId, providerId, caller, amount, requestHash, deadline, ev) => {
           if (!firstTime(ev)) return;
           clearEmpty();
@@ -6885,6 +6885,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           bumpUnseen();
         });
       }
+*/
 
       function addFeed({ tag, tagText, body, txHash }) {
         const row = document.createElement("div");
