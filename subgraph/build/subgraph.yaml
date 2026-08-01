@@ -6,7 +6,7 @@ dataSources:
     name: ServiceRegistry
     network: arc-testnet
     source:
-      address: "0xdcAa0a5f99822D81dcbAD8A4501cD5Cfd725CD53"
+      address: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF"
       abi: ServiceRegistry
       startBlock: 43046517
     mapping:
@@ -41,7 +41,7 @@ dataSources:
     name: PayPerCall
     network: arc-testnet
     source:
-      address: "0x486d751532e362768FE590B95874B118b2dB691b"
+      address: "0x10387347678d9f7106d5625be0bd6c915158b130"
       abi: PayPerCall
       startBlock: 43046517
     mapping:
