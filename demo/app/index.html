@@ -5685,24 +5685,19 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
               const gRes = await fetch(CONFIG.subgraphUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: `{ callStarteds(first:500, orderBy:timestamp, orderDirection:desc) { timestamp } callSlasheds(first:100, orderBy:timestamp, orderDirection:desc) { timestamp } }` })
+                body: JSON.stringify({ query: `{ calls(first:500, orderBy:createdAt, orderDirection:desc) { createdAt status } }` })
               });
               const gJson = await gRes.json();
-              if (gJson.data?.callStarteds?.length > 0) {
+              if (gJson.data?.calls?.length > 0) {
                 const now0 = Math.floor(Date.now() / 1000);
                 const cutoff0 = now0 - 86400;
                 const buckets0 = Array.from({ length: 24 }, () => ({ calls: 0, slashes: 0 }));
-                for (const c of gJson.data.callStarteds) {
-                  const t = Number(c.timestamp);
+                for (const c of gJson.data.calls) {
+                  const t = Number(c.createdAt);
                   if (t < cutoff0) continue;
                   const idx = Math.min(23, Math.floor((t - cutoff0) / 3600));
-                  buckets0[idx].calls++;
-                }
-                for (const c of (gJson.data.callSlasheds || [])) {
-                  const t = Number(c.timestamp);
-                  if (t < cutoff0) continue;
-                  const idx = Math.min(23, Math.floor((t - cutoff0) / 3600));
-                  buckets0[idx].slashes++;
+                  if (c.status === "SLASHED") buckets0[idx].slashes++;
+                  else buckets0[idx].calls++;
                 }
                 const max0 = Math.max(1, ...buckets0.map(b => b.calls));
                 const bars0 = buckets0.map((b, i) => {
