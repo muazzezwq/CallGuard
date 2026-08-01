@@ -5392,9 +5392,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   const completed = Number(p.completedCalls ?? 0);
                   const slashed = Number(p.slashedCalls ?? 0);
                   const total = completed + slashed;
-                  const reputation = total > 0
-  ? Math.max(0, Math.min(100, Math.round(((completed * 2) / (completed + slashed + 2)) * 100)))
-  : 50;
+                  const reputation = Math.round((completed + 2) / (total + 3) * 100);
                   return {
                     id: Number(p.id),
                     owner: p.owner,
