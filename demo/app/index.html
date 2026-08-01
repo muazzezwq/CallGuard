@@ -5681,7 +5681,46 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // -------- Activity chart (hourly buckets, last 24h) --------
       async function refreshActivityChart() {
         try {
-          // Reuse event log queries we already have from refreshNetworkStats
+          // Use Goldsky subgraph instead of RPC scan
+          if (CONFIG.subgraphUrl) {
+            try {
+              const res = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  callStarteds(first:1000, orderBy:timestamp, orderDirection:desc) { id timestamp }
+                  callSlasheds(first:100, orderBy:timestamp, orderDirection:desc) { id timestamp }
+                }` })
+              });
+              const json = await res.json();
+              const startedLogs = (json.data?.callStarteds || []).map(c => ({ blockNumber: 0, args: { callId: c.id }, _timestamp: Number(c.timestamp) }));
+              const slashedLogs = (json.data?.callSlasheds || []).map(c => ({ blockNumber: 0, _timestamp: Number(c.timestamp) }));
+              if (startedLogs.length > 0) {
+                // Use timestamp from subgraph directly
+                const now2 = Math.floor(Date.now() / 1000);
+                const cutoff2 = now2 - 24 * 3600;
+                const buckets2 = Array.from({ length: 24 }, () => ({ calls: 0, slashes: 0 }));
+                for (const log of startedLogs) {
+                  const t = log._timestamp;
+                  if (t < cutoff2) continue;
+                  const idx = Math.min(23, Math.floor((t - cutoff2) / 3600));
+                  buckets2[idx].calls++;
+                }
+                for (const log of slashedLogs) {
+                  const t = log._timestamp;
+                  if (t < cutoff2) continue;
+                  const idx = Math.min(23, Math.floor((t - cutoff2) / 3600));
+                  buckets2[idx].slashes++;
+                }
+                const maxCount2 = Math.max(1, ...buckets2.map(b => b.calls));
+                const bars2 = buckets2.map((b, i) => { const h = (b.calls/maxCount2)*100; const hourAgo = 23-i; const tip = b.calls===0 ? hourAgo+"h ago · no calls" : hourAgo+"h ago · "+b.calls+" calls"; return "<div class="chart-bar" style="height:"+Math.max(h,2)+"%" data-tip=""+tip+""></div>"; }).join("");
+                $("activityChartBox").innerHTML = "<div class="activity-chart">"+bars2+"</div>";
+                return;
+              }
+            } catch(e) { console.warn("[chart] subgraph failed:", e.message); }
+          }
+
+          // Fallback to RPC
           const [startedLogs, slashedLogs] = await Promise.all([
             safeQuery(state.payPerCall, "CallStarted"),
             safeQuery(state.payPerCall, "CallSlashed"),
