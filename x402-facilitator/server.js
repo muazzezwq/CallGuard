@@ -18,6 +18,12 @@ import { ethers } from "ethers";
 const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.network");
 const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
 
+const SERVICE_REGISTRY = "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF";
+const registryAbi = [
+  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active))"
+];
+const registryContract = new ethers.Contract(SERVICE_REGISTRY, registryAbi, _rpcProvider);
+
 // Post-quantum SLH-DSA-SHA2-128s (Arc 0x1800..0004 precompile compatible)
 const _pqSeed = new Uint8Array(48);
 const _seedBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes("callguard-pq-seed-v1")));
@@ -141,7 +147,7 @@ function buildNanoRequirements(priceUsdc = "0.001") {
     network: ARC_TESTNET_NETWORK,
     asset: ARC_TESTNET_USDC,
     amount,
-    payTo: env.SELLER_ADDRESS,
+    payTo: payTo,
     maxTimeoutSeconds: 604800,
     extra: {
       name: "GatewayWalletBatched",
@@ -256,7 +262,7 @@ app.post("/nano/call", async (req, res) => {
       network: "eip155:5042002",
       asset: "0x3600000000000000000000000000000000000000",
       amount: "1000",
-      payTo: env.SELLER_ADDRESS,
+      payTo: payTo,
       maxTimeoutSeconds: 604800,
       extra: {
         name: "GatewayWalletBatched",
@@ -276,7 +282,7 @@ app.post("/nano/call", async (req, res) => {
         network: "eip155:5042002",
         asset: "0x3600000000000000000000000000000000000000",
         amount: "1000",
-        payTo: env.SELLER_ADDRESS,
+        payTo: payTo,
         maxTimeoutSeconds: 604800,
         extra: {
           name: "GatewayWalletBatched",
