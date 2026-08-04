@@ -4825,21 +4825,11 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             return cached.value;
           }
 
-          await new Promise(r => setTimeout(r, 2000));
+          // Arc RPC eth_getLogs rate limit protection
+          // Goldsky index is source of truth. Skip direct RPC log scanning.
+          console.log(`[safeQuery] skipped RPC scan for ${eventName}, using indexed data`);
 
-          const provider = contract.runner.provider;
-          const latest = await provider.getBlockNumber();
-
-          const from = Math.max(0, latest - LOG_SCAN_BLOCKS);
-          const filter = extraFilter ?? eventName;
-
-          const result = await scanRange(
-            contract,
-            filter,
-            from,
-            latest,
-            CHUNK_SIZE
-          );
+          const result = [];
 
           safeQueryCache.set(key, {
             value: result,
