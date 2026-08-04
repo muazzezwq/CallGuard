@@ -4478,8 +4478,8 @@ npm install</pre>
 <span class="cm">// npm install ethers   (ethers v6)</span>
 <span class="kw">import</span> { ethers } <span class="kw">from</span> <span class="str">"ethers"</span>;
 
-<span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">JsonRpcProvider</span>(<span class="str">"https://rpc.testnet.arc.network"</span>);
-<span class="kw">const</span> wallet   = <span class="kw">new</span> ethers.<span class="fn">Wallet</span>(PRIVATE_KEY, provider);
+<span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">BrowserProvider</span>(window.ethereum);
+<span class="kw">const</span> wallet   = <span class="kw">await</span> provider.<span class="fn">getSigner</span>();
 <span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x3600000000000000000000000000000000000000"</span>, [<span class="str">"function approve(address,uint256) returns(bool)"</span>], wallet);
 <span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
 
@@ -6491,6 +6491,21 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             detail: `<span class="spinner"></span> Waiting for MetaMask signature`,
             timeout: 60000,
           });
+          console.log("CALL DEBUG", {
+            providerId: providerId.toString(),
+            requestHash,
+            contract: CONFIG.payPerCall,
+            account: state.address
+          });
+
+          const balance = await state.usdc.balanceOf(state.address);
+          const allowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
+
+          console.log("USDC DEBUG", {
+            balance: ethers.formatUnits(balance, 6),
+            allowance: ethers.formatUnits(allowance, 6)
+          });
+
           let tx;
           try {
             tx = await state.payPerCall.callService(providerId, requestHash);
@@ -7741,8 +7756,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // SDK copy
       $("btnCopySdk").addEventListener("click", () => {
         const code = `import { ethers } from "ethers";
-const provider = new ethers.JsonRpcProvider("https://rpc.testnet.arc.network");
-const wallet   = new ethers.Wallet(PRIVATE_KEY, provider);
+const provider = new ethers.BrowserProvider(window.ethereum);
+const wallet   = await provider.getSigner();
 const usdc     = new ethers.Contract("0x3600000000000000000000000000000000000000", ["function approve(address,uint256) returns(bool)"], wallet);
 const arc      = new ethers.Contract("0x10387347678d9f7106D5625bE0BD6C915158B130", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
 await usdc.approve(arc.target, ethers.parseUnits("1", 6));
