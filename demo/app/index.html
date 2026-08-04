@@ -4762,33 +4762,55 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
        * last LOG_SCAN_BLOCKS in chunks of CHUNK_SIZE, merging the results.
        * If any chunk still fails we halve the chunk for retry — up to 3 levels.
        */
-      const LOG_SCAN_BLOCKS = 100_000; // total window to scan (~2-3 days at 2s block time on Arc)
-      const CHUNK_SIZE = 100;          // Arc RPC rate-limit friendly window
-      const MIN_CHUNK = 250;           // smallest we'll shrink to on retry
+      const LOG_SCAN_BLOCKS = 5000;
+      const CHUNK_SIZE = 500;
+      const MIN_CHUNK = 50;
 
-      async function scanRange(contract, filter, from, to, size) {
+      async function scanRange(contract, filter, from, to, size = CHUNK_SIZE) {
         const results = [];
         let cursor = from;
+
         while (cursor <= to) {
           const end = Math.min(cursor + size - 1, to);
+
           try {
             const logs = await contract.queryFilter(filter, cursor, end);
-            for (const l of logs) results.push(l);
+
+            for (const l of logs) {
+              results.push(l);
+            }
+
             cursor = end + 1;
+
+            // RPC rate limit koruması
+            await new Promise(r => setTimeout(r, 300));
+
           } catch (e) {
-            // If the RPC choked on this chunk, shrink and retry.
+
             if (size > MIN_CHUNK) {
               const half = Math.floor(size / 2);
-              const inner = await scanRange(contract, filter, cursor, end, half);
-              for (const l of inner) results.push(l);
+              const inner = await scanRange(
+                contract,
+                filter,
+                cursor,
+                end,
+                half
+              );
+
+              results.push(...inner);
               cursor = end + 1;
+
             } else {
-              // Give up on this chunk; skip it and continue.
-              console.warn(`scanRange skipped [${cursor}..${end}]:`, e.message);
+              console.warn(
+                `[scanRange skipped ${cursor}-${end}]`,
+                e.message
+              );
+
               cursor = end + 1;
             }
           }
         }
+
         return results;
       }
 
