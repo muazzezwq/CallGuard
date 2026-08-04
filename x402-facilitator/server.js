@@ -267,7 +267,7 @@ app.post("/nano/call", async (req, res) => {
     const fullPayload = {
       ...paymentPayload,
       resource: {
-        url: "https://callguard-eu.onrender.com/nano/service",
+        url: "http://localhost:4021/nano/service",
         description: "CallGuard nanopayment — 0.001 USDC per call",
         mimeType: "application/json",
       },
@@ -286,13 +286,23 @@ app.post("/nano/call", async (req, res) => {
       },
     };
     const paymentHeader = Buffer.from(JSON.stringify(fullPayload)).toString("base64");
-    const paidRes = await fetch("https://callguard-eu.onrender.com/nano/service", {
+    const paidRes = await fetch("http://localhost:4021/nano/service", {
       method: "POST",
       headers: { "Payment-Signature": paymentHeader },
     });
-    const paidData = await paidRes.json();
+    const paidText = await paidRes.text();
+    console.log("[nano/call raw status]", paidRes.status);
+    console.log("[nano/call raw response]", paidText);
+
+    const paidData = JSON.parse(paidText);
     console.log("[nano/call] Response:", JSON.stringify(paidData));
-    if (!paidRes.ok) throw new Error(paidData.error || "HTTP " + paidRes.status);
+    if (!paidRes.ok) {
+      throw new Error(JSON.stringify({
+        error: paidData.error,
+        reason: paidData.reason,
+        full: paidData.full
+      }));
+    }
     const result = { formattedAmount: "0.001" };
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
