@@ -6831,105 +6831,17 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           return true;
         };
 
-        state.payPerCall.on("CallStarted", async (callId, providerId, caller, amount, requestHash, deadline, ev) => {
-          if (!firstTime(ev)) return;
-          clearEmpty();
-          addFeed({
-            tag: "started",
-            tagText: "call opened",
-            txHash: ev.log?.transactionHash,
-            body: `<span class="hi">${short(caller, 4)}</span> → provider #${providerId} · ${ethers.formatUnits(amount, state.usdcDecimals)} USDC escrowed`,
-          });
-          if (caller.toLowerCase() === state.address?.toLowerCase()) {
-            const deadlineNum = Number(deadline);
-            // Fetch on-chain startedAt for accurate progress bar
-            let startedAt = deadlineNum - 60; // fallback: guess 60s window
-            let totalSec = 60;
-            try {
-              const onChain = await state.payPerCall.getCall(callId);
-              startedAt = Number(onChain.startedAt);
-              totalSec = deadlineNum - startedAt;
-            } catch {}
-            state.myCalls.set(callId, {
-              callId,
-              providerId,
-              caller,
-              amount,
-              deadline: deadlineNum,
-              startedAt,
-              totalSec,
-              status: 1,
-            });
-            // Auto-fill receipt + timeout fields with the latest call id
-            $("rcpCallId").value = callId;
-            $("toCallId").value = callId;
-            renderCalls();
-          }
-          state.provider?.getBlockNumber().then(b => { state.lastSyncBlock = b; }).catch(() => {});
-          refreshAll();
-          bumpUnseen();
-        });
+        // RPC event filters disabled.
+      // Goldsky is used as the event indexer.
+      console.log("[EVENTS] Goldsky mode active - RPC filters disabled");
 
-        state.payPerCall.on("ReceiptSubmitted", (callId, responseHash, ev) => {
-          if (!firstTime(ev)) return;
-          clearEmpty();
-          addFeed({
-            tag: "submitted",
-            tagText: "receipt",
-            txHash: ev.log?.transactionHash,
-            body: `receipt signed for call <span class="hi">${short(callId, 6)}</span>`,
-          });
-          if (state.myCalls.has(callId)) {
-            state.myCalls.get(callId).status = 2;
-            renderCalls();
-          }
-          refreshAll();
-          bumpUnseen();
-        });
-
-        state.payPerCall.on("CallSlashed", (callId, refunded, slashed, ev) => {
-          if (!firstTime(ev)) return;
-          clearEmpty();
-          addFeed({
-            tag: "slashed",
-            tagText: "slashed",
-            txHash: ev.log?.transactionHash,
-            body: `call <span class="hi">${short(callId, 6)}</span> timed out · refund ${ethers.formatUnits(refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(slashed, state.usdcDecimals)} USDC`,
-          });
-          if (state.myCalls.has(callId)) {
-            state.myCalls.get(callId).status = 3;
-            renderCalls();
-          }
-          refreshAll();
-          bumpUnseen();
-        });
-
-        state.registry.on("ProviderRegistered", (providerId, owner, _signer, stake, _price, _mrt, _bps, endpoint, ev) => {
-          if (!firstTime(ev)) return;
-          clearEmpty();
-          addFeed({
-            tag: "registered",
-            tagText: "provider",
-            txHash: ev.log?.transactionHash,
-            body: `#${providerId} registered by <span class="hi">${short(owner, 4)}</span> · ${ethers.formatUnits(stake, state.usdcDecimals)} USDC staked`,
-          });
-          refreshAll();
-          bumpUnseen();
-        });
-
-        state.registry.on("ReputationUpdated", (providerId, completed, slashed, ev) => {
-          if (!firstTime(ev)) return;
-          clearEmpty();
-          const total = Number(completed) + Number(slashed);
-          addFeed({
-            tag: "registered",
-            tagText: "rep",
-            txHash: ev.log?.transactionHash,
-            body: `#${providerId} reputation updated · <span class="hi">${completed}</span> completed, <span class="hi">${slashed}</span> slashed`,
-          });
-          refreshAll();
-          bumpUnseen();
-        });
+      setInterval(async () => {
+        try {
+          await refreshAllProviders();
+        } catch (e) {
+          console.warn("[Goldsky refresh]", e.message);
+        }
+      }, 30000);
       }
 
       function addFeed({ tag, tagText, body, txHash }) {
