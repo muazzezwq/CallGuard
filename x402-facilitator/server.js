@@ -251,6 +251,15 @@ app.get("/", (_, res) => res.json({
 // ---- /nano/call — facilitator GatewayClient ile odemeyı yapar ----
 app.post("/nano/call", async (req, res) => {
   try {
+    const { providerId } = req.body;
+
+    let providerOwner = env.SELLER_ADDRESS;
+
+    if (providerId) {
+      const provider = await registryContract.getProvider(providerId);
+      providerOwner = provider.owner;
+      console.log("[nano] provider", providerId, "owner:", providerOwner);
+    }
     const { GatewayClient } = await import("@circle-fin/x402-batching/client");
     const gateway = new GatewayClient({
       chain: "arcTestnet",
