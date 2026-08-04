@@ -5410,6 +5410,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   };
                 });
                 console.log("[MAP RESULT]", state.allProviders.length);
+
+                // Cache Goldsky providers for callService fallback
+                window.__providers = state.allProviders;
+
                 subgraphLoaded = true;
                 console.log("[AFTER MAP CHECK]", state.allProviders.length);
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
@@ -6450,7 +6454,21 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
         try {
           // Fetch SLA terms to know the price
-          const p = await state.registry.getProvider(providerId);
+          let p;
+          try {
+            p = await state.registry.getProvider(providerId);
+          } catch (e) {
+            console.warn("[REGISTRY FALLBACK] getProvider failed, using cached provider data", e);
+
+            const fallbackProviders = window.__providers || [];
+            p = fallbackProviders.find(
+              x => BigInt(x.id) === providerId
+            );
+
+            if (!p) {
+              throw e;
+            }
+          }
           if (!p.active) {
             toast({ kind: "err", title: "Provider is inactive" });
             throw new Error("provider inactive"); // use throw so finally runs
