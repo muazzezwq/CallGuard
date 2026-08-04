@@ -33,7 +33,7 @@ function pqSign(data) {
 }
 
 const PRICE = "1000000";
-const PAY_TO = env.SELLER_ADDRESS || fac.facilitatorAddress;
+const PAY_TO = fac.facilitatorAddress;
 
 function paymentRequirements() {
   return {
