@@ -1,77 +1,64 @@
 # CallGuard
 
-> 🏗️ Built by an [Arc Architects](https://www.arc.network) program member.
+> Built by an Arc Architects program member.
 
-**On-chain SLA marketplace for autonomous services, on Arc.**
+**Programmable service settlement infrastructure for autonomous services, built on Arc.**
 
-Providers stake USDC to commit to Service-Level Agreements. Callers pay per request. Stake is automatically slashed when SLAs are violated — no arbiter, no oracle, no off-chain dispute system.
+CallGuard explores how programmable USDC payments and onchain verification can create more reliable interactions between autonomous services.
 
-CallGuard is designed for the machine-to-machine economy: AI agents buying API calls, autonomous services transacting with each other, and any pay-per-call use case where trust must be encoded in the contract rather than assumed.
+The system enables service providers and users to interact through transparent payment flows, verifiable execution, and reputation-based coordination.
 
-Built on [Arc Testnet](https://www.arc.network), Circle's stablecoin-native L1 where USDC is the native gas token.
+Designed for autonomous service interactions, CallGuard focuses on AI agents, APIs, and digital services that require programmable payment and verification flows.
 
----
-
-## Why this exists
-
-**AI agents are becoming economic actors.** A planning agent calls a retrieval agent. A research agent calls a summarization agent. A trading agent calls a price-feed agent. Each of these interactions is a paid API call between two autonomous programs that have never met and have no reason to trust each other.
-
-Today those calls happen through three bad options:
-
-1. **Trust the provider.** Agent pays up-front, hopes for a response. Breaks at scale.
-2. **Trust a custodian.** Both parties deposit into an escrow run by a third party. Adds latency, adds a new point of failure, adds a fee.
-3. **Trust a DAO.** Disputes go to human arbitration. Too slow for machine-speed transactions.
-
-CallGuard is the fourth option: **trust the code**.
-
-A provider stakes USDC, commits to a max response time and slash percentage, and signs a cryptographic receipt when they fulfill a call. If they miss the deadline, anyone can trigger the slash. The contract transfers the escrow back to the caller plus a penalty from the provider's stake. All of this takes seconds on Arc.
-
-The result is a permissionless marketplace where AI agents — or any program holding USDC — can buy API calls with automatic SLA enforcement and an on-chain reputation score.
+Built on [Arc Testnet](https://www.arc.network), Circle's stablecoin-native L1 designed for programmable settlement and internet-native financial applications.
 
 ---
 
-## Built for AI agents
+## Why this matters
 
-Here is a concrete scenario. Agent A is a research assistant running on a user's laptop. It needs to summarize a 200-page PDF. It doesn't have a summarization model locally, but there are dozens of providers offering this as a paid API.
+Autonomous services are becoming an increasingly important part of digital infrastructure.
 
-**Without CallGuard:**
+As AI agents and software systems interact with more external services, they need reliable ways to exchange value, verify execution, and coordinate without unnecessary friction.
 
-```
-Agent A → "send me your best summarization provider"
-        → tries provider X, sends document, waits
-        → provider X keeps the money, ignores the request
-        → Agent A has no recourse except blacklisting
-```
+Examples include:
 
-**With CallGuard:**
+- AI agents accessing specialized APIs
+- Applications using external computation services
+- Autonomous workflows interacting with digital providers
 
-```
-Agent A → reads on-chain registry, picks provider by reputation + price
-        → calls provider #42, escrows 0.10 USDC
-        → provider has 30 seconds to return a signed receipt
-        → if receipt arrives → provider gets paid, reputation up
-        → if not → Agent A gets refund + 20% of provider's stake
-```
+These interactions require programmable payment flows and transparent settlement logic.
 
-Every step is a contract call. The agent needs no human supervision. The provider needs no billing system. The reputation score is a live `uint8` view on-chain, readable by any other contract — including a router that automatically picks the best provider for the next call.
+CallGuard explores how programmable USDC payments, service commitments, and verifiable execution flows can support reliable machine-to-machine interactions.
 
-### Why Arc specifically
+Instead of relying only on manual processes or external coordination layers, CallGuard uses programmable infrastructure where payment and service execution rules can be defined and verified through smart contracts.
 
-AI-agent transactions have properties that traditional chains handle poorly:
+## Built for autonomous services
 
-- **They're frequent.** A single agent may make thousands of calls per hour. High fees kill the use case.
-- **They're small.** A typical API call is worth 0.001–1 USDC. On Ethereum mainnet, the gas alone would exceed the call price.
-- **They're USDC-denominated.** Agents carry USDC as working capital, not ETH. A chain that charges gas in a volatile token adds a second asset to manage.
+As autonomous services become more connected, they need reliable ways to exchange value, verify execution, and coordinate through transparent infrastructure.
 
-Arc solves all three: [USDC is native gas](https://docs.arc.network/arc/concepts/welcome-to-arc), finality is sub-second, and fees are priced predictably in the same token the protocol charges in. A full call-and-receipt round trip costs ~0.017 USDC — less than a credit-card merchant fee.
+CallGuard provides programmable infrastructure for machine-to-machine interactions where services can define commitments, settle payments, and build reputation through transparent onchain rules.
+
+Built on Arc, CallGuard combines stablecoin-native settlement with programmable financial infrastructure for autonomous service workflows.
+
+### Why Arc
+
+Autonomous service interactions introduce new infrastructure requirements:
+
+- **High frequency.** Autonomous systems may execute many service interactions during their operation.
+- **Small-value payments.** API calls and digital services often require efficient settlement for low-value transactions.
+- **Stablecoin-based workflows.** Agents increasingly operate with USDC as a settlement asset and benefit from predictable transaction flows.
+
+Arc provides infrastructure designed around these requirements: USDC-native gas, predictable settlement costs, and fast transaction finality. These properties allow builders to create applications around programmable stablecoin payments and service settlement.
 
 ---
 
 ## Live on Arc Testnet
 
-**Try the live demo:** [**callguard.vercel.app**](https://callguard.vercel.app) — open in any modern browser with MetaMask.
+**Live demo:** [**callguard.vercel.app**](https://callguard.vercel.app)
 
-### v5 contracts (current — July 2026 redeployment)
+The demo shows programmable USDC payments, service verification, and settlement flows running on Arc Testnet.
+
+### Current deployment (July 2026)
 
 | Contract | Address |
 | --- | --- |
@@ -98,7 +85,7 @@ Deployed July 2026. Frontend points here.
 
 Deployed May 2026. Frontend points here.
 
-### v1 contracts (legacy — EIP-191 signing)
+### Previous deployment (legacy EIP-191 signing)
 
 | Contract | Address |
 | --- | --- |
@@ -125,13 +112,13 @@ The demo at [callguard.vercel.app](https://callguard.vercel.app) is a single-fil
 - **Register with NFT (v2)** — mint an ERC-8004 AgentIdentity NFT and register in one transaction via `RegisterWithNFT` helper
 - **Multi-chain payments** — pay from Ethereum Sepolia, Base Sepolia, or Polygon Amoy via CCTP V2; Arc enforces the SLA
 - **x402 live facilitator** — real HTTP 402 payment flow backed by a deployed facilitator; client signs an EIP-3009 authorization, the facilitator verifies it and settles `transferWithAuthorization` on Arc
-- **Circle Gateway Nanopayments** — gasless 0.001 USDC micro-payments via Circle Gateway; no MetaMask prompt, no gas, no tx confirmation; facilitator handles payment server-side with batch on-chain settlement
+- **Circle Gateway Nanopayments** — gasless 0.001 USDC micro-payments via Circle Gateway; no MetaMask prompt, no gas, no tx confirmation; facilitator handles payment server-side with batch onchain settlement
 - **ERC-8183 Jobs wizard** — 5-step job lifecycle (Create → Set Budget → Fund → Submit → Complete) with role badges (Client / Provider / Evaluator), progress rail, and auto-advance between steps
 - **My Jobs list** — one-click list of all jobs where you are client or provider, pulled from Goldsky subgraph
 - **Provider health check** — live 🟢/🔴 endpoint ping for each active provider via facilitator proxy
-- **Multi-provider routing** — top-3 display sorted by reputation then price, with auto-call best provider
+- **Multi-provider routing** — top-3 display sorted by reputation then price, with auto-call appropriate provider
 - **Multicall3From** — batch calls to multiple providers in a single tx using Arc's native batching contract; preserves msg.sender via CallFrom precompile
-- **Arc Memo extension** — every x402 call attaches a human-readable on-chain memo via Arc's native Memo contract; visible on ArcScan for reconciliation
+- **Arc Memo extension** — every x402 call attaches a human-readable onchain memo via Arc's native Memo contract; visible on ArcScan for reconciliation
 - **Post-quantum receipt signing** — every receipt carries a SLH-DSA-SHA2-128s signature (NIST FIPS 205), compatible with Arc's PQ precompile (0x1800..0004)
 - **Band Protocol oracle** — live USDC/USD price feed from Band oracle on Arc; provider prices shown in USD alongside USDC
 - **MCP server** — 6 tools for AI agents: list providers, leaderboard, health check, nanopay, network stats, Arc docs search
@@ -167,7 +154,7 @@ CallGuard → answers "what does the agent get for that payment?" (stake-backed 
 2. Provider → 402 Payment Required + payment details
 3. Agent → calls X402Middleware.executePayment() with USDC
 4. Middleware → calls PayPerCall.callService() atomically
-5. SLA clock starts on-chain
+5. SLA clock starts onchain
 6. Provider delivers off-chain → submits EIP-712 receipt → gets paid
 ```
 
@@ -335,7 +322,7 @@ bytes32 callId = payPerCall.callService(1, requestHash);
 bytes32 responseHash = keccak256(responseBytes);
 bytes memory signature = providerSigner.signTypedData(domain, types, value);
 
-// 4. Provider submits the receipt on-chain — escrow released, reputation bumped
+// 4. Provider submits the receipt onchain — escrow released, reputation bumped
 payPerCall.submitReceipt(callId, responseHash, signature);
 
 // 5. Or, if 30 seconds passed without a receipt:
@@ -384,7 +371,7 @@ callguard/
 ## Known limitations
 
 - **CCTP attestation takes 1-4 minutes.** Sepolia requires ~12-19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
-- **x402 full integration live.** The "Call via x402" button performs a real HTTP 402 handshake, the user signs an EIP-3009 `TransferWithAuthorization` off-chain (no gas), and the facilitator (`x402-facilitator/`, hosted at callguard.onrender.com) calls `callServiceWithAuthorization()` on-chain — USDC goes straight into SLA escrow in a single transaction. The payer signs; the facilitator pays gas.
+- **x402 full integration live.** The "Call via x402" button performs a real HTTP 402 handshake, the user signs an EIP-3009 `TransferWithAuthorization` off-chain (no gas), and the facilitator (`x402-facilitator/`, hosted at callguard.onrender.com) calls `callServiceWithAuthorization()` onchain — USDC goes straight into SLA escrow in a single transaction. The payer signs; the facilitator pays gas.
 - **Event scan window is 100,000 blocks.** Very old calls won't appear in the "Calls" stat. A proper indexer is planned.
 
 ---
@@ -403,7 +390,7 @@ callguard/
 - **Provider endpoint health check** — live ping via facilitator proxy
 - **Multi-provider routing** — top-3 ranked by reputation + price, auto-call
 - **Multicall3From** — Arc native batch calls in single tx, msg.sender preserved via CallFrom precompile
-- **Arc Memo extension** — on-chain human-readable memo on every x402 call via Arc's native Memo contract
+- **Arc Memo extension** — onchain human-readable memo on every x402 call via Arc's native Memo contract
 - **Post-quantum receipt signing** — SLH-DSA-SHA2-128s (NIST FIPS 205), Arc PQ precompile compatible
 - **Band Protocol oracle** — live USDC/USD price feed; provider prices shown in USD
 - **MCP server** — 6 tools for AI agents; local stdio + remote SSE; arc_docs_search tool
@@ -412,8 +399,8 @@ callguard/
 - **EURC + USYC balances** — header shows all Arc ecosystem token balances
 - **Arc Privacy Sector (APS) panel** — vision for private SLA calls
 - **Activity feed** — SLA calls, nanopayments, and job events all in one stream
-- **Bayesian on-chain reputation** — `(completed + 2) / (total + 3) × 100`
-- **Auto-router** — picks best provider by reputation + price filters
+- **Bayesian onchain reputation** — `(completed + 2) / (total + 3) × 100`
+- **Auto-router** — picks appropriate provider by reputation + price filters
 - **Session budget cap** — spending limit for agent flows
 - **66/66 Foundry tests**
 
