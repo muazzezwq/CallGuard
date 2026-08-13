@@ -1,8 +1,8 @@
 {
   "cleanUrls": true,
+  "trailingSlash": true,
   "rewrites": [
     { "source": "/app", "destination": "/app/index.html" },
-    { "source": "/app/", "destination": "/app/index.html" },
-    { "source": "/app/(.*)", "destination": "/app/$1" }
+    { "source": "/app/", "destination": "/app/index.html" }
   ]
 }
