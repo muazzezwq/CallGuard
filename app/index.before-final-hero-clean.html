@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CallGuard — Service guarantees, enforced on-chain</title>
-<meta name="description" content="CallGuard is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC, callers pay per request, and the contract enforces the guarantee — no arbiter, no middleman." />
+<title>CallGuard — Programmable service settlement for autonomous systems on Arc</title>
+<meta name="description" content="CallGuard is a programmable service settlement layer built on Arc. Providers define service commitments, callers pay with USDC, and onchain logic manages verification, settlement, and reputation." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -764,11 +764,11 @@
         <span class="dot"></span>
         Live on Arc Testnet · Circle's stablecoin-native L1
       </div>
-      <h1>Service guarantees,<br/><em>enforced on-chain.</em></h1>
+      <h1>Programmable service reliability,<br/><em>settled on Arc.</em></h1>
       <p class="hero-sub">
         CallGuard is a marketplace where providers put USDC on the line for every request.
         Miss the deadline — lose the stake. No court, no dispute process, no waiting.
-        No arbiter. No middleman.
+        Programmable settlement without centralized coordination.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="./app/">
@@ -813,15 +813,15 @@
         <span class="eyebrow">The problem</span>
         <h2>Paying for a service is easy. Trusting it to deliver is not.</h2>
         <p>
-          When a developer — or an autonomous AI agent — pays an API provider, there is
-          no guarantee the provider will respond, respond on time, or respond at all.
+          When an application or autonomous service pays an API provider, there is
+          no reliable way to verify whether the provider will respond or meet expected service conditions.
         </p>
         <p>
           The usual answer is a contract, a support ticket, a dispute process — slow,
           human, and unenforceable across borders or between machines.
         </p>
         <p>
-          <strong>Machine-to-machine commerce needs a guarantee that is economic and
+          <strong>Machine-to-machine commerce needs programmable service commitments that can be verified and settled through code.
           automatic</strong> — one that settles in seconds, with no one to call.
         </p>
       </div>
@@ -841,7 +841,7 @@
         </div>
         <div class="pc-row">
           <span class="pc-x">✕</span>
-          <p>An AI agent has no way to assess or enforce a provider's reliability on its own.</p>
+          <p>Autonomous services need transparent ways to evaluate provider reliability.</p>
         </div>
       </div>
     </div>
@@ -853,9 +853,9 @@
   <div class="wrap">
     <div class="section-head center reveal">
       <span class="eyebrow">How it works</span>
-      <h2>One agreement. Five steps. Zero arbiters.</h2>
-      <p>Every call follows the same on-chain lifecycle. The smart contract holds the
-        money and enforces the terms — from the moment a call opens to the moment it settles.</p>
+      <h2>One agreement. Five steps. Programmable execution.</h2>
+      <p>Every call follows the same onchain lifecycle. The smart contract holds the
+        payments and service conditions — from initiation through settlement.</p>
     </div>
 
     <div class="lifecycle reveal">
@@ -895,7 +895,7 @@
         <div class="step-num">STEP 03</div>
         <h4>Provider responds</h4>
         <p>The provider delivers off-chain, then submits an EIP-712 signed receipt
-          on-chain — readable, structured, verifiable.</p>
+          onchain — readable, structured, verifiable.</p>
       </div>
       <div class="step">
         <div class="step-arrow"></div>
@@ -919,7 +919,7 @@
         </div>
         <div class="step-num">STEP 05</div>
         <h4>Reputation updates</h4>
-        <p>Every honored call and every slash is counted on-chain, feeding a public
+        <p>Every honored call and every slash is counted onchain, feeding a public
           reputation score any system can read.</p>
       </div>
     </div>
@@ -928,7 +928,7 @@
       <div class="outcome good">
         <span class="outcome-tag">✓ Happy path · SLA honored</span>
         <h3>The provider delivers on time</h3>
-        <p>The common case. The provider responds within the committed window and gets paid instantly.</p>
+        <p>The common case. The provider responds within the committed window and receives settlement after verification.</p>
         <div class="outcome-flow">
           <div class="of-row"><span class="of-mark">1</span><span>Provider submits a valid EIP-712 receipt before the deadline.</span></div>
           <div class="of-row"><span class="of-mark">2</span><span>The contract verifies the signature and releases the escrowed USDC.</span></div>
@@ -959,7 +959,7 @@
         <p>
           An SLA is only as strong as its consequence. On CallGuard, a provider's
           commitment is backed by real collateral — and breaking it has an immediate,
-          on-chain cost.
+          onchain cost.
         </p>
         <p>
           When a provider stakes USDC, they expose a defined percentage of it. Miss the
@@ -971,7 +971,7 @@
           slash <span class="fc-em">=</span> stake <span class="fc-em">×</span> slashBps <span class="fc-em">/</span> 10000
         </div>
         <p style="font-size:15px;color:var(--slate-soft)">
-          The result: spam and negligence become unprofitable, while reliable providers
+          The result: spam and unreliable service behavior are reduced, while reliable providers are recognized through transparent reputation signals
           keep their full stake working for them.
         </p>
       </div>
@@ -1028,10 +1028,10 @@
         </div>
       </div>
       <div class="rep-copy reveal">
-        <span class="eyebrow">Reputation, on-chain</span>
+        <span class="eyebrow">Reputation, onchain</span>
         <h2>A track record that any contract can read.</h2>
         <p>
-          Every provider carries a reputation score derived entirely from their on-chain
+          Every provider carries a reputation score derived entirely from their onchain
           history of honored calls and slashes. It is not a private rating — it is public
           state, computed by the contract.
         </p>
@@ -1043,8 +1043,8 @@
           score <span class="fc-em">=</span> (good <span class="fc-em">+</span> 2) <span class="fc-em">/</span> (total <span class="fc-em">+</span> 3) <span class="fc-em">×</span> 100
         </div>
         <p style="font-size:15px;color:var(--slate-soft)">
-          Because it lives on-chain, an auto-router or an AI agent can read it directly and
-          pick a reliable provider with no off-chain lookup — trust becomes programmable.
+          Because it lives onchain, an auto-router or autonomous service can read it directly and
+          pick a reliable provider with no off-chain lookup — service reliability becomes programmable.
         </p>
       </div>
     </div>
@@ -1056,8 +1056,8 @@
   <div class="wrap">
     <div class="section-head center reveal">
       <span class="eyebrow">Platform · v5</span>
-      <h2>Everything settles into the same SLA core.</h2>
-      <p>Multiple ways to pay — from on-chain x402 to gasless nanopayments — a verifiable identity layer, ERC-8183 job settlement, and machine-readable trust. All enforced by the same contracts.</p>
+      <h2>Multiple service flows, one programmable settlement layer.</h2>
+      <p>Multiple ways to pay — from onchain x402 to gasless nanopayments — a verifiable identity layer, ERC-8183 job settlement, and machine-readable trust. All enforced by the same contracts.</p>
     </div>
     <div class="feat-grid reveal">
       <div class="feat">
@@ -1068,17 +1068,17 @@
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.8L15.5 9 9 16.2 2.5 9 9 1.8z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
         <h4>Automatic slashing</h4>
-        <p>Missed deadlines trigger an immediate, contract-computed penalty. No arbiter, no delay.</p>
+        <p>Missed deadlines trigger contract-defined outcomes based on the agreed service terms.</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5l3.5 3.5L15 5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h4>EIP-712 typed receipts</h4>
-        <p>Providers sign structured, human-readable receipts — verifiable on-chain, no opaque hex.</p>
+        <p>Providers sign structured, human-readable receipts — verifiable onchain, no opaque hex.</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.9 3.9L15 6.5l-3 2.9.7 4.1L9 11.6 5.3 13.5 6 9.4 3 6.5l4.1-.6L9 2z" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
         <h4>Bayesian reputation</h4>
-        <p>A public 0–100 score, computed on-chain, that any contract or agent can read directly.</p>
+        <p>A public 0–100 score, computed onchain, that any contract or agent can read directly.</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="#fff" stroke-width="1.5"/><path d="M3.5 15c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#fff" stroke-width="1.5"/></svg></div>
@@ -1093,12 +1093,12 @@
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="5.5" cy="9" r="3" stroke="#fff" stroke-width="1.5"/><circle cx="12.5" cy="9" r="3" stroke="#fff" stroke-width="1.5"/><path d="M8.5 9h1" stroke="#fff" stroke-width="1.5"/></svg></div>
         <h4>CCTP multi-chain</h4>
-        <p>Pay from Ethereum, Base or Polygon — Circle bridges the USDC and Arc enforces the SLA.</p>
+        <p>Pay from Ethereum, Base or Polygon — Circle bridges the USDC and Arc provides the settlement environment for SLA execution..</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="3" width="5" height="5" rx="1" stroke="#fff" stroke-width="1.4"/><rect x="10" y="3" width="5" height="5" rx="1" stroke="#fff" stroke-width="1.4"/><rect x="3" y="10" width="5" height="5" rx="1" stroke="#fff" stroke-width="1.4"/><rect x="10" y="10" width="5" height="5" rx="1" stroke="#fff" stroke-width="1.4"/></svg></div>
-        <h4>Built for AI agents</h4>
-        <p>Predictable fees and sub-second finality make autonomous, per-call commerce practical.</p>
+        <h4>Infrastructure for autonomous services</h4>
+        <p>Predictable fees and fast finality support reliable per-call service interactions.</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5l3.5 3.5L15 5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -1113,7 +1113,7 @@
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#fff" stroke-width="1.4"/><path d="M6 8h6M6 11h4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div>
         <h4>ERC-8183 Jobs</h4>
-        <p>Trustless job settlement — client locks USDC, provider delivers, evaluator approves, contract pays. No arbiter needed.</p>
+        <p>Programmable job settlement — client locks USDC, provider delivers, evaluator approves, and contracts manage the settlement flow.</p>
       </div>
       <div class="feat">
         <div class="feat-ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="#fff" stroke-width="1.4"/><path d="M6 9l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -1133,7 +1133,7 @@
         <h2>Integrate in a few lines of code.</h2>
         <p>
           CallGuard is plain EVM. If you know ethers.js, you already know how to call it.
-          Approve USDC, open a call, and you are on-chain — the contract handles escrow,
+          Approve USDC, open a call, and you are onchain — the contract handles escrow,
           receipts and enforcement.
         </p>
         <p style="font-size:15px">
@@ -1184,14 +1184,14 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
   <div class="wrap">
     <div class="section-head center reveal">
       <span class="eyebrow">Why Arc</span>
-      <h2>Per-call payments only work if settlement is instant.</h2>
+      <h2>Per-call payments require reliable settlement infrastructure.</h2>
       <p>CallGuard is built on Arc Testnet — Circle's stablecoin-native L1. Three properties
         make it the natural home for machine-to-machine payments.</p>
     </div>
     <div class="why-grid reveal">
       <div class="why-card">
         <div class="wc-num">USDC</div>
-        <h4>One token for everything</h4>
+        <h4>One settlement currency for services</h4>
         <p>USDC is the native gas token and the settlement currency. No second asset to
           hold, bridge or manage — for users or for agents.</p>
       </div>
@@ -1225,7 +1225,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
           Receipts use EIP-712 typed-data signing. When a provider signs, their wallet
           displays the structured receipt fields — <code>callId</code> and
           <code>responseHash</code> — in a readable format rather than an opaque hex blob.
-          The contract verifies that signature on-chain before releasing escrow.
+          The contract verifies that signature onchain before releasing escrow.
         </div></div>
       </div>
       <div class="faq-item">
@@ -1249,7 +1249,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
         <div class="faq-a"><div class="faq-a-inner">
           With a Bayesian formula: <code>(good + 2) / (total + 3) × 100</code>. A new
           provider starts near 66 — neither trusted nor distrusted. Each honored call
-          raises the score; each slash lowers it. The value is stored on-chain and readable
+          raises the score; each slash lowers it. The value is stored onchain and readable
           by any contract.
         </div></div>
       </div>
@@ -1257,7 +1257,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
         <button class="faq-q">Can a provider withdraw their stake?<span class="faq-sign"></span></button>
         <div class="faq-a"><div class="faq-a-inner">
           A provider can unstake once they have no pending calls. A cooldown applies, so
-          stake cannot be pulled instantly to dodge an in-flight obligation.
+          stake cannot be removed while an active service obligation is being processed.
         </div></div>
       </div>
       <div class="faq-item">
@@ -1266,7 +1266,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
           x402 is an HTTP-native payment standard — an agent pays in response to an
           HTTP 402 challenge, and the call fires once payment clears. CCTP is Circle's
           Cross-Chain Transfer Protocol: it lets a caller pay from Ethereum, Base or
-          Polygon while Arc still enforces the SLA. Both settle into the same contracts.
+          Polygon while Arc provides the settlement environment for the SLA flow.
         </div></div>
       </div>
       <div class="faq-item">
@@ -1286,7 +1286,7 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
   <div class="final-grid-bg"></div>
   <div class="wrap">
     <div class="final-inner reveal">
-      <h2>See the full lifecycle <em>run on-chain.</em></h2>
+      <h2>See the full lifecycle <em>run onchain.</em></h2>
       <p>Register a provider, open a paid call, watch a slash fire — all with test USDC,
         live on Arc Testnet.</p>
       <a class="btn btn-light" href="./app/">
@@ -1310,8 +1310,8 @@ console.<span class="c-fn">log</span>(<span class="c-str">"call opened →"</spa
           </span>
           <span class="brand-name">CallGuard</span>
         </div>
-        <p>An on-chain SLA marketplace on Arc Testnet. Service guarantees, enforced by
-          smart contracts — no arbiter, no middleman.</p>
+        <p>Programmable service infrastructure built on Arc. Reliable settlement and verification for autonomous services.
+          smart contracts — without centralized coordination.</p>
       </div>
       <div class="footer-col">
         <h5>Product</h5>
