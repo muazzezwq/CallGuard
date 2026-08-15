@@ -98,7 +98,7 @@ Live since April 2026 with 9 active providers. Remains operational; new registra
 
 ## What's in the demo
 
-The demo at [callguard.vercel.app](https://callguard.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol:
+The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp (ethers.js v6, no build step) that exposes every part of the protocol:
 
 ### On the landing page (no wallet required)
 
