@@ -1,9 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/app",
-      "destination": "/app/app/index.html"
-    }
-  ]
+  "cleanUrls": true
 }
