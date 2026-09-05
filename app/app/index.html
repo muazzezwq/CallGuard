@@ -4608,7 +4608,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: window.location.origin,
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.1/gn",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
@@ -4694,8 +4694,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         // UX
         loading: false,       // global loading state — disables buttons
         // Polling fallback (in case event listener misses an event)
-        lastSyncBlock: 0,
-        pollInterval: null,
       };
 
       // -------- Loading state helpers --------
@@ -4757,93 +4755,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       const txLink = (hash) => `${CONFIG.explorerBase}/tx/${hash}`;
       const addrLink = (a) => `${CONFIG.explorerBase}/address/${a}`;
 
-      /**
-       * Arc RPC returns HTTP 413 for wide eth_getLogs windows. We scan the
-       * last LOG_SCAN_BLOCKS in chunks of CHUNK_SIZE, merging the results.
-       * If any chunk still fails we halve the chunk for retry — up to 3 levels.
-       */
-      const LOG_SCAN_BLOCKS = 5_000; // reduce RPC pressure
-      const CHUNK_SIZE = 500;          // fewer RPC calls
-      const MIN_CHUNK = 50;            // retry floor
-
-      async function scanRange(contract, filter, from, to, size) {
-        const results = [];
-        let cursor = from;
-
-        while (cursor <= to) {
-          const end = Math.min(cursor + size - 1, to);
-
-          try {
-            const logs = await contract.queryFilter(filter, cursor, end);
-
-            for (const l of logs) {
-              results.push(l);
-            }
-
-            cursor = end + 1;
-
-          } catch (e) {
-            if (size > MIN_CHUNK) {
-              const half = Math.floor(size / 2);
-              const inner = await scanRange(contract, filter, cursor, end, half);
-
-              for (const l of inner) {
-                results.push(l);
-              }
-
-              cursor = end + 1;
-
-            } else {
-              console.warn(`scanRange skipped [${cursor}..${end}]:`, e.message);
-              cursor = end + 1;
-            }
-          }
-        }
-
-        return results;
-      }
-
-      const safeQueryCache = new Map();
-
-      async function safeQuery(contract, eventName, extraFilter) {
-        try {
-          const key = eventName + JSON.stringify(extraFilter ?? {});
-          const cached = safeQueryCache.get(key);
-
-          if (cached && Date.now() - cached.time < 60000) {
-            return cached.value;
-          }
-
-          await new Promise(r => setTimeout(r, 2000));
-
-          const provider = contract.runner.provider;
-          const latest = await provider.getBlockNumber();
-
-          const from = Math.max(0, latest - LOG_SCAN_BLOCKS);
-          const filter = extraFilter ?? eventName;
-
-          const result = await scanRange(
-            contract,
-            filter,
-            from,
-            latest,
-            CHUNK_SIZE
-          );
-
-          safeQueryCache.set(key, {
-            value: result,
-            time: Date.now()
-          });
-
-          return result;
-
-        } catch (e) {
-          console.warn(`safeQuery(${eventName}) failed:`, e.message);
-          return [];
-        }
-      }
-
-      // ================================================================
       // WALLET CONNECTION
       // Single entry point — cleans up old listeners, validates chain,
       // initialises contracts, syncs on-chain state.
@@ -4903,7 +4814,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // Real-time event listeners
           stopEventListeners(); // clean up any stale listeners first
           subscribeToEvents();
-          startPollingFallback();
 
           // Reload on wallet change or network switch
           window.ethereum.removeAllListeners?.("accountsChanged");
@@ -4928,26 +4838,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           if (state.payPerCall) state.payPerCall.removeAllListeners();
           if (state.registry)   state.registry.removeAllListeners();
         } catch {}
-        if (state.pollInterval) { clearInterval(state.pollInterval); state.pollInterval = null; }
-      }
-
-      // -------- Polling fallback (fires every 15s, syncs if chain advanced) --------
-      function startPollingFallback() {
-        if (state.pollInterval) clearInterval(state.pollInterval);
-        state.pollInterval = setInterval(async () => {
-          if (!state.address || !state.payPerCall) return;
-          try {
-            const latest = await state.provider.getBlockNumber();
-            if (latest > state.lastSyncBlock) {
-              state.lastSyncBlock = latest;
-              await Promise.all([
-                refreshNetworkStats(),
-                refreshAllProviders(),
-              ]);
-              await refreshLeaderboard(); // needs allProviders populated
-            }
-          } catch {}
-        }, 5_000);
       }
 
       async function ensureArcNetwork() {
@@ -5058,11 +4948,41 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // INITIAL DATA SYNC — fetches all on-chain state after connect
       // or after any contract event fires.
       // ----------------------------------------------------------------
+      let refreshRunning = false;
+      let refreshScheduled = false;
+      let refreshTimer = null;
+
+      function scheduleRefresh() {
+        refreshScheduled = true;
+        if (refreshTimer) return;
+
+        refreshTimer = setTimeout(async () => {
+          refreshTimer = null;
+          if (!refreshScheduled) return;
+
+          // Keep the request pending if a refresh is already running.
+          if (refreshRunning) {
+            scheduleRefresh();
+            return;
+          }
+
+          refreshScheduled = false;
+          await refreshAll();
+
+          // If another event arrived during refreshAll(), run one follow-up refresh.
+          if (refreshScheduled) {
+            scheduleRefresh();
+          }
+        }, 500);
+      }
+
       async function refreshAll() {
+        if (refreshRunning) return;
+        refreshRunning = true;
+
         try {
           // First wave: sequential RPC reads to avoid Arc rate limits
           await refreshBalance();
-          fetchUsdcUsdRate();
           fetchUsdcUsdRate();
           await new Promise(r => setTimeout(r, 1000));
 
@@ -5085,15 +5005,12 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
           // Third wave: provider dashboard (needs state.providerInfo)
           await refreshProviderDashboard();
-
-          // Update sync block
-          try {
-            const b = await state.provider?.getBlockNumber();
-            if (b) state.lastSyncBlock = b;
-          } catch {}
-
-        } finally {
+} finally {
           refreshRunning = false;
+
+          if (refreshScheduled && !refreshTimer) {
+            scheduleRefresh();
+          }
         }
       }
 
@@ -5102,6 +5019,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // before this session.
       async function loadMyCalls() {
         try {
+          let goldskyLoaded = false;
+
           // Fast path: load caller calls from Goldsky first
           if (CONFIG.subgraphUrl) {
             try {
@@ -5109,99 +5028,76 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({
-                  query: `{ calls(first:100, orderBy: startedAt, orderDirection: desc, where:{caller: "${state.address.toLowerCase()}"}) {
+                  query: `{ calls(first:100, orderBy: createdAt, orderDirection: desc, where:{caller: "${state.address.toLowerCase()}"}) {
                     id
-                    callId
                     providerId
                     caller
                     amount
-                    startedAt
-                    deadline
+                    createdAt
+                    completedAt
                     status
                   }}`
                 })
               });
 
               const data = await res.json();
-              const calls = data.data?.calls || [];
 
-              for (const c of calls) {
-                const callId = c.callId || c.id;
+              // Only trust Goldsky as the fast path when the GraphQL
+              // request actually returned a valid calls array.
+              if (Array.isArray(data.data?.calls)) {
+                const calls = data.data.calls;
 
-                if (!state.myCalls.has(callId)) {
-                  state.myCalls.set(callId, {
-                    callId,
-                    providerId: c.providerId,
-                    caller: c.caller,
-                    amount: BigInt(c.amount || 0),
-                    deadline: Number(c.deadline || 0),
-                    startedAt: Number(c.startedAt || 0),
-                    totalSec: 120,
-                    status: Number(c.status || 1)
-                  });
+                for (const c of calls) {
+                  const callId = c.id;
+
+                  if (!state.myCalls.has(callId)) {
+                    const status = c.status === "STARTED" ? 1 : c.status === "COMPLETED" ? 2 : 3;
+                    let deadline = 0;
+                    let startedAt = Number(c.createdAt || 0);
+
+                    // Goldsky does not expose deadline. For active calls only,
+                    // fetch the full call once by ID instead of scanning logs.
+                    if (status === 1 && state.payPerCall) {
+                      try {
+                        const onChain = await state.payPerCall.getCall(callId);
+                        deadline = Number(onChain.deadline || 0);
+                        startedAt = Number(onChain.startedAt || startedAt);
+                      } catch (e) {
+                        console.warn("[Goldsky call] getCall failed", callId, e?.message || e);
+                      }
+                    }
+
+                    state.myCalls.set(callId, {
+                      callId,
+                      providerId: c.providerId,
+                      caller: c.caller,
+                      amount: BigInt(c.amount || 0),
+                      deadline,
+                      startedAt,
+                      totalSec: 120,
+                      status
+                    });
+                  }
                 }
+
+                console.log("[GOLDSKY CALLS]", calls.length);
+                goldskyLoaded = true;
+              } else {
+                console.warn("[Goldsky calls] invalid response");
               }
 
-              console.log("[GOLDSKY CALLS]", calls.length);
             } catch(e) {
               console.warn("[Goldsky calls failed]", e.message);
             }
           }
 
-          // RPC fallback
-
-          const myFilter = state.payPerCall.filters.CallStarted(null, null, state.address);
-          // Run log queries sequentially to avoid RPC rate limits
-          const startedLogs = await safeQuery(
-            state.payPerCall,
-            "CallStarted",
-            myFilter
-          );
-
-          await new Promise(r => setTimeout(r, 1000));
-
-          const receiptLogs = await safeQuery(
-            state.payPerCall,
-            "ReceiptSubmitted"
-          );
-
-          await new Promise(r => setTimeout(r, 1000));
-
-          const slashedLogs = await safeQuery(
-            state.payPerCall,
-            "CallSlashed"
-          );
-
-          const receiptSet = new Set(receiptLogs.map((l) => l.args.callId));
-          const slashedSet = new Set(slashedLogs.map((l) => l.args.callId));
-
-          for (const l of startedLogs) {
-            const callId = l.args.callId;
-            if (state.myCalls.has(callId)) continue;
-            const deadlineNum = Number(l.args.deadline);
-            let status = 1;
-            if (receiptSet.has(callId)) status = 2;
-            else if (slashedSet.has(callId)) status = 3;
-
-            // Skip sequential getCall() RPC calls — use deadline arithmetic instead
-            const totalSec = 60;
-            const startedAt = deadlineNum - totalSec;
-
-            state.myCalls.set(callId, {
-              callId,
-              providerId: l.args.providerId,
-              caller: l.args.caller,
-              amount: l.args.amount,
-              deadline: deadlineNum,
-              startedAt,
-              totalSec,
-              status,
-            });
-          }
-
+          // Goldsky is the source of truth for historical calls; no RPC log fallback.
           if (state.myCalls.size > 0) {
             renderCalls();
-            const pending = Array.from(state.myCalls.values()).filter(c => c.status === 1);
+
+            const pending = Array.from(state.myCalls.values())
+              .filter(c => c.status === 1);
+
             if (pending.length > 0) {
               const latest = pending[pending.length - 1];
               $("rcpCallId").value = latest.callId;
@@ -5213,7 +5109,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         }
       }
 
-      async function refreshBalance() {
+
+async function refreshBalance() {
         try {
           if (!state.usdc || !state.address) return;
           // Ensure decimals are fetched (fallback to 6 for Arc USDC)
@@ -5229,7 +5126,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // EURC balance
           try {
             const eurc = new ethers.Contract(CONFIG.eurc, ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"], state.provider);
-            const eurcDecimals = await eurc.decimals().catch(() => 6);
+            if (!state.eurcDecimals) {
+              state.eurcDecimals = await eurc.decimals().catch(() => 6);
+            }
+            const eurcDecimals = state.eurcDecimals;
             const eurcBal = await eurc.balanceOf(state.address);
             const eurcFormatted = ethers.formatUnits(eurcBal, eurcDecimals);
             const eurcEl = $("eurcBal");
@@ -5241,7 +5141,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           // USYC balance
           try {
             const usyc = new ethers.Contract(CONFIG.usyc, ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"], state.provider);
-            const usycDecimals = await usyc.decimals().catch(() => 6);
+            if (!state.usycDecimals) {
+              state.usycDecimals = await usyc.decimals().catch(() => 6);
+            }
+            const usycDecimals = state.usycDecimals;
             const usycBal = await usyc.balanceOf(state.address);
             const usycFormatted = ethers.formatUnits(usycBal, usycDecimals);
             const usycEl = $("usycBal");
@@ -5695,115 +5598,125 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // -------- Activity chart (hourly buckets, last 24h) --------
       async function refreshActivityChart() {
         try {
-          // Try Goldsky first
-          if (CONFIG.subgraphUrl) {
-            try {
-              const gRes = await fetch(CONFIG.subgraphUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: `{ calls(first:500, orderBy:createdAt, orderDirection:desc) { createdAt status } }` })
-              });
-              const gJson = await gRes.json();
-              if (gJson.data?.calls?.length > 0) {
-                const now0 = Math.floor(Date.now() / 1000);
-                const cutoff0 = now0 - 86400;
-                const buckets0 = Array.from({ length: 24 }, () => ({ calls: 0, slashes: 0 }));
-                for (const c of gJson.data.calls) {
-                  const t = Number(c.createdAt);
-                  if (t < cutoff0) continue;
-                  const idx = Math.min(23, Math.floor((t - cutoff0) / 3600));
-                  if (c.status === "SLASHED") buckets0[idx].slashes++;
-                  else buckets0[idx].calls++;
-                }
-                const max0 = Math.max(1, ...buckets0.map(b => b.calls));
-                const bars0 = buckets0.map((b, i) => {
-                  const h = (b.calls / max0) * 100;
-                  const tip = (23-i) + "h ago · " + b.calls + " calls";
-                  return '<div class="chart-bar" style="height:' + Math.max(h, 2) + '%" data-tip="' + tip + '"></div>';
-                }).join("");
-                $("activityChartBox").innerHTML = '<div class="activity-chart">' + bars0 + '</div>';
-                return;
-              }
-            } catch(ge) { console.warn("[chart] goldsky:", ge.message); }
-          }
-          // Fallback RPC
-          const [startedLogs, slashedLogs] = await Promise.all([
-            safeQuery(state.payPerCall, "CallStarted"),
-            safeQuery(state.payPerCall, "CallSlashed"),
-          ]);
+          if (!CONFIG.subgraphUrl) return;
 
-          // Get current block and estimate timestamps backwards.
-          // Arc testnet has ~2s block time; last 24h ~= 43200 blocks.
-          const provider = state.payPerCall.runner.provider;
-          const latestBlock = await provider.getBlockNumber();
-          const latestBlockInfo = await provider.getBlock(latestBlock);
-          const now = latestBlockInfo ? Number(latestBlockInfo.timestamp) : Math.floor(Date.now() / 1000);
-          const cutoff = now - 24 * 3600;
-          const BLOCK_TIME_SEC = 2;
-
-          // For each log, estimate its timestamp from (latestBlock - log.blockNumber) * blockTime
-          // This avoids N getBlock() calls which are expensive.
-          const ts = (log) => now - (latestBlock - log.blockNumber) * BLOCK_TIME_SEC;
-
-          // Bucket into 24 hourly slots
-          const buckets = Array.from({ length: 24 }, () => ({ calls: 0, slashes: 0 }));
-          for (const log of startedLogs) {
-            const t = ts(log);
-            if (t < cutoff) continue;
-            const idx = Math.min(23, Math.floor((t - cutoff) / 3600));
-            buckets[idx].calls++;
-          }
-          for (const log of slashedLogs) {
-            const t = ts(log);
-            if (t < cutoff) continue;
-            const idx = Math.min(23, Math.floor((t - cutoff) / 3600));
-            buckets[idx].slashes++;
-          }
-
-          const maxCount = Math.max(1, ...buckets.map((b) => b.calls));
-          const bars = buckets
-            .map((b, i) => {
-              const height = (b.calls / maxCount) * 100;
-              const slashPct = b.calls > 0 ? (b.slashes / b.calls) * 100 : 0;
-              const hourAgo = 23 - i;
-              const tip = b.calls === 0
-                ? `${hourAgo}h ago · no calls`
-                : `${hourAgo}h ago · ${b.calls} call${b.calls === 1 ? "" : "s"}${b.slashes ? ` · ${b.slashes} slashed` : ""}`;
-              const slashClass = b.slashes > 0 ? "has-slash" : "";
-              return `<div class="chart-bar ${slashClass}" style="height: ${Math.max(height, 2)}%; --slash-pct: ${slashPct}%" data-tip="${tip}"></div>`;
+          const gRes = await fetch(CONFIG.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `{ calls(first:500, orderBy:createdAt, orderDirection:desc) { createdAt status } }`
             })
-            .join("");
+          });
 
-          // Build slash rate trend line (% of calls slashed per hour)
-          const slashRates = buckets.map(b => b.calls > 0 ? (b.slashes / b.calls) * 100 : 0);
+          if (!gRes.ok) throw new Error(`Goldsky HTTP ${gRes.status}`);
+
+          const gJson = await gRes.json();
+          if (gJson?.errors?.length) {
+            throw new Error(gJson.errors.map(e => e.message).join("; "));
+          }
+
+          const calls = gJson.data?.calls || [];
+          if (!calls.length) return;
+
+          const now = Math.floor(Date.now() / 1000);
+          const cutoff = now - 86400;
+          const buckets = Array.from(
+            { length: 24 },
+            () => ({ calls: 0, slashes: 0 })
+          );
+
+          for (const c of calls) {
+            const t = Number(c.createdAt || 0);
+            if (!t || t < cutoff) continue;
+
+            const idx = Math.min(
+              23,
+              Math.max(0, Math.floor((t - cutoff) / 3600))
+            );
+
+            if (String(c.status || "").toUpperCase() === "SLASHED") {
+              buckets[idx].slashes++;
+            } else {
+              buckets[idx].calls++;
+            }
+          }
+
+          const totalCalls = buckets.reduce((sum, b) => sum + b.calls + b.slashes, 0);
+          const totalSlashes = buckets.reduce((sum, b) => sum + b.slashes, 0);
+
+          if (totalCalls === 0) return;
+
+          const maxCount = Math.max(
+            1,
+            ...buckets.map(b => b.calls + b.slashes)
+          );
+
+          const bars = buckets.map((b, i) => {
+            const count = b.calls + b.slashes;
+            const height = (count / maxCount) * 100;
+            const hourAgo = 23 - i;
+            const tip =
+              `${hourAgo}h ago · ${count} call${count === 1 ? "" : "s"}` +
+              (b.slashes ? ` · ${b.slashes} slashed` : "");
+
+            const slashClass = b.slashes > 0 ? " has-slash" : "";
+
+            return `<div class="chart-bar${slashClass}" ` +
+              `style="height:${Math.max(height, 2)}%;` +
+              `--slash-pct:${count ? (b.slashes / count) * 100 : 0}%" ` +
+              `data-tip="${tip}"></div>`;
+          }).join("");
+
+          const slashRates = buckets.map(b => {
+            const count = b.calls + b.slashes;
+            return count > 0 ? (b.slashes / count) * 100 : 0;
+          });
+
           const maxRate = Math.max(1, ...slashRates);
-          // SVG polyline points (w=100%, h=32px chart overlay)
-          const pts = slashRates.map((r, i) => {
+
+          const pts = slashRates.map((rate, i) => {
             const x = (i / 23) * 100;
-            const y = 32 - (r / maxRate) * 28;
+            const y = 32 - (rate / maxRate) * 28;
             return `${x.toFixed(1)},${y.toFixed(1)}`;
           }).join(" ");
 
-          const totalSlashPct = buckets.reduce((a,b) => a + b.calls, 0) > 0
-            ? ((buckets.reduce((a,b) => a + b.slashes, 0) / buckets.reduce((a,b) => a + b.calls, 0)) * 100).toFixed(1)
-            : "0.0";
+          const totalSlashPct =
+            totalCalls > 0
+              ? ((totalSlashes / totalCalls) * 100).toFixed(1)
+              : "0.0";
 
           $("activityChartBox").innerHTML = `
-            <div class="activity-chart" style="position:relative">${bars}
-              <svg viewBox="0 0 100 32" preserveAspectRatio="none"
-                style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0.7">
-                <polyline points="${pts}" fill="none" stroke="var(--danger)" stroke-width="0.8" stroke-dasharray="2,1"/>
+            <div class="activity-chart" style="position:relative">
+              ${bars}
+              <svg viewBox="0 0 100 32"
+                   preserveAspectRatio="none"
+                   style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0.7">
+                <polyline
+                  points="${pts}"
+                  fill="none"
+                  stroke="var(--danger)"
+                  stroke-width="0.8"
+                  stroke-dasharray="2,1"/>
               </svg>
             </div>
             <div class="chart-legend" style="justify-content:space-between">
-              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)">24h slash rate: <strong style="color:${parseFloat(totalSlashPct)>20?'var(--danger)':parseFloat(totalSlashPct)>5?'var(--warn)':'var(--accent)'}">${totalSlashPct}%</strong></span>
+              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)">
+                24h slash rate:
+                <strong style="color:${
+                  parseFloat(totalSlashPct) > 20
+                    ? "var(--danger)"
+                    : parseFloat(totalSlashPct) > 5
+                      ? "var(--warn)"
+                      : "var(--accent)"
+                }">${totalSlashPct}%</strong>
+              </span>
               <div style="display:flex;gap:16px">
                 <div class="chart-legend-item">
-                  <div class="chart-legend-swatch" style="background: var(--accent-dim)"></div>
+                  <div class="chart-legend-swatch" style="background:var(--accent-dim)"></div>
                   <span>calls</span>
                 </div>
                 <div class="chart-legend-item">
-                  <div class="chart-legend-swatch" style="background: var(--danger)"></div>
+                  <div class="chart-legend-swatch" style="background:var(--danger)"></div>
                   <span>slashes</span>
                 </div>
                 <div class="chart-legend-item">
@@ -5851,35 +5764,70 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             state.registry.slashedCalls(providerId),
           ]);
 
-          // Fetch all calls for this provider by filtering CallStarted events
-          const startedLogs = await safeQuery(
-            state.payPerCall,
-            "CallStarted",
-            state.payPerCall.filters.CallStarted(null, providerId),
-          );
-          const receiptLogs = await safeQuery(state.payPerCall, "ReceiptSubmitted");
-          const slashedLogs = await safeQuery(state.payPerCall, "CallSlashed");
+          // Load provider calls from Goldsky.
+          let calls = [];
+          if (CONFIG.subgraphUrl) {
+            try {
+              const q = `{
+                calls(
+                  first: 100
+                  orderBy: createdAt
+                  orderDirection: desc
+                  where: { providerId: "${providerId}" }
+                ) {
+                  id
+                  providerId
+                  caller
+                  amount
+                  status
+                  refunded
+                  slashed
+                  createdAt
+                  completedAt
+                }
+              }`;
 
-          const receiptSet = new Set(receiptLogs.map((l) => l.args.callId));
-          const slashedSet = new Set(slashedLogs.map((l) => l.args.callId));
+              const res = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: q })
+              });
 
-          const calls = startedLogs.map((l) => {
-            const cid = l.args.callId;
-            let status = "pending";
-            if (receiptSet.has(cid)) status = "completed";
-            else if (slashedSet.has(cid)) status = "slashed";
-            return {
-              callId: cid,
-              caller: l.args.caller,
-              amount: l.args.amount,
-              deadline: Number(l.args.deadline),
-              blockNumber: l.blockNumber,
-              status,
-              txHash: l.transactionHash,
-            };
-          });
+              if (!res.ok) throw new Error(`Goldsky HTTP ${res.status}`);
 
-          // Use on-chain values as source of truth — event log fallback for display only
+              const json = await res.json();
+              if (json?.errors?.length) {
+                throw new Error(json.errors.map(e => e.message).join("; "));
+              }
+
+              calls = (json?.data?.calls || []).map((c) => {
+                const status = String(c.status || "").toUpperCase();
+                const refunded = BigInt(c.refunded || "0");
+                const slashedAmount = BigInt(c.slashed || "0");
+
+                return {
+                  callId: c.id,
+                  caller: c.caller,
+                  amount: BigInt(c.amount || "0"),
+                  deadline: 0,
+                  blockNumber: 0,
+                  status:
+                    status === "COMPLETED" || Number(c.completedAt || 0) > 0
+                      ? "completed"
+                      : status === "SLASHED" || slashedAmount > 0n || refunded > 0n
+                        ? "slashed"
+                        : "pending",
+                  txHash: null,
+                  createdAt: Number(c.createdAt || 0),
+                  completedAt: Number(c.completedAt || 0)
+                };
+              });
+            } catch (ge) {
+              console.warn("[Goldsky provider calls failed]", ge?.message || ge);
+            }
+          }
+
+          // Use on-chain values as source of truth for provider metrics; historical calls come from Goldsky.
           const completed = Number(completedCount);
           const slashed = Number(slashedCount);
           const total = completed + slashed + calls.filter((c) => c.status === "pending").length;
@@ -5999,22 +5947,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             }
           `;
 
-          // Compute average response time from CallStarted vs ReceiptSubmitted events
+          // Compute average response time from Goldsky timestamps.
           (async () => {
             try {
-              const startMap = new Map();
-              for (const l of startedLogs) {
-                startMap.set(l.args.callId, l.blockNumber);
-              }
-              const receiptFull = await safeQuery(state.payPerCall, "ReceiptSubmitted");
-              const BLOCK_TIME = 2; // Arc ~2s
-              const diffs = [];
-              for (const r of receiptFull) {
-                const startBlock = startMap.get(r.args.callId);
-                if (startBlock != null) {
-                  diffs.push((r.blockNumber - startBlock) * BLOCK_TIME);
-                }
-              }
+              const diffs = calls
+                .filter(c => c.createdAt > 0 && c.completedAt > 0)
+                .map(c => c.completedAt - c.createdAt)
+                .filter(v => v >= 0);
               const avgEl = document.getElementById("modalAvgResp");
               const fastEl = document.getElementById("modalFastResp");
               const slowEl = document.getElementById("modalSlowResp");
@@ -6078,7 +6017,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                     completedCalls slashedCalls pricePerCall stake
                   }
                   recentCalls: calls(first: 10, where: {providerId: "${providerId}"}, orderBy: createdAt, orderDirection: desc) {
-                    id amount timestamp
+                    id amount createdAt
                   }
                 }` })
               });
@@ -6131,7 +6070,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                     completedCalls slashedCalls pricePerCall stake
                   }
                   recentCalls: calls(first: 10, where: {providerId: "${providerId}"}, orderBy: createdAt, orderDirection: desc) {
-                    id amount timestamp
+                    id amount createdAt
                   }
                 }` })
               });
@@ -6864,8 +6803,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             $("toCallId").value = callId;
             renderCalls();
           }
-          state.provider?.getBlockNumber().then(b => { state.lastSyncBlock = b; }).catch(() => {});
-          refreshAll();
+          scheduleRefresh();
           bumpUnseen();
         });
 
@@ -6882,7 +6820,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             state.myCalls.get(callId).status = 2;
             renderCalls();
           }
-          refreshAll();
+          scheduleRefresh();
           bumpUnseen();
         });
 
@@ -6899,7 +6837,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             state.myCalls.get(callId).status = 3;
             renderCalls();
           }
-          refreshAll();
+          scheduleRefresh();
           bumpUnseen();
         });
 
@@ -6912,7 +6850,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             txHash: ev.log?.transactionHash,
             body: `#${providerId} registered by <span class="hi">${short(owner, 4)}</span> · ${ethers.formatUnits(stake, state.usdcDecimals)} USDC staked`,
           });
-          refreshAll();
+          scheduleRefresh();
           bumpUnseen();
         });
 
@@ -6926,7 +6864,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             txHash: ev.log?.transactionHash,
             body: `#${providerId} reputation updated · <span class="hi">${completed}</span> completed, <span class="hi">${slashed}</span> slashed`,
           });
-          refreshAll();
+          scheduleRefresh();
           bumpUnseen();
         });
       }
@@ -7075,13 +7013,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         if (state.myCalls.size > 0) renderCalls();
       }, 1000);
 
-      // Auto-refresh leaderboard + network stats every 30 seconds
-      setInterval(() => {
-        if (state.address) {
-          refreshLeaderboard().catch(() => {});
-          refreshNetworkStats().catch(() => {});
-        }
-      }, 30_000);
 
       // -------- Provider preview on ID change --------
       $("callProviderId").addEventListener("blur", async (ev) => {
@@ -7625,7 +7556,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           const recentEl = $("anRecentCalls");
           if (recentEl) {
             recentEl.innerHTML = calls.slice(0, 10).map(c => {
-              const date = new Date(Number(c.timestamp) * 1000).toLocaleString();
+              const date = new Date(Number(c.createdAt) * 1000).toLocaleString();
               return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
                 <span style="color:var(--text-faint);font-family:var(--font-mono)">#${c.providerId}</span>
                 <span style="color:var(--text-faint)">${(Number(c.amount)/1e6).toFixed(3)} USDC</span>
@@ -7640,7 +7571,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       // ---- Band Oracle price feed ----
       let _usdcUsdRate = 1.0;
+      let _usdcUsdRateAt = 0;
       async function fetchUsdcUsdRate() {
+        if (Date.now() - _usdcUsdRateAt < 60_000) return _usdcUsdRate;
+
         try {
           const oracle = new ethers.Contract(
             CONFIG.bandOracle,
@@ -7649,9 +7583,12 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           );
           const [rate] = await oracle.getReferenceData("USDC", "USD");
           _usdcUsdRate = parseFloat(ethers.formatUnits(rate, 18));
+          _usdcUsdRateAt = Date.now();
           console.log("[oracle] USDC/USD:", _usdcUsdRate);
+          return _usdcUsdRate;
         } catch(e) {
           console.warn("[oracle] Failed:", e.message);
+          return _usdcUsdRate;
         }
       }
       // Fetch only after wallet connect (needs provider)
@@ -7968,114 +7905,7 @@ console.log("call opened:", tx.hash);`;
       });
 
       // -------- Boot: read-only stats + landing feed (no wallet needed) --------
-      // Uses raw fetch() JSON-RPC calls instead of ethers.JsonRpcProvider to
-      // avoid a DataCloneError bug in ethers v6 where the provider's internal
-      // polling worker tries to postMessage() a Headers object that can't be
-      // structured-cloned in some browsers.
-      let _rpcId = 1;
-      async function rpcCall(method, params = []) {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            const res = await fetch(CONFIG.rpcUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: _rpcId++,
-                method,
-                params
-              }),
-            });
-
-            if (res.status === 429) {
-              console.warn("[RPC] HTTP 429 rate limited");
-              await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
-              continue;
-            }
-
-            const json = await res.json();
-
-            if (json.error) {
-              if (
-                json.error.code === -32005 ||
-                json.error.message?.includes("rate")
-              ) {
-                await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-                continue;
-              }
-              throw new Error(json.error.message);
-            }
-
-            return json.result;
-
-          } catch (e) {
-            if (attempt === 4) throw e;
-            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-          }
-        }
-      }
-
-      // eth_call helper — encodes a simple no-arg view call and decodes uint256
-      async function ethCallUint(to, selector) {
-        const result = await rpcCall("eth_call", [{ to, data: selector }, "latest"]);
-        return result && result !== "0x" ? BigInt(result) : 0n;
-      }
-
-      // eth_getLogs helper
-      async function fetchLogs(address, topic0, fromBlock, toBlock) {
-  const from = "0x" + fromBlock.toString(16);
-  const to   = "0x" + toBlock.toString(16);
-
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try {
-      return await rpcCall("eth_getLogs", [{
-        address,
-        topics: [topic0],
-        fromBlock: from,
-        toBlock: to
-      }]);
-    } catch (e) {
-      const msg = e?.message || "";
-      console.warn(`eth_getLogs retry ${attempt + 1}/4:`, msg);
-
-      if (attempt < 3) {
-        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
-      }
-    }
-  }
-
-  return [];
-}
-
-
-// Chunked log scan (mirrors scanRange but over raw fetch)
-      async function fetchLogsChunked(address, topic0, from, to, chunkSize = CHUNK_SIZE) {
-        const results = [];
-        let cursor = from;
-        while (cursor <= to) {
-          const end = Math.min(cursor + chunkSize - 1, to);
-          const logs = await fetchLogs(address, topic0, cursor, end).catch(() => []);
-          if (Array.isArray(logs)) {
-            results.push(...logs);
-          }
-          await new Promise(r => setTimeout(r, 3000));
-          cursor = end + 1;
-        }
-        return results;
-      }
-
-      // keccak256 topic selectors — computed via ethers.id
-      const TOPICS = {
-        CallStarted:       ethers.id("CallStarted(bytes32,uint256,address,uint256,bytes32,uint32)"),
-        ReceiptSubmitted:  ethers.id("ReceiptSubmitted(bytes32,bytes32)"),
-        CallSlashed:       ethers.id("CallSlashed(bytes32,uint256,uint256)"),
-        ProviderRegistered: ethers.id("ProviderRegistered(uint256,address,address,uint256,uint256,uint32,uint32,string)"),
-      };
-
-      // nextProviderId() selector = keccak256("nextProviderId()")[0:4]
-      const SEL_NEXT_PROVIDER_ID = ethers.id("nextProviderId()").slice(0, 10);
-      const SEL_DECIMALS          = ethers.id("decimals()").slice(0, 10);
-      const SEL_NONCE             = ethers.id("nonce()").slice(0, 10);
+            // nextProviderId() selector = keccak256("nextProviderId()")[0:4]
 
       (async () => {
         try {
@@ -8083,19 +7913,9 @@ console.log("call opened:", tx.hash);`;
           const payIface = new ethers.Interface(PAY_ABI);
           const regIface = new ethers.Interface(REGISTRY_ABI);
 
-          // --- Phase 1: immediate data (provider count + total calls + USDC decimals) ---
-          // These are single-call reads, return in ~200ms.
-          // Update hero stats ASAP so the page doesn't feel like it's loading.
-          const [decResult, nonceRaw, latestHex] = await Promise.all([
-            rpcCall("eth_call", [{ to: CONFIG.usdc, data: SEL_DECIMALS }, "latest"]).catch(() => null),
-            
-            rpcCall("eth_call", [{ to: CONFIG.payPerCall, data: SEL_NONCE }, "latest"]).catch(() => null),
-            rpcCall("eth_blockNumber").catch(() => null),
-          ]);
-
-          if (decResult && decResult !== "0x") {
-            state.usdcDecimals = Number(BigInt(decResult));
-          }
+          // --- Phase 1: immediate data from Goldsky ---
+          // Keep the landing page RPC-free. Wallet-specific decimals are
+          // loaded after connect by refreshBalance().
           const safeDecimals = state.usdcDecimals || 6;
 
           // Provider count comes from Goldsky
@@ -8127,203 +7947,95 @@ console.log("call opened:", tx.hash);`;
               $("heroProviders").textContent =
                 0 .toString();
 
-              if (nonceRaw && nonceRaw !== "0x") {
-                $("heroCalls").textContent =
-                  Number(BigInt(nonceRaw)).toString();
-              }
             }
           }
 
-          if (!latestHex) return;
-          const latest = Number(BigInt(latestHex));
 
-          // --- Phase 2: event scan in background (can take 1-3s) ---
-          // Landing page only needs recent activity, so use a shorter window
-          // to keep initial load fast. Full 100K window kicks in post-connect.
-          const LANDING_SCAN_BLOCKS = 5_000; // ~1 day on Arc, fast enough
-          const from = Math.max(0, latest - LANDING_SCAN_BLOCKS);
-
-          // Fetch logs sequentially to avoid RPC rate limits
-          const startedRaw = await fetchLogsChunked(
-            CONFIG.payPerCall,
-            TOPICS.CallStarted,
-            from,
-            latest
-          );
-
-          await new Promise(r => setTimeout(r, 1500));
-
-          const receiptRaw = await fetchLogsChunked(
-            CONFIG.payPerCall,
-            TOPICS.ReceiptSubmitted,
-            from,
-            latest
-          );
-
-          await new Promise(r => setTimeout(r, 1500));
-
-          const slashedRaw = await fetchLogsChunked(
-            CONFIG.payPerCall,
-            TOPICS.CallSlashed,
-            from,
-            latest
-          );
-
-          await new Promise(r => setTimeout(r, 1500));
-
-          const regRaw = await fetchLogsChunked(
-            CONFIG.registry,
-            TOPICS.ProviderRegistered,
-            from,
-            latest
-          );
-
-          $("heroSlashes").textContent = slashedRaw.length.toString();
-
-          // Decode logs and build event list
-          const events = [];
-
-          for (const l of regRaw) {
+          // --- Phase 2: recent activity from Goldsky ---
+          // Keep the landing page RPC-light.
+          if (CONFIG.subgraphUrl) {
             try {
-              const parsed = regIface.parseLog({ topics: l.topics, data: l.data });
-              events.push({
-                tag: "registered", tagText: "provider",
-                blockNumber: Number(BigInt(l.blockNumber)),
-                txHash: l.transactionHash,
-                body: `#${parsed.args.providerId} registered by <span class="hi">${short(parsed.args.owner, 4)}</span> · ${ethers.formatUnits(parsed.args.stake, safeDecimals)} USDC staked`,
+              const activityRes = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  query: `{
+                    calls(first: 20, orderBy: createdAt, orderDirection: desc) {
+                      id
+                      providerId
+                      caller
+                      amount
+                      createdAt
+                      completedAt
+                      status
+                    }
+                    providers(first: 20, orderBy: createdAt, orderDirection: desc) {
+                      id
+                      owner
+                      stake
+                      createdAt
+                    }
+                  }`
+                })
               });
-            } catch {}
-          }
-          for (const l of startedRaw) {
-            try {
-              const parsed = payIface.parseLog({ topics: l.topics, data: l.data });
-              events.push({
-                tag: "started", tagText: "call opened",
-                blockNumber: Number(BigInt(l.blockNumber)),
-                txHash: l.transactionHash,
-                body: `<span class="hi">${short(parsed.args.caller, 4)}</span> → provider #${parsed.args.providerId} · ${ethers.formatUnits(parsed.args.amount, safeDecimals)} USDC escrowed`,
-              });
-            } catch {}
-          }
-          for (const l of receiptRaw) {
-            try {
-              const parsed = payIface.parseLog({ topics: l.topics, data: l.data });
-              events.push({
-                tag: "submitted", tagText: "receipt",
-                blockNumber: Number(BigInt(l.blockNumber)),
-                txHash: l.transactionHash,
-                body: `receipt signed for call <span class="hi">${short(parsed.args.callId, 6)}</span>`,
-              });
-            } catch {}
-          }
-          for (const l of slashedRaw) {
-            try {
-              const parsed = payIface.parseLog({ topics: l.topics, data: l.data });
-              events.push({
-                tag: "slashed", tagText: "slashed",
-                blockNumber: Number(BigInt(l.blockNumber)),
-                txHash: l.transactionHash,
-                body: `call <span class="hi">${short(parsed.args.callId, 6)}</span> timed out · refund ${ethers.formatUnits(parsed.args.refunded, safeDecimals)} + slash ${ethers.formatUnits(parsed.args.slashed, safeDecimals)} USDC`,
-              });
-            } catch {}
-          }
 
-          // Sort newest first, keep 10
-          events.sort((a, b) => b.blockNumber - a.blockNumber);
-          const recent = events.slice(0, 10);
+              const activityJson = await activityRes.json();
 
-          const feed = $("landingFeed");
-          if (recent.length === 0) {
-            feed.innerHTML = `<div class="empty-state">no activity yet — be the first</div>`;
-          } else {
-            feed.innerHTML = "";
-            for (const ev of recent) {
-              const row = document.createElement("div");
-              row.className = "feed-row";
-              row.innerHTML = `
-                <span class="feed-time">blk ${ev.blockNumber}</span>
-                <span class="feed-tag ${ev.tag}">${ev.tagText}</span>
-                <span class="feed-body">${ev.body}</span>
-                <a class="feed-link" href="${txLink(ev.txHash)}" target="_blank" rel="noreferrer">${short(ev.txHash, 4)} ↗</a>
-              `;
-              feed.appendChild(row);
+              if (activityJson.data) {
+                const calls = activityJson.data.calls || [];
+                const providers = activityJson.data.providers || [];
+                const events = [];
+
+                for (const p of providers) {
+                  events.push({
+                    tag: "registered",
+                    tagText: "provider",
+                    blockNumber: Number(p.createdAt || 0),
+                    txHash: "",
+                    body: `#${p.id} registered by <span class="hi">${short(p.owner, 4)}</span> · ${ethers.formatUnits(p.stake || 0, safeDecimals)} USDC staked`
+                  });
+                }
+
+                for (const c of calls) {
+                  const status = c.status;
+                  events.push({
+                    tag: status === "COMPLETED" ? "submitted" : status === "SLASHED" ? "slashed" : "started",
+                    tagText: status === "COMPLETED" ? "receipt" : status === "SLASHED" ? "slashed" : "call opened",
+                    blockNumber: Number(c.createdAt || 0),
+                    txHash: "",
+                    body: `<span class="hi">${short(c.caller, 4)}</span> → provider #${c.providerId} · ${ethers.formatUnits(c.amount || 0, safeDecimals)} USDC`
+                  });
+                }
+
+                events.sort((a, b) => b.blockNumber - a.blockNumber);
+
+                const recent = events.slice(0, 10);
+                const feed = $("landingFeed");
+
+                if (recent.length === 0) {
+                  feed.innerHTML = `<div class="empty-state">no activity yet — be the first</div>`;
+                } else {
+                  feed.innerHTML = "";
+
+                  for (const ev of recent) {
+                    const row = document.createElement("div");
+                    row.className = "feed-row";
+                    row.innerHTML = `
+                      <span class="feed-time">${new Date(ev.blockNumber * 1000).toLocaleString()}</span>
+                      <span class="feed-tag ${ev.tag}">${ev.tagText}</span>
+                      <span class="feed-body">${ev.body}</span>
+                    `;
+                    feed.appendChild(row);
+                  }
+                }
+
+                const slashCount = calls.filter(c => c.status === "SLASHED").length;
+                $("heroSlashes").textContent = String(slashCount);
+              }
+            } catch (e) {
+              console.warn("[Goldsky landing activity failed]", e.message);
             }
           }
-
-          // Poll for new events every 10s on the landing feed (no websocket needed)
-          let lastSeenBlock = latest;
-          const landingDedupe = new Set(events.map(e => e.txHash));
-
-          const pollLanding = async () => {
-            try {
-              const nowHex = await rpcCall("eth_blockNumber");
-              const nowBlock = Number(BigInt(nowHex));
-              if (nowBlock <= lastSeenBlock) return;
-                const ns = await fetchLogsChunked(
-                  CONFIG.payPerCall,
-                  TOPICS.CallStarted,
-                  lastSeenBlock + 1,
-                  nowBlock
-                );
-
-                await new Promise(r => setTimeout(r, 1500));
-
-                const nr = await fetchLogsChunked(
-                  CONFIG.payPerCall,
-                  TOPICS.ReceiptSubmitted,
-                  lastSeenBlock + 1,
-                  nowBlock
-                );
-
-                await new Promise(r => setTimeout(r, 1500));
-
-                const nsl = await fetchLogsChunked(
-                  CONFIG.payPerCall,
-                  TOPICS.CallSlashed,
-                  lastSeenBlock + 1,
-                  nowBlock
-                );
-
-                await new Promise(r => setTimeout(r, 1500));
-
-                const nrg = await fetchLogsChunked(
-                  CONFIG.registry,
-                  TOPICS.ProviderRegistered,
-                  lastSeenBlock + 1,
-                  nowBlock
-                );
-              lastSeenBlock = nowBlock;
-              const newEvts = [];
-              for (const l of nrg) {
-                try { const p = regIface.parseLog({ topics: l.topics, data: l.data }); newEvts.push({ tag: "registered", tagText: "provider", blockNumber: Number(BigInt(l.blockNumber)), txHash: l.transactionHash, body: `#${p.args.providerId} registered by <span class="hi">${short(p.args.owner,4)}</span> · ${ethers.formatUnits(p.args.stake, safeDecimals)} USDC staked` }); } catch {}
-              }
-              for (const l of ns) {
-                try { const p = payIface.parseLog({ topics: l.topics, data: l.data }); newEvts.push({ tag: "started", tagText: "call opened", blockNumber: Number(BigInt(l.blockNumber)), txHash: l.transactionHash, body: `<span class="hi">${short(p.args.caller,4)}</span> → provider #${p.args.providerId} · ${ethers.formatUnits(p.args.amount, safeDecimals)} USDC escrowed` }); } catch {}
-              }
-              for (const l of nr) {
-                try { const p = payIface.parseLog({ topics: l.topics, data: l.data }); newEvts.push({ tag: "submitted", tagText: "receipt", blockNumber: Number(BigInt(l.blockNumber)), txHash: l.transactionHash, body: `receipt signed for call <span class="hi">${short(p.args.callId,6)}</span>` }); } catch {}
-              }
-              for (const l of nsl) {
-                try { const p = payIface.parseLog({ topics: l.topics, data: l.data }); newEvts.push({ tag: "slashed", tagText: "slashed", blockNumber: Number(BigInt(l.blockNumber)), txHash: l.transactionHash, body: `call <span class="hi">${short(p.args.callId,6)}</span> timed out · refund ${ethers.formatUnits(p.args.refunded, safeDecimals)} + slash ${ethers.formatUnits(p.args.slashed, safeDecimals)} USDC` }); } catch {}
-              }
-              newEvts.sort((a,b) => b.blockNumber - a.blockNumber);
-              for (const ev of newEvts) {
-                if (landingDedupe.has(ev.txHash)) continue;
-                landingDedupe.add(ev.txHash);
-                const feedEl = $("landingFeed");
-                if (!feedEl) return;
-                feedEl.querySelector(".empty-state")?.remove();
-                const row = document.createElement("div");
-                row.className = "feed-row";
-                row.innerHTML = `<span class="feed-time">blk ${ev.blockNumber}</span><span class="feed-tag ${ev.tag}">${ev.tagText}</span><span class="feed-body">${ev.body}</span><a class="feed-link" href="${txLink(ev.txHash)}" target="_blank" rel="noreferrer">${short(ev.txHash,4)} ↗</a>`;
-                feedEl.prepend(row);
-                while (feedEl.children.length > 10) feedEl.removeChild(feedEl.lastChild);
-                bumpUnseen();
-              }
-            } catch {}
-          };
-          setInterval(pollLanding, 10_000);
-
         } catch (e) {
           console.warn("boot stats failed:", e);
           const feed = $("landingFeed");
@@ -8804,52 +8516,88 @@ console.log("call opened:", tx.hash);`;
             } catch(e) { console.warn("[subgraph] jobs failed:", e.message); }
           }
 
-          // Fallback to RPC
-          const jobs = getJobsContract();
-          const iface = new ethers.Interface(JOBS_ABI);
-          const asClient = await safeQuery(jobs, "JobCreated", jobs.filters.JobCreated(null, state.address, null));
-          const asProvider = await safeQuery(jobs, "JobCreated", jobs.filters.JobCreated(null, null, state.address));
+          // Goldsky is the source of truth for historical jobs; no RPC log fallback.
+          const addr = state.address.toLowerCase();
 
-          const seen = new Map();
-          [...asClient, ...asProvider].forEach(log => {
-            const id = log.args.jobId.toString();
-            seen.set(id, { jobId: log.args.jobId, role: log.args.client.toLowerCase() === state.address.toLowerCase() ? "Client" : "Provider" });
-          });
-
-          if (seen.size === 0) {
-            listEl.innerHTML = '<div class="empty-state" style="font-size:12px">No jobs yet — create one above.</div>';
+          if (!CONFIG.subgraphUrl) {
+            listEl.innerHTML = '<div class="empty-state" style="font-size:12px">Job history unavailable — Goldsky is not configured.</div>';
             return;
           }
 
-          const entries = Array.from(seen.values()).sort((a, b) => Number(b.jobId) - Number(a.jobId));
-          const details = await Promise.all(entries.map(async (e) => {
-            try {
-              const job = await jobs.getJob(e.jobId);
-              return { ...e, job };
-            } catch { return null; }
-          }));
+          try {
+            const gql = await fetch(CONFIG.subgraphUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: `{
+                  asClient: jobs(first:100, where:{client:"${addr}"}, orderBy:jobId, orderDirection:desc) {
+                    id jobId client provider status createdAt
+                  }
+                  asProvider: jobs(first:100, where:{provider:"${addr}"}, orderBy:jobId, orderDirection:desc) {
+                    id jobId client provider status createdAt
+                  }
+                }`
+              })
+            });
 
-          listEl.innerHTML = details.filter(Boolean).map(({ jobId, role, job }) => {
-            const statusName = (JOB_STATUS[Number(job.status)] || "unknown").toLowerCase();
-            const roleClass = role === "Client" ? "role-client" : "role-provider";
-            return `
-              <div class="my-job-card" data-job-id="${jobId}">
+            if (!gql.ok) throw new Error(`Goldsky HTTP ${gql.status}`);
+
+            const gdata = await gql.json();
+
+            if (gdata?.errors?.length) {
+              throw new Error(gdata.errors.map(e => e.message).join("; "));
+            }
+
+            const seen = new Map();
+
+            (gdata.data?.asClient || []).forEach(j => seen.set(j.jobId, {
+              jobId: j.jobId,
+              role: "Client",
+              status: j.status
+            }));
+
+            (gdata.data?.asProvider || []).forEach(j => {
+              if (!seen.has(j.jobId)) {
+                seen.set(j.jobId, {
+                  jobId: j.jobId,
+                  role: "Provider",
+                  status: j.status
+                });
+              }
+            });
+
+            if (seen.size === 0) {
+              listEl.innerHTML = '<div class="empty-state" style="font-size:12px">No jobs yet — create one above.</div>';
+              return;
+            }
+
+            const entries = Array.from(seen.values())
+              .sort((a, b) => Number(b.jobId) - Number(a.jobId));
+
+            listEl.innerHTML = entries.map(({ jobId, role, status }) => {
+              const roleClass = role === "Client" ? "role-client" : "role-provider";
+              const statusName = String(status || "unknown").toLowerCase();
+
+              return `<div class="my-job-card" data-job-id="${jobId}">
                 <span class="my-job-id">#${jobId}</span>
-                <span class="my-job-desc">${job.description || "(no description)"}</span>
+                <span class="my-job-desc">Job #${jobId}</span>
                 <span class="my-job-role ${roleClass}">${role}</span>
                 <span class="my-job-status status-${statusName}">${statusName}</span>
-              </div>
-            `;
-          }).join("");
+              </div>`;
+            }).join("");
 
-          listEl.querySelectorAll(".my-job-card").forEach(card => {
-            card.addEventListener("click", () => {
-              const id = card.dataset.jobId;
-              $("jobCheckId").value = id;
-              doCheckJob();
-              $("jobsOutput").scrollIntoView({ behavior: "smooth", block: "center" });
+            listEl.querySelectorAll(".my-job-card").forEach(card => {
+              card.addEventListener("click", () => {
+                const id = card.dataset.jobId;
+                $("jobCheckId").value = id;
+                doCheckJob();
+                $("jobsOutput").scrollIntoView({ behavior: "smooth", block: "center" });
+              });
             });
-          });
+          } catch (e) {
+            console.warn("[Goldsky] jobs failed:", e?.message || e);
+            listEl.innerHTML = '<div class="empty-state" style="font-size:12px;color:var(--danger)">Failed to load jobs: ' + (e?.message || "Goldsky unavailable") + '</div>';
+          }
         } catch (e) {
           listEl.innerHTML = '<div class="empty-state" style="font-size:12px;color:var(--danger)">Failed to load jobs: ' + e.message + '</div>';
         }
@@ -9076,90 +8824,196 @@ console.log("call opened:", tx.hash);`;
         $("activitySummary").textContent = `${state.myActivity.length} action${state.myActivity.length === 1 ? "" : "s"}`;
       }
 
-      // Load past activity from on-chain events for the connected wallet
+      // Load past activity from Goldsky
       async function loadActivity() {
         if (!state.address || !state.payPerCall || !state.registry) return;
+
         try {
           const me = state.address.toLowerCase();
+          if (!CONFIG.subgraphUrl) return;
 
-          // 1. Provider registrations (owner = me)
-          const regLogs = await safeQuery(state.registry, "ProviderRegistered");
-          for (const l of regLogs) {
-            if (l.args.owner?.toLowerCase() === me) {
-              pushActivity({
-                type: "register",
-                icon: "🏗️",
-                label: `Registered as provider #${l.args.providerId}`,
-                detail: `${ethers.formatUnits(l.args.stake, state.usdcDecimals)} USDC staked`,
-                txHash: l.transactionHash,
-                time: Date.now() - 1, // past events slightly older
-              });
+          const providerQuery = `{
+            providers(
+              first: 100
+              orderBy: createdAt
+              orderDirection: desc
+              where: { owner: "${me}" }
+            ) {
+              id
+              owner
+              stake
+              pricePerCall
+              active
+              createdAt
             }
-          }
+          }`;
 
-          // 2. Calls opened (caller = me)
-          const callFilter = state.payPerCall.filters.CallStarted(null, null, state.address);
-          const callLogs = await safeQuery(state.payPerCall, "CallStarted", callFilter);
-          for (const l of callLogs) {
-            const isX402 = state.x402TxHashes.has(l.transactionHash);
-            const isCCTP = state.cctpTxHashes.has(l.transactionHash);
-            let icon = "📞", label = `Call opened → provider #${l.args.providerId}`;
-            if (isX402) { icon = "⚡"; label = `x402 call → provider #${l.args.providerId}`; }
-            if (isCCTP) { icon = "🌐"; label = `CCTP call → provider #${l.args.providerId}`; }
+          const callsQuery = `{
+            calls(
+              first: 100
+              orderBy: createdAt
+              orderDirection: desc
+              where: { caller: "${me}" }
+            ) {
+              id
+              providerId
+              caller
+              amount
+              status
+              refunded
+              slashed
+              createdAt
+              completedAt
+            }
+          }`;
+
+          const providerCallsQuery = state.providerInfo?.id
+            ? `{
+                calls(
+                  first: 100
+                  orderBy: createdAt
+                  orderDirection: desc
+                  where: { providerId: "${state.providerInfo.id}" }
+                ) {
+                  id
+                  providerId
+                  caller
+                  amount
+                  status
+                  refunded
+                  slashed
+                  createdAt
+                  completedAt
+                }
+              }`
+            : null;
+
+          const fetchGraph = async (query) => {
+            const res = await fetch(CONFIG.subgraphUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query })
+            });
+
+            if (!res.ok) {
+              throw new Error(`Goldsky HTTP ${res.status}`);
+            }
+
+            const json = await res.json();
+
+            if (json?.errors?.length) {
+              throw new Error(json.errors.map(e => e.message).join("; "));
+            }
+
+            return json?.data || {};
+          };
+
+          const [providerData, callerData, providerCallData] = await Promise.all([
+            fetchGraph(providerQuery),
+            fetchGraph(callsQuery),
+            providerCallsQuery ? fetchGraph(providerCallsQuery) : Promise.resolve({})
+          ]);
+
+          const providers = Array.isArray(providerData.providers)
+            ? providerData.providers
+            : [];
+
+          const callerCalls = Array.isArray(callerData.calls)
+            ? callerData.calls
+            : [];
+
+          const providerCalls = Array.isArray(providerCallData?.calls)
+            ? providerCallData.calls
+            : [];
+
+          // 1. Provider registrations
+          for (const p of providers) {
             pushActivity({
-              type: "call",
-              icon, label,
-              detail: `${ethers.formatUnits(l.args.amount, state.usdcDecimals)} USDC escrowed`,
-              txHash: l.transactionHash,
+              type: "register",
+              icon: "🏗️",
+              label: `Registered as provider #${p.id}`,
+              detail: `${ethers.formatUnits(p.stake || "0", state.usdcDecimals)} USDC staked`,
+              txHash: null,
+              time: Number(p.createdAt || 0) * 1000 || Date.now()
             });
           }
 
-          // 3. Receipts submitted — match callId to calls where I'm the provider
-          // We can only attribute receipts to ourselves if we own the called provider.
-          const myProviderId = state.providerInfo?.id;
-          if (myProviderId) {
-            const myProviderCalls = await safeQuery(
-              state.payPerCall, "CallStarted",
-              state.payPerCall.filters.CallStarted(null, myProviderId)
-            );
-            const myCallIds = new Set(myProviderCalls.map(l => l.args.callId));
-            const receiptLogs = await safeQuery(state.payPerCall, "ReceiptSubmitted");
-            for (const l of receiptLogs) {
-              if (myCallIds.has(l.args.callId)) {
-                pushActivity({
-                  type: "receipt",
-                  icon: "📝",
-                  label: `Receipt submitted`,
-                  detail: `call ${short(l.args.callId, 6)}`,
-                  txHash: l.transactionHash,
-                });
-              }
+          // 2. Calls where I'm the caller
+          const callerCallIds = new Set();
+
+          for (const c of callerCalls) {
+            callerCallIds.add(c.id);
+
+            const status = String(c.status || "").toUpperCase();
+            const completedAt = Number(c.completedAt || 0);
+            const refunded = BigInt(c.refunded || "0");
+            const slashed = BigInt(c.slashed || "0");
+
+            let type = "call";
+            let icon = "📞";
+            let label = `Call opened → provider #${c.providerId}`;
+            let detail = `${ethers.formatUnits(c.amount || "0", state.usdcDecimals)} USDC escrowed`;
+            let time = Number(c.createdAt || 0) * 1000 || Date.now();
+
+            if (status === "SLASHED" || slashed > 0n || refunded > 0n) {
+              type = "timeout";
+              icon = "⚡";
+              label = `Timeout claimed — provider slashed`;
+              detail = `refund ${ethers.formatUnits(refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(slashed, state.usdcDecimals)} USDC`;
+              time = completedAt ? completedAt * 1000 : time;
+            } else if (status === "COMPLETED" || completedAt > 0) {
+              type = "receipt";
+              icon = "📝";
+              label = `Call completed → provider #${c.providerId}`;
+              detail = `${ethers.formatUnits(c.amount || "0", state.usdcDecimals)} USDC`;
+              time = completedAt ? completedAt * 1000 : time;
             }
+
+            pushActivity({
+              type,
+              icon,
+              label,
+              detail,
+              txHash: null,
+              time
+            });
           }
 
-          // 4. Timeouts / slashes — calls where I was the caller
-          const myCallIdSet = new Set(callLogs.map(l => l.args.callId));
-          const slashLogs = await safeQuery(state.payPerCall, "CallSlashed");
-          for (const l of slashLogs) {
-            if (myCallIdSet.has(l.args.callId)) {
+          // 3. Calls where I'm the provider
+          for (const c of providerCalls) {
+            if (callerCallIds.has(c.id)) continue;
+
+            const status = String(c.status || "").toUpperCase();
+            const completedAt = Number(c.completedAt || 0);
+            const refunded = BigInt(c.refunded || "0");
+            const slashed = BigInt(c.slashed || "0");
+
+            if (status === "COMPLETED" || completedAt > 0) {
+              pushActivity({
+                type: "receipt",
+                icon: "📝",
+                label: `Receipt submitted`,
+                detail: `call ${short(c.id, 6)}`,
+                txHash: null,
+                time: completedAt ? completedAt * 1000 : Number(c.createdAt || 0) * 1000 || Date.now()
+              });
+            } else if (status === "SLASHED" || slashed > 0n || refunded > 0n) {
               pushActivity({
                 type: "timeout",
                 icon: "⚡",
-                label: `Timeout claimed — provider slashed`,
-                detail: `refund ${ethers.formatUnits(l.args.refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(l.args.slashed, state.usdcDecimals)} USDC`,
-                txHash: l.transactionHash,
+                label: `Call slashed`,
+                detail: `call ${short(c.id, 6)}`,
+                txHash: null,
+                time: completedAt ? completedAt * 1000 : Number(c.createdAt || 0) * 1000 || Date.now()
               });
             }
           }
-
-          renderActivity();
         } catch (e) {
-          console.warn("loadActivity failed:", e);
+          console.warn("[Goldsky activity failed]", e?.message || e);
         }
       }
 
-
-      // ================================================================
+// ================================================================
       // ONBOARDING — welcome box for new users
       // ================================================================
       let _welcomeDismissed = false;
