@@ -3906,22 +3906,16 @@
         opacity: 0;
       }
 
-      /* ---- Scrolling ticker ---- */
+      /* ---- Scrolling ticker (inside topbar, below topbar-inner) ---- */
       #cgTicker {
         background: rgba(16,185,129,0.06);
-        border-bottom: 1px solid rgba(16,185,129,0.12);
-        padding: 5px 0;
+        border-top: 1px solid rgba(16,185,129,0.10);
+        padding: 3px 0;
         overflow: hidden;
         white-space: nowrap;
         font-family: var(--font-mono);
         font-size: 10px;
         color: var(--text-faint);
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 200;
-        height: 28px;
         display: none;
       }
       .ticker-track {
@@ -4152,11 +4146,8 @@
         background: rgba(15,20,25,0.75) !important;
       }
 
-      /* ---- Topbar ticker spacer ---- */
+      /* ---- Topbar ticker spacer (ticker now inside topbar, no extra padding needed) ---- */
       .topbar { top: 0; }
-      body.ticker-visible { padding-top: 28px; }
-      body.ticker-visible .topbar { top: 28px; }
-      body.ticker-visible .app-sidebar { padding-top: 88px; }
 
       /* ---- Active call flash ---- */
       @keyframes callFlash {
@@ -4558,7 +4549,7 @@
               <div class="faq-item"><div class="faq-q">What is the Call ID and where does it come from?</div><div class="faq-a">It is the unique 32-byte identifier generated on-chain when <code>callService()</code> is invoked. It is auto-filled after you click <em>Approve &amp; call</em>.</div></div>
               <div class="faq-item"><div class="faq-q">Can I submit a receipt after the SLA deadline?</div><div class="faq-a">No. The contract rejects <code>submitReceipt()</code> once the deadline has passed. Keep an eye on the countdown timer!</div></div>
               <div class="faq-item"><div class="faq-q">Can I be both a provider and a caller with the same wallet?</div><div class="faq-a">Technically yes, but two separate accounts are recommended for testing.</div></div>
-              <div class="faq-item"><div class="faq-q">Can I withdraw my stake?</div><div class="faq-a">You can unstake when there are no pending calls. A cooldown period applies.</div></div>
+              <div class="faq-item"><div class="faq-q">Can I withdraw my stake?</div><div class="faq-a">Yes. First call <code>deactivate()</code> to stop accepting new calls. Once all pending calls resolve (completed or slashed), you can call <code>unstake()</code>. Your Provider Dashboard shows real-time unstake eligibility.</div></div>
               <div class="faq-item"><div class="faq-q">How is the reputation score calculated?</div><div class="faq-a">Bayesian formula: <code>(successful + 2) / (total + 3) × 100</code>. A new provider starts at 66. Each successful call increases the score; each slash decreases it.</div></div>
             </div>
           </div>
@@ -6265,10 +6256,23 @@ async function refreshBalance() {
             <dd>${ethers.formatUnits(data.pricePerCall, d)} USDC</dd>
             <dt>Max response</dt>
             <dd>${data.maxResponseTime}s</dd>
-            <dt>Slash</dt>
-            <dd>${Number(data.slashBps) / 100}%</dd>
+            <dt>Slash penalty</dt>
+            <dd>${Number(data.slashBps) / 100}%${Number(data.slashBps) === 0
+              ? ` <span style="color:var(--warn);font-size:11px">⚠ No stake penalty on timeout — callers only get escrow refund</span>`
+              : ``
+            }</dd>
             <dt>Pending calls</dt>
-            <dd>${pending}</dd>
+            <dd>${pending}${Number(pending) > 0
+              ? ` <span style="color:var(--warn);font-size:11px">— cannot unstake until these resolve</span>`
+              : ``
+            }</dd>
+            <dt>Unstake</dt>
+            <dd>${data.active
+              ? `<span style="color:var(--text-faint);font-size:11px">Deactivate first, then wait for pending calls to clear</span>`
+              : Number(pending) > 0
+                ? `<span style="color:var(--warn);font-size:11px">Waiting for ${pending} pending call(s) to resolve</span>`
+                : `<span style="color:var(--accent);font-size:11px">✓ Ready to unstake</span>`
+            }</dd>
             <dt>Endpoint</dt>
             <dd style="word-break: break-all">${endpoint || "—"}</dd>
           </dl>
@@ -8152,7 +8156,12 @@ async function refreshBalance() {
           const preview = $("callPreview");
           const previewText = $("callPreviewText");
           if (preview && previewText) {
-            previewText.innerHTML = `You'll approve and pay <strong>${price} USDC</strong>. The provider has <strong>${p.maxResponseTime}s</strong> to respond with a signed receipt. If they miss the deadline, you can claim a refund of <strong>${price} USDC</strong> plus a <strong>${slashAmount} USDC</strong> bonus from their stake.`;
+            const slashBpsVal = Number(p.slashBps ?? 0);
+            const noSlashNote = slashBpsVal === 0
+              ? `<div style="margin-top:8px;font-size:11px;color:var(--warn);background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.18);border-radius:5px;padding:5px 8px">⚠ This provider has <strong>0% slash penalty</strong>. On timeout you get your escrow back but no stake bonus.</div>`
+              : "";
+            const qualityNote = `<div style="margin-top:8px;font-size:11px;color:var(--text-faint);background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:5px;padding:5px 8px">ℹ Response <strong>timeliness</strong> is enforced on-chain. Response <strong>quality</strong> is not — the contract verifies a signed receipt arrived on time, not whether the content is correct.</div>`;
+            previewText.innerHTML = `You'll approve and pay <strong>${price} USDC</strong>. The provider has <strong>${p.maxResponseTime}s</strong> to respond with a signed receipt. If they miss the deadline, you can claim a refund of <strong>${price} USDC</strong> plus a <strong>${slashAmount} USDC</strong> bonus from their stake.${noSlashNote}${qualityNote}`;
             preview.style.display = "block";
           }
         } catch (e) {
@@ -9165,6 +9174,10 @@ console.log("call opened:", tx.hash);`;
           const statusDot = p.active
             ? `<span style="font-size:10px;color:var(--accent);font-weight:700">● active</span>`
             : `<span style="font-size:10px;color:var(--text-faint)">● inactive</span>`;
+          const slashBpsNum = Number(p.slashBps ?? 0);
+          const slashWarn = slashBpsNum === 0
+            ? `<div style="font-size:10px;color:var(--warn);background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:4px;padding:3px 7px;margin-bottom:8px">⚠ No stake penalty on timeout — escrow refunded only</div>`
+            : "";
           return `
             <div class="prov-card${isSelf ? " self-card" : ""}" data-pid="${p.id}">
               <div class="prov-card-header">
@@ -9200,6 +9213,7 @@ console.log("call opened:", tx.hash);`;
                   <div class="prov-stat-val">${statusDot}</div>
                 </div>
               </div>
+              ${slashWarn}
               <div class="prov-honor-bar">
                 <div class="prov-honor-fill" style="width:${honorPct}%;background:${honorColor}"></div>
               </div>
