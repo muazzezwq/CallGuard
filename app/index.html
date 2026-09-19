@@ -3576,9 +3576,297 @@
       .feed-dot.call   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
       .feed-dot.slash  { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
       .feed-dot.receipt{ background: var(--info);   box-shadow: 0 0 6px var(--info); }
+
+      /* ================================================================
+         PREMIUM DESIGN SYSTEM — Animations & Visual Enhancements
+         ================================================================ */
+
+      /* ---- Particle Canvas ---- */
+      #cgCanvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.55;
+      }
+      body > *:not(#cgCanvas) { position: relative; z-index: 1; }
+
+      /* ---- Topbar shrink on scroll ---- */
+      .topbar {
+        transition: height .3s ease, background .3s ease, box-shadow .3s ease;
+      }
+      .topbar.scrolled {
+        box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+        background: rgba(10,14,20,0.97) !important;
+        border-bottom-color: rgba(16,185,129,0.15) !important;
+      }
+      .topbar.scrolled .brand-sub { opacity: 0; }
+
+      /* ---- Sidebar glassmorphism ---- */
+      .app-sidebar {
+        background: rgba(15,20,25,0.85) !important;
+        backdrop-filter: blur(24px) saturate(180%);
+        border-right: 1px solid rgba(255,255,255,0.06) !important;
+        box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+      }
+      .sb-item {
+        border-radius: 8px;
+        margin: 1px 8px;
+        padding: 9px 10px !important;
+        transition: all .2s cubic-bezier(0.4,0,0.2,1) !important;
+      }
+      .sb-item:hover {
+        background: rgba(255,255,255,0.06) !important;
+        transform: translateX(2px);
+      }
+      .sb-item.on {
+        background: linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.08) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(16,185,129,0.25), 0 0 16px rgba(16,185,129,0.08);
+        border-left-color: var(--accent) !important;
+      }
+      .sb-dot {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        box-shadow: 0 0 12px rgba(16,185,129,0.4);
+      }
+
+      /* ---- Brand mark pulse ---- */
+      .brand-mark {
+        background: linear-gradient(135deg, #10b981, #3b82f6) !important;
+        box-shadow: 0 0 20px rgba(16,185,129,0.4) !important;
+        animation: brandGlow 3s ease-in-out infinite;
+      }
+      @keyframes brandGlow {
+        0%, 100% { box-shadow: 0 0 12px rgba(16,185,129,0.3); }
+        50%       { box-shadow: 0 0 24px rgba(16,185,129,0.6), 0 0 48px rgba(59,130,246,0.2); }
+      }
+
+      /* ---- Hero: Animated gradient text ---- */
+      .disconnected h1 {
+        background-size: 200% 200% !important;
+        animation: heroGrad 4s ease infinite !important;
+      }
+      @keyframes heroGrad {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      /* ---- Hero: Typing cursor on subtitle ---- */
+      .hero-subtitle-cursor::after {
+        content: '|';
+        animation: blink .75s step-end infinite;
+        color: var(--accent);
+        margin-left: 2px;
+      }
+      @keyframes blink {
+        0%, 100% { opacity: 1; } 50% { opacity: 0; }
+      }
+
+      /* ---- Hero stat cards: float + glow on hover ---- */
+      .hero-stat {
+        transition: transform .3s cubic-bezier(0.4,0,0.2,1),
+                    box-shadow .3s ease,
+                    border-color .3s ease !important;
+      }
+      .hero-stat:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2) !important;
+        border-color: rgba(16,185,129,0.3) !important;
+      }
+      .hero-stat .num {
+        transition: color .3s ease;
+      }
+      .hero-stat:hover .num {
+        color: var(--accent) !important;
+      }
+
+      /* ---- Counter: count-up animation ---- */
+      .count-up {
+        display: inline-block;
+        transition: none;
+      }
+
+      /* ---- Panel: stagger entrance ---- */
+      .panel-stagger {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity .5s ease, transform .5s cubic-bezier(0.4,0,0.2,1);
+      }
+      .panel-stagger.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ---- Provider card: 3D tilt ---- */
+      .prov-card {
+        transform-style: preserve-3d;
+        transform: perspective(600px) rotateX(0deg) rotateY(0deg);
+        transition: transform .15s ease, border-color .2s, box-shadow .2s !important;
+      }
+      .prov-card:hover {
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.3) !important;
+      }
+
+      /* ---- Network pill live pulse ---- */
+      .net-dot.ok {
+        animation: netPulse 2s ease-in-out infinite;
+      }
+      @keyframes netPulse {
+        0%, 100% { box-shadow: 0 0 4px var(--accent); }
+        50%       { box-shadow: 0 0 12px var(--accent), 0 0 24px rgba(16,185,129,0.3); }
+      }
+
+      /* ---- Btn-primary: shimmer effect ---- */
+      .btn-primary {
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -75%;
+        width: 50%;
+        height: 200%;
+        background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+        transform: skewX(-15deg);
+        animation: shimmer 3s ease-in-out infinite;
+      }
+      @keyframes shimmer {
+        0%   { left: -75%; }
+        100% { left: 150%; }
+      }
+
+      /* ---- Connect wallet button: glow pulse ---- */
+      #connectBtn {
+        animation: connectGlow 2.5s ease-in-out infinite;
+      }
+      @keyframes connectGlow {
+        0%, 100% { box-shadow: 0 0 8px rgba(16,185,129,0.2); }
+        50%       { box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 40px rgba(16,185,129,0.15); }
+      }
+
+      /* ---- Call row: slide in left ---- */
+      @keyframes callRowIn {
+        from { opacity: 0; transform: translateX(-12px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .call-row {
+        animation: callRowIn .3s cubic-bezier(0.4,0,0.2,1) both;
+      }
+
+      /* ---- Toast: enhanced ---- */
+      .toast {
+        backdrop-filter: blur(20px);
+        background: rgba(15,20,25,0.92) !important;
+      }
+
+      /* ---- SLA banner: slide down ---- */
+      #slaBanner {
+        animation: none;
+        transition: transform .3s ease, opacity .3s ease;
+      }
+      #slaBanner.visible {
+        animation: bannerIn .4s cubic-bezier(0.4,0,0.2,1);
+      }
+      @keyframes bannerIn {
+        from { transform: translateY(-100%); opacity: 0; }
+        to   { transform: translateY(0); opacity: 1; }
+      }
+
+      /* ---- Leaderboard rows: stagger ---- */
+      .lb-row {
+        opacity: 0;
+        transform: translateX(-8px);
+        transition: opacity .3s ease, transform .3s ease, background .18s, border-color .18s !important;
+      }
+      .lb-row.lb-visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .lb-row:hover {
+        transform: translateX(4px) !important;
+      }
+
+      /* ---- Analytics bar animate ---- */
+      @keyframes barGrow {
+        from { width: 0; }
+      }
+      .an-bar-fill {
+        animation: barGrow .8s cubic-bezier(0.4,0,0.2,1) both;
+      }
+
+      /* ---- Global scrollbar ---- */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.4); }
+
+      /* ---- Focus ring ---- */
+      :focus-visible {
+        outline: 2px solid rgba(16,185,129,0.6);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+
+      /* ---- Loading skeleton ---- */
+      @keyframes skeletonPulse {
+        0%, 100% { opacity: .4; }
+        50%       { opacity: .8; }
+      }
+      .skeleton {
+        background: var(--bg-3);
+        border-radius: 4px;
+        animation: skeletonPulse 1.5s ease-in-out infinite;
+      }
+
+      /* ---- Page transition ---- */
+      [data-category].cat-visible {
+        animation: catFadeSlide .35s cubic-bezier(0.4,0,0.2,1) both !important;
+      }
+      @keyframes catFadeSlide {
+        from { opacity: 0; transform: translateY(14px) scale(0.99); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      /* ---- Disconnected: hero glow orbs ---- */
+      .hero-orb {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        animation: orbFloat 8s ease-in-out infinite;
+        filter: blur(60px);
+      }
+      .hero-orb-1 {
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+        top: 10%; left: 15%;
+      }
+      .hero-orb-2 {
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+        top: 20%; right: 10%;
+        animation-delay: -3s;
+      }
+      .hero-orb-3 {
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%);
+        bottom: 20%; left: 40%;
+        animation-delay: -5s;
+      }
+      @keyframes orbFloat {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33%       { transform: translate(20px, -30px) scale(1.05); }
+        66%       { transform: translate(-15px, 20px) scale(0.95); }
+      }
+      .disconnected { position: relative; overflow: hidden; }
+
     </style>
   </head>
   <body>
+    <!-- Particle Background -->
+    <canvas id="cgCanvas"></canvas>
+
     <!-- SLA Countdown Banner -->
     <div id="slaBanner">
       <span class="banner-label">⏱ Active SLA</span>
@@ -3685,8 +3973,12 @@
     <!-- ============================================================ -->
     <main id="disconnectedView">
       <div class="disconnected">
-        <h1 style="color: #ffffff;">Pay-per-call, enforced on-chain.</h1>
-        <p>
+        <!-- Glow orbs -->
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
+        <h1>Pay-per-call, enforced on-chain.</h1>
+        <p id="heroSubtitle" class="hero-subtitle-cursor">
           Service providers stake USDC and commit to an SLA. Callers — including AI agents — pay
           per request and receive a cryptographically signed receipt. If the provider misses the
           deadline, the stake is slashed automatically. No arbiter, no middleman.
@@ -9831,6 +10123,210 @@ console.log("call opened:", tx.hash);`;
         });
       })();
 
+    </script>
+
+    <!-- ================================================================
+         PREMIUM ANIMATIONS ENGINE
+         ================================================================ -->
+    <script>
+    (function() {
+      "use strict";
+
+      /* ---- 1. PARTICLE CANVAS ---- */
+      (function initParticles() {
+        const canvas = document.getElementById("cgCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        let W, H, particles = [], animId;
+        const COUNT = 55;
+        const COLORS = ["rgba(16,185,129,", "rgba(59,130,246,", "rgba(251,191,36,"];
+
+        function resize() {
+          W = canvas.width  = window.innerWidth;
+          H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener("resize", resize);
+
+        function mkParticle() {
+          const col = COLORS[Math.floor(Math.random() * COLORS.length)];
+          return {
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.5 + 0.4,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            col,
+            alpha: Math.random() * 0.4 + 0.1,
+            pulse: Math.random() * Math.PI * 2,
+          };
+        }
+        for (let i = 0; i < COUNT; i++) particles.push(mkParticle());
+
+        function draw() {
+          ctx.clearRect(0, 0, W, H);
+          const now = Date.now() / 1000;
+
+          // Draw connections
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              if (dist < 130) {
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                const a = (1 - dist / 130) * 0.12;
+                ctx.strokeStyle = `rgba(16,185,129,${a})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          }
+
+          // Draw particles
+          particles.forEach(p => {
+            p.pulse += 0.01;
+            const alpha = p.alpha + Math.sin(p.pulse) * 0.08;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.col + Math.min(1, Math.max(0, alpha)) + ")";
+            ctx.fill();
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < -20) p.x = W + 20;
+            if (p.x > W + 20) p.x = -20;
+            if (p.y < -20) p.y = H + 20;
+            if (p.y > H + 20) p.y = -20;
+          });
+
+          animId = requestAnimationFrame(draw);
+        }
+        draw();
+      })();
+
+      /* ---- 2. TOPBAR SCROLL SHRINK ---- */
+      (function initTopbar() {
+        const tb = document.querySelector(".topbar");
+        if (!tb) return;
+        window.addEventListener("scroll", () => {
+          tb.classList.toggle("scrolled", window.scrollY > 20);
+        }, { passive: true });
+      })();
+
+      /* ---- 3. COUNTER ANIMATION ---- */
+      function animateCounter(el, target, duration) {
+        if (!el || isNaN(target)) return;
+        const start = performance.now();
+        const from = parseInt(el.textContent) || 0;
+        function step(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const ease = 1 - Math.pow(1 - t, 3);
+          el.textContent = Math.round(from + (target - from) * ease);
+          if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      // Hook into existing stat updates
+      const origSetText = function(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const num = parseFloat(String(val).replace(/[^0-9.]/g, ""));
+        if (!isNaN(num) && num > 0) {
+          animateCounter(el, Math.round(num), 800);
+        } else {
+          el.textContent = val;
+        }
+      };
+      window._animateCounter = animateCounter;
+      window._animStat = origSetText;
+
+      /* ---- 4. PROVIDER CARD 3D TILT ---- */
+      function attach3DTilt(card) {
+        card.addEventListener("mousemove", e => {
+          const r = card.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width  - 0.5;
+          const y = (e.clientY - r.top)  / r.height - 0.5;
+          card.style.transform = `perspective(600px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateY(-2px)`;
+        });
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = "perspective(600px) rotateX(0) rotateY(0)";
+        });
+      }
+
+      // Attach to existing + observe future cards
+      function attachTilts() {
+        document.querySelectorAll(".prov-card:not([data-tilt])").forEach(c => {
+          c.setAttribute("data-tilt", "1");
+          attach3DTilt(c);
+        });
+      }
+      attachTilts();
+      new MutationObserver(attachTilts).observe(document.body, { childList: true, subtree: true });
+
+      /* ---- 5. PANEL STAGGER ENTRANCE (IntersectionObserver) ---- */
+      (function initStagger() {
+        const panels = document.querySelectorAll(".panel");
+        panels.forEach((p, i) => {
+          p.classList.add("panel-stagger");
+          p.style.transitionDelay = (i % 4) * 60 + "ms";
+        });
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(e => {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+              obs.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.08 });
+        panels.forEach(p => obs.observe(p));
+      })();
+
+      /* ---- 6. LEADERBOARD STAGGER ---- */
+      function staggerLeaderboard() {
+        document.querySelectorAll(".lb-row:not(.lb-visible)").forEach((r, i) => {
+          setTimeout(() => r.classList.add("lb-visible"), i * 60);
+        });
+      }
+      // Re-run when leaderboard renders
+      const lbObs = new MutationObserver(() => staggerLeaderboard());
+      const lbBox = document.getElementById("leaderboardBox");
+      if (lbBox) lbObs.observe(lbBox, { childList: true });
+      staggerLeaderboard();
+
+      /* ---- 7. CONNECT BUTTON: stop glow after connect ---- */
+      (function watchConnect() {
+        const btn = document.getElementById("connectBtn");
+        if (!btn) return;
+        const obs = new MutationObserver(() => {
+          if (btn.classList.contains("hidden") || btn.disabled) {
+            btn.style.animation = "none";
+          } else {
+            btn.style.animation = "";
+          }
+        });
+        obs.observe(btn, { attributes: true, attributeFilter: ["class", "disabled"] });
+      })();
+
+      /* ---- 8. HERO STATS: animate when they get real values ---- */
+      (function watchHeroStats() {
+        ["heroProviders","heroCalls","heroSlashes"].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const mo = new MutationObserver(() => {
+            const num = parseInt(el.textContent);
+            if (!isNaN(num) && num > 0) {
+              animateCounter(el, num, 1200);
+              mo.disconnect();
+            }
+          });
+          mo.observe(el, { childList: true, characterData: true, subtree: true });
+        });
+      })();
+
+    })();
     </script>
   </body>
 </html>
