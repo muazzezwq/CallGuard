@@ -1418,7 +1418,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 100px 24px 60px;
+        padding: 32px 24px 60px;
         text-align: center;
       }
 
@@ -2384,7 +2384,7 @@
 
         /* --- Hero: tighter --- */
         .disconnected {
-          padding: 60px 16px 40px;
+          padding: 24px 16px 40px;
         }
 
         .disconnected h1 {
@@ -3589,7 +3589,7 @@
         pointer-events: none;
         opacity: 0.55;
       }
-      body > *:not(#cgCanvas) { position: relative; z-index: 1; }
+      body > *:not(#cgCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb) { position: relative; z-index: 1; }
 
       /* ---- Topbar shrink on scroll ---- */
       .topbar {
@@ -3831,27 +3831,28 @@
 
       /* ---- Disconnected: hero glow orbs ---- */
       .hero-orb {
-        position: absolute;
+        position: fixed;
         border-radius: 50%;
         pointer-events: none;
         animation: orbFloat 8s ease-in-out infinite;
-        filter: blur(60px);
+        filter: blur(80px);
+        z-index: 0;
       }
       .hero-orb-1 {
         width: 300px; height: 300px;
-        background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
-        top: 10%; left: 15%;
+        background: radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%);
+        top: 15%; left: 10%;
       }
       .hero-orb-2 {
         width: 400px; height: 400px;
-        background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
-        top: 20%; right: 10%;
+        background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+        top: 25%; right: 8%;
         animation-delay: -3s;
       }
       .hero-orb-3 {
         width: 200px; height: 200px;
-        background: radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%);
-        bottom: 20%; left: 40%;
+        background: radial-gradient(circle, rgba(251,191,36,0.05) 0%, transparent 70%);
+        bottom: 25%; left: 40%;
         animation-delay: -5s;
       }
       @keyframes orbFloat {
@@ -3909,14 +3910,19 @@
       #cgTicker {
         background: rgba(16,185,129,0.06);
         border-bottom: 1px solid rgba(16,185,129,0.12);
-        padding: 6px 0;
+        padding: 5px 0;
         overflow: hidden;
         white-space: nowrap;
         font-family: var(--font-mono);
-        font-size: 11px;
+        font-size: 10px;
         color: var(--text-faint);
-        position: relative;
-        z-index: 50;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        height: 28px;
+        display: none;
       }
       .ticker-track {
         display: inline-block;
@@ -4148,6 +4154,9 @@
 
       /* ---- Topbar ticker spacer ---- */
       .topbar { top: 0; }
+      body.ticker-visible { padding-top: 28px; }
+      body.ticker-visible .topbar { top: 28px; }
+      body.ticker-visible .app-sidebar { padding-top: 88px; }
 
       /* ---- Active call flash ---- */
       @keyframes callFlash {
@@ -10723,11 +10732,9 @@ console.log("call opened:", tx.hash);`;
         // Show ticker only on disconnected view
         function updateTickerVisibility() {
           const dc = document.getElementById("disconnectedView");
-          if (dc && dc.style.display !== "none") {
-            ticker.style.display = "block";
-          } else {
-            ticker.style.display = "none";
-          }
+          const show = dc && dc.style.display !== "none";
+          ticker.style.display = show ? "block" : "none";
+          document.body.classList.toggle("ticker-visible", show);
         }
         updateTickerVisibility();
         setInterval(updateTickerVisibility, 1000);
