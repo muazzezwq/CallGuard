@@ -4089,9 +4089,12 @@
         <section class="panel full-width" data-category="providers">
           <div class="panel-head">
             <h2>All providers</h2>
-            <span class="mono" style="font-size: 11px; color: var(--text-faint)">
-              click a row for details
-            </span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--text-faint)">click column header to sort · click row for details</span>
+              <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);cursor:pointer">
+                <input type="checkbox" id="filterActiveOnly" style="width:12px;height:12px;accent-color:var(--accent)" /> active only
+              </label>
+            </div>
           </div>
           <div class="tag-filter-row" id="tagFilterRow" style="display:none"></div>
           <div class="panel-body compact" id="allProvidersBox">
@@ -5445,9 +5448,16 @@ async function refreshBalance() {
           }
           $("statSlashedSub").textContent = `${state.networkStats.slashed} slash${state.networkStats.slashed === 1 ? "" : "es"} (recent)`;
 
-          // Also update hero (disconnected view)
+          // Hero güncelle — slashes için providers toplamını kullan (daha doğru)
           $("heroCalls").textContent = state.networkStats.calls.toString();
-          $("heroSlashes").textContent = state.networkStats.slashed.toString();
+          // heroSlashes: boot'ta Phase 1'de tüm providers.slashedCalls toplamı atandı.
+          // refreshNetworkStats'taki slashed sadece son 1000 call'dan, daha az doğru.
+          // Sadece Phase 1 değeri yoksa (0 veya —) güncelle.
+          const heroSlashEl = $("heroSlashes");
+          const heroSlashCurrent = heroSlashEl ? heroSlashEl.textContent : "0";
+          if (!heroSlashCurrent || heroSlashCurrent === "—" || heroSlashCurrent === "0") {
+            heroSlashEl.textContent = state.networkStats.slashed.toString();
+          }
         } catch (e) {
           console.error("refreshNetworkStats failed:", e);
         }
@@ -5487,16 +5497,55 @@ async function refreshBalance() {
 
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
 
+          // Subgraph'tan bu provider'ın son call'larını çek
+          let recentProvCalls = [];
+          if (CONFIG.subgraphUrl) {
+            try {
+              const qr = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  calls(first: 20, orderBy: createdAt, orderDirection: desc, where: { providerId: "${id}" }) {
+                    id caller amount status createdAt completedAt
+                  }
+                }` })
+              });
+              const qj = await qr.json();
+              recentProvCalls = qj.data?.calls || [];
+            } catch {}
+          }
+
+          const callHistHtml = recentProvCalls.length > 0
+            ? recentProvCalls.map(c => {
+                const st = String(c.status || "").toUpperCase();
+                const dot = st === "COMPLETED" ? "status-completed" : st === "SLASHED" ? "status-slashed" : "status-pending";
+                const amt = ethers.formatUnits(BigInt(c.amount || "0"), d);
+                const ago = c.createdAt ? Math.round((Date.now()/1000 - Number(c.createdAt)) / 60) : null;
+                const agoStr = ago !== null ? (ago < 60 ? `${ago}m ago` : `${Math.round(ago/60)}h ago`) : "";
+                const dur = (c.createdAt && c.completedAt && Number(c.completedAt) > 0)
+                  ? `${Number(c.completedAt) - Number(c.createdAt)}s`
+                  : "";
+                return `<div class="mini-call">
+                  <span class="status-dot ${dot}"></span>
+                  <div style="flex:1;min-width:0">
+                    <span class="call-hash" style="font-family:var(--font-mono)">${c.id.slice(0,10)}…</span>
+                    <span class="call-time"> · ${short(c.caller,4)} · ${agoStr}${dur ? ' · '+dur : ''}</span>
+                  </div>
+                  <span class="call-amount" style="font-family:var(--font-mono)">${amt} USDC</span>
+                </div>`;
+              }).join("")
+            : `<div class="empty-state" style="font-size:12px">No calls found in subgraph</div>`;
+
           box.innerHTML = `
             <div class="dash-grid">
               <div class="dash-cell">
                 <div class="d-label">Earned (est.)</div>
                 <div class="d-value" style="color:var(--accent)">${earned}</div>
-                <div class="d-sub">USDC from ${comp} calls</div>
+                <div class="d-sub">USDC from ${comp} completed</div>
               </div>
               <div class="dash-cell">
                 <div class="d-label">Honor rate</div>
-                <div class="d-value">${honorRate}%</div>
+                <div class="d-value" style="color:${comp+slash > 0 ? (Number(honorRate.replace('%',''))>=80?'var(--accent)':Number(honorRate.replace('%',''))>=50?'var(--warn)':'var(--danger)'):'var(--text-faint)'}">${honorRate}${typeof honorRate === 'string' && honorRate !== '—' ? '' : ''}</div>
                 <div class="d-sub">${comp} honored · ${slash} slashed</div>
               </div>
               <div class="dash-cell">
@@ -5504,10 +5553,19 @@ async function refreshBalance() {
                 <div class="d-value" style="color:${repColor}">${rep}</div>
                 <div class="d-sub">score / 100</div>
               </div>
+              <div class="dash-cell">
+                <div class="d-label">Total calls</div>
+                <div class="d-value">${comp + slash}</div>
+                <div class="d-sub">${recentProvCalls.length > 0 ? recentProvCalls.length + ' in subgraph' : 'no recent data'}</div>
+              </div>
             </div>
             <div style="margin-top:4px">
               <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:0.06em;text-transform:uppercase">Reputation trend (estimated)</div>
               <div class="rep-sparkline">${sparkBars}</div>
+            </div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent calls (from subgraph)</div>
+              ${callHistHtml}
             </div>
           `;
 
@@ -7552,15 +7610,27 @@ async function refreshBalance() {
             }).join("") || '<div class="empty-state" style="font-size:12px">No call data yet</div>';
           }
 
-          // Recent calls
+          // Recent calls — status rengi + ago formatı
           const recentEl = $("anRecentCalls");
           if (recentEl) {
-            recentEl.innerHTML = calls.slice(0, 10).map(c => {
-              const date = new Date(Number(c.createdAt) * 1000).toLocaleString();
-              return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
-                <span style="color:var(--text-faint);font-family:var(--font-mono)">#${c.providerId}</span>
-                <span style="color:var(--text-faint)">${(Number(c.amount)/1e6).toFixed(3)} USDC</span>
-                <span style="margin-left:auto;color:var(--text-faint)">${date}</span>
+            const nowTs = Math.floor(Date.now() / 1000);
+            recentEl.innerHTML = calls.slice(0, 12).map(c => {
+              const st = String(c.status || "").toUpperCase();
+              const dotCls = st === "COMPLETED" ? "status-completed" : st === "SLASHED" ? "status-slashed" : "status-pending";
+              const stColor = st === "COMPLETED" ? "var(--accent)" : st === "SLASHED" ? "var(--danger)" : "var(--warn)";
+              const ago = c.createdAt ? nowTs - Number(c.createdAt) : null;
+              const agoStr = ago !== null
+                ? ago < 60 ? `${ago}s ago`
+                  : ago < 3600 ? `${Math.round(ago/60)}m ago`
+                  : `${Math.round(ago/3600)}h ago`
+                : "";
+              const amt = (Number(c.amount || 0)/1e6).toFixed(3);
+              return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px">
+                <span class="status-dot ${dotCls}" style="flex-shrink:0"></span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);flex-shrink:0">#${c.providerId}</span>
+                <span style="color:${stColor};flex-shrink:0">${st.toLowerCase()}</span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono)">${amt} USDC</span>
+                <span style="margin-left:auto;color:var(--text-faint);white-space:nowrap">${agoStr}</span>
               </div>`;
             }).join("") || '<div class="empty-state" style="font-size:12px">No recent calls</div>';
           }
@@ -7830,50 +7900,113 @@ console.log("call opened:", tx.hash);`;
         }
       }
 
+      // Provider tablosu sıralama durumu
+      if (!window._provSort) window._provSort = { col: "rep", dir: -1 };
+
+      // Filtre checkbox değişince yeniden render
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "filterActiveOnly") renderAllProvidersFiltered();
+      });
+
       function renderAllProvidersFiltered() {
+        if (!state.allProviders || state.allProviders.length === 0) {
+          $("allProvidersBox").innerHTML = `<div class="empty-state">loading providers…</div>`;
+          return;
+        }
         const d = state.usdcDecimals;
         const myAddr = state.address?.toLowerCase();
-        const rows = state.allProviders.map(p => {
+        const sort = window._provSort;
+        const activeOnly = $("filterActiveOnly")?.checked ?? false;
+
+        // Filtre
+        const filtered = activeOnly
+          ? state.allProviders.filter(p => p.active)
+          : state.allProviders;
+
+        // Sıralama
+        const sorted = [...filtered].sort((a, b) => {
+          let va, vb;
+          if (sort.col === "rep")    { va = a.reputation ?? 0;                     vb = b.reputation ?? 0; }
+          else if (sort.col === "price") { va = Number(a.pricePerCall);             vb = Number(b.pricePerCall); }
+          else if (sort.col === "stake") { va = Number(a.stake);                    vb = Number(b.stake); }
+          else if (sort.col === "calls") { va = (a.completedCalls||0)+(a.slashedCalls||0); vb = (b.completedCalls||0)+(b.slashedCalls||0); }
+          else if (sort.col === "id")    { va = a.id;                               vb = b.id; }
+          else                           { va = a.id;                               vb = b.id; }
+          return sort.dir * (va < vb ? -1 : va > vb ? 1 : 0);
+        });
+
+        const rows = sorted.map(p => {
           const isSelf = myAddr && p.owner?.toLowerCase() === myAddr;
           const badge = p.active ? `<span class="badge active">active</span>` : `<span class="badge inactive">inactive</span>`;
           const rep = p.reputation ?? 0;
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
           const priceUsdc = ethers.formatUnits(p.pricePerCall, d);
           const priceUsd = usdPrice(priceUsdc);
+          const totalCalls = (p.completedCalls||0) + (p.slashedCalls||0);
+          const honorPct = totalCalls > 0 ? Math.round((p.completedCalls||0) / totalCalls * 100) : null;
           return `
             <tr data-pid="${p.id}" class="${isSelf ? "is-self" : ""}">
               <td class="col-id">#${p.id}</td>
               <td class="col-owner">${short(p.owner, 4)}${isSelf ? `<span class="self-tag">you</span>` : ""}</td>
-              <td class="col-price">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">${priceUsd}</span></td>
-              <td class="col-stake">${ethers.formatUnits(p.stake, d)}</td>
-              <td class="col-sla">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
-              <td style="text-align:right;color:${repColor};font-weight:600">${rep}</td>
-              <td class="col-status">${badge}</td>
+              <td class="col-price" style="text-align:right">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">${priceUsd}</span></td>
+              <td class="col-stake" style="text-align:right">${ethers.formatUnits(p.stake, d)}</td>
+              <td style="text-align:right;font-size:11px;color:var(--text-dim)">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
+              <td style="text-align:right">
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+                  <div style="width:40px;height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden">
+                    <div style="height:100%;width:${rep}%;background:${repColor};border-radius:2px"></div>
+                  </div>
+                  <span style="color:${repColor};font-weight:600;font-family:var(--font-mono)">${rep}</span>
+                </div>
+              </td>
+              <td style="text-align:right;font-size:11px;color:var(--text-dim)">${totalCalls > 0 ? totalCalls + (honorPct !== null ? ` <span style="color:${honorPct>=80?'var(--accent)':honorPct>=50?'var(--warn)':'var(--danger)'}">(${honorPct}%)</span>` : '') : '—'}</td>
+              <td class="col-status" style="text-align:right">${badge}</td>
               <td style="text-align:right;font-size:11px" class="col-health" id="health-${p.id}">
                 <span style="color:var(--text-faint)">…</span>
               </td>
               <td style="text-align:right">
                 <button class="btn btn-sm btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">
-                  ⚡ Nanopay 0.001
+                  ⚡ Nanopay
                 </button>
               </td>
             </tr>`;
         }).join("");
 
+        const arrow = (col) => {
+          if (sort.col !== col) return `<span style="opacity:0.3;font-size:9px">⇅</span>`;
+          return sort.dir === -1 ? `<span style="font-size:9px;color:var(--accent)">↓</span>` : `<span style="font-size:9px;color:var(--accent)">↑</span>`;
+        };
+
         $("allProvidersBox").innerHTML = `
           <table class="provider-table">
             <thead><tr>
-              <th>ID</th><th>Owner</th>
-              <th style="text-align:right">Price</th>
-              <th style="text-align:right">Stake</th>
+              <th data-sort="id" style="cursor:pointer">ID ${arrow("id")}</th>
+              <th>Owner</th>
+              <th data-sort="price" style="text-align:right;cursor:pointer">Price ${arrow("price")}</th>
+              <th data-sort="stake" style="text-align:right;cursor:pointer">Stake ${arrow("stake")}</th>
               <th style="text-align:right">SLA · slash</th>
-              <th style="text-align:right">Rep</th>
+              <th data-sort="rep" style="text-align:right;cursor:pointer">Rep ${arrow("rep")}</th>
+              <th data-sort="calls" style="text-align:right;cursor:pointer">Calls ${arrow("calls")}</th>
               <th style="text-align:right">Status</th>
               <th style="text-align:right">Health</th>
               <th style="text-align:right">Nano</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
+
+        // Sıralama tıklama
+        $("allProvidersBox").querySelectorAll("thead th[data-sort]").forEach(th => {
+          th.addEventListener("click", () => {
+            const col = th.dataset.sort;
+            if (window._provSort.col === col) {
+              window._provSort.dir *= -1;
+            } else {
+              window._provSort = { col, dir: -1 };
+            }
+            renderAllProvidersFiltered();
+            setTimeout(pingProviderEndpoints, 300);
+          });
+        });
 
         $("allProvidersBox").querySelectorAll("tbody tr[data-pid]").forEach(tr => {
           tr.addEventListener("click", () => openProviderModal(Number(tr.dataset.pid)));
