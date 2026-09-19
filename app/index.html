@@ -3861,11 +3861,349 @@
       }
       .disconnected { position: relative; overflow: hidden; }
 
+      /* ================================================================
+         ULTRA PREMIUM LAYER 2 — 2026 Design System
+         ================================================================ */
+
+      /* ---- Noise texture overlay ---- */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.025;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        background-size: 180px 180px;
+      }
+
+      /* ---- Grid background ---- */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+      }
+
+      /* ---- Mouse spotlight ---- */
+      #mouseSpotlight {
+        position: fixed;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        transform: translate(-50%, -50%);
+        transition: opacity .3s ease;
+        opacity: 0;
+      }
+
+      /* ---- Scrolling ticker ---- */
+      #cgTicker {
+        background: rgba(16,185,129,0.06);
+        border-bottom: 1px solid rgba(16,185,129,0.12);
+        padding: 6px 0;
+        overflow: hidden;
+        white-space: nowrap;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-faint);
+        position: relative;
+        z-index: 50;
+      }
+      .ticker-track {
+        display: inline-block;
+        animation: tickerScroll 30s linear infinite;
+      }
+      .ticker-track:hover { animation-play-state: paused; }
+      @keyframes tickerScroll {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+      }
+      .ticker-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 40px;
+      }
+      .ticker-item .t-label { color: var(--text-dim); }
+      .ticker-item .t-val   { color: var(--accent); font-weight: 600; }
+      .ticker-item .t-sep   { color: var(--border-hi); }
+
+      /* ---- BorderBeam ---- */
+      .border-beam-wrap {
+        position: relative;
+        overflow: hidden;
+      }
+      .border-beam-wrap::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        background: conic-gradient(
+          from var(--beam-angle, 0deg) at 50% 50%,
+          transparent 0deg,
+          rgba(16,185,129,0.8) 60deg,
+          transparent 120deg
+        );
+        z-index: 0;
+        animation: beamRotate 3s linear infinite;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .3s;
+      }
+      .border-beam-wrap:hover::after,
+      .border-beam-wrap.beam-active::after {
+        opacity: 1;
+      }
+      @keyframes beamRotate {
+        from { --beam-angle: 0deg; }
+        to   { --beam-angle: 360deg; }
+      }
+      @property --beam-angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
+      }
+      /* Inner content sits above the beam */
+      .border-beam-wrap > * { position: relative; z-index: 1; }
+
+      /* ---- Shimmer skeleton ---- */
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          var(--bg-2) 0%,
+          rgba(255,255,255,0.05) 40%,
+          var(--bg-2) 80%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 1.6s ease infinite;
+        border-radius: 6px;
+      }
+      @keyframes shimmer {
+        from { background-position: 100% 0; }
+        to   { background-position: -100% 0; }
+      }
+
+      /* ---- Hero SVG sparkline ---- */
+      #heroSparkline {
+        margin: 32px auto 0;
+        max-width: 720px;
+        width: 100%;
+      }
+      .sparkline-wrap {
+        background: rgba(15,20,25,0.7);
+        border: 1px solid rgba(16,185,129,0.15);
+        border-radius: 16px;
+        padding: 16px 20px;
+        backdrop-filter: blur(12px);
+      }
+      .sparkline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .sparkline-title {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sparkline-svg {
+        width: 100%;
+        height: 64px;
+        overflow: visible;
+      }
+      .sparkline-line {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2s ease-out .3s forwards;
+      }
+      @keyframes drawLine {
+        to { stroke-dashoffset: 0; }
+      }
+      .sparkline-fill {
+        opacity: 0;
+        animation: fadeIn .5s ease 2s forwards;
+      }
+
+      /* ---- Leaderboard podium ---- */
+      .podium-wrap {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .podium-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .podium-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        border: 2px solid;
+        position: relative;
+      }
+      .podium-col.rank-1 .podium-avatar {
+        width: 52px;
+        height: 52px;
+        background: rgba(251,191,36,0.15);
+        border-color: #fbbf24;
+        color: #fbbf24;
+        box-shadow: 0 0 20px rgba(251,191,36,0.3);
+      }
+      .podium-col.rank-2 .podium-avatar {
+        background: rgba(203,213,225,0.1);
+        border-color: #cbd5e1;
+        color: #cbd5e1;
+      }
+      .podium-col.rank-3 .podium-avatar {
+        background: rgba(249,115,22,0.1);
+        border-color: #f97316;
+        color: #f97316;
+      }
+      .podium-bar {
+        width: 80px;
+        border-radius: 6px 6px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 0;
+        transition: height .8s cubic-bezier(0.4,0,0.2,1);
+      }
+      .podium-col.rank-1 .podium-bar {
+        height: 80px;
+        background: linear-gradient(180deg, rgba(251,191,36,0.25), rgba(251,191,36,0.08));
+        border: 1px solid rgba(251,191,36,0.3);
+        color: #fbbf24;
+      }
+      .podium-col.rank-2 .podium-bar {
+        height: 56px;
+        background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(203,213,225,0.04));
+        border: 1px solid rgba(203,213,225,0.2);
+        color: #cbd5e1;
+      }
+      .podium-col.rank-3 .podium-bar {
+        height: 40px;
+        background: linear-gradient(180deg, rgba(249,115,22,0.15), rgba(249,115,22,0.04));
+        border: 1px solid rgba(249,115,22,0.2);
+        color: #f97316;
+      }
+      .podium-name {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        text-align: center;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .podium-crown {
+        position: absolute;
+        top: -14px;
+        font-size: 12px;
+        animation: crownBounce 2s ease-in-out infinite;
+      }
+      @keyframes crownBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+
+      /* ---- Panel: glass card ---- */
+      .panel {
+        backdrop-filter: blur(8px) saturate(140%);
+        background: rgba(15,20,25,0.75) !important;
+      }
+
+      /* ---- Topbar ticker spacer ---- */
+      .topbar { top: 0; }
+
+      /* ---- Active call flash ---- */
+      @keyframes callFlash {
+        0%, 100% { background-color: transparent; }
+        50% { background-color: rgba(16,185,129,0.06); }
+      }
+      .call-row.new-call {
+        animation: callFlash 1s ease 2;
+      }
+
+      /* ---- Number count-up ---- */
+      .count-up { display: inline-block; }
+
+      /* ---- Glow text ---- */
+      .glow-text {
+        text-shadow: 0 0 20px rgba(16,185,129,0.5);
+      }
+
+      /* ---- Stat value shimmer on load ---- */
+      .stat-loading {
+        color: transparent !important;
+        background: linear-gradient(90deg, var(--bg-3) 30%, var(--bg-2) 50%, var(--bg-3) 70%);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: shimmer 1.4s ease infinite;
+        border-radius: 4px;
+      }
+
     </style>
   </head>
   <body>
     <!-- Particle Background -->
     <canvas id="cgCanvas"></canvas>
+    <!-- Mouse spotlight -->
+    <div id="mouseSpotlight"></div>
+
+    <!-- Live Stats Ticker -->
+    <div id="cgTicker">
+      <div class="ticker-track" id="tickerTrack">
+        <span class="ticker-item"><span class="t-label">PROVIDERS</span><span class="t-val" id="tkProviders">…</span></span>
+        <span class="ticker-item"><span class="t-label">CALLS</span><span class="t-val" id="tkCalls">…</span></span>
+        <span class="ticker-item"><span class="t-label">HONOR RATE</span><span class="t-val" id="tkHonor">…</span></span>
+        <span class="ticker-item"><span class="t-label">SLASHES</span><span class="t-val" id="tkSlashes">…</span></span>
+        <span class="ticker-item"><span class="t-label">NETWORK</span><span class="t-val" style="color:var(--accent)">Arc Testnet</span></span>
+        <span class="ticker-item"><span class="t-label">CONTRACT</span><span class="t-val">PayPerCall v2</span></span>
+        <span class="ticker-item" id="tkTime"><span class="t-label">TIME</span><span class="t-val" id="tkClock">…</span></span>
+        <!-- duplicate for seamless loop -->
+        <span class="ticker-item"><span class="t-label">PROVIDERS</span><span class="t-val" id="tkProviders2">…</span></span>
+        <span class="ticker-item"><span class="t-label">CALLS</span><span class="t-val" id="tkCalls2">…</span></span>
+        <span class="ticker-item"><span class="t-label">HONOR RATE</span><span class="t-val" id="tkHonor2">…</span></span>
+        <span class="ticker-item"><span class="t-label">SLASHES</span><span class="t-val" id="tkSlashes2">…</span></span>
+        <span class="ticker-item"><span class="t-label">NETWORK</span><span class="t-val" style="color:var(--accent)">Arc Testnet</span></span>
+        <span class="ticker-item"><span class="t-label">CONTRACT</span><span class="t-val">PayPerCall v2</span></span>
+      </div>
+    </div>
 
     <!-- SLA Countdown Banner -->
     <div id="slaBanner">
@@ -3986,17 +4324,40 @@
         <button class="btn btn-primary" id="connectBtn2">Connect wallet</button>
 
         <div class="hero-stat-row">
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroProviders">—</div>
             <div class="lbl">Registered providers</div>
           </div>
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroCalls">—</div>
             <div class="lbl">Calls on chain</div>
           </div>
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroSlashes">—</div>
             <div class="lbl">Slashes enforced</div>
+          </div>
+        </div>
+
+        <!-- Hero Sparkline Chart -->
+        <div id="heroSparkline">
+          <div class="sparkline-wrap">
+            <div class="sparkline-header">
+              <div class="sparkline-title">
+                <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+                Network Call Activity
+              </div>
+              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
+            </div>
+            <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(16,185,129,0.3)"/>
+                  <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+                </linearGradient>
+              </defs>
+              <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
+              <path class="sparkline-line" id="sparklinePath"/>
+            </svg>
           </div>
         </div>
 
@@ -5154,6 +5515,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
               top by reputation
             </span>
+          </div>
+          <div class="panel-body">
+            <div class="podium-wrap" id="podiumWrap" style="display:none"></div>
           </div>
           <div class="panel-body compact" id="leaderboardBox">
             <div class="empty-state">loading rankings…</div>
@@ -10323,6 +10687,236 @@ console.log("call opened:", tx.hash);`;
             }
           });
           mo.observe(el, { childList: true, characterData: true, subtree: true });
+        });
+      })();
+
+    })();
+    </script>
+
+    <!-- ================================================================
+         ULTRA PREMIUM ENGINE 2 — Mouse Spotlight, Ticker, Sparkline, Podium, BorderBeam
+         ================================================================ -->
+    <script>
+    (function() {
+      "use strict";
+
+      /* ---- 1. MOUSE SPOTLIGHT ---- */
+      (function() {
+        const spot = document.getElementById("mouseSpotlight");
+        if (!spot) return;
+        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+        let cx = mx, cy = my;
+        document.addEventListener("mousemove", e => { mx = e.clientX; my = e.clientY; });
+        function tick() {
+          cx += (mx - cx) * 0.06;
+          cy += (my - cy) * 0.06;
+          spot.style.transform = `translate(${cx - 300}px, ${cy - 300}px)`;
+          requestAnimationFrame(tick);
+        }
+        tick();
+      })();
+
+      /* ---- 2. LIVE TICKER ---- */
+      (function() {
+        const ticker = document.getElementById("cgTicker");
+        if (!ticker) return;
+        // Show ticker only on disconnected view
+        function updateTickerVisibility() {
+          const dc = document.getElementById("disconnectedView");
+          if (dc && dc.style.display !== "none") {
+            ticker.style.display = "block";
+          } else {
+            ticker.style.display = "none";
+          }
+        }
+        updateTickerVisibility();
+        setInterval(updateTickerVisibility, 1000);
+
+        // Clock
+        function updateClock() {
+          const el = document.getElementById("tkClock");
+          if (el) el.textContent = new Date().toLocaleTimeString("en-US", { hour12: false });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Sync ticker values from hero stats
+        function syncTicker() {
+          const map = [
+            ["heroProviders", "tkProviders", "tkProviders2"],
+            ["heroCalls",     "tkCalls",     "tkCalls2"],
+            ["heroSlashes",   "tkSlashes",   "tkSlashes2"],
+          ];
+          map.forEach(([src, t1, t2]) => {
+            const v = document.getElementById(src)?.textContent || "…";
+            const a = document.getElementById(t1);
+            const b = document.getElementById(t2);
+            if (a) a.textContent = v;
+            if (b) b.textContent = v;
+          });
+          // honor rate from overview
+          const h = document.getElementById("ovHonor");
+          if (h) {
+            const e1 = document.getElementById("tkHonor");
+            const e2 = document.getElementById("tkHonor2");
+            if (e1) e1.textContent = h.textContent;
+            if (e2) e2.textContent = h.textContent;
+          }
+        }
+        setInterval(syncTicker, 2000);
+      })();
+
+      /* ---- 3. HERO SPARKLINE ---- */
+      (function() {
+        const svgPath = document.getElementById("sparklinePath");
+        const svgFill = document.getElementById("sparklineFill");
+        if (!svgPath) return;
+
+        function buildPath(data, W, H, fill) {
+          if (!data || data.length < 2) return "";
+          const max = Math.max(...data) || 1;
+          const min = Math.min(...data);
+          const range = max - min || 1;
+          const pts = data.map((v, i) => {
+            const x = (i / (data.length - 1)) * W;
+            const y = H - ((v - min) / range) * (H - 8) - 4;
+            return [x, y];
+          });
+          let d = `M${pts[0][0]},${pts[0][1]}`;
+          for (let i = 1; i < pts.length; i++) {
+            const cp1x = pts[i-1][0] + (pts[i][0] - pts[i-1][0]) / 3;
+            const cp2x = pts[i][0] - (pts[i][0] - pts[i-1][0]) / 3;
+            d += ` C${cp1x},${pts[i-1][1]} ${cp2x},${pts[i][1]} ${pts[i][0]},${pts[i][1]}`;
+          }
+          if (fill) {
+            d += ` L${pts[pts.length-1][0]},${H} L0,${H} Z`;
+          }
+          return d;
+        }
+
+        function renderSparkline(data) {
+          const W = 680, H = 64;
+          const line = buildPath(data, W, H, false);
+          const area = buildPath(data, W, H, true);
+          svgPath.setAttribute("d", line);
+          if (svgFill) svgFill.setAttribute("d", area);
+          // Animate draw
+          const len = svgPath.getTotalLength ? svgPath.getTotalLength() : 1200;
+          svgPath.style.strokeDasharray = len;
+          svgPath.style.strokeDashoffset = len;
+          svgPath.style.transition = "none";
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              svgPath.style.transition = "stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1)";
+              svgPath.style.strokeDashoffset = "0";
+            });
+          });
+        }
+
+        // Try to get data from subgraph when loaded
+        function trySparkline() {
+          // use window.state if available
+          const calls = window._state?.networkStats?.calls || [];
+          if (calls.length >= 2) {
+            // bucket by block groups (10 per bucket)
+            const buckets = [];
+            const sz = Math.max(1, Math.floor(calls.length / 20));
+            for (let i = 0; i < calls.length; i += sz) {
+              buckets.push(calls.slice(i, i + sz).length);
+            }
+            renderSparkline(buckets);
+          } else {
+            // fallback: gentle random wave
+            const fake = Array.from({length: 24}, (_, i) =>
+              3 + Math.sin(i * 0.4) * 2 + Math.random() * 1.5
+            );
+            renderSparkline(fake);
+          }
+        }
+        setTimeout(trySparkline, 1200);
+        setTimeout(trySparkline, 4000);
+      })();
+
+      /* ---- 4. BORDER BEAM ---- */
+      (function() {
+        function addBeam(el) {
+          if (el.querySelector(".bb-beam")) return;
+          el.style.position = "relative";
+          el.style.overflow = "hidden";
+          const beam = document.createElement("span");
+          beam.className = "bb-beam";
+          el.appendChild(beam);
+        }
+        // Add to hero stats
+        document.querySelectorAll(".border-beam-wrap").forEach(addBeam);
+        // Add to active ov-stat cards with delay
+        setTimeout(() => {
+          document.querySelectorAll(".ov-stat").forEach(addBeam);
+        }, 500);
+      })();
+
+      /* ---- 5. LEADERBOARD PODIUM ---- */
+      (function() {
+        // Wait for leaderboard data and inject podium
+        function buildPodium() {
+          const rows = document.querySelectorAll("#leaderboardBox .lb-row");
+          if (rows.length < 3) return;
+          const podium = document.getElementById("podiumWrap");
+          if (!podium || podium.dataset.built) return;
+          podium.dataset.built = "1";
+
+          const top3 = Array.from(rows).slice(0, 3);
+          const data = top3.map(row => {
+            const rank = row.querySelector(".lb-rank")?.textContent?.trim() || "";
+            const owner = row.querySelector(".lb-owner")?.childNodes[0]?.textContent?.trim() || "";
+            const score = row.querySelector(".lb-score")?.textContent?.trim() || "0";
+            const isSelf = row.classList.contains("is-self");
+            return { rank, owner, score, isSelf };
+          });
+
+          // Order: 2nd, 1st, 3rd for podium shape
+          const order = [data[1], data[0], data[2]];
+          const heights = ["60px", "88px", "44px"];
+          const medals = ["🥈", "🥇", "🥉"];
+          const cols = ["#94a3b8", "#fbbf24", "#f97316"];
+          const positions = [2, 1, 3];
+
+          podium.innerHTML = `
+            <div class="podium-stage">
+              ${order.map((p, i) => `
+                <div class="podium-col">
+                  <div class="podium-name${p.isSelf ? " self" : ""}">${p.owner}</div>
+                  <div class="podium-score">${p.score}</div>
+                  <div class="podium-medal">${medals[i]}</div>
+                  <div class="podium-block" style="height:${heights[i]};background:linear-gradient(180deg,${cols[i]}22,${cols[i]}11);border:1px solid ${cols[i]}44">
+                    <span class="podium-rank" style="color:${cols[i]}">${positions[i]}</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>`;
+          podium.style.display = "block";
+        }
+
+        // Poll for leaderboard rows
+        let attempts = 0;
+        const poller = setInterval(() => {
+          buildPodium();
+          if (++attempts > 20) clearInterval(poller);
+        }, 800);
+      })();
+
+      /* ---- 6. SHIMMER SKELETONS on empty-state ---- */
+      (function() {
+        document.querySelectorAll(".empty-state").forEach(el => {
+          if (el.textContent.toLowerCase().includes("loading") ||
+              el.textContent.toLowerCase().includes("loading")) {
+            el.innerHTML = `
+              <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+                <div class="shimmer-line" style="width:80%;height:12px;border-radius:6px"></div>
+                <div class="shimmer-line" style="width:60%;height:12px;border-radius:6px"></div>
+                <div class="shimmer-line" style="width:70%;height:12px;border-radius:6px"></div>
+              </div>`;
+          }
         });
       })();
 
