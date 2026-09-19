@@ -3964,74 +3964,42 @@
         <!-- ===== BUDGET / SPENDING CAP ===== -->
         <section class="panel full-width" data-category="analytics">
           <div class="panel-head">
-            <h2>📈 Analytics</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
+            <h2>Analytics</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)" id="anLastUpdate">Goldsky subgraph · live data</span>
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Total Calls</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anTotalCalls">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anTotalCallsSub">all-time</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Honor Rate</div>
+                <div style="font-size:28px;font-weight:700;font-family:var(--font-mono)" id="anHonorRate" style="color:var(--accent)">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anHonorRateSub">completed / total closed</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Active Providers</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anActiveProviders">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anActiveProvidersSub">of <span id="anTotalProviders">—</span> total</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
-              </div>
-            </div>
-
-            <div style="margin-bottom:20px">
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
-              <div id="anProviderBars"></div>
-            </div>
-
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
-              <div id="anRecentCalls"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel full-width" data-category="analytics">
-          <div class="panel-head">
-            <h2>📈 Analytics</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
-          </div>
-          <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Avg Price / Call</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anAvgPrice">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px">USDC</div>
               </div>
             </div>
 
-            <div style="margin-bottom:20px">
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
-              <div id="anProviderBars"></div>
-            </div>
-
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
-              <div id="anRecentCalls"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Top Providers by Activity</div>
+                <div id="anProviderBars"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Recent Calls</div>
+                <div id="anRecentCalls"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
             </div>
           </div>
         </section>
@@ -5251,20 +5219,30 @@ async function refreshBalance() {
       async function refreshHero() {
         try {
           if (CONFIG.subgraphUrl) {
+            // Eğer allProviders zaten yüklendiyse tekrar fetch etme
+            if (state.allProviders && state.allProviders.length > 0) {
+              $("heroProviders").textContent = state.allProviders.length.toString();
+              return;
+            }
+
             const res = await fetch(CONFIG.subgraphUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                query: `{ providers(first:1000){ id } }`
+                query: `{ providers(first:1000){ id completedCalls slashedCalls } }`
               })
             });
 
             const data = await res.json();
-            const count = data.data?.providers?.length || 0;
+            const ps = data.data?.providers || [];
+            const count = ps.length;
 
             if (count > 0) {
               $("heroProviders").textContent = count.toString();
-              console.log("[HERO] Goldsky providers:", count);
+              // Hero slash sayısını da güncelle (gerçek tüm-zaman toplamı)
+              const totalSlashes = ps.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
+              $("heroSlashes").textContent = String(totalSlashes);
+              console.log("[HERO] providers:", count, "slashes:", totalSlashes);
               return;
             }
           }
@@ -5436,6 +5414,7 @@ async function refreshBalance() {
           // If no receipts visible but calls exist, show "—" instead of misleading 0%.
           let honorRate;
           let honorLabel;
+          const totalCalls = state.networkStats.calls;
           if (state.networkStats.receipts === 0 && totalCalls === 0) {
             honorRate = null;
             honorLabel = "no activity yet";
@@ -7522,10 +7501,31 @@ async function refreshBalance() {
           const honorRate = totalClosed > 0 ? Math.round(totalCompleted/totalClosed*100) : 100;
           const avgPrice = providers.length > 0 ? providers.reduce((a,p) => a + Number(p.pricePerCall||0), 0) / providers.length / 1e6 : 0;
 
-          if ($("anTotalCalls")) $("anTotalCalls").textContent = calls.length + "+";
-          if ($("anHonorRate")) $("anHonorRate").textContent = honorRate + "%";
+          // Total calls = toplam tamamlanan + toplam slashed + hala pending (calls listesinden)
+          const totalCallsAll = calls.length;
+          const totalCompletedAll = providers.reduce((a,p) => a + Number(p.completedCalls||0), 0);
+          const totalSlashedAll   = providers.reduce((a,p) => a + Number(p.slashedCalls||0), 0);
+          const totalClosedAll = totalCompletedAll + totalSlashedAll;
+          const honorRateAll = totalClosedAll > 0 ? Math.round(totalCompletedAll / totalClosedAll * 100) : null;
+
+          if ($("anTotalCalls")) $("anTotalCalls").textContent = totalCallsAll >= 1000 ? totalCallsAll + "+" : String(totalCallsAll);
+          if ($("anTotalCallsSub")) $("anTotalCallsSub").textContent = `${totalCompletedAll} completed · ${totalSlashedAll} slashed`;
+          if ($("anHonorRate")) {
+            const el = $("anHonorRate");
+            if (honorRateAll !== null) {
+              el.textContent = honorRateAll + "%";
+              el.style.color = honorRateAll >= 80 ? "var(--accent)" : honorRateAll >= 50 ? "var(--warn)" : "var(--danger)";
+            } else {
+              el.textContent = "—";
+              el.style.color = "var(--text-faint)";
+            }
+          }
+          if ($("anHonorRateSub")) $("anHonorRateSub").textContent = `${totalCompletedAll} honored / ${totalClosedAll} closed`;
           if ($("anActiveProviders")) $("anActiveProviders").textContent = active;
-          if ($("anAvgPrice")) $("anAvgPrice").textContent = avgPrice.toFixed(3) + " USDC";
+          if ($("anTotalProviders")) $("anTotalProviders").textContent = providers.length;
+          if ($("anAvgPrice")) $("anAvgPrice").textContent = avgPrice > 0 ? avgPrice.toFixed(3) : "—";
+          if ($("anLastUpdate")) $("anLastUpdate").textContent = `updated ${new Date().toLocaleTimeString("en-US",{hour12:false})}`;
+
 
           // Provider bars
           const topProviders = providers
@@ -7918,8 +7918,7 @@ console.log("call opened:", tx.hash);`;
           // loaded after connect by refreshBalance().
           const safeDecimals = state.usdcDecimals || 6;
 
-          // Provider count comes from Goldsky
-          // Show hero stats from Goldsky first (fast, no RPC dependency)
+          // Hero stats — gerçek zincir verisi, cüzdan olmadan
           if (CONFIG.subgraphUrl) {
             try {
               const stats = await fetch(CONFIG.subgraphUrl, {
@@ -7927,8 +7926,16 @@ console.log("call opened:", tx.hash);`;
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   query: `{
-                    providers(first:1000) { id }
-                    calls(first:1000) { id }
+                    providers(first:1000) {
+                      id
+                      active
+                      completedCalls
+                      slashedCalls
+                    }
+                    calls(first:1000, orderBy: createdAt, orderDirection: desc) {
+                      id
+                      status
+                    }
                   }`
                 })
               });
@@ -7936,17 +7943,52 @@ console.log("call opened:", tx.hash);`;
               const data = await stats.json();
 
               if (data.data) {
-                $("heroProviders").textContent =
-                  String(data.data.providers?.length || 0);
+                const ps = data.data.providers || [];
+                const cs = data.data.calls || [];
 
-                $("heroCalls").textContent =
-                  String(data.data.calls?.length || 0);
+                // Provider sayısı
+                $("heroProviders").textContent = String(ps.length);
+
+                // Toplam call (calls listesi)
+                $("heroCalls").textContent = cs.length >= 1000
+                  ? cs.length + "+"
+                  : String(cs.length);
+
+                // Toplam slash — providers'ın slashedCalls toplamı (gerçek tüm-zaman verisi)
+                const totalSlashes = ps.reduce((sum, p) => sum + Number(p.slashedCalls || 0), 0);
+                $("heroSlashes").textContent = String(totalSlashes);
+
+                // Honor rate gauge (disconnected ekranda görünmez ama hesapla)
+                const totalCompleted = ps.reduce((sum, p) => sum + Number(p.completedCalls || 0), 0);
+                const totalClosed = totalCompleted + totalSlashes;
+                if (totalClosed > 0) {
+                  const rate = Math.round(totalCompleted / totalClosed * 100);
+                  console.log("[boot] honor rate:", rate + "%");
+                }
+
+                console.log("[boot] providers:", ps.length, "calls:", cs.length, "slashes:", totalSlashes);
               }
             } catch (e) {
               console.warn("[Goldsky hero stats failed]", e.message);
-              $("heroProviders").textContent =
-                0 .toString();
-
+              // RPC fallback: sadece provider sayısını çek
+              try {
+                const rpcBody = JSON.stringify({
+                  jsonrpc: "2.0", id: 1, method: "eth_call",
+                  params: [{ to: CONFIG.registry, data: "0x61f69c89" }, "latest"]
+                });
+                const rpcRes = await fetch(CONFIG.rpcUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: rpcBody
+                });
+                const rpcJson = await rpcRes.json();
+                if (rpcJson.result && rpcJson.result !== "0x") {
+                  const nextId = parseInt(rpcJson.result, 16);
+                  if (!isNaN(nextId) && nextId > 1) {
+                    $("heroProviders").textContent = String(nextId - 1);
+                  }
+                }
+              } catch {}
             }
           }
 
@@ -8029,8 +8071,8 @@ console.log("call opened:", tx.hash);`;
                   }
                 }
 
-                const slashCount = calls.filter(c => c.status === "SLASHED").length;
-                $("heroSlashes").textContent = String(slashCount);
+                // heroSlashes Phase 1'de provider.slashedCalls toplamından hesaplandı.
+                // Burada sadece son 20 event'teki slash görünür — onu ezmiyoruz.
               }
             } catch (e) {
               console.warn("[Goldsky landing activity failed]", e.message);
