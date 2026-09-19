@@ -13,30 +13,30 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
     <style>
       :root {
-        /* Professional light theme */
-        --bg-0: #f8fafc;
-        --bg-1: #ffffff;
-        --bg-2: #f1f5f9;
-        --bg-3: #e2e8f0;
-        --border: #e2e8f0;
-        --border-hi: #cbd5e1;
-        --text: #0f172a;
-        --text-dim: #475569;
-        --text-faint: #94a3b8;
-        --accent: #059669;
-        --accent-dim: #047857;
-        --accent-bg: rgba(5, 150, 105, 0.08);
-        --danger: #dc2626;
-        --danger-bg: rgba(220, 38, 38, 0.08);
-        --warn: #d97706;
-        --warn-bg: rgba(217, 119, 6, 0.08);
-        --info: #2563eb;
-        --info-bg: rgba(37, 99, 235, 0.08);
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-        --glow: 0 0 0 3px rgba(5, 150, 105, 0.12);
-        --glow-strong: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        /* Dark theme — developer/protocol product */
+        --bg-0: #0a0e14;
+        --bg-1: #0f1419;
+        --bg-2: #161d27;
+        --bg-3: #1e2836;
+        --border: rgba(255,255,255,0.07);
+        --border-hi: rgba(255,255,255,0.13);
+        --text: #e8edf3;
+        --text-dim: #8b95a3;
+        --text-faint: #4a5568;
+        --accent: #10b981;
+        --accent-dim: #059669;
+        --accent-bg: rgba(16, 185, 129, 0.1);
+        --danger: #f87171;
+        --danger-bg: rgba(248, 113, 113, 0.1);
+        --warn: #fbbf24;
+        --warn-bg: rgba(251, 191, 36, 0.1);
+        --info: #60a5fa;
+        --info-bg: rgba(96, 165, 250, 0.1);
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+        --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+        --glow: 0 0 0 2px rgba(16,185,129,0.2);
+        --glow-strong: 0 0 20px rgba(16,185,129,0.25);
         --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Menlo", monospace;
         --font-sans: "Spline Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --font-display: "Fraunces", Georgia, serif;
@@ -46,122 +46,12 @@
         box-sizing: border-box;
       }
 
-      /* ---- Clean dark theme ---- */
-      body {
-        background: var(--bg-0) !important;
-        color: var(--text) !important;
-      }
-      .app-sidebar {
-        background: var(--bg-1) !important;
-        border-right: 1px solid var(--border) !important;
-      }
-      .sb-item {
-        color: var(--text-dim) !important;
-        transition: all .15s !important;
-      }
-      .sb-item:hover {
-        background: var(--bg-2) !important;
-        color: var(--text) !important;
-      }
-      .sb-item.on {
-        background: var(--accent-bg) !important;
-        color: var(--accent) !important;
-        border-left-color: var(--accent) !important;
-      }
-      .sb-name { color: var(--text) !important; }
-      .sb-net { color: var(--text-faint) !important; }
-      .sb-section { color: var(--text-faint) !important; }
-      .panel {
-        background: var(--bg-1) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 12px !important;
-        transition: border-color .15s, box-shadow .15s !important;
-      }
-      .panel:hover {
-        border-color: var(--border-hi) !important;
-        box-shadow: var(--glow) !important;
-      }
-      header {
-        background: var(--bg-1) !important;
-        border-bottom: 1px solid var(--border) !important;
-      }
-
-      /* ---- Dark theme glow effects ---- */
-      body {
-        background: var(--bg-0) !important;
-        color: var(--text) !important;
-      }
-      .panel {
-        background: var(--bg-1) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 16px !important;
-        transition: border-color .2s, box-shadow .2s !important;
-      }
-      .panel:hover {
-        border-color: var(--border-hi) !important;
-        box-shadow: var(--glow) !important;
-      }
-      .btn-primary {
-        background: var(--accent) !important;
-        color: #000 !important;
-        font-weight: 600 !important;
-        box-shadow: 0 0 12px rgba(34,197,94,0.3) !important;
-        transition: all .2s !important;
-      }
-      .btn-primary:hover {
-        box-shadow: var(--glow-strong) !important;
-        transform: translateY(-1px) !important;
-      }
-      .btn {
-        border: 1px solid var(--border-hi) !important;
-        color: var(--text) !important;
-        background: var(--bg-2) !important;
-        transition: all .2s !important;
-      }
-      .btn:hover {
-        border-color: var(--accent) !important;
-        color: var(--accent) !important;
-      }
-      input, textarea, select {
-        background: var(--bg-2) !important;
-        border-color: var(--border) !important;
-        color: var(--text) !important;
-      }
-      input:focus, textarea:focus {
-        border-color: var(--accent) !important;
-        box-shadow: 0 0 0 2px rgba(34,197,94,0.15) !important;
-      }
-      .badge.active {
-        background: rgba(34,197,94,0.15) !important;
-        color: var(--accent) !important;
-        border: 1px solid rgba(34,197,94,0.3) !important;
-      }
-      .badge.inactive {
-        background: rgba(132,142,156,0.1) !important;
-        color: var(--text-dim) !important;
-      }
-      table thead th {
-        background: var(--bg-2) !important;
-        color: var(--text-faint) !important;
-        border-bottom: 1px solid var(--border) !important;
-      }
-      table tbody tr:hover {
-        background: var(--bg-2) !important;
-      }
-      .rep-bar-fill, .progress-fill {
-        background: var(--accent) !important;
-        box-shadow: 0 0 6px rgba(34,197,94,0.4) !important;
-      }
-      .live-dot-pulse {
-        background: var(--accent) !important;
-        box-shadow: 0 0 8px var(--accent) !important;
-      }
-      /* Panel category fade animation */
+      /* ---- Panel category fade animation ---- */
       [data-category].cat-visible {
-        animation: catFade .25s ease both !important;
+        animation: catFade .3s cubic-bezier(0.4,0,0.2,1) both;
       }
       @keyframes catFade {
-        from { opacity: 0; transform: translateY(8px); }
+        from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
       }
 
@@ -312,14 +202,19 @@
       body {
         background-image:
           radial-gradient(
-            ellipse 1200px 600px at 20% -10%,
-            rgba(5, 150, 105, 0.04),
-            transparent 50%
+            ellipse 1400px 700px at 15% -5%,
+            rgba(16, 185, 129, 0.06),
+            transparent 55%
           ),
           radial-gradient(
-            ellipse 900px 500px at 110% 20%,
-            rgba(37, 99, 235, 0.03),
-            transparent 50%
+            ellipse 1000px 600px at 105% 15%,
+            rgba(96, 165, 250, 0.04),
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse 800px 400px at 50% 100%,
+            rgba(16, 185, 129, 0.03),
+            transparent 60%
           );
         background-attachment: fixed;
       }
@@ -342,8 +237,8 @@
         position: sticky;
         top: 0;
         z-index: 40;
-        backdrop-filter: blur(16px) saturate(180%);
-        background: rgba(250, 250, 250, 0.75);
+        backdrop-filter: blur(20px) saturate(180%);
+        background: rgba(10, 14, 20, 0.85);
         border-bottom: 1px solid var(--border);
       }
 
@@ -499,14 +394,18 @@
 
       .btn-primary {
         background: var(--accent);
-        color: #ffffff;
+        color: #fff;
         border-color: var(--accent);
-        font-weight: 600;
+        font-weight: 700;
+        box-shadow: 0 0 16px rgba(16,185,129,0.25);
+        letter-spacing: -0.01em;
       }
 
       .btn-primary:hover:not(:disabled) {
-        background: #047857;
-        border-color: #047857;
+        background: #34d399;
+        border-color: #34d399;
+        box-shadow: 0 0 24px rgba(16,185,129,0.4);
+        transform: translateY(-1px);
       }
 
       .btn-danger {
@@ -526,17 +425,17 @@
       }
 
       .btn-nano {
-        background: var(--accent-bg) !important;
-        color: var(--accent) !important;
-        border-color: rgba(5, 150, 105, 0.25) !important;
-        font-size: 11px !important;
-        padding: 5px 9px !important;
+        background: var(--accent-bg);
+        color: var(--accent);
+        border-color: rgba(16,185,129,0.25);
+        font-size: 11px;
+        padding: 5px 9px;
         white-space: nowrap;
       }
       .btn-nano:hover:not(:disabled) {
-        background: var(--accent) !important;
-        color: #fff !important;
-        border-color: var(--accent) !important;
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
       }
       .feed-tag.job {
         background: rgba(168,85,247,0.15);
@@ -592,6 +491,7 @@
 
       .panel:hover {
         box-shadow: var(--shadow-md);
+        border-color: var(--border-hi);
       }
 
       .panel-head {
@@ -1528,7 +1428,7 @@
         letter-spacing: -0.04em;
         margin: 0 0 20px;
         line-height: 1.05;
-        background: linear-gradient(135deg, #0a0a0a 0%, #404040 100%);
+        background: linear-gradient(135deg, #e8edf3 0%, #10b981 60%, #60a5fa 100%);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -3299,9 +3199,449 @@
       .status-submitted { background: rgba(168,85,247,0.12); color: #a855f7; }
       .status-completed { background: var(--accent-bg); color: var(--accent); }
       .status-rejected, .status-expired { background: var(--danger-bg); color: var(--danger); }
+
+      /* ============================================================
+         SLA COUNTDOWN BANNER — sabit üst şerit, açık call varsa görünür
+         ============================================================ */
+      #slaBanner {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        background: linear-gradient(90deg, #0f1419 0%, #161d27 100%);
+        border-bottom: 1px solid var(--border-hi);
+        padding: 8px 20px;
+        gap: 12px;
+        align-items: center;
+        font-size: 12px;
+        font-family: var(--font-mono);
+        overflow-x: auto;
+        animation: bannerSlide .3s ease;
+      }
+      #slaBanner.visible { display: flex; }
+      #slaBanner.urgent-banner {
+        border-bottom-color: var(--danger);
+        background: linear-gradient(90deg, rgba(248,113,113,0.08) 0%, #0f1419 100%);
+      }
+      @keyframes bannerSlide {
+        from { transform: translateY(-100%); opacity:0; }
+        to   { transform: translateY(0); opacity:1; }
+      }
+      .banner-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .banner-call-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        padding: 3px 10px;
+        font-size: 11px;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: border-color .15s;
+      }
+      .banner-call-chip:hover { border-color: var(--accent); }
+      .banner-call-chip.chip-warn { border-color: var(--warn); color: var(--warn); }
+      .banner-call-chip.chip-urgent { border-color: var(--danger); color: var(--danger); animation: chipPulse 1s ease-in-out infinite; }
+      @keyframes chipPulse { 0%,100%{opacity:1} 50%{opacity:.65} }
+      .banner-time { font-weight: 700; }
+      #bannerClose {
+        margin-left: auto;
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        color: var(--text-faint);
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        padding: 0 4px;
+        transition: color .15s;
+      }
+      #bannerClose:hover { color: var(--text); }
+
+      /* ============================================================
+         PROVIDER CARD GRID
+         ============================================================ */
+      .provider-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+      }
+      .prov-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+        transition: border-color .2s, box-shadow .2s, transform .15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .prov-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(16,185,129,0.04) 0%, transparent 60%);
+        pointer-events: none;
+      }
+      .prov-card:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 20px rgba(16,185,129,0.12);
+        transform: translateY(-2px);
+      }
+      .prov-card.self-card { border-color: rgba(16,185,129,0.35); }
+      .prov-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .prov-card-id {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .prov-card-owner {
+        font-size: 11px;
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        margin-bottom: 12px;
+      }
+      .prov-rep-ring {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+      }
+      .prov-rep-ring svg { transform: rotate(-90deg); }
+      .prov-rep-ring-val {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .prov-card-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .prov-stat-cell {
+        background: var(--bg-3);
+        border-radius: 8px;
+        padding: 7px 10px;
+      }
+      .prov-stat-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--text-faint);
+        margin-bottom: 2px;
+      }
+      .prov-stat-val {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .prov-honor-bar {
+        height: 4px;
+        background: var(--bg-3);
+        border-radius: 100px;
+        margin-bottom: 6px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+      }
+      .prov-honor-fill {
+        height: 100%;
+        border-radius: 100px;
+        transition: width .5s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 0 6px currentColor;
+      }
+      .prov-card-footer {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .prov-card-btn {
+        flex: 1;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--bg-3);
+        color: var(--text-dim);
+        transition: all .15s;
+      }
+      .prov-card-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .prov-card-btn.primary {
+        background: var(--accent);
+        color: #0a0e14;
+        border-color: var(--accent);
+        box-shadow: 0 0 10px rgba(16,185,129,0.2);
+      }
+      .prov-card-btn.primary:hover { background: #34d399; box-shadow: 0 0 16px rgba(16,185,129,0.35); }
+
+      /* ============================================================
+         FIRST-RUN ONBOARDING WIZARD
+         ============================================================ */
+      #onboardingWizard {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 8888;
+        width: 340px;
+        max-width: calc(100vw - 32px);
+      }
+      .wizard-card {
+        background: var(--bg-1);
+        border: 1px solid var(--border-hi);
+        border-radius: 20px;
+        padding: 32px;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+      }
+      .wizard-step { display: none; }
+      .wizard-step.active { display: block; }
+      .wizard-progress {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 28px;
+      }
+      .wizard-dot {
+        height: 3px;
+        flex: 1;
+        border-radius: 100px;
+        background: var(--bg-3);
+        transition: background .3s;
+      }
+      .wizard-dot.done { background: var(--accent); }
+      .wizard-step-num {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .wizard-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 10px;
+        line-height: 1.3;
+      }
+      .wizard-desc {
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.65;
+        margin-bottom: 22px;
+      }
+      .wizard-highlight {
+        background: var(--accent-bg);
+        border: 1px solid rgba(16,185,129,0.2);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-bottom: 22px;
+        font-family: var(--font-mono);
+      }
+      .wizard-btns {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .wizard-btn-skip {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-size: 13px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all .15s;
+      }
+      .wizard-btn-skip:hover { color: var(--text); border-color: var(--border-hi); }
+      .wizard-btn-next {
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        padding: 9px 22px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #0a0e14;
+        cursor: pointer;
+        box-shadow: 0 0 14px rgba(16,185,129,0.3);
+        transition: all .2s;
+      }
+      .wizard-btn-next:hover { background: #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.4); }
+
+      /* ============================================================
+         OVERVIEW DASHBOARD — canlı stats grid
+         ============================================================ */
+      .overview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 900px) { .overview-grid { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 600px) { .overview-grid { grid-template-columns: 1fr; } }
+      .ov-stat {
+        background: linear-gradient(145deg, var(--bg-2) 0%, rgba(16,185,129,0.03) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px 24px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color .2s, box-shadow .2s, transform .2s;
+        cursor: default;
+      }
+      .ov-stat:hover {
+        border-color: rgba(16,185,129,0.3);
+        box-shadow: 0 0 0 1px rgba(16,185,129,0.1), var(--shadow-md);
+        transform: translateY(-1px);
+      }
+      .ov-stat::before {
+        content: '';
+        position: absolute;
+        top: -20px; right: -20px;
+        width: 80px; height: 80px;
+        background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .ov-icon {
+        font-size: 20px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      .ov-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin-bottom: 8px;
+      }
+      .ov-val {
+        font-family: var(--font-mono);
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1;
+        letter-spacing: -0.03em;
+      }
+      .ov-sub {
+        font-size: 11px;
+        color: var(--text-faint);
+        margin-top: 6px;
+        font-family: var(--font-mono);
+      }
+      .live-feed-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+        animation: feedRow .3s ease;
+      }
+      @keyframes feedRow {
+        from { opacity:0; transform: translateX(-6px); }
+        to   { opacity:1; transform: translateX(0); }
+      }
+      .live-feed-row:last-child { border-bottom: none; }
+      .feed-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+      .feed-dot.call   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+      .feed-dot.slash  { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+      .feed-dot.receipt{ background: var(--info);   box-shadow: 0 0 6px var(--info); }
     </style>
   </head>
   <body>
+    <!-- SLA Countdown Banner -->
+    <div id="slaBanner">
+      <span class="banner-label">⏱ Active SLA</span>
+      <div id="bannerChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <button id="bannerClose" title="Dismiss">×</button>
+    </div>
+
+    <!-- First-Run Onboarding Wizard -->
+    <div id="onboardingWizard">
+      <div class="wizard-card">
+        <button class="wizard-btn-skip" id="wSkipAll" style="position:absolute;top:12px;right:14px;font-size:18px;padding:0;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1">×</button>
+        <div class="wizard-progress">
+          <div class="wizard-dot done" id="wdot1"></div>
+          <div class="wizard-dot" id="wdot2"></div>
+          <div class="wizard-dot" id="wdot3"></div>
+          <div class="wizard-dot" id="wdot4"></div>
+        </div>
+        <!-- Step 1 -->
+        <div class="wizard-step active" id="wstep1">
+          <div class="wizard-step-num">Step 1 of 4</div>
+          <div class="wizard-title">Welcome to CallGuard</div>
+          <div class="wizard-desc">CallGuard is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC and commit to responding within a time window. Miss the deadline — get slashed.</div>
+          <div class="wizard-highlight">🔒 Stake · ⚡ Call · ✓ Receipt · ⚠ Slash — the full lifecycle in one contract.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip">Skip tour</button>
+            <button class="wizard-btn-next" id="wNext1">Connect wallet →</button>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div class="wizard-step" id="wstep2">
+          <div class="wizard-step-num">Step 2 of 4</div>
+          <div class="wizard-title">Register as a provider</div>
+          <div class="wizard-desc">Stake USDC and set your price per call. You commit to responding within your max response time. Callers get a refund + slash if you miss it.</div>
+          <div class="wizard-highlight">Go to <strong style="color:var(--accent)">Providers → Register</strong> and set your stake, price, and endpoint URL.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip2">Skip</button>
+            <button class="wizard-btn-next" id="wNext2">Next: make a call →</button>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div class="wizard-step" id="wstep3">
+          <div class="wizard-step-num">Step 3 of 4</div>
+          <div class="wizard-title">Call a service</div>
+          <div class="wizard-desc">Pick a provider from the list, approve USDC, and open a call. The USDC goes into escrow. The provider has until the deadline to respond.</div>
+          <div class="wizard-highlight">Go to <strong style="color:var(--accent)">Providers → Call service</strong> and enter a provider ID and payload.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip3">Skip</button>
+            <button class="wizard-btn-next" id="wNext3">Next: submit receipt →</button>
+          </div>
+        </div>
+        <!-- Step 4 -->
+        <div class="wizard-step" id="wstep4">
+          <div class="wizard-step-num">Step 4 of 4</div>
+          <div class="wizard-title">Submit a receipt or claim timeout</div>
+          <div class="wizard-desc">If you are the provider: submit a signed receipt before the deadline to release the escrow. If you are the caller and the deadline passes: claim the timeout to get a refund and slash the provider.</div>
+          <div class="wizard-highlight">Your active calls show a live countdown in the <strong style="color:var(--accent)">Calls</strong> panel and the top banner.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-next" id="wDone">Got it — let's go ✓</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ============================================================ -->
     <!-- Top bar                                                      -->
     <!-- ============================================================ -->
@@ -4065,6 +4405,57 @@
           </div>
         </section>
 
+        <!-- Overview: Network stats dashboard -->
+        <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
+          <div class="panel-head">
+            <h2>Network Overview</h2>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint)">
+              <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+              live · Arc Testnet
+            </span>
+          </div>
+          <div class="panel-body">
+            <div class="overview-grid">
+              <div class="ov-stat">
+                <span class="ov-icon">🔌</span>
+                <div class="ov-label">Active Providers</div>
+                <div class="ov-val" id="ovProviders" style="color:var(--accent)">—</div>
+                <div class="ov-sub" id="ovProvidersSub">loading…</div>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-icon">⚡</span>
+                <div class="ov-label">Recent Calls</div>
+                <div class="ov-val" id="ovCalls" style="color:var(--info)">—</div>
+                <div class="ov-sub" id="ovCallsSub">last 20</div>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-icon">🛡</span>
+                <div class="ov-label">Honor Rate</div>
+                <div class="ov-val" id="ovHonor" style="color:var(--accent)">—</div>
+                <div class="ov-sub" id="ovHonorSub">completed / closed</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+                  <span style="font-size:14px">📡</span>
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Live Activity</span>
+                  <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:auto"></span>
+                </div>
+                <div id="ovLiveFeed"><div class="empty-state" style="font-size:12px">Loading activity…</div></div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+                  <span style="font-size:14px">🏆</span>
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Top Providers</span>
+                </div>
+                <div id="ovTopProviders"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- My Activity -->
         <section class="panel full-width cat-visible" data-category="overview">
           <div class="panel-head">
             <h2>My Activity</h2>
@@ -7689,8 +8080,9 @@ async function refreshBalance() {
         });
         // Aktif kategoriyi kaydet
         window._activeCat = cat;
-        // Analytics paneli açıldığında yükle
+        // Paneller açıldığında veri yükle
         if (cat === "analytics") loadAnalytics();
+        if (cat === "overview") refreshOverviewDashboard();
       }
 
       // Sidebar click handlers
@@ -7702,6 +8094,167 @@ async function refreshBalance() {
 
       // Başlangıçta overview göster
       showCategory("overview");
+
+      // ================================================================
+      // ONBOARDING WIZARD
+      // ================================================================
+      (function() {
+        const seen = localStorage.getItem("cg_onboard_v2");
+        if (!seen) {
+          const wizard = $("onboardingWizard");
+          if (wizard) wizard.style.display = "flex";
+        }
+        let step = 1;
+        const totalSteps = 4;
+        function goStep(n) {
+          step = n;
+          document.querySelectorAll(".wizard-step").forEach(s => {
+            s.style.display = s.dataset.step == n ? "block" : "none";
+          });
+          const dots = document.querySelectorAll(".wizard-dot");
+          dots.forEach((d, i) => d.classList.toggle("active", i + 1 === n));
+          const prog = document.getElementById("wizardProgress");
+          if (prog) prog.style.width = `${(n / totalSteps) * 100}%`;
+        }
+        goStep(1);
+        document.querySelectorAll(".wizard-btn-next").forEach(btn => {
+          btn.addEventListener("click", () => {
+            if (step < totalSteps) { goStep(step + 1); }
+            else {
+              localStorage.setItem("cg_onboard_v2", "1");
+              const wizard = $("onboardingWizard");
+              if (wizard) wizard.style.display = "none";
+            }
+          });
+        });
+        document.querySelectorAll(".wizard-btn-skip").forEach(btn => {
+          btn.addEventListener("click", () => {
+            localStorage.setItem("cg_onboard_v2", "1");
+            const wizard = $("onboardingWizard");
+            if (wizard) wizard.style.display = "none";
+          });
+        });
+      })();
+
+      // ================================================================
+      // SLA COUNTDOWN BANNER
+      // ================================================================
+      (function() {
+        const banner = $("slaBanner");
+        const chips = $("bannerChips");
+        const closeBtn = $("bannerClose");
+        let dismissed = false;
+        if (closeBtn) closeBtn.addEventListener("click", () => { dismissed = true; if (banner) banner.style.display = "none"; });
+
+        setInterval(() => {
+          if (dismissed || !state.myCalls || state.myCalls.size === 0) {
+            if (banner && !dismissed) banner.style.display = "none";
+            return;
+          }
+          const nowSec = Date.now() / 1000;
+          const pending = Array.from(state.myCalls.values()).filter(c => c.status === 1 && c.deadline > 0);
+          if (pending.length === 0) { if (banner) banner.style.display = "none"; return; }
+          if (banner) banner.style.display = "flex";
+          if (chips) chips.innerHTML = pending.map(c => {
+            const secs = Math.round(c.deadline - nowSec);
+            const mm = String(Math.floor(Math.abs(secs) / 60)).padStart(2, "0");
+            const ss = String(Math.abs(secs) % 60).padStart(2, "0");
+            const expired = secs <= 0;
+            const cls = expired ? "banner-chip expired" : secs <= 10 ? "banner-chip urgent" : secs <= 30 ? "banner-chip warn" : "banner-chip";
+            const label = expired ? `expired` : `${mm}:${ss}`;
+            return `<span class="${cls}" title="call ${c.callId}">#${c.providerId} ${label}</span>`;
+          }).join("");
+        }, 1000);
+      })();
+
+      // ================================================================
+      // OVERVIEW DASHBOARD
+      // ================================================================
+      async function refreshOverviewDashboard() {
+        if (!CONFIG.subgraphUrl) return;
+        try {
+          const res = await fetch(CONFIG.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{
+              providers(first:1000) { id active completedCalls slashedCalls pricePerCall stake owner }
+              calls(first:20, orderBy: createdAt, orderDirection: desc) { id providerId amount status createdAt }
+            }` })
+          });
+          const data = await res.json();
+          const ps = data.data?.providers || [];
+          const cs = data.data?.calls || [];
+
+          const active = ps.filter(p => p.active).length;
+          const totalComp = ps.reduce((a, p) => a + Number(p.completedCalls || 0), 0);
+          const totalSlash = ps.reduce((a, p) => a + Number(p.slashedCalls || 0), 0);
+          const totalClosed = totalComp + totalSlash;
+          const honorPct = totalClosed > 0 ? Math.round(totalComp / totalClosed * 100) : null;
+
+          if ($("ovProviders")) $("ovProviders").textContent = String(active);
+          if ($("ovProvidersSub")) $("ovProvidersSub").textContent = `of ${ps.length} total`;
+          if ($("ovCalls")) $("ovCalls").textContent = String(cs.length >= 20 ? "20+" : cs.length);
+          if ($("ovCallsSub")) $("ovCallsSub").textContent = `${totalComp} completed · ${totalSlash} slashed`;
+          if (honorPct !== null && $("ovHonor")) {
+            $("ovHonor").textContent = honorPct + "%";
+            $("ovHonor").style.color = honorPct >= 80 ? "var(--accent)" : honorPct >= 50 ? "var(--warn)" : "var(--danger)";
+          }
+          if ($("ovHonorSub")) $("ovHonorSub").textContent = `${totalComp} honored / ${totalClosed} closed`;
+
+          // Live feed
+          const nowTs = Math.floor(Date.now() / 1000);
+          if ($("ovLiveFeed")) {
+            $("ovLiveFeed").innerHTML = cs.slice(0, 8).map(c => {
+              const st = String(c.status || "").toUpperCase();
+              const dotCls = st === "COMPLETED" ? "call" : st === "SLASHED" ? "slash" : "call";
+              const stLabel = st === "COMPLETED" ? "completed" : st === "SLASHED" ? "slashed" : "started";
+              const stColor = st === "COMPLETED" ? "var(--accent)" : st === "SLASHED" ? "var(--danger)" : "var(--text-dim)";
+              const ago = c.createdAt ? nowTs - Number(c.createdAt) : null;
+              const agoStr = ago !== null
+                ? ago < 60 ? `${ago}s ago` : ago < 3600 ? `${Math.round(ago/60)}m ago` : `${Math.round(ago/3600)}h ago`
+                : "";
+              const amt = (Number(c.amount || 0) / 1e6).toFixed(3);
+              return `<div class="live-feed-row">
+                <span class="feed-dot ${dotCls}"></span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px">#${c.providerId}</span>
+                <span style="color:${stColor};font-size:11px">${stLabel}</span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px">${amt} USDC</span>
+                <span style="margin-left:auto;color:var(--text-faint);font-size:10px;white-space:nowrap">${agoStr}</span>
+              </div>`;
+            }).join("") || '<div class="empty-state" style="font-size:12px">No recent activity</div>';
+          }
+
+          // Top providers mini
+          if ($("ovTopProviders")) {
+            const ranked = [...ps].sort((a, b) => {
+              const ra = Number(a.completedCalls||0) + 2;
+              const ta = Number(a.completedCalls||0) + Number(a.slashedCalls||0) + 3;
+              const rb = Number(b.completedCalls||0) + 2;
+              const tb = Number(b.completedCalls||0) + Number(b.slashedCalls||0) + 3;
+              return (rb/tb) - (ra/ta);
+            }).slice(0, 5);
+            const maxCalls = Math.max(1, ...ranked.map(p => Number(p.completedCalls||0) + Number(p.slashedCalls||0)));
+            $("ovTopProviders").innerHTML = ranked.map((p, i) => {
+              const total = Number(p.completedCalls||0) + Number(p.slashedCalls||0);
+              const rep = total > 0 ? Math.round((Number(p.completedCalls||0) + 2) / (total + 3) * 100) : 66;
+              const pct = Math.round(total / maxCalls * 100);
+              const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
+              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`;
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;cursor:pointer" onclick="openProviderModal(${p.id})">
+                <span style="width:20px;text-align:center;font-size:11px">${medal}</span>
+                <span style="width:60px;color:var(--text-faint);font-family:var(--font-mono)">#${p.id}</span>
+                <div style="flex:1;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:${repColor};border-radius:3px;transition:width .4s"></div>
+                </div>
+                <span style="width:32px;text-align:right;color:${repColor};font-weight:700;font-family:var(--font-mono)">${rep}</span>
+              </div>`;
+            }).join("");
+          }
+        } catch(e) { console.warn("[overview dashboard]", e.message); }
+      }
+
+      // Overview'e geçince veya boot'ta yükle
+      refreshOverviewDashboard();
 
       $("btnNanoCall").addEventListener("click", () => doNanoCall());
 
@@ -7937,79 +8490,95 @@ console.log("call opened:", tx.hash);`;
 
         const rows = sorted.map(p => {
           const isSelf = myAddr && p.owner?.toLowerCase() === myAddr;
-          const badge = p.active ? `<span class="badge active">active</span>` : `<span class="badge inactive">inactive</span>`;
           const rep = p.reputation ?? 0;
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
+          const repStrokeDash = `${rep} ${100 - rep}`;
           const priceUsdc = ethers.formatUnits(p.pricePerCall, d);
-          const priceUsd = usdPrice(priceUsdc);
           const totalCalls = (p.completedCalls||0) + (p.slashedCalls||0);
-          const honorPct = totalCalls > 0 ? Math.round((p.completedCalls||0) / totalCalls * 100) : null;
+          const honorPct = totalCalls > 0 ? Math.round((p.completedCalls||0) / totalCalls * 100) : 100;
+          const honorColor = honorPct >= 80 ? "var(--accent)" : honorPct >= 50 ? "var(--warn)" : "var(--danger)";
+          const statusDot = p.active
+            ? `<span style="font-size:10px;color:var(--accent);font-weight:700">● active</span>`
+            : `<span style="font-size:10px;color:var(--text-faint)">● inactive</span>`;
           return `
-            <tr data-pid="${p.id}" class="${isSelf ? "is-self" : ""}">
-              <td class="col-id">#${p.id}</td>
-              <td class="col-owner">${short(p.owner, 4)}${isSelf ? `<span class="self-tag">you</span>` : ""}</td>
-              <td class="col-price" style="text-align:right">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">${priceUsd}</span></td>
-              <td class="col-stake" style="text-align:right">${ethers.formatUnits(p.stake, d)}</td>
-              <td style="text-align:right;font-size:11px;color:var(--text-dim)">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
-              <td style="text-align:right">
-                <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-                  <div style="width:40px;height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden">
-                    <div style="height:100%;width:${rep}%;background:${repColor};border-radius:2px"></div>
-                  </div>
-                  <span style="color:${repColor};font-weight:600;font-family:var(--font-mono)">${rep}</span>
+            <div class="prov-card${isSelf ? " self-card" : ""}" data-pid="${p.id}">
+              <div class="prov-card-header">
+                <div>
+                  <div class="prov-card-id">Provider #${p.id}${isSelf ? ` <span class="self-tag">you</span>` : ""}</div>
+                  <div class="prov-card-owner">${short(p.owner, 6)}</div>
                 </div>
-              </td>
-              <td style="text-align:right;font-size:11px;color:var(--text-dim)">${totalCalls > 0 ? totalCalls + (honorPct !== null ? ` <span style="color:${honorPct>=80?'var(--accent)':honorPct>=50?'var(--warn)':'var(--danger)'}">(${honorPct}%)</span>` : '') : '—'}</td>
-              <td class="col-status" style="text-align:right">${badge}</td>
-              <td style="text-align:right;font-size:11px" class="col-health" id="health-${p.id}">
-                <span style="color:var(--text-faint)">…</span>
-              </td>
-              <td style="text-align:right">
-                <button class="btn btn-sm btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">
-                  ⚡ Nanopay
-                </button>
-              </td>
-            </tr>`;
+                <div class="prov-rep-ring">
+                  <svg width="52" height="52" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.2"/>
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="${repColor}" stroke-width="3.2"
+                      stroke-dasharray="${repStrokeDash}" stroke-dashoffset="25"
+                      stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${repColor})"/>
+                  </svg>
+                  <div class="prov-rep-ring-val" style="color:${repColor}">${rep}</div>
+                </div>
+              </div>
+              <div class="prov-card-stats">
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Price / call</div>
+                  <div class="prov-stat-val">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">USDC</span></div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Stake</div>
+                  <div class="prov-stat-val">${ethers.formatUnits(p.stake, d)} <span style="font-size:10px;color:var(--text-faint)">USDC</span></div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Calls</div>
+                  <div class="prov-stat-val">${totalCalls > 0 ? totalCalls : "—"}</div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Status</div>
+                  <div class="prov-stat-val">${statusDot}</div>
+                </div>
+              </div>
+              <div class="prov-honor-bar">
+                <div class="prov-honor-fill" style="width:${honorPct}%;background:${honorColor}"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-bottom:12px">
+                <span>Honor rate</span><span style="color:${honorColor};font-weight:700">${honorPct}%</span>
+              </div>
+              <div class="prov-card-footer">
+                <button class="prov-card-btn" onclick="event.stopPropagation();openProviderModal(${p.id})">Details →</button>
+                <button class="prov-card-btn primary btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">⚡ Nanopay</button>
+              </div>
+            </div>`;
         }).join("");
 
-        const arrow = (col) => {
-          if (sort.col !== col) return `<span style="opacity:0.3;font-size:9px">⇅</span>`;
-          return sort.dir === -1 ? `<span style="font-size:9px;color:var(--accent)">↓</span>` : `<span style="font-size:9px;color:var(--accent)">↑</span>`;
-        };
+        // Sıralama butonları
+        const sortBtns = [
+          { col: "rep", label: "Rep" }, { col: "price", label: "Price" },
+          { col: "stake", label: "Stake" }, { col: "calls", label: "Calls" }
+        ].map(({ col, label }) => {
+          const active = sort.col === col;
+          const arrow = active ? (sort.dir === -1 ? " ↓" : " ↑") : "";
+          return `<button class="sort-chip${active ? " active" : ""}" data-sort="${col}">${label}${arrow}</button>`;
+        }).join("");
 
         $("allProvidersBox").innerHTML = `
-          <table class="provider-table">
-            <thead><tr>
-              <th data-sort="id" style="cursor:pointer">ID ${arrow("id")}</th>
-              <th>Owner</th>
-              <th data-sort="price" style="text-align:right;cursor:pointer">Price ${arrow("price")}</th>
-              <th data-sort="stake" style="text-align:right;cursor:pointer">Stake ${arrow("stake")}</th>
-              <th style="text-align:right">SLA · slash</th>
-              <th data-sort="rep" style="text-align:right;cursor:pointer">Rep ${arrow("rep")}</th>
-              <th data-sort="calls" style="text-align:right;cursor:pointer">Calls ${arrow("calls")}</th>
-              <th style="text-align:right">Status</th>
-              <th style="text-align:right">Health</th>
-              <th style="text-align:right">Nano</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>`;
+          <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text-faint);align-self:center;margin-right:4px">Sort:</span>
+            ${sortBtns}
+          </div>
+          <div class="provider-card-grid">${rows}</div>`;
 
-        // Sıralama tıklama
-        $("allProvidersBox").querySelectorAll("thead th[data-sort]").forEach(th => {
-          th.addEventListener("click", () => {
-            const col = th.dataset.sort;
+        $("allProvidersBox").querySelectorAll(".sort-chip").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const col = btn.dataset.sort;
             if (window._provSort.col === col) {
               window._provSort.dir *= -1;
             } else {
               window._provSort = { col, dir: -1 };
             }
             renderAllProvidersFiltered();
-            setTimeout(pingProviderEndpoints, 300);
           });
         });
 
-        $("allProvidersBox").querySelectorAll("tbody tr[data-pid]").forEach(tr => {
-          tr.addEventListener("click", () => openProviderModal(Number(tr.dataset.pid)));
+        $("allProvidersBox").querySelectorAll(".prov-card[data-pid]").forEach(card => {
+          card.addEventListener("click", () => openProviderModal(Number(card.dataset.pid)));
         });
         // Ping endpoints after render
         setTimeout(pingProviderEndpoints, 500);
