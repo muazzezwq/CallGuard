@@ -3299,6 +3299,46 @@
       .status-submitted { background: rgba(168,85,247,0.12); color: #a855f7; }
       .status-completed { background: var(--accent-bg); color: var(--accent); }
       .status-rejected, .status-expired { background: var(--danger-bg); color: var(--danger); }
+
+      /* ── Call filter buttons ── */
+      .call-filter-btn { font-size:11px; padding:3px 10px; opacity:.55; }
+      .call-filter-btn.active { opacity:1; background:var(--accent-bg); color:var(--accent); border-color:rgba(5,150,105,.3); }
+
+      /* ── Marketplace ── */
+      .mkt-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        transition: border-color .2s, transform .2s, box-shadow .2s;
+        cursor: pointer;
+      }
+      .mkt-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+      .mkt-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+      .mkt-avatar { width:40px; height:40px; border-radius:10px; background:var(--accent-bg);
+        border:1px solid rgba(5,150,105,.2); display:flex; align-items:center; justify-content:center;
+        font-size:18px; flex-shrink:0; }
+      .mkt-name { font-weight:600; font-size:14px; }
+      .mkt-addr { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
+      .mkt-tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+      .mkt-tag-pill { font-size:10px; padding:2px 7px; border-radius:100px;
+        background:var(--bg-3); color:var(--text-dim); border:1px solid var(--border); }
+      .mkt-tag-pill.active { background:var(--accent-bg); color:var(--accent); border-color:rgba(5,150,105,.3); }
+      .mkt-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+      .mkt-stat { text-align:center; }
+      .mkt-stat-val { font-family:var(--font-mono); font-size:16px; font-weight:700; }
+      .mkt-stat-lbl { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; }
+      .mkt-rep-bar { height:4px; border-radius:2px; background:var(--bg-3); overflow:hidden; margin-bottom:12px; }
+      .mkt-rep-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#10b981,#60a5fa); transition:width .6s; }
+
+      /* ── Webhook deliveries ── */
+      .whk-delivery { padding:10px 12px; border-radius:8px; background:var(--bg-2);
+        border:1px solid var(--border); margin-bottom:6px; font-size:12px; }
+      .whk-delivery.ok { border-left:3px solid var(--accent); }
+      .whk-delivery.err { border-left:3px solid var(--danger); }
+      .whk-delivery-head { display:flex; justify-content:space-between; margin-bottom:4px; }
+      .whk-delivery-type { font-weight:600; }
+      .whk-delivery-time { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
     </style>
   </head>
   <body>
@@ -3630,6 +3670,8 @@
           <div class="sb-item" data-nav="jobs">💼 Jobs</div>
           <div class="sb-item" data-nav="nano">⚡ Nanopayment</div>
           <div class="sb-item" data-nav="mcp">🤖 MCP Agent</div>
+          <div class="sb-item" data-nav="marketplace">🛒 Marketplace</div>
+          <div class="sb-item" data-nav="webhooks">🔔 Webhooks</div>
           <div class="sb-item" data-nav="bridge">🌉 Bridge</div>
           <div class="sb-section">Account</div>
           <div class="sb-item" data-nav="register">🔐 Register</div>
@@ -4110,8 +4152,38 @@
         <section class="panel full-width" data-category="calls">
           <div class="panel-head">
             <h2>Your calls</h2>
-            <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="callsSummary"
-              ></span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="mono" style="font-size:11px;color:var(--text-faint)" id="callsSummary"></span>
+              <button class="btn btn-sm" id="btnExportCsv" style="font-size:11px;padding:3px 10px" title="Export to CSV">↓ CSV</button>
+              <button class="btn btn-sm" id="btnRefreshCalls" style="font-size:11px;padding:3px 10px">↻</button>
+            </div>
+          </div>
+          <!-- Stats row -->
+          <div id="callsStatsRow" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">
+            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
+              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Calls</div>
+              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono)" id="csTotal">0</div>
+            </div>
+            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
+              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">USDC Spent</div>
+              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--accent)" id="csSpent">0.00</div>
+            </div>
+            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
+              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Completed</div>
+              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:#10b981" id="csCompleted">0</div>
+            </div>
+            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
+              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Slashed</div>
+              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:#ef4444" id="csSlashed">0</div>
+            </div>
+          </div>
+          <!-- Filter row -->
+          <div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <button class="btn btn-sm call-filter-btn active" data-filter="all">All</button>
+            <button class="btn btn-sm call-filter-btn" data-filter="open">Open</button>
+            <button class="btn btn-sm call-filter-btn" data-filter="completed">Completed</button>
+            <button class="btn btn-sm call-filter-btn" data-filter="slashed">Slashed</button>
+            <button class="btn btn-sm call-filter-btn" data-filter="expired">Expired</button>
           </div>
           <div class="panel-body compact" id="callsBox">
             <div class="empty-state">no calls yet — make one or submit a receipt</div>
@@ -4218,7 +4290,8 @@ npm install</pre>
   "mcpServers": {
     "callguard": {
       "command": "node",
-      "args": ["/path/to/callguard/x402-facilitator/mcp-server.js"]
+      "args": ["./x402-facilitator/mcp-server.js"],
+      "env": { "FACILITATOR_URL": "https://arcsla.vercel.app" }
     }
   }
 }</pre>
@@ -4291,6 +4364,101 @@ npm install</pre>
               · "Check if provider #3 is online"<br>
               · "Send a nanopayment via CallGuard"<br>
               · "What are the current CallGuard network stats?"
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             AGENT MARKETPLACE
+        ════════════════════════════════════════════════════════════════════ -->
+        <section class="panel full-width" data-category="marketplace">
+          <div class="panel-head">
+            <h2>🛒 Agent Marketplace</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Browse & hire AI-powered providers</span>
+          </div>
+          <div class="panel-body">
+            <!-- Search & filter -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+              <input type="text" id="mktSearch" placeholder="Search by name, tag, capability…"
+                style="flex:1;min-width:180px;background:var(--bg-2);border:1px solid var(--border);
+                border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none"/>
+              <select id="mktSort" style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
+                padding:9px 12px;font-size:13px;color:var(--text);outline:none">
+                <option value="rep">Sort: Reputation</option>
+                <option value="price">Sort: Lowest price</option>
+                <option value="calls">Sort: Most calls</option>
+              </select>
+              <button class="btn btn-sm" id="btnMktRefresh">↻ Refresh</button>
+            </div>
+            <!-- Category tags -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="mktTagRow">
+              <button class="btn btn-sm mkt-tag active" data-tag="all">All</button>
+              <button class="btn btn-sm mkt-tag" data-tag="ai">🤖 AI</button>
+              <button class="btn btn-sm mkt-tag" data-tag="data">📊 Data</button>
+              <button class="btn btn-sm mkt-tag" data-tag="compute">⚡ Compute</button>
+              <button class="btn btn-sm mkt-tag" data-tag="storage">💾 Storage</button>
+              <button class="btn btn-sm mkt-tag" data-tag="oracle">🔮 Oracle</button>
+            </div>
+            <!-- Marketplace grid -->
+            <div id="mktGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+              <div class="empty-state">loading marketplace…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             WEBHOOK NOTIFICATIONS
+        ════════════════════════════════════════════════════════════════════ -->
+        <section class="panel full-width" data-category="webhooks">
+          <div class="panel-head">
+            <h2>🔔 Webhook Notifications</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">Get notified on timeout, slash, or completion</span>
+          </div>
+          <div class="panel-body">
+            <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;
+              padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--text-dim);line-height:1.6">
+              <strong style="color:var(--accent)">How it works:</strong> Enter your endpoint URL.
+              CallGuard will POST a JSON payload when your calls are completed, slashed, or about to expire.
+              No backend needed — use <a href="https://webhook.site" target="_blank" style="color:var(--accent)">webhook.site</a> to test.
+            </div>
+            <div class="field">
+              <label>Webhook URL</label>
+              <div style="display:flex;gap:8px">
+                <input type="url" id="webhookUrl" placeholder="https://your-server.com/webhook or https://webhook.site/…"
+                  style="flex:1"/>
+                <button class="btn btn-sm" id="btnTestWebhook">Test</button>
+              </div>
+              <div class="hint" id="webhookTestResult"></div>
+            </div>
+            <div class="field">
+              <label>Notify me when</label>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+                  <input type="checkbox" id="whkCompleted" checked style="accent-color:var(--accent)"/>
+                  <span>✅ Call completed (receipt submitted)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+                  <input type="checkbox" id="whkSlashed" checked style="accent-color:var(--accent)"/>
+                  <span>⚔️ Call slashed (timeout enforced)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+                  <input type="checkbox" id="whkExpiring" checked style="accent-color:var(--accent)"/>
+                  <span>⏰ Call expiring soon (< 60s remaining)</span>
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" id="btnSaveWebhook">💾 Save webhook</button>
+              <button class="btn" id="btnClearWebhook">Clear</button>
+            </div>
+            <div style="margin-top:16px">
+              <div class="panel-head" style="padding:0 0 8px 0;border-bottom:1px solid var(--border)">
+                <h2 style="font-size:13px">Recent deliveries</h2>
+                <button class="btn btn-sm" id="btnClearDeliveries" style="font-size:11px">Clear</button>
+              </div>
+              <div id="webhookDeliveries" style="margin-top:10px">
+                <div class="empty-state">no deliveries yet</div>
+              </div>
             </div>
           </div>
         </section>
@@ -6128,7 +6296,7 @@ async function refreshBalance() {
               nanoBtn.disabled = true;
               nanoBtn.textContent = "Processing…";
               try {
-                const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
+                const res = await fetch(CONFIG.facilitatorUrl + "/api/nano-call", { method: "POST" });
                 const data = await res.json();
                 if (res.ok) {
                   toast({ kind: "ok", title: "⚡ Nanopayment sent", detail: data.amount + " USDC to Provider #" + providerId, timeout: 5000 });
@@ -6732,6 +6900,7 @@ async function refreshBalance() {
             detail: `call ${short(callId, 6)}`,
             txHash: tx.hash,
           });
+          window.notifyWebhook?.("slashed", { callId, txHash: tx.hash });
           await refreshAll();
         } catch (e) {
           console.error(e);
@@ -6833,6 +7002,7 @@ async function refreshBalance() {
             txHash: ev.log?.transactionHash,
             body: `call <span class="hi">${short(callId, 6)}</span> timed out · refund ${ethers.formatUnits(refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(slashed, state.usdcDecimals)} USDC`,
           });
+          window.notifyWebhook?.("slashed", { callId: callId.toString(), refunded: ethers.formatUnits(refunded, state.usdcDecimals), slashed: ethers.formatUnits(slashed, state.usdcDecimals) });
           if (state.myCalls.has(callId)) {
             state.myCalls.get(callId).status = 3;
             renderCalls();
@@ -7353,9 +7523,13 @@ async function refreshBalance() {
 
       async function fetchNanoBalance() {
         try {
-          const res = await fetch(CONFIG.facilitatorUrl + "/nano/balance");
+          const addr = state.address;
+          const url = addr
+            ? CONFIG.facilitatorUrl + "/api/nano-balance?address=" + addr
+            : CONFIG.facilitatorUrl + "/api/nano-balance?address=0x0000000000000000000000000000000000000001";
+          const res = await fetch(url);
           const data = await res.json();
-          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.balance || 0).toFixed(4) + " USDC";
+          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.formatted || data.balance || 0).toFixed(4) + " USDC";
           if ($("nanoPending")) {
             const p = parseFloat(data.pendingBatch || 0);
             $("nanoPending").textContent = p > 0 ? p.toFixed(4) + " USDC" : "0 USDC";
@@ -7382,7 +7556,7 @@ async function refreshBalance() {
         if (out) out.textContent = "Calling facilitator…";
 
         try {
-          const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", {
+          const res = await fetch(CONFIG.facilitatorUrl + "/api/nano-call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -8710,7 +8884,7 @@ console.log("call opened:", tx.hash);`;
           // Step 4 — POST imzayi facilitator'a, o tx'i gonderir (kullanici gas odemez)
           btn.textContent = "Settling via facilitator…";
           const tC = toast({ kind: "info", title: "⚡ x402: Facilitator settling", detail: "<span class='spinner'></span> Facilitator sending tx — no gas from you", timeout: 60000 });
-          const facRes = await fetch(CONFIG.facilitatorUrl + "/callService", {
+          const facRes = await fetch(CONFIG.facilitatorUrl + "/api/call-service", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -9087,6 +9261,304 @@ console.log("call opened:", tx.hash);`;
         });
       })();
 
+    </script>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════════
+    // CALL HISTORY — filter + CSV export
+    // ═══════════════════════════════════════════════════════════════
+    (function initCallHistory() {
+      let _callFilter = "all";
+
+      document.querySelectorAll(".call-filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".call-filter-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          _callFilter = btn.dataset.filter;
+          applyCallFilter();
+        });
+      });
+
+      function applyCallFilter() {
+        const box = document.getElementById("callsBox");
+        if (!box) return;
+        const rows = box.querySelectorAll("[data-call-status]");
+        rows.forEach(row => {
+          const st = row.dataset.callStatus || "open";
+          row.style.display = (_callFilter === "all" || st === _callFilter) ? "" : "none";
+        });
+      }
+
+      document.getElementById("btnRefreshCalls")?.addEventListener("click", () => {
+        const refreshBtn = document.querySelector("[data-nav='calls']");
+        if (refreshBtn) refreshBtn.click();
+      });
+
+      document.getElementById("btnExportCsv")?.addEventListener("click", () => {
+        const box = document.getElementById("callsBox");
+        if (!box) return;
+        const rows = [...box.querySelectorAll("[data-call-id]")];
+        if (!rows.length) { toast({ kind: "warn", title: "No calls to export", timeout: 2500 }); return; }
+        const lines = ["Call ID,Provider,Amount,Status,Deadline"];
+        rows.forEach(r => {
+          lines.push([
+            r.dataset.callId || "",
+            r.dataset.callProvider || "",
+            r.dataset.callAmount || "",
+            r.dataset.callStatus || "",
+            r.dataset.callDeadline || ""
+          ].join(","));
+        });
+        const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url;
+        a.download = "callguard-calls.csv"; a.click();
+        URL.revokeObjectURL(url);
+        toast({ kind: "ok", title: "CSV downloaded", timeout: 2500 });
+      });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════
+    // AGENT MARKETPLACE
+    // ═══════════════════════════════════════════════════════════════
+    (function initMarketplace() {
+      let _mktTag = "all";
+      let _mktSort = "rep";
+      let _mktProviders = [];
+
+      const TAG_MAP = {
+        1: ["ai", "compute"], 2: ["data", "oracle"], 3: ["ai", "storage"],
+        4: ["compute"], 5: ["data"], 6: ["oracle"], 7: ["ai"]
+      };
+      const EMOJI_MAP = { ai: "🤖", data: "📊", compute: "⚡", storage: "💾", oracle: "🔮" };
+      const DESC_MAP = {
+        1: "High-performance AI inference endpoint with SLA guarantee.",
+        2: "On-chain data oracle — price feeds, random numbers, proofs.",
+        3: "Vector storage & semantic search with sub-second retrieval.",
+        4: "GPU compute bursts — image gen, video, heavy ML workloads.",
+        5: "Real-time blockchain data indexing and query API.",
+        6: "Verifiable off-chain computation with ZK proofs.",
+        7: "Multi-modal LLM gateway with routing and fallbacks."
+      };
+
+      function getProviderTags(id) { return TAG_MAP[id] || ["compute"]; }
+      function getProviderEmoji(id) {
+        const tags = getProviderTags(id);
+        return EMOJI_MAP[tags[0]] || "⚡";
+      }
+
+      async function loadMarketplace() {
+        const grid = document.getElementById("mktGrid");
+        if (!grid) return;
+        grid.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading marketplace…</div>';
+
+        try {
+          // Reuse allProviders from state if available
+          const ps = (typeof state !== "undefined" && state.allProviders?.length)
+            ? state.allProviders
+            : await fetch(CONFIG.subgraphUrl, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{ providers(first:50,orderBy:completedCalls,orderDirection:desc) {
+                  id owner signer stake pricePerCall maxResponseTime slashBps active completedCalls slashedCalls endpoint } }` })
+              }).then(r => r.json()).then(d => d.data?.providers || []);
+
+          _mktProviders = ps.map(p => {
+            const c = Number(p.completedCalls || 0), s = Number(p.slashedCalls || 0), t = c + s;
+            return { ...p, id: Number(p.id), completedCalls: c, slashedCalls: s,
+              reputation: t > 0 ? Math.round((c + 2) / (t + 3) * 100) : 66 };
+          });
+          renderMarketplace();
+        } catch(e) {
+          grid.innerHTML = `<div class="empty-state" style="color:var(--danger)">Failed to load: ${e.message}</div>`;
+        }
+      }
+
+      function renderMarketplace() {
+        const grid = document.getElementById("mktGrid");
+        if (!grid) return;
+        const search = (document.getElementById("mktSearch")?.value || "").toLowerCase();
+
+        let ps = _mktProviders.filter(p => p.active !== false);
+        if (_mktTag !== "all") ps = ps.filter(p => getProviderTags(p.id).includes(_mktTag));
+        if (search) ps = ps.filter(p =>
+          String(p.id).includes(search) ||
+          (p.owner || "").toLowerCase().includes(search) ||
+          (p.endpoint || "").toLowerCase().includes(search) ||
+          (DESC_MAP[p.id] || "").toLowerCase().includes(search)
+        );
+        if (_mktSort === "price") ps.sort((a, b) => Number(a.pricePerCall) - Number(b.pricePerCall));
+        else if (_mktSort === "calls") ps.sort((a, b) => b.completedCalls - a.completedCalls);
+        else ps.sort((a, b) => b.reputation - a.reputation);
+
+        if (!ps.length) {
+          grid.innerHTML = '<div class="empty-state">No providers match this filter.</div>'; return;
+        }
+
+        grid.innerHTML = ps.map(p => {
+          const price = (Number(p.pricePerCall) / 1e6).toFixed(3);
+          const tags = getProviderTags(p.id);
+          const emoji = getProviderEmoji(p.id);
+          const desc = DESC_MAP[p.id] || "Service provider on CallGuard.";
+          const short = (p.owner || "").slice(0, 6) + "…" + (p.owner || "").slice(-4);
+          const honr = p.completedCalls + p.slashedCalls > 0
+            ? Math.round(p.completedCalls / (p.completedCalls + p.slashedCalls) * 100) : 100;
+          return `
+            <div class="mkt-card" onclick="document.querySelector('[data-nav=calls]').click();
+              setTimeout(()=>{ const el=document.getElementById('callProviderId'); if(el){el.value='${p.id}';el.dispatchEvent(new Event('input'));} },400)">
+              <div class="mkt-card-header">
+                <div class="mkt-avatar">${emoji}</div>
+                <div>
+                  <div class="mkt-name">Provider #${p.id}</div>
+                  <div class="mkt-addr">${short}</div>
+                </div>
+                <div style="margin-left:auto">
+                  <span class="status-pill ${p.active ? 'status-completed' : 'status-expired'}">${p.active ? 'Active' : 'Inactive'}</span>
+                </div>
+              </div>
+              <div class="mkt-tags">
+                ${tags.map(t => `<span class="mkt-tag-pill">${EMOJI_MAP[t] || ''} ${t}</span>`).join("")}
+              </div>
+              <p style="font-size:12px;color:var(--text-dim);margin:0 0 10px;line-height:1.5">${desc}</p>
+              <div class="mkt-rep-bar"><div class="mkt-rep-fill" style="width:${p.reputation}%"></div></div>
+              <div class="mkt-stats">
+                <div class="mkt-stat">
+                  <div class="mkt-stat-val" style="color:var(--accent)">${p.reputation}</div>
+                  <div class="mkt-stat-lbl">Rep</div>
+                </div>
+                <div class="mkt-stat">
+                  <div class="mkt-stat-val">${price}</div>
+                  <div class="mkt-stat-lbl">USDC/call</div>
+                </div>
+                <div class="mkt-stat">
+                  <div class="mkt-stat-val">${honr}%</div>
+                  <div class="mkt-stat-lbl">Honor</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;font-size:13px"
+                onclick="event.stopPropagation();document.querySelector('[data-nav=calls]').click();
+                setTimeout(()=>{const el=document.getElementById('callProviderId');if(el){el.value='${p.id}';el.dispatchEvent(new Event('input'));}},400)">
+                ⚡ Call this provider
+              </button>
+            </div>`;
+        }).join("");
+      }
+
+      document.querySelectorAll(".mkt-tag").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".mkt-tag").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          _mktTag = btn.dataset.tag;
+          renderMarketplace();
+        });
+      });
+      document.getElementById("mktSort")?.addEventListener("change", e => { _mktSort = e.target.value; renderMarketplace(); });
+      document.getElementById("mktSearch")?.addEventListener("input", renderMarketplace);
+      document.getElementById("btnMktRefresh")?.addEventListener("click", loadMarketplace);
+
+      // Load when marketplace tab opened
+      const origNav = window._origNav;
+      document.querySelectorAll(".sb-item").forEach(el => {
+        el.addEventListener("click", () => {
+          if (el.dataset.nav === "marketplace" && !_mktProviders.length) loadMarketplace();
+        });
+      });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════
+    // WEBHOOK NOTIFICATIONS
+    // ═══════════════════════════════════════════════════════════════
+    (function initWebhooks() {
+      const STORAGE_KEY = "cg_webhook_v1";
+      let _deliveries = [];
+
+      function loadSettings() {
+        try {
+          const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+          if (s.url) document.getElementById("webhookUrl").value = s.url;
+          if (s.completed !== undefined) document.getElementById("whkCompleted").checked = s.completed;
+          if (s.slashed !== undefined) document.getElementById("whkSlashed").checked = s.slashed;
+          if (s.expiring !== undefined) document.getElementById("whkExpiring").checked = s.expiring;
+          _deliveries = s.deliveries || [];
+          renderDeliveries();
+        } catch(e) {}
+      }
+
+      function saveSettings() {
+        const s = {
+          url: document.getElementById("webhookUrl")?.value || "",
+          completed: document.getElementById("whkCompleted")?.checked ?? true,
+          slashed: document.getElementById("whkSlashed")?.checked ?? true,
+          expiring: document.getElementById("whkExpiring")?.checked ?? true,
+          deliveries: _deliveries.slice(0, 20)
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        return s;
+      }
+
+      function renderDeliveries() {
+        const el = document.getElementById("webhookDeliveries");
+        if (!el) return;
+        if (!_deliveries.length) { el.innerHTML = '<div class="empty-state">no deliveries yet</div>'; return; }
+        el.innerHTML = _deliveries.slice(0, 10).map(d => `
+          <div class="whk-delivery ${d.ok ? 'ok' : 'err'}">
+            <div class="whk-delivery-head">
+              <span class="whk-delivery-type">${d.type}</span>
+              <span class="whk-delivery-time">${new Date(d.ts).toLocaleTimeString()}</span>
+            </div>
+            <div style="color:var(--text-dim)">${d.ok ? '✅ Delivered' : '❌ Failed: ' + (d.error || 'unknown')} · ${d.url?.slice(0,40)}…</div>
+          </div>`).join("");
+      }
+
+      // Public function — called by existing call monitoring code
+      window.notifyWebhook = async function(type, payload) {
+        const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        if (!s.url) return;
+        if (type === "completed" && !s.completed) return;
+        if (type === "slashed" && !s.slashed) return;
+        if (type === "expiring" && !s.expiring) return;
+        const body = { type, payload, timestamp: Date.now(), source: "callguard" };
+        const delivery = { type, url: s.url, ts: Date.now(), ok: false };
+        try {
+          const r = await fetch(s.url, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          delivery.ok = r.ok;
+          if (!r.ok) delivery.error = "HTTP " + r.status;
+        } catch(e) { delivery.error = e.message; }
+        _deliveries.unshift(delivery);
+        _deliveries = _deliveries.slice(0, 20);
+        saveSettings();
+        renderDeliveries();
+      };
+
+      document.getElementById("btnSaveWebhook")?.addEventListener("click", () => {
+        saveSettings();
+        toast({ kind: "ok", title: "Webhook saved", detail: "You'll be notified at the configured URL", timeout: 3000 });
+      });
+
+      document.getElementById("btnClearWebhook")?.addEventListener("click", () => {
+        if (document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = "";
+        localStorage.removeItem(STORAGE_KEY);
+        toast({ kind: "ok", title: "Webhook cleared", timeout: 2000 });
+      });
+
+      document.getElementById("btnClearDeliveries")?.addEventListener("click", () => {
+        _deliveries = []; saveSettings(); renderDeliveries();
+      });
+
+      document.getElementById("btnTestWebhook")?.addEventListener("click", async () => {
+        const url = document.getElementById("webhookUrl")?.value;
+        const result = document.getElementById("webhookTestResult");
+        if (!url) { if (result) result.textContent = "Enter a URL first."; return; }
+        if (result) result.textContent = "Sending test…";
+        await window.notifyWebhook("test", { message: "CallGuard webhook test", network: "arc-testnet" });
+        const last = _deliveries[0];
+        if (result) result.textContent = last?.ok ? "✅ Test delivered successfully!" : "❌ Test failed: " + (last?.error || "unknown");
+      });
+
+      loadSettings();
+    })();
     </script>
   </body>
 </html>

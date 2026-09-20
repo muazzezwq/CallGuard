@@ -5,8 +5,8 @@ import { ethers } from "ethers";
 import dotenv from "dotenv";
 dotenv.config();
 
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://callguard-eu.onrender.com";
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
+const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://arcsla.vercel.app";
+const SUBGRAPH_URL = process.env.SUBGRAPH_URL || "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn";
 
 const server = new McpServer({
   name: "callguard",
