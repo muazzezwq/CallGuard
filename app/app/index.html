@@ -8905,6 +8905,8 @@ async function refreshBalance() {
         // Paneller açıldığında veri yükle
         if (cat === "analytics") loadAnalytics();
         if (cat === "overview") refreshOverviewDashboard();
+        // categoryChanged event dispatch et (marketplace, webhooks vb.)
+        document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
 
       // Sidebar click handlers
@@ -11151,8 +11153,19 @@ console.log("call opened:", tx.hash);`;
     });
     document.getElementById("mktSort")?.addEventListener("change", e => { _mktSort = e.target.value; renderMarketplace(); });
     document.getElementById("mktSearch")?.addEventListener("input", renderMarketplace);
-    document.addEventListener("categoryChanged", e => { if (e.detail === "marketplace" && !_providers.length) loadMarketplace(); });
-    if (document.querySelector('[data-nav="marketplace"]')) loadMarketplace();
+    // Marketplace paneli her açıldığında yükle
+    document.addEventListener("categoryChanged", e => {
+      if (e.detail === "marketplace") loadMarketplace();
+    });
+    // Sidebar "marketplace" tıklandığında da tetikle
+    document.querySelectorAll('[data-nav="marketplace"],[data-cat="marketplace"]').forEach(el => {
+      el.addEventListener("click", () => setTimeout(loadMarketplace, 100));
+    });
+    // Sayfa açılırken zaten marketplace sekmesi aktifse yükle
+    setTimeout(() => {
+      const panel = document.getElementById("catMarketplace");
+      if (panel && panel.style.display !== "none") loadMarketplace();
+    }, 500);
   })();
 
   // WEBHOOK NOTIFICATIONS
