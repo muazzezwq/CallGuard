@@ -8097,8 +8097,16 @@ async function refreshBalance() {
       const _warnedAt30 = new Set();
       const _warnedAt10 = new Set();
 
+      let _callsPage = 0;
+      const CALLS_PER_PAGE = 15;
+      let _callsFilter = "all";
       function renderCalls() {
-        const calls = Array.from(state.myCalls.values()).reverse();
+        const allCalls = Array.from(state.myCalls.values()).reverse();
+        const filtered = _callsFilter === "all" ? allCalls
+          : _callsFilter === "pending"   ? allCalls.filter(c => c.status === 1)
+          : _callsFilter === "completed" ? allCalls.filter(c => c.status === 2)
+          : allCalls.filter(c => c.status === 3);
+        const calls = filtered;
         if (calls.length === 0) {
           $("callsBox").innerHTML = `<div class="empty-cta"><div class="ec-icon">📞</div><div class="ec-text">No calls yet.<br>Call a service to see the SLA lifecycle in action.</div><button class="ec-btn" id="ecCall">Call a service →</button></div>`;
           const ecc = document.getElementById("ecCall");
@@ -8106,12 +8114,30 @@ async function refreshBalance() {
           $("callsSummary").textContent = "";
           return;
         }
+        // Pagination
+        const totalPages = Math.ceil(calls.length / CALLS_PER_PAGE);
+        _callsPage = Math.min(_callsPage, totalPages - 1);
+        const pageCalls = calls.slice(_callsPage * CALLS_PER_PAGE, (_callsPage + 1) * CALLS_PER_PAGE);
 
         const statusName = ["—", "pending", "completed", "slashed"];
         const statusClass = ["", "status-pending", "status-completed", "status-slashed"];
         const nowSec = Date.now() / 1000;
 
-        $("callsBox").innerHTML = calls
+        // Filter + pagination bar
+        const pending = allCalls.filter(c=>c.status===1).length;
+        const completed = allCalls.filter(c=>c.status===2).length;
+        const slashed = allCalls.filter(c=>c.status===3).length;
+        const filterBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+          ${["all","pending","completed","slashed"].map(f=>`<button class="btn btn-sm${_callsFilter===f?' btn-primary':''}" data-cf="${f}">${f==="all"?"All ("+allCalls.length+")":f==="pending"?"⏳ "+pending:f==="completed"?"✅ "+completed:"🔴 "+slashed}</button>`).join("")}
+          <span style="margin-left:auto;font-size:11px;color:var(--text-faint)">${calls.length} calls · page ${_callsPage+1}/${totalPages}</span>
+        </div>`;
+        const paginationBar = totalPages > 1 ? `<div style="display:flex;gap:6px;justify-content:center;margin-top:10px">
+          <button class="btn btn-sm" id="cpPrev" ${_callsPage===0?"disabled":""}>← Prev</button>
+          <span style="font-size:12px;color:var(--text-faint);align-self:center">${_callsPage+1} / ${totalPages}</span>
+          <button class="btn btn-sm" id="cpNext" ${_callsPage>=totalPages-1?"disabled":""}>Next →</button>
+        </div>` : "";
+
+        $("callsBox").innerHTML = filterBar + pageCalls
           .map((c) => {
             const s = Number(c.status);
             const canSubmit = s === 1 && c.deadline > nowSec;
@@ -8192,9 +8218,17 @@ async function refreshBalance() {
               </div>
             `;
           })
-          .join("");
+          .join("") + paginationBar;
 
-        $("callsSummary").textContent = `${calls.length} total · ${calls.filter((c) => c.status === 1).length} pending`;
+        $("callsSummary").textContent = `${allCalls.length} total · ${allCalls.filter((c) => c.status === 1).length} pending`;
+
+        // Filter buttons
+        $("callsBox").querySelectorAll("button[data-cf]").forEach(b => {
+          b.addEventListener("click", () => { _callsFilter = b.dataset.cf; _callsPage = 0; renderCalls(); });
+        });
+        // Pagination
+        document.getElementById("cpPrev")?.addEventListener("click", () => { _callsPage--; renderCalls(); });
+        document.getElementById("cpNext")?.addEventListener("click", () => { _callsPage++; renderCalls(); });
 
         // Hook up action buttons
         $("callsBox")
