@@ -13,30 +13,30 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
     <style>
       :root {
-        /* Professional light theme */
-        --bg-0: #f8fafc;
-        --bg-1: #ffffff;
-        --bg-2: #f1f5f9;
-        --bg-3: #e2e8f0;
-        --border: #e2e8f0;
-        --border-hi: #cbd5e1;
-        --text: #0f172a;
-        --text-dim: #475569;
-        --text-faint: #94a3b8;
-        --accent: #059669;
-        --accent-dim: #047857;
-        --accent-bg: rgba(5, 150, 105, 0.08);
-        --danger: #dc2626;
-        --danger-bg: rgba(220, 38, 38, 0.08);
-        --warn: #d97706;
-        --warn-bg: rgba(217, 119, 6, 0.08);
-        --info: #2563eb;
-        --info-bg: rgba(37, 99, 235, 0.08);
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-        --glow: 0 0 0 3px rgba(5, 150, 105, 0.12);
-        --glow-strong: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        /* Dark theme — developer/protocol product */
+        --bg-0: #0a0e14;
+        --bg-1: #0f1419;
+        --bg-2: #161d27;
+        --bg-3: #1e2836;
+        --border: rgba(255,255,255,0.07);
+        --border-hi: rgba(255,255,255,0.13);
+        --text: #e8edf3;
+        --text-dim: #8b95a3;
+        --text-faint: #4a5568;
+        --accent: #10b981;
+        --accent-dim: #059669;
+        --accent-bg: rgba(16, 185, 129, 0.1);
+        --danger: #f87171;
+        --danger-bg: rgba(248, 113, 113, 0.1);
+        --warn: #fbbf24;
+        --warn-bg: rgba(251, 191, 36, 0.1);
+        --info: #60a5fa;
+        --info-bg: rgba(96, 165, 250, 0.1);
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+        --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+        --glow: 0 0 0 2px rgba(16,185,129,0.2);
+        --glow-strong: 0 0 20px rgba(16,185,129,0.25);
         --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Menlo", monospace;
         --font-sans: "Spline Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --font-display: "Fraunces", Georgia, serif;
@@ -46,122 +46,12 @@
         box-sizing: border-box;
       }
 
-      /* ---- Clean dark theme ---- */
-      body {
-        background: var(--bg-0) !important;
-        color: var(--text) !important;
-      }
-      .app-sidebar {
-        background: var(--bg-1) !important;
-        border-right: 1px solid var(--border) !important;
-      }
-      .sb-item {
-        color: var(--text-dim) !important;
-        transition: all .15s !important;
-      }
-      .sb-item:hover {
-        background: var(--bg-2) !important;
-        color: var(--text) !important;
-      }
-      .sb-item.on {
-        background: var(--accent-bg) !important;
-        color: var(--accent) !important;
-        border-left-color: var(--accent) !important;
-      }
-      .sb-name { color: var(--text) !important; }
-      .sb-net { color: var(--text-faint) !important; }
-      .sb-section { color: var(--text-faint) !important; }
-      .panel {
-        background: var(--bg-1) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 12px !important;
-        transition: border-color .15s, box-shadow .15s !important;
-      }
-      .panel:hover {
-        border-color: var(--border-hi) !important;
-        box-shadow: var(--glow) !important;
-      }
-      header {
-        background: var(--bg-1) !important;
-        border-bottom: 1px solid var(--border) !important;
-      }
-
-      /* ---- Dark theme glow effects ---- */
-      body {
-        background: var(--bg-0) !important;
-        color: var(--text) !important;
-      }
-      .panel {
-        background: var(--bg-1) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 16px !important;
-        transition: border-color .2s, box-shadow .2s !important;
-      }
-      .panel:hover {
-        border-color: var(--border-hi) !important;
-        box-shadow: var(--glow) !important;
-      }
-      .btn-primary {
-        background: var(--accent) !important;
-        color: #000 !important;
-        font-weight: 600 !important;
-        box-shadow: 0 0 12px rgba(34,197,94,0.3) !important;
-        transition: all .2s !important;
-      }
-      .btn-primary:hover {
-        box-shadow: var(--glow-strong) !important;
-        transform: translateY(-1px) !important;
-      }
-      .btn {
-        border: 1px solid var(--border-hi) !important;
-        color: var(--text) !important;
-        background: var(--bg-2) !important;
-        transition: all .2s !important;
-      }
-      .btn:hover {
-        border-color: var(--accent) !important;
-        color: var(--accent) !important;
-      }
-      input, textarea, select {
-        background: var(--bg-2) !important;
-        border-color: var(--border) !important;
-        color: var(--text) !important;
-      }
-      input:focus, textarea:focus {
-        border-color: var(--accent) !important;
-        box-shadow: 0 0 0 2px rgba(34,197,94,0.15) !important;
-      }
-      .badge.active {
-        background: rgba(34,197,94,0.15) !important;
-        color: var(--accent) !important;
-        border: 1px solid rgba(34,197,94,0.3) !important;
-      }
-      .badge.inactive {
-        background: rgba(132,142,156,0.1) !important;
-        color: var(--text-dim) !important;
-      }
-      table thead th {
-        background: var(--bg-2) !important;
-        color: var(--text-faint) !important;
-        border-bottom: 1px solid var(--border) !important;
-      }
-      table tbody tr:hover {
-        background: var(--bg-2) !important;
-      }
-      .rep-bar-fill, .progress-fill {
-        background: var(--accent) !important;
-        box-shadow: 0 0 6px rgba(34,197,94,0.4) !important;
-      }
-      .live-dot-pulse {
-        background: var(--accent) !important;
-        box-shadow: 0 0 8px var(--accent) !important;
-      }
-      /* Panel category fade animation */
+      /* ---- Panel category fade animation ---- */
       [data-category].cat-visible {
-        animation: catFade .25s ease both !important;
+        animation: catFade .3s cubic-bezier(0.4,0,0.2,1) both;
       }
       @keyframes catFade {
-        from { opacity: 0; transform: translateY(8px); }
+        from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
       }
 
@@ -312,14 +202,19 @@
       body {
         background-image:
           radial-gradient(
-            ellipse 1200px 600px at 20% -10%,
-            rgba(5, 150, 105, 0.04),
-            transparent 50%
+            ellipse 1400px 700px at 15% -5%,
+            rgba(16, 185, 129, 0.06),
+            transparent 55%
           ),
           radial-gradient(
-            ellipse 900px 500px at 110% 20%,
-            rgba(37, 99, 235, 0.03),
-            transparent 50%
+            ellipse 1000px 600px at 105% 15%,
+            rgba(96, 165, 250, 0.04),
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse 800px 400px at 50% 100%,
+            rgba(16, 185, 129, 0.03),
+            transparent 60%
           );
         background-attachment: fixed;
       }
@@ -342,8 +237,8 @@
         position: sticky;
         top: 0;
         z-index: 40;
-        backdrop-filter: blur(16px) saturate(180%);
-        background: rgba(250, 250, 250, 0.75);
+        backdrop-filter: blur(20px) saturate(180%);
+        background: rgba(10, 14, 20, 0.85);
         border-bottom: 1px solid var(--border);
       }
 
@@ -499,14 +394,18 @@
 
       .btn-primary {
         background: var(--accent);
-        color: #ffffff;
+        color: #fff;
         border-color: var(--accent);
-        font-weight: 600;
+        font-weight: 700;
+        box-shadow: 0 0 16px rgba(16,185,129,0.25);
+        letter-spacing: -0.01em;
       }
 
       .btn-primary:hover:not(:disabled) {
-        background: #047857;
-        border-color: #047857;
+        background: #34d399;
+        border-color: #34d399;
+        box-shadow: 0 0 24px rgba(16,185,129,0.4);
+        transform: translateY(-1px);
       }
 
       .btn-danger {
@@ -526,17 +425,17 @@
       }
 
       .btn-nano {
-        background: var(--accent-bg) !important;
-        color: var(--accent) !important;
-        border-color: rgba(5, 150, 105, 0.25) !important;
-        font-size: 11px !important;
-        padding: 5px 9px !important;
+        background: var(--accent-bg);
+        color: var(--accent);
+        border-color: rgba(16,185,129,0.25);
+        font-size: 11px;
+        padding: 5px 9px;
         white-space: nowrap;
       }
       .btn-nano:hover:not(:disabled) {
-        background: var(--accent) !important;
-        color: #fff !important;
-        border-color: var(--accent) !important;
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
       }
       .feed-tag.job {
         background: rgba(168,85,247,0.15);
@@ -592,6 +491,7 @@
 
       .panel:hover {
         box-shadow: var(--shadow-md);
+        border-color: var(--border-hi);
       }
 
       .panel-head {
@@ -1375,31 +1275,33 @@
 
       /* ---- Landing feed (pre-connect) ---- */
       .landing-feed-box {
-        margin: 40px auto 0;
-        max-width: 720px;
-        background: var(--bg-1);
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        margin: 48px auto 0;
+        max-width: 760px;
+        background: linear-gradient(145deg, rgba(16,185,129,0.04) 0%, rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(16,185,129,0.12);
+        border-radius: 20px;
         overflow: hidden;
         text-align: left;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 0 0 1px rgba(16,185,129,0.06), 0 24px 60px rgba(0,0,0,0.3);
+        backdrop-filter: blur(8px);
       }
 
       .landing-feed-box .lfb-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 20px;
-        border-bottom: 1px solid var(--border);
+        padding: 16px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        background: rgba(16,185,129,0.03);
       }
 
       .landing-feed-box .lfb-head h3 {
         margin: 0;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.06em;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: var(--text);
+        color: var(--accent);
       }
 
       .landing-feed-box .lfb-head .pulse {
@@ -1518,7 +1420,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 100px 24px 60px;
+        padding: 32px 24px 60px;
         text-align: center;
       }
 
@@ -1528,7 +1430,7 @@
         letter-spacing: -0.04em;
         margin: 0 0 20px;
         line-height: 1.05;
-        background: linear-gradient(135deg, #0a0a0a 0%, #404040 100%);
+        background: linear-gradient(135deg, #e8edf3 0%, #10b981 60%, #60a5fa 100%);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -1705,29 +1607,32 @@
 
       /* ---- Guide tabs ---- */
       .guide-box {
-        margin: 40px auto 0;
-        max-width: 860px;
-        background: var(--bg-1);
-        border: 1px solid var(--border);
-        border-radius: 14px;
+        margin: 48px auto 0;
+        max-width: 900px;
+        background: linear-gradient(145deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
         overflow: hidden;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 24px 80px rgba(0,0,0,0.35);
         text-align: left;
+        backdrop-filter: blur(12px);
       }
 
       .guide-tabs {
         display: flex;
         overflow-x: auto;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-2);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
         scrollbar-width: none;
+        padding: 0 8px;
+        gap: 4px;
       }
 
       .guide-tabs::-webkit-scrollbar { display: none; }
 
       .guide-tab {
         flex-shrink: 0;
-        padding: 12px 18px;
+        padding: 12px 16px;
         border: none;
         background: transparent;
         font-size: 13px;
@@ -1735,28 +1640,31 @@
         color: var(--text-faint);
         cursor: pointer;
         border-bottom: 2px solid transparent;
-        transition: all 0.15s ease;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.18s ease;
         white-space: nowrap;
+        letter-spacing: -0.01em;
       }
 
-      .guide-tab:hover { color: var(--text); background: var(--bg-3); }
+      .guide-tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
 
       .guide-tab.active {
         color: var(--accent);
         border-bottom-color: var(--accent);
-        background: var(--bg-1);
+        background: rgba(16,185,129,0.06);
+        text-shadow: 0 0 12px rgba(16,185,129,0.3);
       }
 
       .guide-content {
         display: none;
-        padding: 24px 28px 28px;
-        animation: fadeIn 0.18s ease;
+        padding: 28px 32px 32px;
+        animation: guideFadeIn 0.22s cubic-bezier(.22,1,.36,1);
       }
 
       .guide-content.active { display: block; }
 
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(4px); }
+      @keyframes guideFadeIn {
+        from { opacity: 0; transform: translateY(8px); }
         to   { opacity: 1; transform: translateY(0); }
       }
 
@@ -1764,17 +1672,28 @@
         font-family: var(--font-mono);
         font-size: 10px;
         font-weight: 700;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--text-faint);
-        margin-bottom: 10px;
+        color: var(--accent);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .guide-section-title::before {
+        content: '';
+        display: inline-block;
+        width: 16px;
+        height: 1px;
+        background: var(--accent);
+        opacity: 0.5;
       }
 
       .guide-lead {
-        font-size: 14px;
+        font-size: 15px;
         color: var(--text-dim);
-        line-height: 1.65;
-        margin: 0 0 20px;
+        line-height: 1.7;
+        margin: 0 0 24px;
       }
 
       .guide-lead strong { color: var(--text); }
@@ -2163,61 +2082,81 @@
       .calc-row.highlight { font-size: 14px; padding-top: 10px; }
 
       /* ---- How it works: 3 scenario explainer ---- */
+      /* ========================================================
+         HOW IT WORKS — PREMIUM REDESIGN
+         ======================================================== */
       .explainer {
-        margin: 40px auto 0;
-        max-width: 1120px;
+        margin: 64px auto 0;
+        max-width: 1160px;
         padding: 0 20px;
         text-align: left;
       }
 
       .explainer-head {
         text-align: center;
-        margin-bottom: 28px;
+        margin-bottom: 48px;
       }
 
       .explainer-head h2 {
-        font-size: 28px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        margin: 0 0 10px;
-        color: var(--text);
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0 0 12px;
+        background: linear-gradient(135deg, #fff 0%, #10b981 60%, #60a5fa 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .explainer-head p {
-        font-size: 15px;
+        font-size: 16px;
         color: var(--text-dim);
-        max-width: 560px;
+        max-width: 520px;
         margin: 0 auto;
-        line-height: 1.55;
+        line-height: 1.6;
       }
 
       .explainer-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 20px;
       }
 
-      @media (max-width: 900px) {
-        .explainer-grid {
-          grid-template-columns: 1fr;
-        }
+      @media (max-width: 800px) {
+        .explainer-grid { grid-template-columns: 1fr; }
       }
 
       .scenario {
-        background: var(--bg-1);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 24px 22px;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.2s ease;
+        background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 18px;
+        padding: 28px 26px;
         display: flex;
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), border-color 0.25s, box-shadow 0.25s;
+        backdrop-filter: blur(8px);
       }
 
+      .scenario::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 18px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+      }
+      .scenario.good::before  { background: radial-gradient(ellipse at 20% 0%, rgba(16,185,129,0.08) 0%, transparent 60%); }
+      .scenario.bad::before   { background: radial-gradient(ellipse at 20% 0%, rgba(239,68,68,0.07) 0%, transparent 60%); }
+      .scenario.neutral::before { background: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.07) 0%, transparent 60%); }
+      .scenario:hover::before { opacity: 1; }
+
       .scenario:hover {
-        box-shadow: var(--shadow-md);
-        border-color: var(--border-hi);
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        border-color: rgba(255,255,255,0.14);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
       }
 
       .scenario-badge {
@@ -2225,91 +2164,89 @@
         align-items: center;
         gap: 6px;
         align-self: flex-start;
-        padding: 4px 10px;
+        padding: 4px 12px;
         border-radius: 999px;
         font-family: var(--font-mono);
         font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
+        font-weight: 700;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
       }
 
-      .scenario-badge.good {
-        background: var(--accent-bg);
-        color: var(--accent);
-      }
-
-      .scenario-badge.bad {
-        background: var(--danger-bg);
-        color: var(--danger);
-      }
-
-      .scenario-badge.neutral {
-        background: var(--info-bg);
-        color: var(--info);
-      }
+      .scenario-badge.good    { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
+      .scenario-badge.bad     { background: rgba(239,68,68,0.10);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+      .scenario-badge.neutral { background: rgba(99,102,241,0.10); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
 
       .scenario h3 {
         margin: 0 0 10px;
-        font-size: 18px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
         color: var(--text);
+        line-height: 1.2;
       }
 
       .scenario p.lead {
-        margin: 0 0 20px;
+        margin: 0 0 24px;
         font-size: 14px;
         color: var(--text-dim);
-        line-height: 1.55;
+        line-height: 1.65;
       }
 
       .scenario-steps {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
         margin-top: auto;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        padding-top: 18px;
       }
 
       .scenario-step {
-        display: grid;
-        grid-template-columns: 20px 1fr;
-        gap: 10px;
-        align-items: start;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 13px;
+        line-height: 1.55;
         color: var(--text-dim);
       }
 
       .scenario-step .arrow {
-        color: var(--text-faint);
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 10px;
         font-weight: 700;
-        font-size: 14px;
+        color: var(--text-faint);
+        margin-top: 1px;
+      }
+
+      .scenario-step.highlight .arrow  { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #10b981; }
+      .scenario-step.highlight-bad .arrow { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); color: #f87171; }
+
+      .scenario-step strong { color: var(--text); font-weight: 600; }
+      .scenario-step .amount { font-weight: 700; font-family: var(--font-mono); }
+      .scenario-step .amount.pos { color: #10b981; }
+      .scenario-step .amount.neg { color: #f87171; }
+
+      /* ---- scenario accent corner icon ---- */
+      .scenario-icon {
+        position: absolute;
+        top: 20px;
+        right: 22px;
+        font-size: 28px;
+        opacity: 0.12;
+        pointer-events: none;
         line-height: 1;
-        padding-top: 2px;
       }
-
-      .scenario-step.highlight .arrow {
-        color: var(--accent);
-      }
-
-      .scenario-step.highlight-bad .arrow {
-        color: var(--danger);
-      }
-
-      .scenario-step strong {
-        color: var(--text);
-        font-weight: 600;
-      }
-
-      .scenario-step .amount {
-        font-weight: 600;
-      }
-
-      .scenario-step .amount.pos { color: var(--accent); }
-      .scenario-step .amount.neg { color: var(--danger); }
 
       /* ---- Info box (inline explainer in forms) ---- */
       .info-box {
@@ -2484,7 +2421,7 @@
 
         /* --- Hero: tighter --- */
         .disconnected {
-          padding: 60px 16px 40px;
+          padding: 24px 16px 40px;
         }
 
         .disconnected h1 {
@@ -3300,48 +3237,1081 @@
       .status-completed { background: var(--accent-bg); color: var(--accent); }
       .status-rejected, .status-expired { background: var(--danger-bg); color: var(--danger); }
 
-      /* ── Call filter buttons ── */
-      .call-filter-btn { font-size:11px; padding:3px 10px; opacity:.55; }
-      .call-filter-btn.active { opacity:1; background:var(--accent-bg); color:var(--accent); border-color:rgba(5,150,105,.3); }
-
-      /* ── Marketplace ── */
-      .mkt-card {
+      /* ============================================================
+         SLA COUNTDOWN BANNER — sabit üst şerit, açık call varsa görünür
+         ============================================================ */
+      #slaBanner {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        background: linear-gradient(90deg, #0f1419 0%, #161d27 100%);
+        border-bottom: 1px solid var(--border-hi);
+        padding: 8px 20px;
+        gap: 12px;
+        align-items: center;
+        font-size: 12px;
+        font-family: var(--font-mono);
+        overflow-x: auto;
+        animation: bannerSlide .3s ease;
+      }
+      #slaBanner.visible { display: flex; }
+      #slaBanner.urgent-banner {
+        border-bottom-color: var(--danger);
+        background: linear-gradient(90deg, rgba(248,113,113,0.08) 0%, #0f1419 100%);
+      }
+      @keyframes bannerSlide {
+        from { transform: translateY(-100%); opacity:0; }
+        to   { transform: translateY(0); opacity:1; }
+      }
+      .banner-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .banner-call-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         background: var(--bg-2);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        transition: border-color .2s, transform .2s, box-shadow .2s;
+        border-radius: 100px;
+        padding: 3px 10px;
+        font-size: 11px;
+        white-space: nowrap;
         cursor: pointer;
+        transition: border-color .15s;
       }
-      .mkt-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
-      .mkt-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-      .mkt-avatar { width:40px; height:40px; border-radius:10px; background:var(--accent-bg);
-        border:1px solid rgba(5,150,105,.2); display:flex; align-items:center; justify-content:center;
-        font-size:18px; flex-shrink:0; }
-      .mkt-name { font-weight:600; font-size:14px; }
-      .mkt-addr { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
-      .mkt-tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
-      .mkt-tag-pill { font-size:10px; padding:2px 7px; border-radius:100px;
-        background:var(--bg-3); color:var(--text-dim); border:1px solid var(--border); }
-      .mkt-tag-pill.active { background:var(--accent-bg); color:var(--accent); border-color:rgba(5,150,105,.3); }
-      .mkt-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
-      .mkt-stat { text-align:center; }
-      .mkt-stat-val { font-family:var(--font-mono); font-size:16px; font-weight:700; }
-      .mkt-stat-lbl { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; }
-      .mkt-rep-bar { height:4px; border-radius:2px; background:var(--bg-3); overflow:hidden; margin-bottom:12px; }
-      .mkt-rep-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#10b981,#60a5fa); transition:width .6s; }
+      .banner-call-chip:hover { border-color: var(--accent); }
+      .banner-call-chip.chip-warn { border-color: var(--warn); color: var(--warn); }
+      .banner-call-chip.chip-urgent { border-color: var(--danger); color: var(--danger); animation: chipPulse 1s ease-in-out infinite; }
+      @keyframes chipPulse { 0%,100%{opacity:1} 50%{opacity:.65} }
+      .banner-time { font-weight: 700; }
+      #bannerClose {
+        margin-left: auto;
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        color: var(--text-faint);
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        padding: 0 4px;
+        transition: color .15s;
+      }
+      #bannerClose:hover { color: var(--text); }
 
-      /* ── Webhook deliveries ── */
-      .whk-delivery { padding:10px 12px; border-radius:8px; background:var(--bg-2);
-        border:1px solid var(--border); margin-bottom:6px; font-size:12px; }
-      .whk-delivery.ok { border-left:3px solid var(--accent); }
-      .whk-delivery.err { border-left:3px solid var(--danger); }
-      .whk-delivery-head { display:flex; justify-content:space-between; margin-bottom:4px; }
-      .whk-delivery-type { font-weight:600; }
-      .whk-delivery-time { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
+      /* ============================================================
+         PROVIDER CARD GRID
+         ============================================================ */
+      .provider-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+      }
+      .prov-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+        transition: border-color .2s, box-shadow .2s, transform .15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .prov-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(16,185,129,0.04) 0%, transparent 60%);
+        pointer-events: none;
+      }
+      .prov-card:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 20px rgba(16,185,129,0.12);
+        transform: translateY(-2px);
+      }
+      .prov-card.self-card { border-color: rgba(16,185,129,0.35); }
+      .prov-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .prov-card-id {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .prov-card-owner {
+        font-size: 11px;
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        margin-bottom: 12px;
+      }
+      .prov-rep-ring {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+      }
+      .prov-rep-ring svg { transform: rotate(-90deg); }
+      .prov-rep-ring-val {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .prov-card-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .prov-stat-cell {
+        background: var(--bg-3);
+        border-radius: 8px;
+        padding: 7px 10px;
+      }
+      .prov-stat-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--text-faint);
+        margin-bottom: 2px;
+      }
+      .prov-stat-val {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .prov-honor-bar {
+        height: 4px;
+        background: var(--bg-3);
+        border-radius: 100px;
+        margin-bottom: 6px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+      }
+      .prov-honor-fill {
+        height: 100%;
+        border-radius: 100px;
+        transition: width .5s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 0 6px currentColor;
+      }
+      .prov-card-footer {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .prov-card-btn {
+        flex: 1;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--bg-3);
+        color: var(--text-dim);
+        transition: all .15s;
+      }
+      .prov-card-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .prov-card-btn.primary {
+        background: var(--accent);
+        color: #0a0e14;
+        border-color: var(--accent);
+        box-shadow: 0 0 10px rgba(16,185,129,0.2);
+      }
+      .prov-card-btn.primary:hover { background: #34d399; box-shadow: 0 0 16px rgba(16,185,129,0.35); }
+
+      /* ============================================================
+         FIRST-RUN ONBOARDING WIZARD
+         ============================================================ */
+      #onboardingWizard {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 8888;
+        width: 340px;
+        max-width: calc(100vw - 32px);
+      }
+      .wizard-card {
+        background: var(--bg-1);
+        border: 1px solid var(--border-hi);
+        border-radius: 20px;
+        padding: 32px;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+      }
+      .wizard-step { display: none; }
+      .wizard-step.active { display: block; }
+      .wizard-progress {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 28px;
+      }
+      .wizard-dot {
+        height: 3px;
+        flex: 1;
+        border-radius: 100px;
+        background: var(--bg-3);
+        transition: background .3s;
+      }
+      .wizard-dot.done { background: var(--accent); }
+      .wizard-step-num {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .wizard-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 10px;
+        line-height: 1.3;
+      }
+      .wizard-desc {
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.65;
+        margin-bottom: 22px;
+      }
+      .wizard-highlight {
+        background: var(--accent-bg);
+        border: 1px solid rgba(16,185,129,0.2);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-bottom: 22px;
+        font-family: var(--font-mono);
+      }
+      .wizard-btns {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .wizard-btn-skip {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-size: 13px;
+        color: var(--text-faint);
+        cursor: pointer;
+        transition: all .15s;
+      }
+      .wizard-btn-skip:hover { color: var(--text); border-color: var(--border-hi); }
+      .wizard-btn-next {
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        padding: 9px 22px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #0a0e14;
+        cursor: pointer;
+        box-shadow: 0 0 14px rgba(16,185,129,0.3);
+        transition: all .2s;
+      }
+      .wizard-btn-next:hover { background: #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.4); }
+
+      /* ============================================================
+         OVERVIEW DASHBOARD — canlı stats grid
+         ============================================================ */
+      .overview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 900px) { .overview-grid { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 600px) { .overview-grid { grid-template-columns: 1fr; } }
+      .ov-stat {
+        background: linear-gradient(145deg, var(--bg-2) 0%, rgba(16,185,129,0.03) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px 24px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color .2s, box-shadow .2s, transform .2s;
+        cursor: default;
+      }
+      .ov-stat:hover {
+        border-color: rgba(16,185,129,0.3);
+        box-shadow: 0 0 0 1px rgba(16,185,129,0.1), var(--shadow-md);
+        transform: translateY(-1px);
+      }
+      .ov-stat::before {
+        content: '';
+        position: absolute;
+        top: -20px; right: -20px;
+        width: 80px; height: 80px;
+        background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .ov-icon {
+        font-size: 20px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      .ov-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin-bottom: 8px;
+      }
+      .ov-val {
+        font-family: var(--font-mono);
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1;
+        letter-spacing: -0.03em;
+      }
+      .ov-sub {
+        font-size: 11px;
+        color: var(--text-faint);
+        margin-top: 6px;
+        font-family: var(--font-mono);
+      }
+      .live-feed-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        border-radius: 8px;
+        font-size: 12px;
+        animation: feedRow .35s cubic-bezier(.22,1,.36,1);
+        transition: background .15s ease;
+      }
+      .live-feed-row:hover { background: rgba(255,255,255,0.03); }
+      @keyframes feedRow {
+        from { opacity:0; transform: translateX(-10px); }
+        to   { opacity:1; transform: translateX(0); }
+      }
+      .live-feed-row:last-child { border-bottom: none; }
+      .feed-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+      .feed-dot.call   { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: feedPulse 2s infinite; }
+      .feed-dot.slash  { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+      .feed-dot.receipt{ background: var(--info);   box-shadow: 0 0 8px var(--info); }
+      @keyframes feedPulse {
+        0%,100% { box-shadow: 0 0 4px var(--accent); }
+        50%      { box-shadow: 0 0 12px var(--accent), 0 0 20px rgba(16,185,129,0.3); }
+      }
+
+      /* ================================================================
+         PREMIUM DESIGN SYSTEM — Animations & Visual Enhancements
+         ================================================================ */
+
+      /* ---- Particle Canvas ---- */
+      #cgCanvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.55;
+      }
+      body > *:not(#cgCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb) { position: relative; z-index: 1; }
+
+      /* ---- Topbar shrink on scroll ---- */
+      .topbar {
+        transition: height .3s ease, background .3s ease, box-shadow .3s ease;
+      }
+      .topbar.scrolled {
+        box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+        background: rgba(10,14,20,0.97) !important;
+        border-bottom-color: rgba(16,185,129,0.15) !important;
+      }
+      .topbar.scrolled .brand-sub { opacity: 0; }
+
+      /* ---- Sidebar glassmorphism ---- */
+      .app-sidebar {
+        background: rgba(15,20,25,0.85) !important;
+        backdrop-filter: blur(24px) saturate(180%);
+        border-right: 1px solid rgba(255,255,255,0.06) !important;
+        box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+      }
+      .sb-item {
+        border-radius: 8px;
+        margin: 1px 8px;
+        padding: 9px 10px !important;
+        transition: all .2s cubic-bezier(0.4,0,0.2,1) !important;
+      }
+      .sb-item:hover {
+        background: rgba(255,255,255,0.06) !important;
+        transform: translateX(2px);
+      }
+      .sb-item.on {
+        background: linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.08) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(16,185,129,0.25), 0 0 16px rgba(16,185,129,0.08);
+        border-left-color: var(--accent) !important;
+      }
+      .sb-dot {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        box-shadow: 0 0 12px rgba(16,185,129,0.4);
+      }
+
+      /* ---- Brand mark pulse ---- */
+      .brand-mark {
+        background: linear-gradient(135deg, #10b981, #3b82f6) !important;
+        box-shadow: 0 0 20px rgba(16,185,129,0.4) !important;
+        animation: brandGlow 3s ease-in-out infinite;
+      }
+      @keyframes brandGlow {
+        0%, 100% { box-shadow: 0 0 12px rgba(16,185,129,0.3); }
+        50%       { box-shadow: 0 0 24px rgba(16,185,129,0.6), 0 0 48px rgba(59,130,246,0.2); }
+      }
+
+      /* ---- Hero: Animated gradient text ---- */
+      .disconnected h1 {
+        background-size: 200% 200% !important;
+        animation: heroGrad 4s ease infinite !important;
+      }
+      @keyframes heroGrad {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      /* ---- Hero: Typing cursor on subtitle ---- */
+      .hero-subtitle-cursor::after {
+        content: '|';
+        animation: blink .75s step-end infinite;
+        color: var(--accent);
+        margin-left: 2px;
+      }
+      @keyframes blink {
+        0%, 100% { opacity: 1; } 50% { opacity: 0; }
+      }
+
+      /* ---- Hero stat cards: float + glow on hover ---- */
+      .hero-stat {
+        transition: transform .3s cubic-bezier(0.4,0,0.2,1),
+                    box-shadow .3s ease,
+                    border-color .3s ease !important;
+      }
+      .hero-stat:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2) !important;
+        border-color: rgba(16,185,129,0.3) !important;
+      }
+      .hero-stat .num {
+        transition: color .3s ease;
+      }
+      .hero-stat:hover .num {
+        color: var(--accent) !important;
+      }
+
+      /* ---- Counter: count-up animation ---- */
+      .count-up {
+        display: inline-block;
+        transition: none;
+      }
+
+      /* ---- Panel: stagger entrance ---- */
+      .panel-stagger {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity .5s ease, transform .5s cubic-bezier(0.4,0,0.2,1);
+      }
+      .panel-stagger.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ---- Provider card: 3D tilt ---- */
+      .prov-card {
+        transform-style: preserve-3d;
+        transform: perspective(600px) rotateX(0deg) rotateY(0deg);
+        transition: transform .15s ease, border-color .2s, box-shadow .2s !important;
+      }
+      .prov-card:hover {
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.3) !important;
+      }
+
+      /* ---- Network pill live pulse ---- */
+      .net-dot.ok {
+        animation: netPulse 2s ease-in-out infinite;
+      }
+      @keyframes netPulse {
+        0%, 100% { box-shadow: 0 0 4px var(--accent); }
+        50%       { box-shadow: 0 0 12px var(--accent), 0 0 24px rgba(16,185,129,0.3); }
+      }
+
+      /* ---- Btn-primary: shimmer effect ---- */
+      .btn-primary {
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -75%;
+        width: 50%;
+        height: 200%;
+        background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+        transform: skewX(-15deg);
+        animation: shimmer 3s ease-in-out infinite;
+      }
+      @keyframes shimmer {
+        0%   { left: -75%; }
+        100% { left: 150%; }
+      }
+
+      /* ---- Connect wallet button: glow pulse ---- */
+      #connectBtn {
+        animation: connectGlow 2.5s ease-in-out infinite;
+      }
+      @keyframes connectGlow {
+        0%, 100% { box-shadow: 0 0 8px rgba(16,185,129,0.2); }
+        50%       { box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 40px rgba(16,185,129,0.15); }
+      }
+
+      /* ---- Call row: slide in left ---- */
+      @keyframes callRowIn {
+        from { opacity: 0; transform: translateX(-12px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .call-row {
+        animation: callRowIn .3s cubic-bezier(0.4,0,0.2,1) both;
+      }
+
+      /* ---- Toast: enhanced ---- */
+      .toast {
+        backdrop-filter: blur(20px);
+        background: rgba(15,20,25,0.92) !important;
+      }
+
+      /* ---- SLA banner: slide down ---- */
+      #slaBanner {
+        animation: none;
+        transition: transform .3s ease, opacity .3s ease;
+      }
+      #slaBanner.visible {
+        animation: bannerIn .4s cubic-bezier(0.4,0,0.2,1);
+      }
+      @keyframes bannerIn {
+        from { transform: translateY(-100%); opacity: 0; }
+        to   { transform: translateY(0); opacity: 1; }
+      }
+
+      /* ---- Leaderboard rows: stagger ---- */
+      .lb-row {
+        opacity: 0;
+        transform: translateX(-8px);
+        transition: opacity .3s ease, transform .3s ease, background .18s, border-color .18s !important;
+      }
+      .lb-row.lb-visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .lb-row:hover {
+        transform: translateX(4px) !important;
+      }
+
+      /* ---- Analytics bar animate ---- */
+      @keyframes barGrow {
+        from { width: 0; }
+      }
+      .an-bar-fill {
+        animation: barGrow .8s cubic-bezier(0.4,0,0.2,1) both;
+      }
+
+      /* ---- Global scrollbar ---- */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.4); }
+
+      /* ---- Focus ring ---- */
+      :focus-visible {
+        outline: 2px solid rgba(16,185,129,0.6);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+
+      /* ---- Loading skeleton ---- */
+      @keyframes skeletonPulse {
+        0%, 100% { opacity: .4; }
+        50%       { opacity: .8; }
+      }
+      .skeleton {
+        background: var(--bg-3);
+        border-radius: 4px;
+        animation: skeletonPulse 1.5s ease-in-out infinite;
+      }
+
+      /* ---- Page transition ---- */
+      [data-category].cat-visible {
+        animation: catFadeSlide .35s cubic-bezier(0.4,0,0.2,1) both !important;
+      }
+      @keyframes catFadeSlide {
+        from { opacity: 0; transform: translateY(14px) scale(0.99); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      /* ---- Disconnected: hero glow orbs ---- */
+      .hero-orb {
+        position: fixed;
+        border-radius: 50%;
+        pointer-events: none;
+        animation: orbFloat 8s ease-in-out infinite;
+        filter: blur(80px);
+        z-index: 0;
+      }
+      .hero-orb-1 {
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%);
+        top: 15%; left: 10%;
+      }
+      .hero-orb-2 {
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+        top: 25%; right: 8%;
+        animation-delay: -3s;
+      }
+      .hero-orb-3 {
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(251,191,36,0.05) 0%, transparent 70%);
+        bottom: 25%; left: 40%;
+        animation-delay: -5s;
+      }
+      @keyframes orbFloat {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33%       { transform: translate(20px, -30px) scale(1.05); }
+        66%       { transform: translate(-15px, 20px) scale(0.95); }
+      }
+      .disconnected { position: relative; overflow: hidden; }
+
+      /* ================================================================
+         ULTRA PREMIUM LAYER 2 — 2026 Design System
+         ================================================================ */
+
+      /* ---- Noise texture overlay ---- */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.025;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        background-size: 180px 180px;
+      }
+
+      /* ---- Grid background ---- */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+      }
+
+      /* ---- Mouse spotlight ---- */
+      #mouseSpotlight {
+        position: fixed;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        transform: translate(-50%, -50%);
+        transition: opacity .3s ease;
+        opacity: 0;
+      }
+
+      /* ---- Scrolling ticker (inside topbar, below topbar-inner) ---- */
+      #cgTicker {
+        background: rgba(16,185,129,0.06);
+        border-top: 1px solid rgba(16,185,129,0.10);
+        padding: 3px 0;
+        overflow: hidden;
+        white-space: nowrap;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        display: none;
+      }
+      .ticker-track {
+        display: inline-block;
+        animation: tickerScroll 30s linear infinite;
+      }
+      .ticker-track:hover { animation-play-state: paused; }
+      @keyframes tickerScroll {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+      }
+      .ticker-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 40px;
+      }
+      .ticker-item .t-label { color: var(--text-dim); }
+      .ticker-item .t-val   { color: var(--accent); font-weight: 600; }
+      .ticker-item .t-sep   { color: var(--border-hi); }
+
+      /* ---- BorderBeam ---- */
+      .border-beam-wrap {
+        position: relative;
+        overflow: hidden;
+      }
+      .border-beam-wrap::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        background: conic-gradient(
+          from var(--beam-angle, 0deg) at 50% 50%,
+          transparent 0deg,
+          rgba(16,185,129,0.8) 60deg,
+          transparent 120deg
+        );
+        z-index: 0;
+        animation: beamRotate 3s linear infinite;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .3s;
+      }
+      .border-beam-wrap:hover::after,
+      .border-beam-wrap.beam-active::after {
+        opacity: 1;
+      }
+      @keyframes beamRotate {
+        from { --beam-angle: 0deg; }
+        to   { --beam-angle: 360deg; }
+      }
+      @property --beam-angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
+      }
+      /* Inner content sits above the beam */
+      .border-beam-wrap > * { position: relative; z-index: 1; }
+
+      /* ---- Shimmer skeleton ---- */
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          var(--bg-2) 0%,
+          rgba(255,255,255,0.05) 40%,
+          var(--bg-2) 80%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 1.6s ease infinite;
+        border-radius: 6px;
+      }
+      @keyframes shimmer {
+        from { background-position: 100% 0; }
+        to   { background-position: -100% 0; }
+      }
+
+      /* ---- Hero SVG sparkline ---- */
+      #heroSparkline {
+        margin: 32px auto 0;
+        max-width: 720px;
+        width: 100%;
+      }
+      .sparkline-wrap {
+        background: rgba(15,20,25,0.7);
+        border: 1px solid rgba(16,185,129,0.15);
+        border-radius: 16px;
+        padding: 16px 20px;
+        backdrop-filter: blur(12px);
+      }
+      .sparkline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .sparkline-title {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sparkline-svg {
+        width: 100%;
+        height: 64px;
+        overflow: visible;
+      }
+      .sparkline-line {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2s ease-out .3s forwards;
+      }
+      @keyframes drawLine {
+        to { stroke-dashoffset: 0; }
+      }
+      .sparkline-fill {
+        opacity: 0;
+        animation: fadeIn .5s ease 2s forwards;
+      }
+
+      /* ---- Leaderboard podium ---- */
+      .podium-wrap {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .podium-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .podium-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        border: 2px solid;
+        position: relative;
+      }
+      .podium-col.rank-1 .podium-avatar {
+        width: 52px;
+        height: 52px;
+        background: rgba(251,191,36,0.15);
+        border-color: #fbbf24;
+        color: #fbbf24;
+        box-shadow: 0 0 20px rgba(251,191,36,0.3);
+      }
+      .podium-col.rank-2 .podium-avatar {
+        background: rgba(203,213,225,0.1);
+        border-color: #cbd5e1;
+        color: #cbd5e1;
+      }
+      .podium-col.rank-3 .podium-avatar {
+        background: rgba(249,115,22,0.1);
+        border-color: #f97316;
+        color: #f97316;
+      }
+      .podium-bar {
+        width: 80px;
+        border-radius: 6px 6px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 0;
+        transition: height .8s cubic-bezier(0.4,0,0.2,1);
+      }
+      .podium-col.rank-1 .podium-bar {
+        height: 80px;
+        background: linear-gradient(180deg, rgba(251,191,36,0.25), rgba(251,191,36,0.08));
+        border: 1px solid rgba(251,191,36,0.3);
+        color: #fbbf24;
+      }
+      .podium-col.rank-2 .podium-bar {
+        height: 56px;
+        background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(203,213,225,0.04));
+        border: 1px solid rgba(203,213,225,0.2);
+        color: #cbd5e1;
+      }
+      .podium-col.rank-3 .podium-bar {
+        height: 40px;
+        background: linear-gradient(180deg, rgba(249,115,22,0.15), rgba(249,115,22,0.04));
+        border: 1px solid rgba(249,115,22,0.2);
+        color: #f97316;
+      }
+      .podium-name {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        text-align: center;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .podium-crown {
+        position: absolute;
+        top: -14px;
+        font-size: 12px;
+        animation: crownBounce 2s ease-in-out infinite;
+      }
+      @keyframes crownBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+
+      /* ---- Panel: glass card ---- */
+      .panel {
+        backdrop-filter: blur(8px) saturate(140%);
+        background: rgba(15,20,25,0.75) !important;
+      }
+
+      /* ---- Topbar ticker spacer (ticker now inside topbar, no extra padding needed) ---- */
+      .topbar { top: 0; }
+
+      /* ---- Active call flash ---- */
+      @keyframes callFlash {
+        0%, 100% { background-color: transparent; }
+        50% { background-color: rgba(16,185,129,0.06); }
+      }
+      .call-row.new-call {
+        animation: callFlash 1s ease 2;
+      }
+
+      /* ---- Number count-up ---- */
+      .count-up { display: inline-block; }
+
+      /* ---- Glow text ---- */
+      .glow-text {
+        text-shadow: 0 0 20px rgba(16,185,129,0.5);
+      }
+
+      /* ---- Stat value shimmer on load ---- */
+      .stat-loading {
+        color: transparent !important;
+        background: linear-gradient(90deg, var(--bg-3) 30%, var(--bg-2) 50%, var(--bg-3) 70%);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: shimmer 1.4s ease infinite;
+        border-radius: 4px;
+      }
+
     </style>
   </head>
   <body>
+    <!-- Particle Background -->
+    <canvas id="cgCanvas"></canvas>
+    <!-- Mouse spotlight -->
+    <div id="mouseSpotlight"></div>
+
+    <!-- Live Stats Ticker -->
+    <div id="cgTicker">
+      <div class="ticker-track" id="tickerTrack">
+        <span class="ticker-item"><span class="t-label">PROVIDERS</span><span class="t-val" id="tkProviders">…</span></span>
+        <span class="ticker-item"><span class="t-label">CALLS</span><span class="t-val" id="tkCalls">…</span></span>
+        <span class="ticker-item"><span class="t-label">HONOR RATE</span><span class="t-val" id="tkHonor">…</span></span>
+        <span class="ticker-item"><span class="t-label">SLASHES</span><span class="t-val" id="tkSlashes">…</span></span>
+        <span class="ticker-item"><span class="t-label">NETWORK</span><span class="t-val" style="color:var(--accent)">Arc Testnet</span></span>
+        <span class="ticker-item"><span class="t-label">CONTRACT</span><span class="t-val">PayPerCall v2</span></span>
+        <span class="ticker-item" id="tkTime"><span class="t-label">TIME</span><span class="t-val" id="tkClock">…</span></span>
+        <!-- duplicate for seamless loop -->
+        <span class="ticker-item"><span class="t-label">PROVIDERS</span><span class="t-val" id="tkProviders2">…</span></span>
+        <span class="ticker-item"><span class="t-label">CALLS</span><span class="t-val" id="tkCalls2">…</span></span>
+        <span class="ticker-item"><span class="t-label">HONOR RATE</span><span class="t-val" id="tkHonor2">…</span></span>
+        <span class="ticker-item"><span class="t-label">SLASHES</span><span class="t-val" id="tkSlashes2">…</span></span>
+        <span class="ticker-item"><span class="t-label">NETWORK</span><span class="t-val" style="color:var(--accent)">Arc Testnet</span></span>
+        <span class="ticker-item"><span class="t-label">CONTRACT</span><span class="t-val">PayPerCall v2</span></span>
+      </div>
+    </div>
+
+    <!-- SLA Countdown Banner -->
+    <div id="slaBanner">
+      <span class="banner-label">⏱ Active SLA</span>
+      <div id="bannerChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <button id="bannerClose" title="Dismiss">×</button>
+    </div>
+
+    <!-- First-Run Onboarding Wizard -->
+    <div id="onboardingWizard">
+      <div class="wizard-card">
+        <button class="wizard-btn-skip" id="wSkipAll" style="position:absolute;top:12px;right:14px;font-size:18px;padding:0;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1">×</button>
+        <div class="wizard-progress">
+          <div class="wizard-dot done" id="wdot1"></div>
+          <div class="wizard-dot" id="wdot2"></div>
+          <div class="wizard-dot" id="wdot3"></div>
+          <div class="wizard-dot" id="wdot4"></div>
+        </div>
+        <!-- Step 1 -->
+        <div class="wizard-step active" id="wstep1">
+          <div class="wizard-step-num">Step 1 of 4</div>
+          <div class="wizard-title">Welcome to CallGuard</div>
+          <div class="wizard-desc">CallGuard is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC and commit to responding within a time window. Miss the deadline — get slashed.</div>
+          <div class="wizard-highlight">🔒 Stake · ⚡ Call · ✓ Receipt · ⚠ Slash — the full lifecycle in one contract.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip">Skip tour</button>
+            <button class="wizard-btn-next" id="wNext1">Connect wallet →</button>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div class="wizard-step" id="wstep2">
+          <div class="wizard-step-num">Step 2 of 4</div>
+          <div class="wizard-title">Register as a provider</div>
+          <div class="wizard-desc">Stake USDC and set your price per call. You commit to responding within your max response time. Callers get a refund + slash if you miss it.</div>
+          <div class="wizard-highlight">Go to <strong style="color:var(--accent)">Providers → Register</strong> and set your stake, price, and endpoint URL.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip2">Skip</button>
+            <button class="wizard-btn-next" id="wNext2">Next: make a call →</button>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div class="wizard-step" id="wstep3">
+          <div class="wizard-step-num">Step 3 of 4</div>
+          <div class="wizard-title">Call a service</div>
+          <div class="wizard-desc">Pick a provider from the list, approve USDC, and open a call. The USDC goes into escrow. The provider has until the deadline to respond.</div>
+          <div class="wizard-highlight">Go to <strong style="color:var(--accent)">Providers → Call service</strong> and enter a provider ID and payload.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-skip" id="wSkip3">Skip</button>
+            <button class="wizard-btn-next" id="wNext3">Next: submit receipt →</button>
+          </div>
+        </div>
+        <!-- Step 4 -->
+        <div class="wizard-step" id="wstep4">
+          <div class="wizard-step-num">Step 4 of 4</div>
+          <div class="wizard-title">Submit a receipt or claim timeout</div>
+          <div class="wizard-desc">If you are the provider: submit a signed receipt before the deadline to release the escrow. If you are the caller and the deadline passes: claim the timeout to get a refund and slash the provider.</div>
+          <div class="wizard-highlight">Your active calls show a live countdown in the <strong style="color:var(--accent)">Calls</strong> panel and the top banner.</div>
+          <div class="wizard-btns">
+            <button class="wizard-btn-next" id="wDone">Got it — let's go ✓</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ============================================================ -->
     <!-- Top bar                                                      -->
     <!-- ============================================================ -->
@@ -3385,8 +4355,12 @@
     <!-- ============================================================ -->
     <main id="disconnectedView">
       <div class="disconnected">
-        <h1 style="color: #ffffff;">Pay-per-call, enforced on-chain.</h1>
-        <p>
+        <!-- Glow orbs -->
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
+        <h1>Pay-per-call, enforced on-chain.</h1>
+        <p id="heroSubtitle" class="hero-subtitle-cursor">
           Service providers stake USDC and commit to an SLA. Callers — including AI agents — pay
           per request and receive a cryptographically signed receipt. If the provider misses the
           deadline, the stake is slashed automatically. No arbiter, no middleman.
@@ -3394,17 +4368,40 @@
         <button class="btn btn-primary" id="connectBtn2">Connect wallet</button>
 
         <div class="hero-stat-row">
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroProviders">—</div>
             <div class="lbl">Registered providers</div>
           </div>
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroCalls">—</div>
             <div class="lbl">Calls on chain</div>
           </div>
-          <div class="hero-stat">
+          <div class="hero-stat border-beam-wrap">
             <div class="num mono" id="heroSlashes">—</div>
             <div class="lbl">Slashes enforced</div>
+          </div>
+        </div>
+
+        <!-- Hero Sparkline Chart -->
+        <div id="heroSparkline">
+          <div class="sparkline-wrap">
+            <div class="sparkline-header">
+              <div class="sparkline-title">
+                <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+                Network Call Activity
+              </div>
+              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
+            </div>
+            <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(16,185,129,0.3)"/>
+                  <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+                </linearGradient>
+              </defs>
+              <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
+              <path class="sparkline-line" id="sparklinePath"/>
+            </svg>
           </div>
         </div>
 
@@ -3415,7 +4412,8 @@
           </div>
           <div class="explainer-grid">
 
-            <div class="scenario">
+            <div class="scenario good">
+              <div class="scenario-icon">✓</div>
               <span class="scenario-badge good">✓ Happy path</span>
               <h3>Provider honors the SLA</h3>
               <p class="lead">The common case. Provider responds in time, gets paid, reputation goes up.</p>
@@ -3439,7 +4437,8 @@
               </div>
             </div>
 
-            <div class="scenario">
+            <div class="scenario bad">
+              <div class="scenario-icon">✕</div>
               <span class="scenario-badge bad">✕ Timeout</span>
               <h3>Provider misses the deadline</h3>
               <p class="lead">What keeps the marketplace honest. No response in time? The caller gets paid back, and the provider loses stake.</p>
@@ -3463,7 +4462,8 @@
               </div>
             </div>
 
-            <div class="scenario">
+            <div class="scenario neutral">
+              <div class="scenario-icon">★</div>
               <span class="scenario-badge neutral">★ Reputation</span>
               <h3>Track record, on-chain</h3>
               <p class="lead">Every honored call and every slash is counted in the contract. Anyone — including other contracts — can read a provider's score.</p>
@@ -3491,7 +4491,8 @@
               </div>
             </div>
 
-            <div class="scenario">
+            <div class="scenario neutral">
+              <div class="scenario-icon">⚡</div>
               <span class="scenario-badge neutral">⚡ v4</span>
               <h3>Composable payment rails</h3>
               <p class="lead">v4 adds five ways to pay, a verifiable identity layer, and ERC-8183 job settlement — all settling into the same SLA enforcement.</p>
@@ -3596,7 +4597,7 @@
               <div class="faq-item"><div class="faq-q">What is the Call ID and where does it come from?</div><div class="faq-a">It is the unique 32-byte identifier generated on-chain when <code>callService()</code> is invoked. It is auto-filled after you click <em>Approve &amp; call</em>.</div></div>
               <div class="faq-item"><div class="faq-q">Can I submit a receipt after the SLA deadline?</div><div class="faq-a">No. The contract rejects <code>submitReceipt()</code> once the deadline has passed. Keep an eye on the countdown timer!</div></div>
               <div class="faq-item"><div class="faq-q">Can I be both a provider and a caller with the same wallet?</div><div class="faq-a">Technically yes, but two separate accounts are recommended for testing.</div></div>
-              <div class="faq-item"><div class="faq-q">Can I withdraw my stake?</div><div class="faq-a">You can unstake when there are no pending calls. A cooldown period applies.</div></div>
+              <div class="faq-item"><div class="faq-q">Can I withdraw my stake?</div><div class="faq-a">Yes. First call <code>deactivate()</code> to stop accepting new calls. Once all pending calls resolve (completed or slashed), you can call <code>unstake()</code>. Your Provider Dashboard shows real-time unstake eligibility.</div></div>
               <div class="faq-item"><div class="faq-q">How is the reputation score calculated?</div><div class="faq-a">Bayesian formula: <code>(successful + 2) / (total + 3) × 100</code>. A new provider starts at 66. Each successful call increases the score; each slash decreases it.</div></div>
             </div>
           </div>
@@ -4007,74 +5008,42 @@
         <!-- ===== BUDGET / SPENDING CAP ===== -->
         <section class="panel full-width" data-category="analytics">
           <div class="panel-head">
-            <h2>📈 Analytics</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
+            <h2>Analytics</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)" id="anLastUpdate">Goldsky subgraph · live data</span>
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Total Calls</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anTotalCalls">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anTotalCallsSub">all-time</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Honor Rate</div>
+                <div style="font-size:28px;font-weight:700;font-family:var(--font-mono)" id="anHonorRate" style="color:var(--accent)">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anHonorRateSub">completed / total closed</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Active Providers</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anActiveProviders">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="anActiveProvidersSub">of <span id="anTotalProviders">—</span> total</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
-              </div>
-            </div>
-
-            <div style="margin-bottom:20px">
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
-              <div id="anProviderBars"></div>
-            </div>
-
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
-              <div id="anRecentCalls"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel full-width" data-category="analytics">
-          <div class="panel-head">
-            <h2>📈 Analytics</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Goldsky subgraph · live data</span>
-          </div>
-          <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="analyticsStats">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">TOTAL CALLS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anTotalCalls">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">HONOR RATE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anHonorRate">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">ACTIVE PROVIDERS</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anActiveProviders">—</div>
-              </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
-                <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">AVG PRICE</div>
-                <div style="font-size:28px;font-weight:700;color:var(--accent)" id="anAvgPrice">—</div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Avg Price / Call</div>
+                <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--font-mono)" id="anAvgPrice">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px">USDC</div>
               </div>
             </div>
 
-            <div style="margin-bottom:20px">
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top Providers by Activity</div>
-              <div id="anProviderBars"></div>
-            </div>
-
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent Call Status</div>
-              <div id="anRecentCalls"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Top Providers by Activity</div>
+                <div id="anProviderBars"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Recent Calls</div>
+                <div id="anRecentCalls"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
             </div>
           </div>
         </section>
@@ -4140,6 +5109,57 @@
           </div>
         </section>
 
+        <!-- Overview: Network stats dashboard -->
+        <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
+          <div class="panel-head">
+            <h2>Network Overview</h2>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint)">
+              <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+              live · Arc Testnet
+            </span>
+          </div>
+          <div class="panel-body">
+            <div class="overview-grid">
+              <div class="ov-stat">
+                <span class="ov-icon">🔌</span>
+                <div class="ov-label">Active Providers</div>
+                <div class="ov-val" id="ovProviders" style="color:var(--accent)">—</div>
+                <div class="ov-sub" id="ovProvidersSub">loading…</div>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-icon">⚡</span>
+                <div class="ov-label">Recent Calls</div>
+                <div class="ov-val" id="ovCalls" style="color:var(--info)">—</div>
+                <div class="ov-sub" id="ovCallsSub">last 20</div>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-icon">🛡</span>
+                <div class="ov-label">Honor Rate</div>
+                <div class="ov-val" id="ovHonor" style="color:var(--accent)">—</div>
+                <div class="ov-sub" id="ovHonorSub">completed / closed</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+                  <span style="font-size:14px">📡</span>
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Live Activity</span>
+                  <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:auto"></span>
+                </div>
+                <div id="ovLiveFeed"><div class="empty-state" style="font-size:12px">Loading activity…</div></div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+                  <span style="font-size:14px">🏆</span>
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Top Providers</span>
+                </div>
+                <div id="ovTopProviders"><div class="empty-state" style="font-size:12px">Loading…</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- My Activity -->
         <section class="panel full-width cat-visible" data-category="overview">
           <div class="panel-head">
             <h2>My Activity</h2>
@@ -4153,38 +5173,8 @@
         <section class="panel full-width" data-category="calls">
           <div class="panel-head">
             <h2>Your calls</h2>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span class="mono" style="font-size:11px;color:var(--text-faint)" id="callsSummary"></span>
-              <button class="btn btn-sm" id="btnExportCsv" style="font-size:11px;padding:3px 10px" title="Export to CSV">↓ CSV</button>
-              <button class="btn btn-sm" id="btnRefreshCalls" style="font-size:11px;padding:3px 10px">↻</button>
-            </div>
-          </div>
-          <!-- Stats row -->
-          <div id="callsStatsRow" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Calls</div>
-              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono)" id="csTotal">0</div>
-            </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">USDC Spent</div>
-              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--accent)" id="csSpent">0.00</div>
-            </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Completed</div>
-              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:#10b981" id="csCompleted">0</div>
-            </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Slashed</div>
-              <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:#ef4444" id="csSlashed">0</div>
-            </div>
-          </div>
-          <!-- Filter row -->
-          <div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
-            <button class="btn btn-sm call-filter-btn active" data-filter="all">All</button>
-            <button class="btn btn-sm call-filter-btn" data-filter="open">Open</button>
-            <button class="btn btn-sm call-filter-btn" data-filter="completed">Completed</button>
-            <button class="btn btn-sm call-filter-btn" data-filter="slashed">Slashed</button>
-            <button class="btn btn-sm call-filter-btn" data-filter="expired">Expired</button>
+            <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="callsSummary"
+              ></span>
           </div>
           <div class="panel-body compact" id="callsBox">
             <div class="empty-state">no calls yet — make one or submit a receipt</div>
@@ -4194,9 +5184,12 @@
         <section class="panel full-width" data-category="providers">
           <div class="panel-head">
             <h2>All providers</h2>
-            <span class="mono" style="font-size: 11px; color: var(--text-faint)">
-              click a row for details
-            </span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--text-faint)">click column header to sort · click row for details</span>
+              <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);cursor:pointer">
+                <input type="checkbox" id="filterActiveOnly" style="width:12px;height:12px;accent-color:var(--accent)" /> active only
+              </label>
+            </div>
           </div>
           <div class="tag-filter-row" id="tagFilterRow" style="display:none"></div>
           <div class="panel-body compact" id="allProvidersBox">
@@ -4204,8 +5197,8 @@
           </div>
         </section>
 
-        
-        
+
+
 
 
         <section class="panel full-width" data-category="nano">
@@ -4291,8 +5284,7 @@ npm install</pre>
   "mcpServers": {
     "callguard": {
       "command": "node",
-      "args": ["./x402-facilitator/mcp-server.js"],
-      "env": { "FACILITATOR_URL": "https://arcsla.vercel.app" }
+      "args": ["/path/to/callguard/x402-facilitator/mcp-server.js"]
     }
   }
 }</pre>
@@ -4369,98 +5361,66 @@ npm install</pre>
           </div>
         </section>
 
-        <!-- ═══════════════════════════════════════════════════════════════════
-             AGENT MARKETPLACE
-        ════════════════════════════════════════════════════════════════════ -->
+        <!-- AGENT MARKETPLACE -->
         <section class="panel full-width" data-category="marketplace">
           <div class="panel-head">
             <h2>🛒 Agent Marketplace</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Browse & hire AI-powered providers</span>
+            <p class="panel-sub">Browse &amp; hire AI-powered providers</p>
           </div>
-          <div class="panel-body">
-            <!-- Search & filter -->
-            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-              <input type="text" id="mktSearch" placeholder="Search by name, tag, capability…"
-                style="flex:1;min-width:180px;background:var(--bg-2);border:1px solid var(--border);
-                border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none"/>
-              <select id="mktSort" style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
-                padding:9px 12px;font-size:13px;color:var(--text);outline:none">
-                <option value="rep">Sort: Reputation</option>
-                <option value="price">Sort: Lowest price</option>
-                <option value="calls">Sort: Most calls</option>
-              </select>
-              <button class="btn btn-sm" id="btnMktRefresh">↻ Refresh</button>
-            </div>
-            <!-- Category tags -->
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="mktTagRow">
-              <button class="btn btn-sm mkt-tag active" data-tag="all">All</button>
-              <button class="btn btn-sm mkt-tag" data-tag="ai">🤖 AI</button>
-              <button class="btn btn-sm mkt-tag" data-tag="data">📊 Data</button>
-              <button class="btn btn-sm mkt-tag" data-tag="compute">⚡ Compute</button>
-              <button class="btn btn-sm mkt-tag" data-tag="storage">💾 Storage</button>
-              <button class="btn btn-sm mkt-tag" data-tag="oracle">🔮 Oracle</button>
-            </div>
-            <!-- Marketplace grid -->
-            <div id="mktGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-              <div class="empty-state">loading marketplace…</div>
-            </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+            <input type="text" id="mktSearch" placeholder="Search by name, tag, capability…" style="flex:1;min-width:180px;padding:8px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px"/>
+            <select id="mktSort" style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
+              <option value="rep">Sort: Reputation</option>
+              <option value="price_asc">Price: Low → High</option>
+              <option value="price_desc">Price: High → Low</option>
+              <option value="calls">Most Calls</option>
+            </select>
+            <button class="btn btn-sm" id="mktRefresh" onclick="window._mktReload?.()">↺ Refresh</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+            <button class="btn btn-sm mkt-tag-btn on" data-tag="all">All</button>
+            <button class="btn btn-sm mkt-tag-btn" data-tag="data">📊 Data</button>
+            <button class="btn btn-sm mkt-tag-btn" data-tag="compute">⚡ Compute</button>
+            <button class="btn btn-sm mkt-tag-btn" data-tag="storage">💾 Storage</button>
+            <button class="btn btn-sm mkt-tag-btn" data-tag="ai">🤖 AI</button>
+            <button class="btn btn-sm mkt-tag-btn" data-tag="oracle">🔮 Oracle</button>
+          </div>
+          <!-- Marketplace grid -->
+          <div id="mktGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+            <div class="empty-state">loading marketplace…</div>
           </div>
         </section>
 
-        <!-- ═══════════════════════════════════════════════════════════════════
-             WEBHOOK NOTIFICATIONS
-        ════════════════════════════════════════════════════════════════════ -->
+        <!-- WEBHOOK NOTIFICATIONS -->
         <section class="panel full-width" data-category="webhooks">
           <div class="panel-head">
             <h2>🔔 Webhook Notifications</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)">Get notified on timeout, slash, or completion</span>
+            <p class="panel-sub">Get notified on-chain events in real time</p>
           </div>
-          <div class="panel-body">
-            <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;
-              padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--text-dim);line-height:1.6">
-              <strong style="color:var(--accent)">How it works:</strong> Enter your endpoint URL.
-              CallGuard will POST a JSON payload when your calls are completed, slashed, or about to expire.
-              No backend needed — use <a href="https://webhook.site" target="_blank" style="color:var(--accent)">webhook.site</a> to test.
-            </div>
-            <div class="field">
-              <label>Webhook URL</label>
-              <div style="display:flex;gap:8px">
-                <input type="url" id="webhookUrl" placeholder="https://your-server.com/webhook or https://webhook.site/…"
-                  style="flex:1"/>
-                <button class="btn btn-sm" id="btnTestWebhook">Test</button>
-              </div>
-              <div class="hint" id="webhookTestResult"></div>
-            </div>
-            <div class="field">
-              <label>Notify me when</label>
-              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
-                  <input type="checkbox" id="whkCompleted" checked style="accent-color:var(--accent)"/>
-                  <span>✅ Call completed (receipt submitted)</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
-                  <input type="checkbox" id="whkSlashed" checked style="accent-color:var(--accent)"/>
-                  <span>⚔️ Call slashed (timeout enforced)</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
-                  <input type="checkbox" id="whkExpiring" checked style="accent-color:var(--accent)"/>
-                  <span>⏰ Call expiring soon (< 60s remaining)</span>
-                </label>
-              </div>
-            </div>
+          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text-dim)">
+            No backend needed — use <a href="https://webhook.site" target="_blank" style="color:var(--accent)">webhook.site</a> to test.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+            <label style="font-size:13px;color:var(--text-dim)">Webhook URL</label>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-primary" id="btnSaveWebhook">💾 Save webhook</button>
-              <button class="btn" id="btnClearWebhook">Clear</button>
+              <input type="url" id="webhookUrl" placeholder="https://your-server.com/webhook or https://webhook.site/…" style="flex:1;padding:8px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px"/>
+              <button class="btn btn-sm" id="btnTestWebhook">Test</button>
             </div>
-            <div style="margin-top:16px">
-              <div class="panel-head" style="padding:0 0 8px 0;border-bottom:1px solid var(--border)">
-                <h2 style="font-size:13px">Recent deliveries</h2>
-                <button class="btn btn-sm" id="btnClearDeliveries" style="font-size:11px">Clear</button>
-              </div>
-              <div id="webhookDeliveries" style="margin-top:10px">
-                <div class="empty-state">no deliveries yet</div>
-              </div>
+            <div class="hint" id="webhookTestResult"></div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="wh_slash" checked/> Slash events</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="wh_complete" checked/> Completed calls</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="wh_expiring" checked/> Expiring SLAs</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="wh_register"/> New providers</label>
             </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" id="btnSaveWebhook">💾 Save webhook</button>
+            <button class="btn" id="btnClearWebhook">Clear</button>
+          </div>
+          <div id="webhookDeliveries" style="margin-top:16px">
+            <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px">Recent deliveries</div>
+            <div class="empty-state">No deliveries yet</div>
           </div>
         </section>
 
@@ -4669,6 +5629,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <span class="mono" style="font-size: 11px; color: var(--text-faint)">
               top by reputation
             </span>
+          </div>
+          <div class="panel-body">
+            <div class="podium-wrap" id="podiumWrap" style="display:none"></div>
           </div>
           <div class="panel-body compact" id="leaderboardBox">
             <div class="empty-state">loading rankings…</div>
@@ -5407,10 +6370,23 @@ async function refreshBalance() {
             <dd>${ethers.formatUnits(data.pricePerCall, d)} USDC</dd>
             <dt>Max response</dt>
             <dd>${data.maxResponseTime}s</dd>
-            <dt>Slash</dt>
-            <dd>${Number(data.slashBps) / 100}%</dd>
+            <dt>Slash penalty</dt>
+            <dd>${Number(data.slashBps) / 100}%${Number(data.slashBps) === 0
+              ? ` <span style="color:var(--warn);font-size:11px">⚠ No stake penalty on timeout — callers only get escrow refund</span>`
+              : ``
+            }</dd>
             <dt>Pending calls</dt>
-            <dd>${pending}</dd>
+            <dd>${pending}${Number(pending) > 0
+              ? ` <span style="color:var(--warn);font-size:11px">— cannot unstake until these resolve</span>`
+              : ``
+            }</dd>
+            <dt>Unstake</dt>
+            <dd>${data.active
+              ? `<span style="color:var(--text-faint);font-size:11px">Deactivate first, then wait for pending calls to clear</span>`
+              : Number(pending) > 0
+                ? `<span style="color:var(--warn);font-size:11px">Waiting for ${pending} pending call(s) to resolve</span>`
+                : `<span style="color:var(--accent);font-size:11px">✓ Ready to unstake</span>`
+            }</dd>
             <dt>Endpoint</dt>
             <dd style="word-break: break-all">${endpoint || "—"}</dd>
           </dl>
@@ -5420,20 +6396,30 @@ async function refreshBalance() {
       async function refreshHero() {
         try {
           if (CONFIG.subgraphUrl) {
+            // Eğer allProviders zaten yüklendiyse tekrar fetch etme
+            if (state.allProviders && state.allProviders.length > 0) {
+              $("heroProviders").textContent = state.allProviders.length.toString();
+              return;
+            }
+
             const res = await fetch(CONFIG.subgraphUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                query: `{ providers(first:1000){ id } }`
+                query: `{ providers(first:1000){ id completedCalls slashedCalls } }`
               })
             });
 
             const data = await res.json();
-            const count = data.data?.providers?.length || 0;
+            const ps = data.data?.providers || [];
+            const count = ps.length;
 
             if (count > 0) {
               $("heroProviders").textContent = count.toString();
-              console.log("[HERO] Goldsky providers:", count);
+              // Hero slash sayısını da güncelle (gerçek tüm-zaman toplamı)
+              const totalSlashes = ps.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
+              $("heroSlashes").textContent = String(totalSlashes);
+              console.log("[HERO] providers:", count, "slashes:", totalSlashes);
               return;
             }
           }
@@ -5560,7 +6546,7 @@ async function refreshBalance() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              query: `{ 
+              query: `{
                 providers(first:1000) {
                   completedCalls
                   slashedCalls
@@ -5605,6 +6591,7 @@ async function refreshBalance() {
           // If no receipts visible but calls exist, show "—" instead of misleading 0%.
           let honorRate;
           let honorLabel;
+          const totalCalls = state.networkStats.calls;
           if (state.networkStats.receipts === 0 && totalCalls === 0) {
             honorRate = null;
             honorLabel = "no activity yet";
@@ -5635,9 +6622,16 @@ async function refreshBalance() {
           }
           $("statSlashedSub").textContent = `${state.networkStats.slashed} slash${state.networkStats.slashed === 1 ? "" : "es"} (recent)`;
 
-          // Also update hero (disconnected view)
+          // Hero güncelle — slashes için providers toplamını kullan (daha doğru)
           $("heroCalls").textContent = state.networkStats.calls.toString();
-          $("heroSlashes").textContent = state.networkStats.slashed.toString();
+          // heroSlashes: boot'ta Phase 1'de tüm providers.slashedCalls toplamı atandı.
+          // refreshNetworkStats'taki slashed sadece son 1000 call'dan, daha az doğru.
+          // Sadece Phase 1 değeri yoksa (0 veya —) güncelle.
+          const heroSlashEl = $("heroSlashes");
+          const heroSlashCurrent = heroSlashEl ? heroSlashEl.textContent : "0";
+          if (!heroSlashCurrent || heroSlashCurrent === "—" || heroSlashCurrent === "0") {
+            heroSlashEl.textContent = state.networkStats.slashed.toString();
+          }
         } catch (e) {
           console.error("refreshNetworkStats failed:", e);
         }
@@ -5677,16 +6671,55 @@ async function refreshBalance() {
 
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
 
+          // Subgraph'tan bu provider'ın son call'larını çek
+          let recentProvCalls = [];
+          if (CONFIG.subgraphUrl) {
+            try {
+              const qr = await fetch(CONFIG.subgraphUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: `{
+                  calls(first: 20, orderBy: createdAt, orderDirection: desc, where: { providerId: "${id}" }) {
+                    id caller amount status createdAt completedAt
+                  }
+                }` })
+              });
+              const qj = await qr.json();
+              recentProvCalls = qj.data?.calls || [];
+            } catch {}
+          }
+
+          const callHistHtml = recentProvCalls.length > 0
+            ? recentProvCalls.map(c => {
+                const st = String(c.status || "").toUpperCase();
+                const dot = st === "COMPLETED" ? "status-completed" : st === "SLASHED" ? "status-slashed" : "status-pending";
+                const amt = ethers.formatUnits(BigInt(c.amount || "0"), d);
+                const ago = c.createdAt ? Math.round((Date.now()/1000 - Number(c.createdAt)) / 60) : null;
+                const agoStr = ago !== null ? (ago < 60 ? `${ago}m ago` : `${Math.round(ago/60)}h ago`) : "";
+                const dur = (c.createdAt && c.completedAt && Number(c.completedAt) > 0)
+                  ? `${Number(c.completedAt) - Number(c.createdAt)}s`
+                  : "";
+                return `<div class="mini-call">
+                  <span class="status-dot ${dot}"></span>
+                  <div style="flex:1;min-width:0">
+                    <span class="call-hash" style="font-family:var(--font-mono)">${c.id.slice(0,10)}…</span>
+                    <span class="call-time"> · ${short(c.caller,4)} · ${agoStr}${dur ? ' · '+dur : ''}</span>
+                  </div>
+                  <span class="call-amount" style="font-family:var(--font-mono)">${amt} USDC</span>
+                </div>`;
+              }).join("")
+            : `<div class="empty-state" style="font-size:12px">No calls found in subgraph</div>`;
+
           box.innerHTML = `
             <div class="dash-grid">
               <div class="dash-cell">
                 <div class="d-label">Earned (est.)</div>
                 <div class="d-value" style="color:var(--accent)">${earned}</div>
-                <div class="d-sub">USDC from ${comp} calls</div>
+                <div class="d-sub">USDC from ${comp} completed</div>
               </div>
               <div class="dash-cell">
                 <div class="d-label">Honor rate</div>
-                <div class="d-value">${honorRate}%</div>
+                <div class="d-value" style="color:${comp+slash > 0 ? (Number(honorRate.replace('%',''))>=80?'var(--accent)':Number(honorRate.replace('%',''))>=50?'var(--warn)':'var(--danger)'):'var(--text-faint)'}">${honorRate}${typeof honorRate === 'string' && honorRate !== '—' ? '' : ''}</div>
                 <div class="d-sub">${comp} honored · ${slash} slashed</div>
               </div>
               <div class="dash-cell">
@@ -5694,10 +6727,19 @@ async function refreshBalance() {
                 <div class="d-value" style="color:${repColor}">${rep}</div>
                 <div class="d-sub">score / 100</div>
               </div>
+              <div class="dash-cell">
+                <div class="d-label">Total calls</div>
+                <div class="d-value">${comp + slash}</div>
+                <div class="d-sub">${recentProvCalls.length > 0 ? recentProvCalls.length + ' in subgraph' : 'no recent data'}</div>
+              </div>
             </div>
             <div style="margin-top:4px">
               <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:0.06em;text-transform:uppercase">Reputation trend (estimated)</div>
               <div class="rep-sparkline">${sparkBars}</div>
+            </div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Recent calls (from subgraph)</div>
+              ${callHistHtml}
             </div>
           `;
 
@@ -6297,7 +7339,7 @@ async function refreshBalance() {
               nanoBtn.disabled = true;
               nanoBtn.textContent = "Processing…";
               try {
-                const res = await fetch(CONFIG.facilitatorUrl + "/api/nano-call", { method: "POST" });
+                const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", { method: "POST" });
                 const data = await res.json();
                 if (res.ok) {
                   toast({ kind: "ok", title: "⚡ Nanopayment sent", detail: data.amount + " USDC to Provider #" + providerId, timeout: 5000 });
@@ -6901,7 +7943,6 @@ async function refreshBalance() {
             detail: `call ${short(callId, 6)}`,
             txHash: tx.hash,
           });
-          window.notifyWebhook?.("slashed", { callId, txHash: tx.hash });
           await refreshAll();
         } catch (e) {
           console.error(e);
@@ -7003,7 +8044,6 @@ async function refreshBalance() {
             txHash: ev.log?.transactionHash,
             body: `call <span class="hi">${short(callId, 6)}</span> timed out · refund ${ethers.formatUnits(refunded, state.usdcDecimals)} + slash ${ethers.formatUnits(slashed, state.usdcDecimals)} USDC`,
           });
-          window.notifyWebhook?.("slashed", { callId: callId.toString(), refunded: ethers.formatUnits(refunded, state.usdcDecimals), slashed: ethers.formatUnits(slashed, state.usdcDecimals) });
           if (state.myCalls.has(callId)) {
             state.myCalls.get(callId).status = 3;
             renderCalls();
@@ -7230,7 +8270,12 @@ async function refreshBalance() {
           const preview = $("callPreview");
           const previewText = $("callPreviewText");
           if (preview && previewText) {
-            previewText.innerHTML = `You'll approve and pay <strong>${price} USDC</strong>. The provider has <strong>${p.maxResponseTime}s</strong> to respond with a signed receipt. If they miss the deadline, you can claim a refund of <strong>${price} USDC</strong> plus a <strong>${slashAmount} USDC</strong> bonus from their stake.`;
+            const slashBpsVal = Number(p.slashBps ?? 0);
+            const noSlashNote = slashBpsVal === 0
+              ? `<div style="margin-top:8px;font-size:11px;color:var(--warn);background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.18);border-radius:5px;padding:5px 8px">⚠ This provider has <strong>0% slash penalty</strong>. On timeout you get your escrow back but no stake bonus.</div>`
+              : "";
+            const qualityNote = `<div style="margin-top:8px;font-size:11px;color:var(--text-faint);background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:5px;padding:5px 8px">ℹ Response <strong>timeliness</strong> is enforced on-chain. Response <strong>quality</strong> is not — the contract verifies a signed receipt arrived on time, not whether the content is correct.</div>`;
+            previewText.innerHTML = `You'll approve and pay <strong>${price} USDC</strong>. The provider has <strong>${p.maxResponseTime}s</strong> to respond with a signed receipt. If they miss the deadline, you can claim a refund of <strong>${price} USDC</strong> plus a <strong>${slashAmount} USDC</strong> bonus from their stake.${noSlashNote}${qualityNote}`;
             preview.style.display = "block";
           }
         } catch (e) {
@@ -7514,7 +8559,7 @@ async function refreshBalance() {
       // -------- Button wiring --------
       $("connectBtn").addEventListener("click", connect);
       document.getElementById("connectBtn2")?.addEventListener("click", connect);
-      
+
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
       $("btnX402Call").addEventListener("click", doX402Call);
@@ -7524,13 +8569,9 @@ async function refreshBalance() {
 
       async function fetchNanoBalance() {
         try {
-          const addr = state.address;
-          const url = addr
-            ? CONFIG.facilitatorUrl + "/api/nano-balance?address=" + addr
-            : CONFIG.facilitatorUrl + "/api/nano-balance?address=0x0000000000000000000000000000000000000001";
-          const res = await fetch(url);
+          const res = await fetch(CONFIG.facilitatorUrl + "/nano/balance");
           const data = await res.json();
-          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.formatted || data.balance || 0).toFixed(4) + " USDC";
+          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.balance || 0).toFixed(4) + " USDC";
           if ($("nanoPending")) {
             const p = parseFloat(data.pendingBatch || 0);
             $("nanoPending").textContent = p > 0 ? p.toFixed(4) + " USDC" : "0 USDC";
@@ -7557,7 +8598,7 @@ async function refreshBalance() {
         if (out) out.textContent = "Calling facilitator…";
 
         try {
-          const res = await fetch(CONFIG.facilitatorUrl + "/api/nano-call", {
+          const res = await fetch(CONFIG.facilitatorUrl + "/nano/call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -7675,10 +8716,10 @@ async function refreshBalance() {
                 pricePerCall
                 active
               }
-              calls: calls(first: 1000, orderBy: createdAt, orderDirection: desc) { 
-                id 
-                providerId 
-                amount 
+              calls: calls(first: 1000, orderBy: createdAt, orderDirection: desc) {
+                id
+                providerId
+                amount
                 createdAt
                 status
               }
@@ -7697,10 +8738,31 @@ async function refreshBalance() {
           const honorRate = totalClosed > 0 ? Math.round(totalCompleted/totalClosed*100) : 100;
           const avgPrice = providers.length > 0 ? providers.reduce((a,p) => a + Number(p.pricePerCall||0), 0) / providers.length / 1e6 : 0;
 
-          if ($("anTotalCalls")) $("anTotalCalls").textContent = calls.length + "+";
-          if ($("anHonorRate")) $("anHonorRate").textContent = honorRate + "%";
+          // Total calls = toplam tamamlanan + toplam slashed + hala pending (calls listesinden)
+          const totalCallsAll = calls.length;
+          const totalCompletedAll = providers.reduce((a,p) => a + Number(p.completedCalls||0), 0);
+          const totalSlashedAll   = providers.reduce((a,p) => a + Number(p.slashedCalls||0), 0);
+          const totalClosedAll = totalCompletedAll + totalSlashedAll;
+          const honorRateAll = totalClosedAll > 0 ? Math.round(totalCompletedAll / totalClosedAll * 100) : null;
+
+          if ($("anTotalCalls")) $("anTotalCalls").textContent = totalCallsAll >= 1000 ? totalCallsAll + "+" : String(totalCallsAll);
+          if ($("anTotalCallsSub")) $("anTotalCallsSub").textContent = `${totalCompletedAll} completed · ${totalSlashedAll} slashed`;
+          if ($("anHonorRate")) {
+            const el = $("anHonorRate");
+            if (honorRateAll !== null) {
+              el.textContent = honorRateAll + "%";
+              el.style.color = honorRateAll >= 80 ? "var(--accent)" : honorRateAll >= 50 ? "var(--warn)" : "var(--danger)";
+            } else {
+              el.textContent = "—";
+              el.style.color = "var(--text-faint)";
+            }
+          }
+          if ($("anHonorRateSub")) $("anHonorRateSub").textContent = `${totalCompletedAll} honored / ${totalClosedAll} closed`;
           if ($("anActiveProviders")) $("anActiveProviders").textContent = active;
-          if ($("anAvgPrice")) $("anAvgPrice").textContent = avgPrice.toFixed(3) + " USDC";
+          if ($("anTotalProviders")) $("anTotalProviders").textContent = providers.length;
+          if ($("anAvgPrice")) $("anAvgPrice").textContent = avgPrice > 0 ? avgPrice.toFixed(3) : "—";
+          if ($("anLastUpdate")) $("anLastUpdate").textContent = `updated ${new Date().toLocaleTimeString("en-US",{hour12:false})}`;
+
 
           // Provider bars
           const topProviders = providers
@@ -7727,15 +8789,27 @@ async function refreshBalance() {
             }).join("") || '<div class="empty-state" style="font-size:12px">No call data yet</div>';
           }
 
-          // Recent calls
+          // Recent calls — status rengi + ago formatı
           const recentEl = $("anRecentCalls");
           if (recentEl) {
-            recentEl.innerHTML = calls.slice(0, 10).map(c => {
-              const date = new Date(Number(c.createdAt) * 1000).toLocaleString();
-              return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
-                <span style="color:var(--text-faint);font-family:var(--font-mono)">#${c.providerId}</span>
-                <span style="color:var(--text-faint)">${(Number(c.amount)/1e6).toFixed(3)} USDC</span>
-                <span style="margin-left:auto;color:var(--text-faint)">${date}</span>
+            const nowTs = Math.floor(Date.now() / 1000);
+            recentEl.innerHTML = calls.slice(0, 12).map(c => {
+              const st = String(c.status || "").toUpperCase();
+              const dotCls = st === "COMPLETED" ? "status-completed" : st === "SLASHED" ? "status-slashed" : "status-pending";
+              const stColor = st === "COMPLETED" ? "var(--accent)" : st === "SLASHED" ? "var(--danger)" : "var(--warn)";
+              const ago = c.createdAt ? nowTs - Number(c.createdAt) : null;
+              const agoStr = ago !== null
+                ? ago < 60 ? `${ago}s ago`
+                  : ago < 3600 ? `${Math.round(ago/60)}m ago`
+                  : `${Math.round(ago/3600)}h ago`
+                : "";
+              const amt = (Number(c.amount || 0)/1e6).toFixed(3);
+              return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px">
+                <span class="status-dot ${dotCls}" style="flex-shrink:0"></span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);flex-shrink:0">#${c.providerId}</span>
+                <span style="color:${stColor};flex-shrink:0">${st.toLowerCase()}</span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono)">${amt} USDC</span>
+                <span style="margin-left:auto;color:var(--text-faint);white-space:nowrap">${agoStr}</span>
               </div>`;
             }).join("") || '<div class="empty-state" style="font-size:12px">No recent calls</div>';
           }
@@ -7794,8 +8868,9 @@ async function refreshBalance() {
         });
         // Aktif kategoriyi kaydet
         window._activeCat = cat;
-        // Analytics paneli açıldığında yükle
+        // Paneller açıldığında veri yükle
         if (cat === "analytics") loadAnalytics();
+        if (cat === "overview") refreshOverviewDashboard();
       }
 
       // Sidebar click handlers
@@ -7807,6 +8882,167 @@ async function refreshBalance() {
 
       // Başlangıçta overview göster
       showCategory("overview");
+
+      // ================================================================
+      // ONBOARDING WIZARD
+      // ================================================================
+      (function() {
+        const seen = localStorage.getItem("cg_onboard_v2");
+        if (!seen) {
+          const wizard = $("onboardingWizard");
+          if (wizard) wizard.style.display = "flex";
+        }
+        let step = 1;
+        const totalSteps = 4;
+        function goStep(n) {
+          step = n;
+          document.querySelectorAll(".wizard-step").forEach(s => {
+            s.style.display = s.dataset.step == n ? "block" : "none";
+          });
+          const dots = document.querySelectorAll(".wizard-dot");
+          dots.forEach((d, i) => d.classList.toggle("active", i + 1 === n));
+          const prog = document.getElementById("wizardProgress");
+          if (prog) prog.style.width = `${(n / totalSteps) * 100}%`;
+        }
+        goStep(1);
+        document.querySelectorAll(".wizard-btn-next").forEach(btn => {
+          btn.addEventListener("click", () => {
+            if (step < totalSteps) { goStep(step + 1); }
+            else {
+              localStorage.setItem("cg_onboard_v2", "1");
+              const wizard = $("onboardingWizard");
+              if (wizard) wizard.style.display = "none";
+            }
+          });
+        });
+        document.querySelectorAll(".wizard-btn-skip").forEach(btn => {
+          btn.addEventListener("click", () => {
+            localStorage.setItem("cg_onboard_v2", "1");
+            const wizard = $("onboardingWizard");
+            if (wizard) wizard.style.display = "none";
+          });
+        });
+      })();
+
+      // ================================================================
+      // SLA COUNTDOWN BANNER
+      // ================================================================
+      (function() {
+        const banner = $("slaBanner");
+        const chips = $("bannerChips");
+        const closeBtn = $("bannerClose");
+        let dismissed = false;
+        if (closeBtn) closeBtn.addEventListener("click", () => { dismissed = true; if (banner) banner.style.display = "none"; });
+
+        setInterval(() => {
+          if (dismissed || !state.myCalls || state.myCalls.size === 0) {
+            if (banner && !dismissed) banner.style.display = "none";
+            return;
+          }
+          const nowSec = Date.now() / 1000;
+          const pending = Array.from(state.myCalls.values()).filter(c => c.status === 1 && c.deadline > 0);
+          if (pending.length === 0) { if (banner) banner.style.display = "none"; return; }
+          if (banner) banner.style.display = "flex";
+          if (chips) chips.innerHTML = pending.map(c => {
+            const secs = Math.round(c.deadline - nowSec);
+            const mm = String(Math.floor(Math.abs(secs) / 60)).padStart(2, "0");
+            const ss = String(Math.abs(secs) % 60).padStart(2, "0");
+            const expired = secs <= 0;
+            const cls = expired ? "banner-chip expired" : secs <= 10 ? "banner-chip urgent" : secs <= 30 ? "banner-chip warn" : "banner-chip";
+            const label = expired ? `expired` : `${mm}:${ss}`;
+            return `<span class="${cls}" title="call ${c.callId}">#${c.providerId} ${label}</span>`;
+          }).join("");
+        }, 1000);
+      })();
+
+      // ================================================================
+      // OVERVIEW DASHBOARD
+      // ================================================================
+      async function refreshOverviewDashboard() {
+        if (!CONFIG.subgraphUrl) return;
+        try {
+          const res = await fetch(CONFIG.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{
+              providers(first:1000) { id active completedCalls slashedCalls pricePerCall stake owner }
+              calls(first:20, orderBy: createdAt, orderDirection: desc) { id providerId amount status createdAt }
+            }` })
+          });
+          const data = await res.json();
+          const ps = data.data?.providers || [];
+          const cs = data.data?.calls || [];
+
+          const active = ps.filter(p => p.active).length;
+          const totalComp = ps.reduce((a, p) => a + Number(p.completedCalls || 0), 0);
+          const totalSlash = ps.reduce((a, p) => a + Number(p.slashedCalls || 0), 0);
+          const totalClosed = totalComp + totalSlash;
+          const honorPct = totalClosed > 0 ? Math.round(totalComp / totalClosed * 100) : null;
+
+          if ($("ovProviders")) $("ovProviders").textContent = String(active);
+          if ($("ovProvidersSub")) $("ovProvidersSub").textContent = `of ${ps.length} total`;
+          if ($("ovCalls")) $("ovCalls").textContent = String(cs.length >= 20 ? "20+" : cs.length);
+          if ($("ovCallsSub")) $("ovCallsSub").textContent = `${totalComp} completed · ${totalSlash} slashed`;
+          if (honorPct !== null && $("ovHonor")) {
+            $("ovHonor").textContent = honorPct + "%";
+            $("ovHonor").style.color = honorPct >= 80 ? "var(--accent)" : honorPct >= 50 ? "var(--warn)" : "var(--danger)";
+          }
+          if ($("ovHonorSub")) $("ovHonorSub").textContent = `${totalComp} honored / ${totalClosed} closed`;
+
+          // Live feed
+          const nowTs = Math.floor(Date.now() / 1000);
+          if ($("ovLiveFeed")) {
+            $("ovLiveFeed").innerHTML = cs.slice(0, 8).map(c => {
+              const st = String(c.status || "").toUpperCase();
+              const dotCls = st === "COMPLETED" ? "call" : st === "SLASHED" ? "slash" : "call";
+              const stLabel = st === "COMPLETED" ? "completed" : st === "SLASHED" ? "slashed" : "started";
+              const stColor = st === "COMPLETED" ? "var(--accent)" : st === "SLASHED" ? "var(--danger)" : "var(--text-dim)";
+              const ago = c.createdAt ? nowTs - Number(c.createdAt) : null;
+              const agoStr = ago !== null
+                ? ago < 60 ? `${ago}s ago` : ago < 3600 ? `${Math.round(ago/60)}m ago` : `${Math.round(ago/3600)}h ago`
+                : "";
+              const amt = (Number(c.amount || 0) / 1e6).toFixed(3);
+              return `<div class="live-feed-row">
+                <span class="feed-dot ${dotCls}"></span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px">#${c.providerId}</span>
+                <span style="color:${stColor};font-size:11px">${stLabel}</span>
+                <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px">${amt} USDC</span>
+                <span style="margin-left:auto;color:var(--text-faint);font-size:10px;white-space:nowrap">${agoStr}</span>
+              </div>`;
+            }).join("") || '<div class="empty-state" style="font-size:12px">No recent activity</div>';
+          }
+
+          // Top providers mini
+          if ($("ovTopProviders")) {
+            const ranked = [...ps].sort((a, b) => {
+              const ra = Number(a.completedCalls||0) + 2;
+              const ta = Number(a.completedCalls||0) + Number(a.slashedCalls||0) + 3;
+              const rb = Number(b.completedCalls||0) + 2;
+              const tb = Number(b.completedCalls||0) + Number(b.slashedCalls||0) + 3;
+              return (rb/tb) - (ra/ta);
+            }).slice(0, 5);
+            const maxCalls = Math.max(1, ...ranked.map(p => Number(p.completedCalls||0) + Number(p.slashedCalls||0)));
+            $("ovTopProviders").innerHTML = ranked.map((p, i) => {
+              const total = Number(p.completedCalls||0) + Number(p.slashedCalls||0);
+              const rep = total > 0 ? Math.round((Number(p.completedCalls||0) + 2) / (total + 3) * 100) : 66;
+              const pct = Math.round(total / maxCalls * 100);
+              const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
+              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`;
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;cursor:pointer" onclick="openProviderModal(${p.id})">
+                <span style="width:20px;text-align:center;font-size:11px">${medal}</span>
+                <span style="width:60px;color:var(--text-faint);font-family:var(--font-mono)">#${p.id}</span>
+                <div style="flex:1;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:${repColor};border-radius:3px;transition:width .4s"></div>
+                </div>
+                <span style="width:32px;text-align:right;color:${repColor};font-weight:700;font-family:var(--font-mono)">${rep}</span>
+              </div>`;
+            }).join("");
+          }
+        } catch(e) { console.warn("[overview dashboard]", e.message); }
+      }
+
+      // Overview'e geçince veya boot'ta yükle
+      refreshOverviewDashboard();
 
       $("btnNanoCall").addEventListener("click", () => doNanoCall());
 
@@ -8005,53 +9241,137 @@ console.log("call opened:", tx.hash);`;
         }
       }
 
+      // Provider tablosu sıralama durumu
+      if (!window._provSort) window._provSort = { col: "rep", dir: -1 };
+
+      // Filtre checkbox değişince yeniden render
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "filterActiveOnly") renderAllProvidersFiltered();
+      });
+
       function renderAllProvidersFiltered() {
+        if (!state.allProviders || state.allProviders.length === 0) {
+          $("allProvidersBox").innerHTML = `<div class="empty-state">loading providers…</div>`;
+          return;
+        }
         const d = state.usdcDecimals;
         const myAddr = state.address?.toLowerCase();
-        const rows = state.allProviders.map(p => {
+        const sort = window._provSort;
+        const activeOnly = $("filterActiveOnly")?.checked ?? false;
+
+        // Filtre
+        const filtered = activeOnly
+          ? state.allProviders.filter(p => p.active)
+          : state.allProviders;
+
+        // Sıralama
+        const sorted = [...filtered].sort((a, b) => {
+          let va, vb;
+          if (sort.col === "rep")    { va = a.reputation ?? 0;                     vb = b.reputation ?? 0; }
+          else if (sort.col === "price") { va = Number(a.pricePerCall);             vb = Number(b.pricePerCall); }
+          else if (sort.col === "stake") { va = Number(a.stake);                    vb = Number(b.stake); }
+          else if (sort.col === "calls") { va = (a.completedCalls||0)+(a.slashedCalls||0); vb = (b.completedCalls||0)+(b.slashedCalls||0); }
+          else if (sort.col === "id")    { va = a.id;                               vb = b.id; }
+          else                           { va = a.id;                               vb = b.id; }
+          return sort.dir * (va < vb ? -1 : va > vb ? 1 : 0);
+        });
+
+        const rows = sorted.map(p => {
           const isSelf = myAddr && p.owner?.toLowerCase() === myAddr;
-          const badge = p.active ? `<span class="badge active">active</span>` : `<span class="badge inactive">inactive</span>`;
           const rep = p.reputation ?? 0;
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
+          const repStrokeDash = `${rep} ${100 - rep}`;
           const priceUsdc = ethers.formatUnits(p.pricePerCall, d);
-          const priceUsd = usdPrice(priceUsdc);
+          const totalCalls = (p.completedCalls||0) + (p.slashedCalls||0);
+          const honorPct = totalCalls > 0 ? Math.round((p.completedCalls||0) / totalCalls * 100) : 100;
+          const honorColor = honorPct >= 80 ? "var(--accent)" : honorPct >= 50 ? "var(--warn)" : "var(--danger)";
+          const statusDot = p.active
+            ? `<span style="font-size:10px;color:var(--accent);font-weight:700">● active</span>`
+            : `<span style="font-size:10px;color:var(--text-faint)">● inactive</span>`;
+          const slashBpsNum = Number(p.slashBps ?? 0);
+          const slashWarn = slashBpsNum === 0
+            ? `<div style="font-size:10px;color:var(--warn);background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:4px;padding:3px 7px;margin-bottom:8px">⚠ No stake penalty on timeout — escrow refunded only</div>`
+            : "";
           return `
-            <tr data-pid="${p.id}" class="${isSelf ? "is-self" : ""}">
-              <td class="col-id">#${p.id}</td>
-              <td class="col-owner">${short(p.owner, 4)}${isSelf ? `<span class="self-tag">you</span>` : ""}</td>
-              <td class="col-price">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">${priceUsd}</span></td>
-              <td class="col-stake">${ethers.formatUnits(p.stake, d)}</td>
-              <td class="col-sla">${p.maxResponseTime}s · ${Number(p.slashBps) / 100}%</td>
-              <td style="text-align:right;color:${repColor};font-weight:600">${rep}</td>
-              <td class="col-status">${badge}</td>
-              <td style="text-align:right;font-size:11px" class="col-health" id="health-${p.id}">
-                <span style="color:var(--text-faint)">…</span>
-              </td>
-              <td style="text-align:right">
-                <button class="btn btn-sm btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">
-                  ⚡ Nanopay 0.001
-                </button>
-              </td>
-            </tr>`;
+            <div class="prov-card${isSelf ? " self-card" : ""}" data-pid="${p.id}">
+              <div class="prov-card-header">
+                <div>
+                  <div class="prov-card-id">Provider #${p.id}${isSelf ? ` <span class="self-tag">you</span>` : ""}</div>
+                  <div class="prov-card-owner">${short(p.owner, 6)}</div>
+                </div>
+                <div class="prov-rep-ring">
+                  <svg width="52" height="52" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.2"/>
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="${repColor}" stroke-width="3.2"
+                      stroke-dasharray="${repStrokeDash}" stroke-dashoffset="25"
+                      stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${repColor})"/>
+                  </svg>
+                  <div class="prov-rep-ring-val" style="color:${repColor}">${rep}</div>
+                </div>
+              </div>
+              <div class="prov-card-stats">
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Price / call</div>
+                  <div class="prov-stat-val">${priceUsdc} <span style="font-size:10px;color:var(--text-faint)">USDC</span></div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Stake</div>
+                  <div class="prov-stat-val">${ethers.formatUnits(p.stake, d)} <span style="font-size:10px;color:var(--text-faint)">USDC</span></div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Calls</div>
+                  <div class="prov-stat-val">${totalCalls > 0 ? totalCalls : "—"}</div>
+                </div>
+                <div class="prov-stat-cell">
+                  <div class="prov-stat-label">Status</div>
+                  <div class="prov-stat-val">${statusDot}</div>
+                </div>
+              </div>
+              ${slashWarn}
+              <div class="prov-honor-bar">
+                <div class="prov-honor-fill" style="width:${honorPct}%;background:${honorColor}"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-bottom:12px">
+                <span>Honor rate</span><span style="color:${honorColor};font-weight:700">${honorPct}%</span>
+              </div>
+              <div class="prov-card-footer">
+                <button class="prov-card-btn" onclick="event.stopPropagation();openProviderModal(${p.id})">Details →</button>
+                <button class="prov-card-btn primary btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">⚡ Nanopay</button>
+              </div>
+            </div>`;
+        }).join("");
+
+        // Sıralama butonları
+        const sortBtns = [
+          { col: "rep", label: "Rep" }, { col: "price", label: "Price" },
+          { col: "stake", label: "Stake" }, { col: "calls", label: "Calls" }
+        ].map(({ col, label }) => {
+          const active = sort.col === col;
+          const arrow = active ? (sort.dir === -1 ? " ↓" : " ↑") : "";
+          return `<button class="sort-chip${active ? " active" : ""}" data-sort="${col}">${label}${arrow}</button>`;
         }).join("");
 
         $("allProvidersBox").innerHTML = `
-          <table class="provider-table">
-            <thead><tr>
-              <th>ID</th><th>Owner</th>
-              <th style="text-align:right">Price</th>
-              <th style="text-align:right">Stake</th>
-              <th style="text-align:right">SLA · slash</th>
-              <th style="text-align:right">Rep</th>
-              <th style="text-align:right">Status</th>
-              <th style="text-align:right">Health</th>
-              <th style="text-align:right">Nano</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>`;
+          <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text-faint);align-self:center;margin-right:4px">Sort:</span>
+            ${sortBtns}
+          </div>
+          <div class="provider-card-grid">${rows}</div>`;
 
-        $("allProvidersBox").querySelectorAll("tbody tr[data-pid]").forEach(tr => {
-          tr.addEventListener("click", () => openProviderModal(Number(tr.dataset.pid)));
+        $("allProvidersBox").querySelectorAll(".sort-chip").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const col = btn.dataset.sort;
+            if (window._provSort.col === col) {
+              window._provSort.dir *= -1;
+            } else {
+              window._provSort = { col, dir: -1 };
+            }
+            renderAllProvidersFiltered();
+          });
+        });
+
+        $("allProvidersBox").querySelectorAll(".prov-card[data-pid]").forEach(card => {
+          card.addEventListener("click", () => openProviderModal(Number(card.dataset.pid)));
         });
         // Ping endpoints after render
         setTimeout(pingProviderEndpoints, 500);
@@ -8093,8 +9413,7 @@ console.log("call opened:", tx.hash);`;
           // loaded after connect by refreshBalance().
           const safeDecimals = state.usdcDecimals || 6;
 
-          // Provider count comes from Goldsky
-          // Show hero stats from Goldsky first (fast, no RPC dependency)
+          // Hero stats — gerçek zincir verisi, cüzdan olmadan
           if (CONFIG.subgraphUrl) {
             try {
               const stats = await fetch(CONFIG.subgraphUrl, {
@@ -8102,8 +9421,16 @@ console.log("call opened:", tx.hash);`;
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   query: `{
-                    providers(first:1000) { id }
-                    calls(first:1000) { id }
+                    providers(first:1000) {
+                      id
+                      active
+                      completedCalls
+                      slashedCalls
+                    }
+                    calls(first:1000, orderBy: createdAt, orderDirection: desc) {
+                      id
+                      status
+                    }
                   }`
                 })
               });
@@ -8111,17 +9438,52 @@ console.log("call opened:", tx.hash);`;
               const data = await stats.json();
 
               if (data.data) {
-                $("heroProviders").textContent =
-                  String(data.data.providers?.length || 0);
+                const ps = data.data.providers || [];
+                const cs = data.data.calls || [];
 
-                $("heroCalls").textContent =
-                  String(data.data.calls?.length || 0);
+                // Provider sayısı
+                $("heroProviders").textContent = String(ps.length);
+
+                // Toplam call (calls listesi)
+                $("heroCalls").textContent = cs.length >= 1000
+                  ? cs.length + "+"
+                  : String(cs.length);
+
+                // Toplam slash — providers'ın slashedCalls toplamı (gerçek tüm-zaman verisi)
+                const totalSlashes = ps.reduce((sum, p) => sum + Number(p.slashedCalls || 0), 0);
+                $("heroSlashes").textContent = String(totalSlashes);
+
+                // Honor rate gauge (disconnected ekranda görünmez ama hesapla)
+                const totalCompleted = ps.reduce((sum, p) => sum + Number(p.completedCalls || 0), 0);
+                const totalClosed = totalCompleted + totalSlashes;
+                if (totalClosed > 0) {
+                  const rate = Math.round(totalCompleted / totalClosed * 100);
+                  console.log("[boot] honor rate:", rate + "%");
+                }
+
+                console.log("[boot] providers:", ps.length, "calls:", cs.length, "slashes:", totalSlashes);
               }
             } catch (e) {
               console.warn("[Goldsky hero stats failed]", e.message);
-              $("heroProviders").textContent =
-                0 .toString();
-
+              // RPC fallback: sadece provider sayısını çek
+              try {
+                const rpcBody = JSON.stringify({
+                  jsonrpc: "2.0", id: 1, method: "eth_call",
+                  params: [{ to: CONFIG.registry, data: "0x61f69c89" }, "latest"]
+                });
+                const rpcRes = await fetch(CONFIG.rpcUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: rpcBody
+                });
+                const rpcJson = await rpcRes.json();
+                if (rpcJson.result && rpcJson.result !== "0x") {
+                  const nextId = parseInt(rpcJson.result, 16);
+                  if (!isNaN(nextId) && nextId > 1) {
+                    $("heroProviders").textContent = String(nextId - 1);
+                  }
+                }
+              } catch {}
             }
           }
 
@@ -8204,8 +9566,8 @@ console.log("call opened:", tx.hash);`;
                   }
                 }
 
-                const slashCount = calls.filter(c => c.status === "SLASHED").length;
-                $("heroSlashes").textContent = String(slashCount);
+                // heroSlashes Phase 1'de provider.slashedCalls toplamından hesaplandı.
+                // Burada sadece son 20 event'teki slash görünür — onu ezmiyoruz.
               }
             } catch (e) {
               console.warn("[Goldsky landing activity failed]", e.message);
@@ -8798,7 +10160,7 @@ console.log("call opened:", tx.hash);`;
       // ================================================================
       // x402 SIMULATED FLOW (browser, no HTTP server needed)
       // ================================================================
-      
+
 
 
 
@@ -8885,7 +10247,7 @@ console.log("call opened:", tx.hash);`;
           // Step 4 — POST imzayi facilitator'a, o tx'i gonderir (kullanici gas odemez)
           btn.textContent = "Settling via facilitator…";
           const tC = toast({ kind: "info", title: "⚡ x402: Facilitator settling", detail: "<span class='spinner'></span> Facilitator sending tx — no gas from you", timeout: 60000 });
-          const facRes = await fetch(CONFIG.facilitatorUrl + "/api/call-service", {
+          const facRes = await fetch(CONFIG.facilitatorUrl + "/callService", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -9264,302 +10626,534 @@ console.log("call opened:", tx.hash);`;
 
     </script>
 
+    <!-- ================================================================
+         PREMIUM ANIMATIONS ENGINE
+         ================================================================ -->
     <script>
-    // ═══════════════════════════════════════════════════════════════
-    // CALL HISTORY — filter + CSV export
-    // ═══════════════════════════════════════════════════════════════
-    (function initCallHistory() {
-      let _callFilter = "all";
+    (function() {
+      "use strict";
 
-      document.querySelectorAll(".call-filter-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".call-filter-btn").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          _callFilter = btn.dataset.filter;
-          applyCallFilter();
-        });
-      });
+      /* ---- 1. PARTICLE CANVAS ---- */
+      (function initParticles() {
+        const canvas = document.getElementById("cgCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        let W, H, particles = [], animId;
+        const COUNT = 55;
+        const COLORS = ["rgba(16,185,129,", "rgba(59,130,246,", "rgba(251,191,36,"];
 
-      function applyCallFilter() {
-        const box = document.getElementById("callsBox");
-        if (!box) return;
-        const rows = box.querySelectorAll("[data-call-status]");
-        rows.forEach(row => {
-          const st = row.dataset.callStatus || "open";
-          row.style.display = (_callFilter === "all" || st === _callFilter) ? "" : "none";
-        });
-      }
+        function resize() {
+          W = canvas.width  = window.innerWidth;
+          H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener("resize", resize);
 
-      document.getElementById("btnRefreshCalls")?.addEventListener("click", () => {
-        const refreshBtn = document.querySelector("[data-nav='calls']");
-        if (refreshBtn) refreshBtn.click();
-      });
+        function mkParticle() {
+          const col = COLORS[Math.floor(Math.random() * COLORS.length)];
+          return {
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.5 + 0.4,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            col,
+            alpha: Math.random() * 0.4 + 0.1,
+            pulse: Math.random() * Math.PI * 2,
+          };
+        }
+        for (let i = 0; i < COUNT; i++) particles.push(mkParticle());
 
-      document.getElementById("btnExportCsv")?.addEventListener("click", () => {
-        const box = document.getElementById("callsBox");
-        if (!box) return;
-        const rows = [...box.querySelectorAll("[data-call-id]")];
-        if (!rows.length) { toast({ kind: "warn", title: "No calls to export", timeout: 2500 }); return; }
-        const lines = ["Call ID,Provider,Amount,Status,Deadline"];
-        rows.forEach(r => {
-          lines.push([
-            r.dataset.callId || "",
-            r.dataset.callProvider || "",
-            r.dataset.callAmount || "",
-            r.dataset.callStatus || "",
-            r.dataset.callDeadline || ""
-          ].join(","));
-        });
-        const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a"); a.href = url;
-        a.download = "callguard-calls.csv"; a.click();
-        URL.revokeObjectURL(url);
-        toast({ kind: "ok", title: "CSV downloaded", timeout: 2500 });
-      });
-    })();
+        function draw() {
+          ctx.clearRect(0, 0, W, H);
+          const now = Date.now() / 1000;
 
-    // ═══════════════════════════════════════════════════════════════
-    // AGENT MARKETPLACE
-    // ═══════════════════════════════════════════════════════════════
-    (function initMarketplace() {
-      let _mktTag = "all";
-      let _mktSort = "rep";
-      let _mktProviders = [];
+          // Draw connections
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              if (dist < 130) {
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                const a = (1 - dist / 130) * 0.12;
+                ctx.strokeStyle = `rgba(16,185,129,${a})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          }
 
-      const TAG_MAP = {
-        1: ["ai", "compute"], 2: ["data", "oracle"], 3: ["ai", "storage"],
-        4: ["compute"], 5: ["data"], 6: ["oracle"], 7: ["ai"]
-      };
-      const EMOJI_MAP = { ai: "🤖", data: "📊", compute: "⚡", storage: "💾", oracle: "🔮" };
-      const DESC_MAP = {
-        1: "High-performance AI inference endpoint with SLA guarantee.",
-        2: "On-chain data oracle — price feeds, random numbers, proofs.",
-        3: "Vector storage & semantic search with sub-second retrieval.",
-        4: "GPU compute bursts — image gen, video, heavy ML workloads.",
-        5: "Real-time blockchain data indexing and query API.",
-        6: "Verifiable off-chain computation with ZK proofs.",
-        7: "Multi-modal LLM gateway with routing and fallbacks."
-      };
-
-      function getProviderTags(id) { return TAG_MAP[id] || ["compute"]; }
-      function getProviderEmoji(id) {
-        const tags = getProviderTags(id);
-        return EMOJI_MAP[tags[0]] || "⚡";
-      }
-
-      async function loadMarketplace() {
-        const grid = document.getElementById("mktGrid");
-        if (!grid) return;
-        grid.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading marketplace…</div>';
-
-        try {
-          // Reuse allProviders from state if available
-          const ps = (typeof state !== "undefined" && state.allProviders?.length)
-            ? state.allProviders
-            : await fetch(CONFIG.subgraphUrl, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: `{ providers(first:50,orderBy:completedCalls,orderDirection:desc) {
-                  id owner signer stake pricePerCall maxResponseTime slashBps active completedCalls slashedCalls endpoint } }` })
-              }).then(r => r.json()).then(d => d.data?.providers || []);
-
-          _mktProviders = ps.map(p => {
-            const c = Number(p.completedCalls || 0), s = Number(p.slashedCalls || 0), t = c + s;
-            return { ...p, id: Number(p.id), completedCalls: c, slashedCalls: s,
-              reputation: t > 0 ? Math.round((c + 2) / (t + 3) * 100) : 66 };
+          // Draw particles
+          particles.forEach(p => {
+            p.pulse += 0.01;
+            const alpha = p.alpha + Math.sin(p.pulse) * 0.08;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.col + Math.min(1, Math.max(0, alpha)) + ")";
+            ctx.fill();
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < -20) p.x = W + 20;
+            if (p.x > W + 20) p.x = -20;
+            if (p.y < -20) p.y = H + 20;
+            if (p.y > H + 20) p.y = -20;
           });
-          renderMarketplace();
-        } catch(e) {
-          grid.innerHTML = `<div class="empty-state" style="color:var(--danger)">Failed to load: ${e.message}</div>`;
+
+          animId = requestAnimationFrame(draw);
         }
-      }
+        draw();
+      })();
 
-      function renderMarketplace() {
-        const grid = document.getElementById("mktGrid");
-        if (!grid) return;
-        const search = (document.getElementById("mktSearch")?.value || "").toLowerCase();
+      /* ---- 2. TOPBAR SCROLL SHRINK ---- */
+      (function initTopbar() {
+        const tb = document.querySelector(".topbar");
+        if (!tb) return;
+        window.addEventListener("scroll", () => {
+          tb.classList.toggle("scrolled", window.scrollY > 20);
+        }, { passive: true });
+      })();
 
-        let ps = _mktProviders.filter(p => p.active !== false);
-        if (_mktTag !== "all") ps = ps.filter(p => getProviderTags(p.id).includes(_mktTag));
-        if (search) ps = ps.filter(p =>
-          String(p.id).includes(search) ||
-          (p.owner || "").toLowerCase().includes(search) ||
-          (p.endpoint || "").toLowerCase().includes(search) ||
-          (DESC_MAP[p.id] || "").toLowerCase().includes(search)
-        );
-        if (_mktSort === "price") ps.sort((a, b) => Number(a.pricePerCall) - Number(b.pricePerCall));
-        else if (_mktSort === "calls") ps.sort((a, b) => b.completedCalls - a.completedCalls);
-        else ps.sort((a, b) => b.reputation - a.reputation);
-
-        if (!ps.length) {
-          grid.innerHTML = '<div class="empty-state">No providers match this filter.</div>'; return;
+      /* ---- 3. COUNTER ANIMATION ---- */
+      function animateCounter(el, target, duration) {
+        if (!el || isNaN(target)) return;
+        const start = performance.now();
+        const from = parseInt(el.textContent) || 0;
+        function step(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const ease = 1 - Math.pow(1 - t, 3);
+          el.textContent = Math.round(from + (target - from) * ease);
+          if (t < 1) requestAnimationFrame(step);
         }
-
-        grid.innerHTML = ps.map(p => {
-          const price = (Number(p.pricePerCall) / 1e6).toFixed(3);
-          const tags = getProviderTags(p.id);
-          const emoji = getProviderEmoji(p.id);
-          const desc = DESC_MAP[p.id] || "Service provider on CallGuard.";
-          const short = (p.owner || "").slice(0, 6) + "…" + (p.owner || "").slice(-4);
-          const honr = p.completedCalls + p.slashedCalls > 0
-            ? Math.round(p.completedCalls / (p.completedCalls + p.slashedCalls) * 100) : 100;
-          return `
-            <div class="mkt-card" onclick="document.querySelector('[data-nav=calls]').click();
-              setTimeout(()=>{ const el=document.getElementById('callProviderId'); if(el){el.value='${p.id}';el.dispatchEvent(new Event('input'));} },400)">
-              <div class="mkt-card-header">
-                <div class="mkt-avatar">${emoji}</div>
-                <div>
-                  <div class="mkt-name">Provider #${p.id}</div>
-                  <div class="mkt-addr">${short}</div>
-                </div>
-                <div style="margin-left:auto">
-                  <span class="status-pill ${p.active ? 'status-completed' : 'status-expired'}">${p.active ? 'Active' : 'Inactive'}</span>
-                </div>
-              </div>
-              <div class="mkt-tags">
-                ${tags.map(t => `<span class="mkt-tag-pill">${EMOJI_MAP[t] || ''} ${t}</span>`).join("")}
-              </div>
-              <p style="font-size:12px;color:var(--text-dim);margin:0 0 10px;line-height:1.5">${desc}</p>
-              <div class="mkt-rep-bar"><div class="mkt-rep-fill" style="width:${p.reputation}%"></div></div>
-              <div class="mkt-stats">
-                <div class="mkt-stat">
-                  <div class="mkt-stat-val" style="color:var(--accent)">${p.reputation}</div>
-                  <div class="mkt-stat-lbl">Rep</div>
-                </div>
-                <div class="mkt-stat">
-                  <div class="mkt-stat-val">${price}</div>
-                  <div class="mkt-stat-lbl">USDC/call</div>
-                </div>
-                <div class="mkt-stat">
-                  <div class="mkt-stat-val">${honr}%</div>
-                  <div class="mkt-stat-lbl">Honor</div>
-                </div>
-              </div>
-              <button class="btn btn-primary" style="width:100%;font-size:13px"
-                onclick="event.stopPropagation();document.querySelector('[data-nav=calls]').click();
-                setTimeout(()=>{const el=document.getElementById('callProviderId');if(el){el.value='${p.id}';el.dispatchEvent(new Event('input'));}},400)">
-                ⚡ Call this provider
-              </button>
-            </div>`;
-        }).join("");
+        requestAnimationFrame(step);
       }
 
-      document.querySelectorAll(".mkt-tag").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".mkt-tag").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          _mktTag = btn.dataset.tag;
-          renderMarketplace();
-        });
-      });
-      document.getElementById("mktSort")?.addEventListener("change", e => { _mktSort = e.target.value; renderMarketplace(); });
-      document.getElementById("mktSearch")?.addEventListener("input", renderMarketplace);
-      document.getElementById("btnMktRefresh")?.addEventListener("click", loadMarketplace);
-
-      // Load when marketplace tab opened
-      const origNav = window._origNav;
-      document.querySelectorAll(".sb-item").forEach(el => {
-        el.addEventListener("click", () => {
-          if (el.dataset.nav === "marketplace" && !_mktProviders.length) loadMarketplace();
-        });
-      });
-    })();
-
-    // ═══════════════════════════════════════════════════════════════
-    // WEBHOOK NOTIFICATIONS
-    // ═══════════════════════════════════════════════════════════════
-    (function initWebhooks() {
-      const STORAGE_KEY = "cg_webhook_v1";
-      let _deliveries = [];
-
-      function loadSettings() {
-        try {
-          const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-          if (s.url) document.getElementById("webhookUrl").value = s.url;
-          if (s.completed !== undefined) document.getElementById("whkCompleted").checked = s.completed;
-          if (s.slashed !== undefined) document.getElementById("whkSlashed").checked = s.slashed;
-          if (s.expiring !== undefined) document.getElementById("whkExpiring").checked = s.expiring;
-          _deliveries = s.deliveries || [];
-          renderDeliveries();
-        } catch(e) {}
-      }
-
-      function saveSettings() {
-        const s = {
-          url: document.getElementById("webhookUrl")?.value || "",
-          completed: document.getElementById("whkCompleted")?.checked ?? true,
-          slashed: document.getElementById("whkSlashed")?.checked ?? true,
-          expiring: document.getElementById("whkExpiring")?.checked ?? true,
-          deliveries: _deliveries.slice(0, 20)
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-        return s;
-      }
-
-      function renderDeliveries() {
-        const el = document.getElementById("webhookDeliveries");
+      // Hook into existing stat updates
+      const origSetText = function(id, val) {
+        const el = document.getElementById(id);
         if (!el) return;
-        if (!_deliveries.length) { el.innerHTML = '<div class="empty-state">no deliveries yet</div>'; return; }
-        el.innerHTML = _deliveries.slice(0, 10).map(d => `
-          <div class="whk-delivery ${d.ok ? 'ok' : 'err'}">
-            <div class="whk-delivery-head">
-              <span class="whk-delivery-type">${d.type}</span>
-              <span class="whk-delivery-time">${new Date(d.ts).toLocaleTimeString()}</span>
-            </div>
-            <div style="color:var(--text-dim)">${d.ok ? '✅ Delivered' : '❌ Failed: ' + (d.error || 'unknown')} · ${d.url?.slice(0,40)}…</div>
-          </div>`).join("");
+        const num = parseFloat(String(val).replace(/[^0-9.]/g, ""));
+        if (!isNaN(num) && num > 0) {
+          animateCounter(el, Math.round(num), 800);
+        } else {
+          el.textContent = val;
+        }
+      };
+      window._animateCounter = animateCounter;
+      window._animStat = origSetText;
+
+      /* ---- 4. PROVIDER CARD 3D TILT ---- */
+      function attach3DTilt(card) {
+        card.addEventListener("mousemove", e => {
+          const r = card.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width  - 0.5;
+          const y = (e.clientY - r.top)  / r.height - 0.5;
+          card.style.transform = `perspective(600px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateY(-2px)`;
+        });
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = "perspective(600px) rotateX(0) rotateY(0)";
+        });
       }
 
-      // Public function — called by existing call monitoring code
-      window.notifyWebhook = async function(type, payload) {
-        const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-        if (!s.url) return;
-        if (type === "completed" && !s.completed) return;
-        if (type === "slashed" && !s.slashed) return;
-        if (type === "expiring" && !s.expiring) return;
-        const body = { type, payload, timestamp: Date.now(), source: "callguard" };
-        const delivery = { type, url: s.url, ts: Date.now(), ok: false };
-        try {
-          const r = await fetch(s.url, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+      // Attach to existing + observe future cards
+      function attachTilts() {
+        document.querySelectorAll(".prov-card:not([data-tilt])").forEach(c => {
+          c.setAttribute("data-tilt", "1");
+          attach3DTilt(c);
+        });
+      }
+      attachTilts();
+      new MutationObserver(attachTilts).observe(document.body, { childList: true, subtree: true });
+
+      /* ---- 5. PANEL STAGGER ENTRANCE (IntersectionObserver) ---- */
+      (function initStagger() {
+        const panels = document.querySelectorAll(".panel");
+        panels.forEach((p, i) => {
+          p.classList.add("panel-stagger");
+          p.style.transitionDelay = (i % 4) * 60 + "ms";
+        });
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(e => {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+              obs.unobserve(e.target);
+            }
           });
-          delivery.ok = r.ok;
-          if (!r.ok) delivery.error = "HTTP " + r.status;
-        } catch(e) { delivery.error = e.message; }
-        _deliveries.unshift(delivery);
-        _deliveries = _deliveries.slice(0, 20);
-        saveSettings();
-        renderDeliveries();
-      };
+        }, { threshold: 0.08 });
+        panels.forEach(p => obs.observe(p));
+      })();
 
-      document.getElementById("btnSaveWebhook")?.addEventListener("click", () => {
-        saveSettings();
-        toast({ kind: "ok", title: "Webhook saved", detail: "You'll be notified at the configured URL", timeout: 3000 });
-      });
+      /* ---- 6. LEADERBOARD STAGGER ---- */
+      function staggerLeaderboard() {
+        document.querySelectorAll(".lb-row:not(.lb-visible)").forEach((r, i) => {
+          setTimeout(() => r.classList.add("lb-visible"), i * 60);
+        });
+      }
+      // Re-run when leaderboard renders
+      const lbObs = new MutationObserver(() => staggerLeaderboard());
+      const lbBox = document.getElementById("leaderboardBox");
+      if (lbBox) lbObs.observe(lbBox, { childList: true });
+      staggerLeaderboard();
 
-      document.getElementById("btnClearWebhook")?.addEventListener("click", () => {
-        if (document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = "";
-        localStorage.removeItem(STORAGE_KEY);
-        toast({ kind: "ok", title: "Webhook cleared", timeout: 2000 });
-      });
+      /* ---- 7. CONNECT BUTTON: stop glow after connect ---- */
+      (function watchConnect() {
+        const btn = document.getElementById("connectBtn");
+        if (!btn) return;
+        const obs = new MutationObserver(() => {
+          if (btn.classList.contains("hidden") || btn.disabled) {
+            btn.style.animation = "none";
+          } else {
+            btn.style.animation = "";
+          }
+        });
+        obs.observe(btn, { attributes: true, attributeFilter: ["class", "disabled"] });
+      })();
 
-      document.getElementById("btnClearDeliveries")?.addEventListener("click", () => {
-        _deliveries = []; saveSettings(); renderDeliveries();
-      });
+      /* ---- 8. HERO STATS: animate when they get real values ---- */
+      (function watchHeroStats() {
+        ["heroProviders","heroCalls","heroSlashes"].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const mo = new MutationObserver(() => {
+            const num = parseInt(el.textContent);
+            if (!isNaN(num) && num > 0) {
+              animateCounter(el, num, 1200);
+              mo.disconnect();
+            }
+          });
+          mo.observe(el, { childList: true, characterData: true, subtree: true });
+        });
+      })();
 
-      document.getElementById("btnTestWebhook")?.addEventListener("click", async () => {
-        const url = document.getElementById("webhookUrl")?.value;
-        const result = document.getElementById("webhookTestResult");
-        if (!url) { if (result) result.textContent = "Enter a URL first."; return; }
-        if (result) result.textContent = "Sending test…";
-        await window.notifyWebhook("test", { message: "CallGuard webhook test", network: "arc-testnet" });
-        const last = _deliveries[0];
-        if (result) result.textContent = last?.ok ? "✅ Test delivered successfully!" : "❌ Test failed: " + (last?.error || "unknown");
-      });
-
-      loadSettings();
     })();
     </script>
+
+    <!-- ================================================================
+         ULTRA PREMIUM ENGINE 2 — Mouse Spotlight, Ticker, Sparkline, Podium, BorderBeam
+         ================================================================ -->
+    <script>
+    (function() {
+      "use strict";
+
+      /* ---- 1. MOUSE SPOTLIGHT ---- */
+      (function() {
+        const spot = document.getElementById("mouseSpotlight");
+        if (!spot) return;
+        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+        let cx = mx, cy = my;
+        document.addEventListener("mousemove", e => { mx = e.clientX; my = e.clientY; });
+        function tick() {
+          cx += (mx - cx) * 0.06;
+          cy += (my - cy) * 0.06;
+          spot.style.transform = `translate(${cx - 300}px, ${cy - 300}px)`;
+          requestAnimationFrame(tick);
+        }
+        tick();
+      })();
+
+      /* ---- 2. LIVE TICKER ---- */
+      (function() {
+        const ticker = document.getElementById("cgTicker");
+        if (!ticker) return;
+        // Show ticker only on disconnected view
+        function updateTickerVisibility() {
+          const dc = document.getElementById("disconnectedView");
+          const show = dc && dc.style.display !== "none";
+          ticker.style.display = show ? "block" : "none";
+          document.body.classList.toggle("ticker-visible", show);
+        }
+        updateTickerVisibility();
+        setInterval(updateTickerVisibility, 1000);
+
+        // Clock
+        function updateClock() {
+          const el = document.getElementById("tkClock");
+          if (el) el.textContent = new Date().toLocaleTimeString("en-US", { hour12: false });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Sync ticker values from hero stats
+        function syncTicker() {
+          const map = [
+            ["heroProviders", "tkProviders", "tkProviders2"],
+            ["heroCalls",     "tkCalls",     "tkCalls2"],
+            ["heroSlashes",   "tkSlashes",   "tkSlashes2"],
+          ];
+          map.forEach(([src, t1, t2]) => {
+            const v = document.getElementById(src)?.textContent || "…";
+            const a = document.getElementById(t1);
+            const b = document.getElementById(t2);
+            if (a) a.textContent = v;
+            if (b) b.textContent = v;
+          });
+          // honor rate from overview
+          const h = document.getElementById("ovHonor");
+          if (h) {
+            const e1 = document.getElementById("tkHonor");
+            const e2 = document.getElementById("tkHonor2");
+            if (e1) e1.textContent = h.textContent;
+            if (e2) e2.textContent = h.textContent;
+          }
+        }
+        setInterval(syncTicker, 2000);
+      })();
+
+      /* ---- 3. HERO SPARKLINE ---- */
+      (function() {
+        const svgPath = document.getElementById("sparklinePath");
+        const svgFill = document.getElementById("sparklineFill");
+        if (!svgPath) return;
+
+        function buildPath(data, W, H, fill) {
+          if (!data || data.length < 2) return "";
+          const max = Math.max(...data) || 1;
+          const min = Math.min(...data);
+          const range = max - min || 1;
+          const pts = data.map((v, i) => {
+            const x = (i / (data.length - 1)) * W;
+            const y = H - ((v - min) / range) * (H - 8) - 4;
+            return [x, y];
+          });
+          let d = `M${pts[0][0]},${pts[0][1]}`;
+          for (let i = 1; i < pts.length; i++) {
+            const cp1x = pts[i-1][0] + (pts[i][0] - pts[i-1][0]) / 3;
+            const cp2x = pts[i][0] - (pts[i][0] - pts[i-1][0]) / 3;
+            d += ` C${cp1x},${pts[i-1][1]} ${cp2x},${pts[i][1]} ${pts[i][0]},${pts[i][1]}`;
+          }
+          if (fill) {
+            d += ` L${pts[pts.length-1][0]},${H} L0,${H} Z`;
+          }
+          return d;
+        }
+
+        function renderSparkline(data) {
+          const W = 680, H = 64;
+          const line = buildPath(data, W, H, false);
+          const area = buildPath(data, W, H, true);
+          svgPath.setAttribute("d", line);
+          if (svgFill) svgFill.setAttribute("d", area);
+          // Animate draw
+          const len = svgPath.getTotalLength ? svgPath.getTotalLength() : 1200;
+          svgPath.style.strokeDasharray = len;
+          svgPath.style.strokeDashoffset = len;
+          svgPath.style.transition = "none";
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              svgPath.style.transition = "stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1)";
+              svgPath.style.strokeDashoffset = "0";
+            });
+          });
+        }
+
+        // Try to get data from subgraph when loaded
+        function trySparkline() {
+          // use window.state if available
+          const calls = window._state?.networkStats?.calls || [];
+          if (calls.length >= 2) {
+            // bucket by block groups (10 per bucket)
+            const buckets = [];
+            const sz = Math.max(1, Math.floor(calls.length / 20));
+            for (let i = 0; i < calls.length; i += sz) {
+              buckets.push(calls.slice(i, i + sz).length);
+            }
+            renderSparkline(buckets);
+          } else {
+            // fallback: gentle random wave
+            const fake = Array.from({length: 24}, (_, i) =>
+              3 + Math.sin(i * 0.4) * 2 + Math.random() * 1.5
+            );
+            renderSparkline(fake);
+          }
+        }
+        setTimeout(trySparkline, 1200);
+        setTimeout(trySparkline, 4000);
+      })();
+
+      /* ---- 4. BORDER BEAM ---- */
+      (function() {
+        function addBeam(el) {
+          if (el.querySelector(".bb-beam")) return;
+          el.style.position = "relative";
+          el.style.overflow = "hidden";
+          const beam = document.createElement("span");
+          beam.className = "bb-beam";
+          el.appendChild(beam);
+        }
+        // Add to hero stats
+        document.querySelectorAll(".border-beam-wrap").forEach(addBeam);
+        // Add to active ov-stat cards with delay
+        setTimeout(() => {
+          document.querySelectorAll(".ov-stat").forEach(addBeam);
+        }, 500);
+      })();
+
+      /* ---- 5. LEADERBOARD PODIUM ---- */
+      (function() {
+        // Wait for leaderboard data and inject podium
+        function buildPodium() {
+          const rows = document.querySelectorAll("#leaderboardBox .lb-row");
+          if (rows.length < 3) return;
+          const podium = document.getElementById("podiumWrap");
+          if (!podium || podium.dataset.built) return;
+          podium.dataset.built = "1";
+
+          const top3 = Array.from(rows).slice(0, 3);
+          const data = top3.map(row => {
+            const rank = row.querySelector(".lb-rank")?.textContent?.trim() || "";
+            const owner = row.querySelector(".lb-owner")?.childNodes[0]?.textContent?.trim() || "";
+            const score = row.querySelector(".lb-score")?.textContent?.trim() || "0";
+            const isSelf = row.classList.contains("is-self");
+            return { rank, owner, score, isSelf };
+          });
+
+          // Order: 2nd, 1st, 3rd for podium shape
+          const order = [data[1], data[0], data[2]];
+          const heights = ["60px", "88px", "44px"];
+          const medals = ["🥈", "🥇", "🥉"];
+          const cols = ["#94a3b8", "#fbbf24", "#f97316"];
+          const positions = [2, 1, 3];
+
+          podium.innerHTML = `
+            <div class="podium-stage">
+              ${order.map((p, i) => `
+                <div class="podium-col">
+                  <div class="podium-name${p.isSelf ? " self" : ""}">${p.owner}</div>
+                  <div class="podium-score">${p.score}</div>
+                  <div class="podium-medal">${medals[i]}</div>
+                  <div class="podium-block" style="height:${heights[i]};background:linear-gradient(180deg,${cols[i]}22,${cols[i]}11);border:1px solid ${cols[i]}44">
+                    <span class="podium-rank" style="color:${cols[i]}">${positions[i]}</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>`;
+          podium.style.display = "block";
+        }
+
+        // Poll for leaderboard rows
+        let attempts = 0;
+        const poller = setInterval(() => {
+          buildPodium();
+          if (++attempts > 20) clearInterval(poller);
+        }, 800);
+      })();
+
+      /* ---- 6. SHIMMER SKELETONS on empty-state ---- */
+      (function() {
+        document.querySelectorAll(".empty-state").forEach(el => {
+          if (el.textContent.toLowerCase().includes("loading") ||
+              el.textContent.toLowerCase().includes("loading")) {
+            el.innerHTML = `
+              <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+                <div class="shimmer-line" style="width:80%;height:12px;border-radius:6px"></div>
+                <div class="shimmer-line" style="width:60%;height:12px;border-radius:6px"></div>
+                <div class="shimmer-line" style="width:70%;height:12px;border-radius:6px"></div>
+              </div>`;
+          }
+        });
+      })();
+
+    })();
+    </script>
+  <script>
+  // AGENT MARKETPLACE
+  (function initMarketplace() {
+    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn";
+    let _providers = [], _mktSort = "rep", _mktTag = "all";
+    window._mktReload = loadMarketplace;
+    async function loadMarketplace() {
+      const grid = document.getElementById("mktGrid");
+      if (!grid) return;
+      grid.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading marketplace…</div>';
+      try {
+        const res = await fetch(SUBGRAPH, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ query:`{ providers(first:50, where:{active:true}) { id owner stake pricePerCall completedCalls slashedCalls endpoint } }` }) });
+        const data = await res.json();
+        _providers = (data.data?.providers || []).map(p => {
+          const good = Number(p.completedCalls||0), bad = Number(p.slashedCalls||0), total = good+bad;
+          const rep = total>0 ? Math.round((good+2)*100/(total+3)) : 66;
+          const price = (Number(p.pricePerCall)/1e6).toFixed(4);
+          return { ...p, rep, price: parseFloat(price), calls: total };
+        });
+        renderMarketplace();
+      } catch(e) { grid.innerHTML = '<div class="empty-state">Failed to load — check network</div>'; }
+    }
+    function renderMarketplace() {
+      const grid = document.getElementById("mktGrid");
+      if (!grid) return;
+      const search = (document.getElementById("mktSearch")?.value||"").toLowerCase();
+      let rows = _providers.filter(p => !search || p.owner.toLowerCase().includes(search) || p.id.includes(search));
+      if (_mktTag !== "all") rows = rows.filter(p => p.endpoint?.toLowerCase().includes(_mktTag));
+      rows = [...rows].sort((a,b) => _mktSort==="price_asc" ? a.price-b.price : _mktSort==="price_desc" ? b.price-a.price : _mktSort==="calls" ? b.calls-a.calls : b.rep-a.rep);
+      if (!rows.length) { grid.innerHTML='<div class="empty-state">No providers found</div>'; return; }
+      grid.innerHTML = rows.map(p => `
+        <div class="prov-card" style="cursor:default">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div><div class="prov-name">Provider #${p.id}</div><div class="prov-addr">${p.owner.slice(0,10)}…</div></div>
+            <span style="background:var(--accent-bg);color:var(--accent);font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600">Active</span>
+          </div>
+          <div class="prov-honor-wrap"><div class="prov-honor-bar" style="width:${p.rep}%;background:${p.rep>80?"var(--accent)":p.rep>50?"#f59e0b":"#ef4444"}"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--text-dim)">
+            <span><b style="color:var(--text);font-size:16px">${p.price}</b> USDC/call</span>
+            <span>Rep <b style="color:var(--text)">${p.rep}</b></span>
+            <span><b style="color:var(--text)">${p.calls}</b> calls</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px;font-size:13px" onclick="document.querySelector('[data-nav=calls]')?.click()">⚡ Call this provider</button>
+        </div>`).join("");
+    }
+    document.addEventListener("click", e => {
+      if (e.target.classList.contains("mkt-tag-btn")) {
+        document.querySelectorAll(".mkt-tag-btn").forEach(b=>b.classList.remove("on"));
+        e.target.classList.add("on");
+        _mktTag = e.target.dataset.tag;
+        renderMarketplace();
+      }
+    });
+    document.getElementById("mktSort")?.addEventListener("change", e => { _mktSort = e.target.value; renderMarketplace(); });
+    document.getElementById("mktSearch")?.addEventListener("input", renderMarketplace);
+    document.addEventListener("categoryChanged", e => { if (e.detail === "marketplace" && !_providers.length) loadMarketplace(); });
+    if (document.querySelector('[data-nav="marketplace"]')) loadMarketplace();
+  })();
+
+  // WEBHOOK NOTIFICATIONS
+  window.notifyWebhook = function(event, data) {
+    const url = localStorage.getItem("webhookUrl");
+    if (!url) return;
+    const checks = { slash: document.getElementById("wh_slash")?.checked, complete: document.getElementById("wh_complete")?.checked, expiring: document.getElementById("wh_expiring")?.checked, register: document.getElementById("wh_register")?.checked };
+    if (event === "slashed" && !checks.slash) return;
+    if (event === "completed" && !checks.complete) return;
+    if (event === "expiring" && !checks.expiring) return;
+    if (event === "register" && !checks.register) return;
+    const payload = { event, data, timestamp: Date.now(), network: "Arc Testnet" };
+    fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) })
+      .then(() => addDelivery(event, "✓ delivered"))
+      .catch(() => addDelivery(event, "✗ failed"));
+  };
+  function addDelivery(event, status) {
+    const box = document.getElementById("webhookDeliveries");
+    if (!box) return;
+    if (box.querySelector(".empty-state")) box.innerHTML = "";
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px";
+    row.innerHTML = `<span style="color:var(--text)">${event}</span><span style="color:var(--text-dim)">${new Date().toLocaleTimeString()}</span><span style="color:${status.includes("✓")?"var(--accent)":"#ef4444"}">${status}</span>`;
+    box.prepend(row);
+  }
+  document.getElementById("btnSaveWebhook")?.addEventListener("click", () => {
+    const url = document.getElementById("webhookUrl")?.value;
+    if (url) { localStorage.setItem("webhookUrl", url); document.getElementById("webhookTestResult").textContent = "✓ Saved"; }
+  });
+  document.getElementById("btnClearWebhook")?.addEventListener("click", () => {
+    localStorage.removeItem("webhookUrl");
+    if (document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = "";
+    document.getElementById("webhookTestResult").textContent = "Cleared";
+  });
+  document.getElementById("btnTestWebhook")?.addEventListener("click", () => {
+    window.notifyWebhook("test", { message: "CallGuard webhook test" });
+    document.getElementById("webhookTestResult").textContent = "Test sent!";
+  });
+  const savedUrl = localStorage.getItem("webhookUrl");
+  if (savedUrl && document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = savedUrl;
+  </script>
   </body>
 </html>
