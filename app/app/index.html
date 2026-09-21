@@ -11031,14 +11031,19 @@ console.log("call opened:", tx.hash);`;
           const rows = document.querySelectorAll("#leaderboardBox .lb-row");
           if (rows.length < 3) return;
           const podium = document.getElementById("podiumWrap");
-          if (!podium || podium.dataset.built) return;
-          podium.dataset.built = "1";
+          if (!podium) return;
+          // Her refreshLeaderboard'da yeniden yap
+          podium.removeAttribute("data-built");
 
           const top3 = Array.from(rows).slice(0, 3);
+          if (top3.length < 1) return;
+          podium.dataset.built = "1";
           const data = top3.map(row => {
             const rank = row.querySelector(".lb-rank")?.textContent?.trim() || "";
             const owner = row.querySelector(".lb-owner")?.childNodes[0]?.textContent?.trim() || "";
-            const score = row.querySelector(".lb-score")?.textContent?.trim() || "0";
+            // lb-score'un sadece ilk text node'unu al (% span'ı hariç)
+            const scoreEl = row.querySelector(".lb-score");
+            const score = scoreEl ? (scoreEl.childNodes[0]?.textContent?.trim() || scoreEl.textContent?.trim().split(/\s/)[0] || "0") : "0";
             const isSelf = row.classList.contains("is-self");
             return { rank, owner, score, isSelf };
           });
