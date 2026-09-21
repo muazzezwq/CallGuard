@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ["if7hsble6teiitklbaq5l.preview.studio.arc.io"],
+    allowedHosts: "all",
   },
   root: ".",
   build: { outDir: "dist" },
