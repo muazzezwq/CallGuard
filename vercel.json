@@ -1,6 +1,6 @@
 {
   "buildCommand": "",
-  "outputDirectory": "app/app",
+  "outputDirectory": "app",
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
