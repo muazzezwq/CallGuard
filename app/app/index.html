@@ -4526,15 +4526,18 @@
 
     /* ── QUICK HELP FLOAT ── */
     .help-fab {
-      position: fixed; bottom: 72px; right: 16px; z-index: 900;
+      position: fixed !important;
+      bottom: 72px !important; right: 16px !important;
+      left: auto !important; top: auto !important;
+      z-index: 9000 !important;
       width: 40px; height: 40px; border-radius: 50%;
       background: var(--accent); color: #000; font-size: 18px; font-weight: 800;
       border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(0,208,132,0.4);
-      display: flex; align-items: center; justify-content: center;
+      display: flex !important; align-items: center; justify-content: center;
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .help-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,208,132,0.5); }
-    @media (min-width: 769px) { .help-fab { bottom: 24px; } }
+    @media (min-width: 769px) { .help-fab { bottom: 24px !important; } }
 
     /* ── QUICK HELP PANEL ── */
     .help-panel {
@@ -4699,48 +4702,7 @@
       </div>
     </div>
 
-    <!-- ── HELP FAB ── -->
-    <button class="help-fab" id="helpFab" title="Quick Help">?</button>
-    <div class="help-panel" id="helpPanel">
-      <h3>👋 What do you want to do?</h3>
-      <div class="help-role" data-role="caller">
-        <div class="help-role-title">📞 I want to call a service</div>
-        <div class="help-role-desc">Pay per request, get cryptographic receipt</div>
-        <div class="help-steps" id="steps-caller">
-          <div class="help-step"><div class="help-step-num">1</div><span>Get testnet USDC (top bar "Get test USDC")</span></div>
-          <div class="help-step"><div class="help-step-num">2</div><span>Connect wallet (MetaMask, Arc Testnet)</span></div>
-          <div class="help-step"><div class="help-step-num">3</div><span>Go to <b>Providers</b> → pick one by reputation</span></div>
-          <div class="help-step"><div class="help-step-num">4</div><span>Use <b>Call Wizard</b> or the <b>x402</b> panel</span></div>
-          <div class="help-step"><div class="help-step-num">5</div><span>Track call in <b>My Calls</b>, claim timeout if needed</span></div>
-        </div>
-      </div>
-      <div class="help-role" data-role="provider">
-        <div class="help-role-title">🖥️ I want to earn as a provider</div>
-        <div class="help-role-desc">Stake USDC, commit to SLA, earn per request</div>
-        <div class="help-steps" id="steps-provider">
-          <div class="help-step"><div class="help-step-num">1</div><span>Connect wallet with enough USDC to stake</span></div>
-          <div class="help-step"><div class="help-step-num">2</div><span>Go to <b>Register</b> → fill stake, price, response time</span></div>
-          <div class="help-step"><div class="help-step-num">3</div><span>Deploy your API endpoint, set up receipt signing</span></div>
-          <div class="help-step"><div class="help-step-num">4</div><span>When calls come in, submit receipt via <b>Submit Receipt</b></span></div>
-          <div class="help-step"><div class="help-step-num">5</div><span>Monitor reputation in <b>Analytics</b> and <b>Leaderboard</b></span></div>
-        </div>
-      </div>
-      <div class="help-role" data-role="agent">
-        <div class="help-role-title">🤖 I'm building an AI agent</div>
-        <div class="help-role-desc">Integrate CallGuard into your agent workflow</div>
-        <div class="help-steps" id="steps-agent">
-          <div class="help-step"><div class="help-step-num">1</div><span>Check <b>MCP Agent</b> panel for Claude/Cursor config</span></div>
-          <div class="help-step"><div class="help-step-num">2</div><span>Use <b>x402</b> panel for HTTP 402 auto-payment</span></div>
-          <div class="help-step"><div class="help-step-num">3</div><span>Use <b>Nanopayment</b> for gasless 0.001 USDC calls</span></div>
-          <div class="help-step"><div class="help-step-num">4</div><span>Set budget limits in <b>Settings</b></span></div>
-          <div class="help-step"><div class="help-step-num">5</div><span>Subscribe for bulk calls in <b>Marketplace</b></span></div>
-        </div>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text-faint);text-align:center">
-        Press <b style="color:var(--text)">Ctrl+K</b> or <b style="color:var(--text)">/</b> for command palette
-      </div>
-    </div>
-    <!-- Mouse spotlight -->
+    <!-- Mouse spotlight -->    <!-- Mouse spotlight -->
     <div id="mouseSpotlight"></div>
 
     <!-- Live Stats Ticker -->
@@ -12729,5 +12691,46 @@ console.log("call opened:", tx.hash);`;
   }
   </script>
 
+    <!-- ── HELP FAB ── -->
+    <button class="help-fab" id="helpFab" title="Quick Help">?</button>
+    <div class="help-panel" id="helpPanel">
+      <h3>👋 What do you want to do?</h3>
+      <div class="help-role" data-role="caller">
+        <div class="help-role-title">📞 I want to call a service</div>
+        <div class="help-role-desc">Pay per request, get cryptographic receipt</div>
+        <div class="help-steps" id="steps-caller">
+          <div class="help-step"><div class="help-step-num">1</div><span>Get testnet USDC (top bar "Get test USDC")</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Connect wallet (MetaMask, Arc Testnet)</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Go to <b>Providers</b> → pick one by reputation</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>Use <b>Call Wizard</b> or the <b>x402</b> panel</span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Track call in <b>My Calls</b>, claim timeout if needed</span></div>
+        </div>
+      </div>
+      <div class="help-role" data-role="provider">
+        <div class="help-role-title">🖥️ I want to earn as a provider</div>
+        <div class="help-role-desc">Stake USDC, commit to SLA, earn per request</div>
+        <div class="help-steps" id="steps-provider">
+          <div class="help-step"><div class="help-step-num">1</div><span>Connect wallet with enough USDC to stake</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Go to <b>Register</b> → fill stake, price, response time</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Deploy your API endpoint, set up receipt signing</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>When calls come in, submit receipt via <b>Submit Receipt</b></span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Monitor reputation in <b>Analytics</b> and <b>Leaderboard</b></span></div>
+        </div>
+      </div>
+      <div class="help-role" data-role="agent">
+        <div class="help-role-title">🤖 I'm building an AI agent</div>
+        <div class="help-role-desc">Integrate CallGuard into your agent workflow</div>
+        <div class="help-steps" id="steps-agent">
+          <div class="help-step"><div class="help-step-num">1</div><span>Check <b>MCP Agent</b> panel for Claude/Cursor config</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Use <b>x402</b> panel for HTTP 402 auto-payment</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Use <b>Nanopayment</b> for gasless 0.001 USDC calls</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>Set budget limits in <b>Settings</b></span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Subscribe for bulk calls in <b>Marketplace</b></span></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-faint);text-align:center">
+        Press <b style="color:var(--text)">Ctrl+K</b> or <b style="color:var(--text)">/</b> for command palette
+      </div>
+    </div>
   </body>
 </html>
