@@ -234,17 +234,13 @@
 
       /* ---- Top bar ---- */
       .topbar {
-        position: fixed;
+        position: sticky;
         top: 0;
-        left: 0; right: 0;
         z-index: 100;
         backdrop-filter: blur(20px) saturate(180%);
         background: rgba(10, 14, 20, 0.92);
         border-bottom: 1px solid var(--border);
       }
-      body { padding-top: 56px; }
-      body.ticker-visible { padding-top: calc(22px + 56px); }
-      body.ticker-visible .topbar { top: 22px; }
 
       .topbar-inner {
         display: flex;
@@ -3959,8 +3955,8 @@
 
       /* ---- Scrolling ticker ---- */
       #cgTicker {
-        position: fixed;
-        top: 0; left: 0; right: 0;
+        position: sticky;
+        top: 0;
         z-index: 200;
         background: rgba(10,14,20,0.95);
         border-bottom: 1px solid rgba(16,185,129,0.15);
@@ -3974,10 +3970,6 @@
         height: 22px;
       }
       body.ticker-visible #cgTicker { display: block; }
-      body.ticker-visible .topbar { top: 22px; }
-      .sidebar { top: 56px !important; }
-      body.ticker-visible .sidebar { top: calc(22px + 56px) !important; }
-      body.ticker-visible .bottom-nav { bottom: 0; }
       .ticker-track {
         display: inline-block;
         animation: tickerScroll 30s linear infinite;
