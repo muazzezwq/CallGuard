@@ -4221,6 +4221,134 @@
         border-radius: 4px;
       }
 
+
+    /* ── MOBILE BOTTOM NAV ── */
+    .mob-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: rgba(10,14,20,0.97);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      z-index: 200;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+    }
+    .mob-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 9px;
+      color: var(--text-faint);
+      cursor: pointer;
+      padding: 6px 0;
+      transition: color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-nav-item .mn-icon { font-size: 18px; line-height: 1; }
+    .mob-nav-item.on { color: var(--accent); }
+    .mob-nav-item.on .mn-icon { filter: drop-shadow(0 0 6px var(--accent)); }
+    @media (max-width: 768px) {
+      .mob-nav { display: grid; }
+      .app-shell { padding-bottom: 56px; }
+      .sidebar { display: none !important; }
+      #cgTicker { font-size: 9px; }
+    }
+
+    /* ── PROVIDER PROFILE MODAL ── */
+    .prov-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .prov-modal-overlay.open { display: flex; }
+    .prov-modal {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 24px;
+      animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .prov-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .prov-modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .prov-modal-stat { text-align: center; }
+    .prov-modal-stat .val { font-size: 22px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+    .prov-modal-stat .lbl { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .prov-modal-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .prov-modal-history { margin-top: 16px; }
+    .prov-modal-history .hist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .prov-modal-history .hist-row:last-child { border-bottom: none; }
+
+    /* ── THEME TOGGLE ── */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .theme-toggle-track {
+      width: 40px; height: 22px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .theme-toggle-track.light { background: var(--accent); }
+    .theme-toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .theme-toggle-track.light .theme-toggle-thumb { transform: translateX(18px); }
+    body.light-mode {
+      --bg-0: #f8fafb; --bg-1: #ffffff; --bg-2: #f1f4f7;
+      --border: rgba(0,0,0,0.1); --text: #0a0e14; --text-dim: #374151;
+      --text-faint: #6b7280; --card-bg: rgba(255,255,255,0.9);
+    }
+
     </style>
   </head>
   <body>
@@ -5085,6 +5213,20 @@
 
         <section class="panel" id="budgetPanel" data-category="settings">
           <div class="panel-head">
+            <h2>⚙️ Appearance</h2>
+          </div>
+          <div class="panel-body" style="margin-bottom:16px">
+            <div class="field">
+              <label>Theme</label>
+              <div id="btnThemeToggle" class="theme-toggle" style="cursor:pointer">
+                <div class="theme-toggle-track" id="themeTrack">
+                  <div class="theme-toggle-thumb"></div>
+                </div>
+                <span style="font-size:13px;color:var(--text-dim)" id="themeLabel">Dark</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel-head" style="margin-top:8px">
             <h2>Session Budget</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">spending cap</span>
           </div>
@@ -11210,6 +11352,207 @@ console.log("call opened:", tx.hash);`;
   });
   const savedUrl = localStorage.getItem("webhookUrl");
   if (savedUrl && document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = savedUrl;
+
+  // ── MOBILE BOTTOM NAV ──
+  (function() {
+    const nav = document.createElement("nav");
+    nav.className = "mob-nav";
+    nav.innerHTML = `
+      <div class="mob-nav-item on" data-mob="overview"><div class="mn-icon">📊</div>Overview</div>
+      <div class="mob-nav-item" data-mob="providers"><div class="mn-icon">🖥️</div>Providers</div>
+      <div class="mob-nav-item" data-mob="calls"><div class="mn-icon">📞</div>My Calls</div>
+      <div class="mob-nav-item" data-mob="marketplace"><div class="mn-icon">🛒</div>Market</div>
+      <div class="mob-nav-item" data-mob="register"><div class="mn-icon">⚙️</div>Account</div>
+    `;
+    document.body.appendChild(nav);
+    nav.querySelectorAll(".mob-nav-item").forEach(item => {
+      item.addEventListener("click", () => {
+        nav.querySelectorAll(".mob-nav-item").forEach(i => i.classList.remove("on"));
+        item.classList.add("on");
+        const cat = item.dataset.mob;
+        const sbItem = document.querySelector(`[data-nav="${cat}"]`);
+        if (sbItem) sbItem.click();
+        else if (typeof showCategory === "function") showCategory(cat);
+      });
+    });
+    // Sidebar tıklamalarıyla senkronize et
+    document.querySelectorAll(".sb-item").forEach(sb => {
+      sb.addEventListener("click", () => {
+        const cat = sb.dataset.nav;
+        nav.querySelectorAll(".mob-nav-item").forEach(i => {
+          i.classList.toggle("on", i.dataset.mob === cat);
+        });
+      });
+    });
+  })();
+
+  // ── PROVIDER PROFILE MODAL ──
+  (function() {
+    const overlay = document.createElement("div");
+    overlay.className = "prov-modal-overlay";
+    overlay.id = "provModal";
+    overlay.innerHTML = `
+      <div class="prov-modal">
+        <div class="prov-modal-head">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--text)" id="pmTitle">Provider #1</div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:2px" id="pmAddr"></div>
+          </div>
+          <button class="prov-modal-close" id="pmClose">✕</button>
+        </div>
+        <div class="prov-modal-stats">
+          <div class="prov-modal-stat"><div class="val" id="pmRep">—</div><div class="lbl">Reputation</div></div>
+          <div class="prov-modal-stat"><div class="val" id="pmHonor">—</div><div class="lbl">Honor Rate</div></div>
+          <div class="prov-modal-stat"><div class="val" id="pmPrice">—</div><div class="lbl">USDC/Call</div></div>
+          <div class="prov-modal-stat"><div class="val" id="pmStake">—</div><div class="lbl">Staked</div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-bottom:4px">
+            <span>Honor Rate</span><span id="pmHonorPct">—</span>
+          </div>
+          <div style="background:var(--bg-2);border-radius:4px;height:8px;overflow:hidden">
+            <div id="pmHonorBar" style="height:100%;background:var(--accent);border-radius:4px;transition:width 0.5s;width:0%"></div>
+          </div>
+        </div>
+        <div class="prov-modal-history" id="pmHistory">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px">Recent Calls</div>
+          <div class="empty-state" style="font-size:12px">Loading…</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:20px;font-size:14px" id="pmCallBtn">⚡ Call this provider</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById("pmClose").addEventListener("click", () => overlay.classList.remove("open"));
+    overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+    document.getElementById("pmCallBtn").addEventListener("click", () => {
+      overlay.classList.remove("open");
+      const sbCalls = document.querySelector('[data-nav="calls"]');
+      if (sbCalls) sbCalls.click();
+    });
+
+    window.openProviderModal = function(p) {
+      document.getElementById("pmTitle").textContent = "Provider #" + p.id;
+      document.getElementById("pmAddr").textContent = p.owner || p.id;
+      document.getElementById("pmRep").textContent = p.reputation ?? "—";
+      const total = (p.completedCalls||0) + (p.slashedCalls||0);
+      const honor = total > 0 ? Math.round((p.completedCalls||0)/total*100) : 0;
+      document.getElementById("pmHonor").textContent = honor + "%";
+      document.getElementById("pmHonorPct").textContent = honor + "%";
+      document.getElementById("pmHonorBar").style.width = honor + "%";
+      document.getElementById("pmHonorBar").style.background = honor >= 80 ? "var(--accent)" : honor >= 50 ? "#f59e0b" : "#ef4444";
+      document.getElementById("pmPrice").textContent = p.pricePerCall ? (Number(p.pricePerCall)/1e6).toFixed(3) : "—";
+      document.getElementById("pmStake").textContent = p.stake ? (Number(p.stake)/1e6).toFixed(2) : "—";
+      // Recent calls from subgraph
+      const histEl = document.getElementById("pmHistory");
+      if (window.state && window.state.calls) {
+        const myCalls = window.state.calls.filter(c => c.providerId == p.id).slice(0,10);
+        if (myCalls.length > 0) {
+          histEl.innerHTML = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px">Recent Calls</div>` +
+            myCalls.map(c => `<div class="hist-row">
+              <span style="color:${c.status==="completed"?"var(--accent)":c.status==="slashed"?"#ef4444":"#f59e0b"}">${c.status==="completed"?"✓":c.status==="slashed"?"✕":"⏳"}</span>
+              <span style="color:var(--text-faint);font-family:var(--font-mono)">${c.id?.slice(0,10)}…</span>
+              <span style="margin-left:auto;color:var(--accent);font-family:var(--font-mono)">${c.price ? (Number(c.price)/1e6).toFixed(2) : "1.00"} USDC</span>
+            </div>`).join("");
+        } else {
+          histEl.innerHTML = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px">Recent Calls</div><div class="empty-state" style="font-size:12px">No calls yet</div>`;
+        }
+      }
+      overlay.classList.add("open");
+    };
+  })();
+
+  // ── AUTO-ROUTER V2 ──
+  window.autoRouterV2 = function(providers) {
+    if (!providers || providers.length === 0) return null;
+    const active = providers.filter(p => p.active !== false && Number(p.stake||0) > 0);
+    if (active.length === 0) return providers[0];
+    const scored = active.map(p => {
+      const total = (p.completedCalls||0) + (p.slashedCalls||0);
+      const honor = total > 0 ? (p.completedCalls||0)/total : 0.5;
+      const rep = Math.min((p.reputation||66)/100, 1);
+      const price = Number(p.pricePerCall||1e6)/1e6;
+      const priceFactor = price > 0 ? Math.min(1/price, 5)/5 : 0.5;
+      const score = (honor * 0.5) + (rep * 0.35) + (priceFactor * 0.15);
+      return { ...p, _score: score };
+    });
+    scored.sort((a,b) => b._score - a._score);
+    return scored[0];
+  };
+
+  // Auto-router butonuna bağla
+  const btnAutoRoute = document.getElementById("btnAutoRoute");
+  if (btnAutoRoute) {
+    btnAutoRoute.addEventListener("click", () => {
+      const providers = window.state?.allProviders || [];
+      const best = window.autoRouterV2(providers);
+      if (!best) { toast({ kind: "err", title: "No active providers found" }); return; }
+      const sel = document.getElementById("selProvider");
+      if (sel) { sel.value = best.id; sel.dispatchEvent(new Event("change")); }
+      toast({ kind: "ok", title: `Auto-selected Provider #${best.id} (score: ${(best._score*100).toFixed(0)})`, timeout: 3000 });
+    });
+  }
+
+  // ── DARK / LIGHT TEMA TOGGLE ──
+  (function() {
+    const savedTheme = localStorage.getItem("cgTheme");
+    if (savedTheme === "light") document.body.classList.add("light-mode");
+
+    const themeBtn = document.getElementById("btnThemeToggle");
+    const themeTrack = document.getElementById("themeTrack");
+    if (themeBtn) {
+      if (savedTheme === "light") themeTrack?.classList.add("light");
+      themeBtn.addEventListener("click", () => {
+        const isLight = document.body.classList.toggle("light-mode");
+        localStorage.setItem("cgTheme", isLight ? "light" : "dark");
+        if (themeTrack) themeTrack.classList.toggle("light", isLight);
+        const lbl = document.getElementById("themeLabel");
+        if (lbl) lbl.textContent = isLight ? "Light" : "Dark";
+      });
+    }
+  })();
+
+  // ── WEBHOOK RETRY (3 deneme) ──
+  window.notifyWebhookWithRetry = async function(event, data, attempt=1) {
+    const url = localStorage.getItem("webhookUrl");
+    if (!url) return;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event, data, timestamp: Date.now(), attempt })
+      });
+      if (!res.ok && attempt < 3) {
+        setTimeout(() => window.notifyWebhookWithRetry(event, data, attempt+1), attempt * 2000);
+      }
+    } catch(e) {
+      if (attempt < 3) setTimeout(() => window.notifyWebhookWithRetry(event, data, attempt+1), attempt * 2000);
+    }
+  };
+  // Eski notifyWebhook'u override et
+  window.notifyWebhook = window.notifyWebhookWithRetry;
+
+  // ── MARKETPLACE - Provider Modal bağlantısı ──
+  document.addEventListener("categoryChanged", e => {
+    if (e.detail !== "marketplace") return;
+    setTimeout(() => {
+      document.querySelectorAll(".prov-card").forEach(card => {
+        const hireBtn = card.querySelector(".prov-hire-btn, .btn-primary");
+        if (hireBtn && !hireBtn.dataset.modalBound) {
+          hireBtn.dataset.modalBound = "1";
+          const pid = card.dataset.providerId;
+          if (!pid) return;
+          hireBtn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const p = (window.state?.allProviders||[]).find(x=>String(x.id)===String(pid));
+            if (p) window.openProviderModal(p);
+            else document.querySelector('[data-nav="calls"]')?.click();
+          });
+        }
+      });
+    }, 500);
+  });
+
   </script>
   </body>
 </html>
