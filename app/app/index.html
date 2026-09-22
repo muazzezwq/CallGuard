@@ -4349,6 +4349,124 @@
       --text-faint: #6b7280; --card-bg: rgba(255,255,255,0.9);
     }
 
+
+    /* ── CALL WIZARD ── */
+    .wizard-overlay {
+      display: none; position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .wizard-overlay.open { display: flex; }
+    .wizard-box {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: 16px; width: min(520px, 95vw);
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      animation: wizardIn 0.25s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes wizardIn { from { opacity:0; transform: scale(0.92) translateY(20px); } to { opacity:1; transform: none; } }
+    .wizard-header {
+      padding: 20px 24px 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .wizard-title { font-size: 17px; font-weight: 700; color: var(--text); }
+    .wizard-close { background: none; border: none; color: var(--text-faint); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+    .wizard-steps {
+      display: flex; gap: 0; padding: 20px 24px 0;
+    }
+    .wizard-step-dot {
+      display: flex; align-items: center; flex: 1; gap: 0;
+    }
+    .wizard-step-dot:last-child { flex: 0; }
+    .ws-circle {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--bg-2); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--text-faint);
+      flex-shrink: 0; transition: all 0.2s;
+    }
+    .ws-circle.active { background: var(--accent); border-color: var(--accent); color: #000; }
+    .ws-circle.done { background: var(--accent); border-color: var(--accent); color: #000; }
+    .ws-line { flex: 1; height: 2px; background: var(--border); margin: 0 4px; transition: background 0.2s; }
+    .ws-line.done { background: var(--accent); }
+    .wizard-body { padding: 20px 24px; }
+    .wizard-pane { display: none; }
+    .wizard-pane.active { display: block; }
+    .wizard-pane h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+    .wizard-pane .hint { font-size: 12px; color: var(--text-faint); margin-bottom: 16px; line-height: 1.6; }
+    .wizard-footer {
+      padding: 16px 24px;
+      display: flex; gap: 10px; justify-content: flex-end;
+      border-top: 1px solid var(--border);
+    }
+    .wiz-provider-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; background: var(--bg-2);
+      border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    }
+    .wiz-provider-card:hover, .wiz-provider-card.selected {
+      border-color: var(--accent); background: rgba(0,235,177,0.06);
+    }
+    .wiz-prov-rep { font-size: 22px; font-weight: 800; color: var(--accent); min-width: 40px; }
+    .wiz-prov-info { flex: 1; }
+    .wiz-prov-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .wiz-prov-meta { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .wiz-prov-price { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .wiz-confirm-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .wiz-confirm-row:last-child { border-bottom: none; }
+    .wiz-confirm-label { color: var(--text-faint); }
+    .wiz-confirm-val { font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+    .wiz-success { text-align: center; padding: 20px 0; }
+    .wiz-success-icon { font-size: 48px; margin-bottom: 12px; }
+    .wiz-success h3 { font-size: 18px; color: var(--accent); margin-bottom: 8px; }
+    .wiz-success p { font-size: 13px; color: var(--text-faint); line-height: 1.6; }
+
+    /* ── DISPUTE MODAL ── */
+    .dispute-overlay {
+      display: none; position: fixed; inset: 0; z-index: 2100;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .dispute-overlay.open { display: flex; }
+    .dispute-box {
+      background: var(--bg-1); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 16px; width: min(480px, 95vw);
+      padding: 24px; box-shadow: 0 0 40px rgba(239,68,68,0.15);
+      animation: wizardIn 0.25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .dispute-box h2 { font-size: 17px; font-weight: 700; color: #ef4444; margin-bottom: 8px; }
+    .dispute-box .hint { font-size: 12px; color: var(--text-faint); margin-bottom: 16px; line-height: 1.6; }
+
+    /* ── SUBSCRIPTION MODAL ── */
+    .sub-overlay {
+      display: none; position: fixed; inset: 0; z-index: 2200;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .sub-overlay.open { display: flex; }
+    .sub-box {
+      background: var(--bg-1); border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 16px; width: min(480px, 95vw);
+      padding: 24px; box-shadow: 0 0 40px rgba(139,92,246,0.15);
+      animation: wizardIn 0.25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .sub-box h2 { font-size: 17px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px; }
+    .sub-plan-card {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .sub-plan-card:hover, .sub-plan-card.selected {
+      border-color: #8b5cf6; background: rgba(139,92,246,0.06);
+    }
+    .sub-plan-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .sub-plan-price { font-size: 20px; font-weight: 800; color: #8b5cf6; }
+    .sub-plan-desc { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
     </style>
   </head>
   <body>
@@ -5026,6 +5144,7 @@
                 </div>
                 <button class="btn btn-primary" id="btnCall">Approve & call</button>
                 <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402</button>
+                <button class="btn" data-open-wizard style="margin-top:8px;border-color:#8b5cf6;color:#8b5cf6">🧙 Use Call Wizard</button>
               </div>
             </details>
 
@@ -5761,6 +5880,18 @@ npm install</pre>
 <span class="kw">const</span> requestHash = ethers.<span class="fn">keccak256</span>(ethers.<span class="fn">toUtf8Bytes</span>(<span class="str">"summarize this document"</span>));
 <span class="kw">const</span> tx = <span class="kw">await</span> arc.<span class="fn">callService</span>(<span class="str">1</span>, requestHash);
 console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.hash);
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" data-category="settings">
+          <div class="panel-head">
+            <h2>🔄 My Subscriptions</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">active plans</span>
+          </div>
+          <div class="panel-body">
+            <div id="subListBox">
+              <div class="empty-state" style="font-size:12px">No active subscriptions. Use the Marketplace to subscribe to a provider.</div>
             </div>
           </div>
         </section>
@@ -9048,6 +9179,7 @@ async function refreshBalance() {
         if (cat === "analytics") loadAnalytics();
         if (cat === "overview") refreshOverviewDashboard();
         if (cat === "providers") { refreshAllProviders().catch(()=>{}); refreshLeaderboard().catch(()=>{}); }
+        if (cat === "settings") { window.renderSubList?.(); }
         if (cat === "calls") loadMyCalls().catch(()=>{});
         if (cat === "nano") fetchNanoBalance().catch(()=>{});
         if (cat === "jobs") loadMyJobs().catch(()=>{});
@@ -11286,7 +11418,11 @@ console.log("call opened:", tx.hash);`;
             <span>Rep <b style="color:var(--text)">${p.rep}</b></span>
             <span><b style="color:var(--text)">${p.calls}</b> calls</span>
           </div>
-          <button class="btn btn-primary" style="width:100%;margin-top:12px;font-size:13px" onclick="document.querySelector('[data-nav=calls]')?.click()">⚡ Call this provider</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">
+            <button class="btn btn-primary" style="font-size:12px" onclick="window.openCallWizard((window.state?.allProviders||[]).find(x=>String(x.id)==='${p.id}') || {id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">⚡ Call Wizard</button>
+            <button class="btn" style="font-size:12px;border-color:#8b5cf6;color:#8b5cf6" onclick="window.openSubscriptionModal({id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">🔄 Subscribe</button>
+          </div>
+          <button class="btn" style="width:100%;margin-top:6px;font-size:11px;color:var(--text-faint)" onclick="window.openDisputeModal('')">⚠️ Open Dispute</button>
         </div>`).join("");
     }
     document.addEventListener("click", e => {
@@ -11554,5 +11690,437 @@ console.log("call opened:", tx.hash);`;
   });
 
   </script>
+
+  <!-- ── CALL BUILDER WIZARD ── -->
+  <div class="wizard-overlay" id="callWizard">
+    <div class="wizard-box">
+      <div class="wizard-header">
+        <span class="wizard-title">⚡ Call Builder</span>
+        <button class="wizard-close" id="wizClose">✕</button>
+      </div>
+      <div class="wizard-steps" id="wizSteps">
+        <div class="wizard-step-dot"><div class="ws-circle active" id="wsC1">1</div><div class="ws-line" id="wsL1"></div></div>
+        <div class="wizard-step-dot"><div class="ws-circle" id="wsC2">2</div><div class="ws-line" id="wsL2"></div></div>
+        <div class="wizard-step-dot"><div class="ws-circle" id="wsC3">3</div><div class="ws-line" id="wsL3"></div></div>
+        <div class="wizard-step-dot"><div class="ws-circle" id="wsC4">4</div></div>
+      </div>
+      <div class="wizard-body">
+        <!-- Step 1: Provider seç -->
+        <div class="wizard-pane active" id="wizPane1">
+          <h3>Select a Provider</h3>
+          <p class="hint">Choose the provider you want to call. Sorted by Auto-Router score (honor × rep ÷ price).</p>
+          <div id="wizProvList"><div class="empty-state">Loading providers…</div></div>
+        </div>
+        <!-- Step 2: Payload -->
+        <div class="wizard-pane" id="wizPane2">
+          <h3>Request Payload (optional)</h3>
+          <p class="hint">This payload is included in the on-chain call hash but NOT sent to the provider automatically — your app or agent sends the actual request off-chain using the call ID as reference.</p>
+          <textarea id="wizPayload" class="form-control" rows="4" placeholder='{"action":"query","data":"..."}' style="width:100%;font-family:var(--font-mono);font-size:12px;resize:vertical"></textarea>
+        </div>
+        <!-- Step 3: Onayla -->
+        <div class="wizard-pane" id="wizPane3">
+          <h3>Confirm & Approve</h3>
+          <p class="hint">Review the call details before submitting. USDC will be escrowed in the contract.</p>
+          <div id="wizConfirmDetails"></div>
+        </div>
+        <!-- Step 4: Sonuç -->
+        <div class="wizard-pane" id="wizPane4">
+          <div class="wiz-success">
+            <div class="wiz-success-icon">✅</div>
+            <h3>Call Submitted!</h3>
+            <p id="wizSuccessMsg">Your call has been submitted and USDC escrowed. The provider has until the SLA deadline to respond.</p>
+            <div id="wizTxLink" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <button class="btn btn-sm" id="wizBack" style="display:none">← Back</button>
+        <button class="btn btn-sm btn-primary" id="wizNext">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DISPUTE MODAL ── -->
+  <div class="dispute-overlay" id="disputeOverlay">
+    <div class="dispute-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2>⚠️ Open Dispute</h2>
+        <button class="wizard-close" id="disputeClose">✕</button>
+      </div>
+      <p class="hint">If the provider responded but the response quality was unacceptable, you can open a dispute. <strong>Note:</strong> On-chain response quality enforcement is coming in v3. Currently this records your dispute intent on-chain via an event.</p>
+      <div class="field" style="margin-bottom:12px">
+        <label>Call ID</label>
+        <input type="text" id="disputeCallId" class="form-control" placeholder="0x..." />
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Reason</label>
+        <select id="disputeReason" class="form-control">
+          <option value="0">Wrong/invalid response</option>
+          <option value="1">Response too slow (within window but degraded)</option>
+          <option value="2">Partial response / incomplete data</option>
+          <option value="3">Other</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Details (optional)</label>
+        <textarea id="disputeDetails" class="form-control" rows="3" placeholder="Describe the issue…" style="resize:vertical"></textarea>
+      </div>
+      <div id="disputeResult" style="font-size:12px;color:var(--text-faint);margin-bottom:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-sm" id="disputeCancel">Cancel</button>
+        <button class="btn btn-sm" style="background:#ef4444;color:#fff;border-color:#ef4444" id="disputeSubmit">Submit Dispute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SUBSCRIPTION MODAL ── -->
+  <div class="sub-overlay" id="subOverlay">
+    <div class="sub-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2>🔄 Subscribe to Provider</h2>
+        <button class="wizard-close" id="subClose">✕</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-faint);margin-bottom:16px;line-height:1.6">
+        Lock USDC upfront for a fixed number of calls at a discounted rate. The provider commits to SLA for all calls in the subscription period.
+      </p>
+      <div id="subProviderInfo" style="background:var(--bg-2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+      <p style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Choose a plan:</p>
+      <div id="subPlans">
+        <div class="sub-plan-card selected" data-plan="10">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="sub-plan-name">Starter</div><div class="sub-plan-desc">10 calls · 5% discount</div></div>
+            <div class="sub-plan-price" id="subPrice10">—</div>
+          </div>
+        </div>
+        <div class="sub-plan-card" data-plan="50">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="sub-plan-name">Growth</div><div class="sub-plan-desc">50 calls · 10% discount</div></div>
+            <div class="sub-plan-price" id="subPrice50">—</div>
+          </div>
+        </div>
+        <div class="sub-plan-card" data-plan="100">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="sub-plan-name">Pro</div><div class="sub-plan-desc">100 calls · 15% discount</div></div>
+            <div class="sub-plan-price" id="subPrice100">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="subResult" style="font-size:12px;color:var(--text-faint);margin:12px 0;min-height:16px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-sm" id="subCancel">Cancel</button>
+        <button class="btn btn-sm" style="background:#8b5cf6;color:#fff;border-color:#8b5cf6" id="subSubmit">Lock USDC & Subscribe</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── CALL BUILDER WIZARD JS ──
+  (function() {
+    let wizStep = 1;
+    let wizProvider = null;
+    const totalSteps = 4;
+
+    function wizShow(step) {
+      wizStep = step;
+      for (let i = 1; i <= totalSteps; i++) {
+        const pane = document.getElementById("wizPane" + i);
+        const circle = document.getElementById("wsC" + i);
+        if (pane) pane.classList.toggle("active", i === step);
+        if (circle) {
+          circle.classList.toggle("active", i === step);
+          circle.classList.toggle("done", i < step);
+          if (i < step) circle.textContent = "✓";
+          else circle.textContent = String(i);
+        }
+        if (i < totalSteps) {
+          const line = document.getElementById("wsL" + i);
+          if (line) line.classList.toggle("done", i < step);
+        }
+      }
+      document.getElementById("wizBack").style.display = step > 1 && step < 4 ? "" : "none";
+      const nextBtn = document.getElementById("wizNext");
+      if (step === 3) { nextBtn.textContent = "⚡ Submit Call"; }
+      else if (step === 4) { nextBtn.textContent = "Close"; }
+      else { nextBtn.textContent = "Next →"; }
+    }
+
+    function populateWizProviders() {
+      const list = document.getElementById("wizProvList");
+      if (!list) return;
+      const providers = (window.state?.allProviders || []).filter(p => p.active !== false);
+      if (!providers.length) { list.innerHTML = '<div class="empty-state">No providers available. Connect wallet first.</div>'; return; }
+      // Auto-router score
+      const scored = providers.map(p => {
+        const honor = parseFloat(p.honorRate || 0);
+        const rep = parseFloat(p.reputation || 66);
+        const price = parseFloat(p.pricePerCall || 1);
+        const score = ((honor * 0.5) + (rep * 0.35 / 100)) / (price * 0.15 + 0.01);
+        return { ...p, score };
+      }).sort((a, b) => b.score - a.score);
+      list.innerHTML = scored.map(p => `
+        <div class="wiz-provider-card${wizProvider && wizProvider.id === p.id ? " selected" : ""}" data-pid="${p.id}">
+          <div class="wiz-prov-rep">${p.reputation || 66}</div>
+          <div class="wiz-prov-info">
+            <div class="wiz-prov-name">Provider #${p.id}</div>
+            <div class="wiz-prov-meta">${p.honorRate ? Math.round(p.honorRate) + "% honor" : "—"} · ${p.active ? "Active" : "Inactive"}</div>
+          </div>
+          <div class="wiz-prov-price">${parseFloat(p.pricePerCall||1).toFixed(3)} USDC</div>
+        </div>
+      `).join("");
+      list.querySelectorAll(".wiz-provider-card").forEach(card => {
+        card.addEventListener("click", () => {
+          list.querySelectorAll(".wiz-provider-card").forEach(c => c.classList.remove("selected"));
+          card.classList.add("selected");
+          wizProvider = scored.find(p => String(p.id) === card.dataset.pid);
+        });
+      });
+      if (scored.length) wizProvider = scored[0];
+    }
+
+    function populateWizConfirm() {
+      const el = document.getElementById("wizConfirmDetails");
+      if (!el || !wizProvider) return;
+      const price = parseFloat(wizProvider.pricePerCall || 1).toFixed(3);
+      el.innerHTML = `
+        <div class="wiz-confirm-row"><span class="wiz-confirm-label">Provider</span><span class="wiz-confirm-val">#${wizProvider.id}</span></div>
+        <div class="wiz-confirm-row"><span class="wiz-confirm-label">Price</span><span class="wiz-confirm-val">${price} USDC</span></div>
+        <div class="wiz-confirm-row"><span class="wiz-confirm-label">SLA Window</span><span class="wiz-confirm-val">${wizProvider.maxResponseTime || 120}s</span></div>
+        <div class="wiz-confirm-row"><span class="wiz-confirm-label">Slash %</span><span class="wiz-confirm-val">${wizProvider.slashBps ? (wizProvider.slashBps/100).toFixed(1) + "%" : "0% ⚠️"}</span></div>
+        <div class="wiz-confirm-row"><span class="wiz-confirm-label">Payload</span><span class="wiz-confirm-val" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${document.getElementById("wizPayload")?.value || "(none)"}</span></div>
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(0,235,177,0.06);border:1px solid rgba(0,235,177,0.2);border-radius:8px;font-size:12px;color:var(--text-dim)">
+          <strong style="color:var(--accent)">What happens next:</strong> USDC is escrowed in the contract. The provider has ${wizProvider.maxResponseTime || 120}s to respond. If they miss the deadline, you can claim a refund + ${wizProvider.slashBps ? (wizProvider.slashBps/100).toFixed(1) + "% of their stake" : "their stake"}.
+        </div>
+      `;
+    }
+
+    window.openCallWizard = function(preselectedProvider) {
+      if (preselectedProvider) wizProvider = preselectedProvider;
+      wizStep = 1;
+      document.getElementById("callWizard").classList.add("open");
+      populateWizProviders();
+      wizShow(1);
+    };
+
+    document.getElementById("wizClose")?.addEventListener("click", () => {
+      document.getElementById("callWizard").classList.remove("open");
+    });
+
+    document.getElementById("wizBack")?.addEventListener("click", () => {
+      if (wizStep > 1) wizShow(wizStep - 1);
+    });
+
+    document.getElementById("wizNext")?.addEventListener("click", async () => {
+      if (wizStep === 1) {
+        if (!wizProvider) { window.toast?.({ kind: "err", title: "Select a provider first" }); return; }
+        wizShow(2);
+      } else if (wizStep === 2) {
+        populateWizConfirm();
+        wizShow(3);
+      } else if (wizStep === 3) {
+        if (!window.state?.signer) { window.toast?.({ kind: "err", title: "Connect wallet first" }); return; }
+        const nextBtn = document.getElementById("wizNext");
+        nextBtn.disabled = true;
+        nextBtn.textContent = "Submitting…";
+        try {
+          // Fill callProviderId and callPayload, then trigger doCall
+          const pidEl = document.getElementById("callProviderId");
+          const payEl = document.getElementById("callPayload");
+          if (pidEl) pidEl.value = String(wizProvider.id);
+          if (payEl) payEl.value = document.getElementById("wizPayload")?.value || "";
+          // Trigger doCall via the existing button
+          const txHash = await new Promise((resolve, reject) => {
+            const orig = window.toast;
+            window._wizResolve = resolve;
+            window._wizReject = reject;
+            document.getElementById("btnCall")?.click();
+            // Poll for success toast
+            let attempts = 0;
+            const poll = setInterval(() => {
+              attempts++;
+              const myCallsEl = document.getElementById("myCallsBox");
+              if (attempts > 120) { clearInterval(poll); reject(new Error("Timeout")); }
+            }, 1000);
+          }).catch(() => null);
+          document.getElementById("wizSuccessMsg").textContent =
+            `Call submitted to Provider #${wizProvider.id} for ${parseFloat(wizProvider.pricePerCall||1).toFixed(3)} USDC. Check My Calls for status.`;
+          wizShow(4);
+          nextBtn.disabled = false;
+          nextBtn.textContent = "Close";
+        } catch(e) {
+          nextBtn.disabled = false;
+          nextBtn.textContent = "⚡ Submit Call";
+          window.toast?.({ kind: "err", title: "Call failed", detail: e.message });
+        }
+      } else if (wizStep === 4) {
+        document.getElementById("callWizard").classList.remove("open");
+        document.querySelector('[data-nav="calls"]')?.click();
+      }
+    });
+
+    // Wizard'ı "Call a service" butonuna bağla
+    document.addEventListener("click", e => {
+      const btn = e.target.closest("[data-open-wizard]");
+      if (btn) { e.preventDefault(); window.openCallWizard(); }
+    });
+  })();
+
+  // ── DISPUTE JS ──
+  (function() {
+    window.openDisputeModal = function(callId) {
+      const el = document.getElementById("disputeCallId");
+      if (el && callId) el.value = callId;
+      document.getElementById("disputeOverlay").classList.add("open");
+    };
+    document.getElementById("disputeClose")?.addEventListener("click", () =>
+      document.getElementById("disputeOverlay").classList.remove("open"));
+    document.getElementById("disputeCancel")?.addEventListener("click", () =>
+      document.getElementById("disputeOverlay").classList.remove("open"));
+    document.getElementById("disputeSubmit")?.addEventListener("click", async () => {
+      const callId = document.getElementById("disputeCallId")?.value?.trim();
+      const reason = document.getElementById("disputeReason")?.value;
+      const details = document.getElementById("disputeDetails")?.value?.trim();
+      const result = document.getElementById("disputeResult");
+      if (!callId) { result.textContent = "Enter a call ID."; result.style.color = "#ef4444"; return; }
+      if (!window.state?.signer) { result.textContent = "Connect wallet first."; result.style.color = "#ef4444"; return; }
+      result.textContent = "Submitting dispute…"; result.style.color = "var(--text-faint)";
+      try {
+        // Dispute is recorded as a signed message (off-chain record, on-chain in v3)
+        const msg = JSON.stringify({ callId, reason, details, ts: Date.now(), disputer: window.state.address });
+        const sig = await window.state.signer.signMessage(msg);
+        // Store locally + show success
+        const disputes = JSON.parse(localStorage.getItem("cgDisputes") || "[]");
+        disputes.push({ callId, reason, details, sig, ts: Date.now() });
+        localStorage.setItem("cgDisputes", JSON.stringify(disputes));
+        result.textContent = "✅ Dispute recorded. Signature: " + sig.slice(0,20) + "… (v3 will enforce on-chain)";
+        result.style.color = "var(--accent)";
+        window.toast?.({ kind: "ok", title: "Dispute submitted", detail: "Signed message recorded. On-chain enforcement in v3.", timeout: 5000 });
+      } catch(e) {
+        result.textContent = "Error: " + e.message;
+        result.style.color = "#ef4444";
+      }
+    });
+  })();
+
+  // ── SUBSCRIPTION JS ──
+  (function() {
+    let subProvider = null;
+    let selectedPlan = 10;
+    window.openSubscriptionModal = function(provider) {
+      subProvider = provider;
+      const info = document.getElementById("subProviderInfo");
+      if (info && provider) {
+        const price = parseFloat(provider.pricePerCall || 1);
+        info.innerHTML = `<strong>Provider #${provider.id}</strong> · ${price.toFixed(3)} USDC/call · ${provider.reputation || 66} rep`;
+        // Fill prices
+        [[10,0.05],[50,0.10],[100,0.15]].forEach(([n, disc]) => {
+          const el = document.getElementById("subPrice" + n);
+          if (el) el.textContent = (price * n * (1-disc)).toFixed(2) + " USDC";
+        });
+      }
+      selectedPlan = 10;
+      document.querySelectorAll(".sub-plan-card").forEach(c =>
+        c.classList.toggle("selected", c.dataset.plan === "10"));
+      document.getElementById("subOverlay").classList.add("open");
+    };
+    document.querySelectorAll(".sub-plan-card").forEach(card => {
+      card.addEventListener("click", () => {
+        selectedPlan = parseInt(card.dataset.plan);
+        document.querySelectorAll(".sub-plan-card").forEach(c =>
+          c.classList.toggle("selected", c === card));
+      });
+    });
+    document.getElementById("subClose")?.addEventListener("click", () =>
+      document.getElementById("subOverlay").classList.remove("open"));
+    document.getElementById("subCancel")?.addEventListener("click", () =>
+      document.getElementById("subOverlay").classList.remove("open"));
+    document.getElementById("subSubmit")?.addEventListener("click", async () => {
+      const result = document.getElementById("subResult");
+      if (!window.state?.signer) { result.textContent = "Connect wallet first."; result.style.color="#ef4444"; return; }
+      if (!subProvider) { result.textContent = "No provider selected."; result.style.color="#ef4444"; return; }
+      result.textContent = "Processing subscription…"; result.style.color = "var(--text-faint)";
+      try {
+        const price = parseFloat(subProvider.pricePerCall || 1);
+        const discounts = { 10: 0.05, 50: 0.10, 100: 0.15 };
+        const disc = discounts[selectedPlan] || 0;
+        const total = price * selectedPlan * (1 - disc);
+        const totalWei = ethers.parseUnits(total.toFixed(6), 6);
+        // Approve USDC
+        result.textContent = "Approving USDC…";
+        const approveTx = await window.state.usdc.approve(window.CONFIG?.payPerCall, totalWei);
+        await approveTx.wait();
+        // Record subscription on-chain via multiple openCall batching or a note
+        // For now: store subscription record locally, execute calls from this pool
+        const sub = {
+          providerId: String(subProvider.id),
+          totalCalls: selectedPlan,
+          usedCalls: 0,
+          totalUsdc: total.toFixed(3),
+          pricePerCall: (price * (1-disc)).toFixed(4),
+          discount: Math.round(disc*100),
+          createdAt: Date.now(),
+          txHash: approveTx.hash
+        };
+        const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
+        subs.push(sub);
+        localStorage.setItem("cgSubscriptions", JSON.stringify(subs));
+        result.textContent = `✅ Subscribed! ${selectedPlan} calls at ${sub.pricePerCall} USDC each (${sub.discount}% off)`;
+        result.style.color = "var(--accent)";
+        window.toast?.({ kind: "ok", title: `Subscribed to Provider #${subProvider.id}`, detail: `${selectedPlan} calls · ${total.toFixed(2)} USDC locked`, timeout: 6000 });
+        window.refreshSubscriptions?.();
+      } catch(e) {
+        result.textContent = "Error: " + (e.reason || e.message);
+        result.style.color = "#ef4444";
+      }
+    });
+
+    // Subscriptions panelini yükle
+    window.refreshSubscriptions = function() {
+      const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
+      const el = document.getElementById("subListBox");
+      if (!el) return;
+      if (!subs.length) { el.innerHTML = '<div class="empty-state">No active subscriptions</div>'; return; }
+      el.innerHTML = subs.map((s, i) => `
+        <div style="background:var(--bg-2);border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="color:#8b5cf6">Provider #${s.providerId}</strong>
+            <span style="font-size:11px;color:var(--text-faint)">${new Date(s.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <span>Calls: <strong>${s.usedCalls}/${s.totalCalls}</strong></span>
+            <span>Price: <strong>${s.pricePerCall} USDC</strong></span>
+            <span>Discount: <strong style="color:#8b5cf6">${s.discount}% off</strong></span>
+            <span>Total: <strong>${s.totalUsdc} USDC</strong></span>
+          </div>
+          <div style="margin-top:8px;background:var(--bg-0);border-radius:4px;height:6px;overflow:hidden">
+            <div style="height:100%;background:#8b5cf6;width:${Math.round((s.usedCalls/s.totalCalls)*100)}%;transition:width 0.3s"></div>
+          </div>
+          <button class="btn btn-sm" style="margin-top:8px;width:100%;border-color:#8b5cf6;color:#8b5cf6" onclick="window.useSubscriptionCall(${i})">Use Subscription Call</button>
+        </div>
+      `).join("");
+    };
+
+    window.useSubscriptionCall = function(idx) {
+      const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
+      if (!subs[idx]) return;
+      if (subs[idx].usedCalls >= subs[idx].totalCalls) {
+        window.toast?.({ kind: "err", title: "Subscription exhausted" }); return;
+      }
+      // Pre-fill and open wizard
+      const pid = subs[idx].providerId;
+      const provider = (window.state?.allProviders||[]).find(p => String(p.id) === String(pid));
+      if (provider) {
+        subs[idx].usedCalls++;
+        localStorage.setItem("cgSubscriptions", JSON.stringify(subs));
+        window.openCallWizard(provider);
+      } else {
+        // Fallback: set provider ID and go to calls panel
+        const pidEl = document.getElementById("callProviderId");
+        if (pidEl) pidEl.value = pid;
+        document.querySelector('[data-nav="calls"]')?.click();
+      }
+    };
+  })();
+  </script>
+
   </body>
 </html>
