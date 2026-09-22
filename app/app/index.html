@@ -11109,7 +11109,7 @@ console.log("call opened:", tx.hash);`;
       if (!grid) return;
       grid.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading marketplace…</div>';
       try {
-        const res = await fetch(SUBGRAPH, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ query:`{ providers(first:50, where:{active:true}) { id owner stake pricePerCall completedCalls slashedCalls endpoint } }` }) });
+        const res = await fetch(SUBGRAPH, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ query:`{ providers(first:50, where:{active:true}) { id owner stake pricePerCall completedCalls slashedCalls } }` }) });
         const data = await res.json();
         _providers = (data.data?.providers || []).map(p => {
           const good = Number(p.completedCalls||0), bad = Number(p.slashedCalls||0), total = good+bad;
