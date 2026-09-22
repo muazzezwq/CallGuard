@@ -4538,13 +4538,22 @@
 
     /* ── QUICK HELP PANEL ── */
     .help-panel {
-      display: none; position: fixed; bottom: 120px; right: 16px; z-index: 901;
-      width: min(320px, 90vw); background: var(--bg-1);
-      border: 1px solid var(--border); border-radius: 14px;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.4); padding: 16px;
+      display: none !important;
+      position: fixed !important;
+      bottom: 80px !important;
+      right: 16px !important;
+      left: auto !important;
+      top: auto !important;
+      z-index: 9500 !important;
+      width: min(320px, 90vw);
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+      padding: 16px;
     }
-    .help-panel.open { display: block; }
-    @media (min-width: 769px) { .help-panel { bottom: 72px; } }
+    .help-panel.open { display: block !important; }
+    @media (min-width: 769px) { .help-panel { bottom: 80px !important; } }
     .help-panel h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
     .help-role { padding: 10px 12px; background: var(--bg-2); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
     .help-role:hover { background: var(--bg-0); }
