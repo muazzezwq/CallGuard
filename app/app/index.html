@@ -2271,6 +2271,9 @@
         padding: 40px 28px 48px;
         border-top: 1px solid var(--border);
         background: var(--bg-0);
+        position: relative;
+        z-index: 1;
+        isolation: isolate;
       }
 
       .site-footer-inner {
@@ -4352,7 +4355,7 @@
 
     /* ── CALL WIZARD ── */
     .wizard-overlay {
-      display: none; position: fixed; inset: 0; z-index: 2000;
+      display: none; position: fixed; inset: 0; z-index: 9800;
       background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
       align-items: center; justify-content: center;
     }
@@ -4428,7 +4431,7 @@
 
     /* ── DISPUTE MODAL ── */
     .dispute-overlay {
-      display: none; position: fixed; inset: 0; z-index: 2100;
+      display: none; position: fixed; inset: 0; z-index: 9900;
       background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
       align-items: center; justify-content: center;
     }
@@ -4444,7 +4447,7 @@
 
     /* ── SUBSCRIPTION MODAL ── */
     .sub-overlay {
-      display: none; position: fixed; inset: 0; z-index: 2200;
+      display: none; position: fixed; inset: 0; z-index: 9950;
       background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
       align-items: center; justify-content: center;
     }
