@@ -4550,9 +4550,121 @@
     .help-step { display: flex; gap: 8px; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; align-items: flex-start; }
     .help-step-num { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
+    /* ── SKELETON LOADER ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3,#1e2530) 50%, var(--bg-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skeleton-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    }
+    .skeleton-line { height: 12px; margin-bottom: 8px; }
+    .skeleton-line.wide { width: 80%; }
+    .skeleton-line.medium { width: 55%; }
+    .skeleton-line.narrow { width: 30%; }
+    .skeleton-circle { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .skeleton-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state-svg {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 48px 24px; gap: 16px;
+      color: var(--text-faint); text-align: center;
+    }
+    .empty-state-svg svg { opacity: 0.25; }
+    .empty-state-svg h3 { font-size: 16px; color: var(--text-dim); margin: 0; }
+    .empty-state-svg p { font-size: 13px; margin: 0; max-width: 280px; line-height: 1.6; }
+    .empty-state-svg .empty-cta {
+      margin-top: 8px; padding: 8px 20px;
+      background: var(--accent); color: #000;
+      border: none; border-radius: 8px; font-weight: 700;
+      font-size: 13px; cursor: pointer;
+    }
+
+    /* ── PROVIDER AVATAR ── */
+    .prov-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; flex-shrink: 0;
+      letter-spacing: -0.5px;
+    }
+
+    /* ── SLOT COUNTER ── */
+    .slot-counter {
+      display: inline-flex; overflow: hidden;
+      height: 1.2em; align-items: flex-start;
+      vertical-align: bottom;
+    }
+    .slot-digit {
+      display: flex; flex-direction: column;
+      transition: transform 0.5s cubic-bezier(.34,1.2,.64,1);
+    }
+    .slot-digit span { height: 1.2em; display: block; }
+
+    /* ── MICRO ANIMATIONS ── */
+    @keyframes btnPulse {
+      0%{box-shadow:0 0 0 0 rgba(0,255,148,0.4)}
+      70%{box-shadow:0 0 0 10px rgba(0,255,148,0)}
+      100%{box-shadow:0 0 0 0 rgba(0,255,148,0)}
+    }
+    .btn-pulse { animation: btnPulse 0.4s ease-out; }
+
+    @keyframes slashFlash {
+      0%,100%{background:transparent}
+      50%{background:rgba(239,68,68,0.15)}
+    }
+    .slash-flash { animation: slashFlash 0.6s ease-out; }
+
+    @keyframes honorFlash {
+      0%,100%{background:transparent}
+      50%{background:rgba(0,255,148,0.1)}
+    }
+    .honor-flash { animation: honorFlash 0.6s ease-out; }
+
+    /* ── RICH TOAST ── */
+    .toast-rich {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      min-width: 280px; max-width: 380px;
+      animation: toastIn 0.3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes toastIn {
+      from{opacity:0;transform:translateY(20px) scale(0.95)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .toast-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .toast-body { flex: 1; }
+    .toast-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .toast-detail { font-size: 11px; color: var(--text-faint); line-height: 1.4; }
+    .toast-progress {
+      height: 3px; border-radius: 2px;
+      background: var(--accent); margin-top: 8px;
+      transition: width linear;
+    }
+    .toast-link {
+      font-size: 11px; color: var(--accent);
+      text-decoration: none; margin-top: 4px;
+      display: inline-block;
+    }
+    .toast-link:hover { text-decoration: underline; }
+
+    /* ── CONFETTI ── */
+    #confettiCanvas {
+      position: fixed; inset: 0; pointer-events: none;
+      z-index: 99999; opacity: 0; transition: opacity 0.3s;
+    }
+    #confettiCanvas.active { opacity: 1; }
+
     </style>
   </head>
   <body>
+    <canvas id="confettiCanvas"></canvas>
     <!-- Particle Background -->
     <canvas id="cgCanvas"></canvas>
 
@@ -6862,7 +6974,7 @@ async function refreshBalance() {
           if (CONFIG.subgraphUrl) {
             // Eğer allProviders zaten yüklendiyse tekrar fetch etme
             if (state.allProviders && state.allProviders.length > 0) {
-              $("heroProviders").textContent = state.allProviders.length.toString();
+              if(window.animCount){window.animCount($("heroProviders"),parseInt(state.allProviders.length.toString())||0)}else{$("heroProviders").textContent=state.allProviders.length.toString()};
               return;
             }
 
@@ -6879,17 +6991,17 @@ async function refreshBalance() {
             const count = ps.length;
 
             if (count > 0) {
-              $("heroProviders").textContent = count.toString();
+              if(window.animCount){window.animCount($("heroProviders"),parseInt(count.toString())||0)}else{$("heroProviders").textContent=count.toString()};
               // Hero slash sayısını da güncelle (gerçek tüm-zaman toplamı)
               const totalSlashes = ps.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
-              $("heroSlashes").textContent = String(totalSlashes);
+              if(window.animCount){window.animCount($("heroSlashes"),parseInt(String(totalSlashes))||0)}else{$("heroSlashes").textContent=String(totalSlashes)};
               console.log("[HERO] providers:", count, "slashes:", totalSlashes);
               return;
             }
           }
 
           const next = Number(await state.registry.nextProviderId());
-          $("heroProviders").textContent = (next - 1).toString();
+          if(window.animCount){window.animCount($("heroProviders"),parseInt((next - 1).toString())||0)}else{$("heroProviders").textContent=(next - 1).toString()};
         } catch {}
       }
 
@@ -7087,7 +7199,7 @@ async function refreshBalance() {
           $("statSlashedSub").textContent = `${state.networkStats.slashed} slash${state.networkStats.slashed === 1 ? "" : "es"} (recent)`;
 
           // Hero güncelle — slashes için providers toplamını kullan (daha doğru)
-          $("heroCalls").textContent = state.networkStats.calls.toString();
+          if(window.animCount){window.animCount($("heroCalls"),parseInt(state.networkStats.calls.toString())||0)}else{$("heroCalls").textContent=state.networkStats.calls.toString()};
           // heroSlashes: boot'ta Phase 1'de tüm providers.slashedCalls toplamı atandı.
           // refreshNetworkStats'taki slashed sadece son 1000 call'dan, daha az doğru.
           // Sadece Phase 1 değeri yoksa (0 veya —) güncelle.
@@ -7959,6 +8071,7 @@ async function refreshBalance() {
             title: "Provider registered",
             link: txLink(tx.hash),
             detail: `stake: ${stake} usdc`,
+            txHash: tx.hash,
           });
           pushActivity({
             type: "register",
@@ -8178,7 +8291,9 @@ async function refreshBalance() {
               title: "Call opened",
               detail: `call id ${short(callId, 8)}`,
               link: txLink(tx.hash),
+              txHash: tx.hash,
             });
+            if (window.confetti) window.confetti();
             pushActivity({
               type: "call",
               icon: "📞",
@@ -8339,6 +8454,7 @@ async function refreshBalance() {
             title: "Receipt submitted",
             link: txLink(tx.hash),
             detail: "escrow released to provider",
+            txHash: tx.hash,
           });
           pushActivity({
             type: "receipt",
@@ -8572,7 +8688,9 @@ async function refreshBalance() {
           : allCalls.filter(c => c.status === 3);
         const calls = filtered;
         if (calls.length === 0) {
-          $("callsBox").innerHTML = `<div class="empty-cta"><div class="ec-icon">📞</div><div class="ec-text">No calls yet.<br>Call a service to see the SLA lifecycle in action.</div><button class="ec-btn" id="ecCall">Call a service →</button></div>`;
+          $("callsBox").innerHTML = window.emptyState
+            ? window.emptyState('📞','No calls yet','Call a service to see the full SLA lifecycle — escrow, receipt, and slash enforcement.','Make your first call →', () => document.querySelector('[data-nav="x402"]')?.click())
+            : `<div class="empty-cta"><div class="ec-icon">📞</div><div class="ec-text">No calls yet.</div></div>`;
           const ecc = document.getElementById("ecCall");
           if (ecc) ecc.addEventListener("click", () => { const a = $("actionCall"); if (a) { a.open = true; a.scrollIntoView({behavior:"smooth",block:"center"}); } });
           $("callsSummary").textContent = "";
@@ -9756,7 +9874,9 @@ console.log("call opened:", tx.hash);`;
 
       function renderAllProvidersFiltered() {
         if (!state.allProviders || state.allProviders.length === 0) {
-          $("allProvidersBox").innerHTML = `<div class="empty-state">loading providers…</div>`;
+          $("allProvidersBox").innerHTML = state.allProviders === null
+            ? (window.skeletonCards ? window.skeletonCards(4) : '<div class="empty-state">loading…</div>')
+            : (window.emptyState ? window.emptyState('🖥️','No providers yet','Be the first to register as a provider and start earning USDC.','Register now', () => document.querySelector('[data-nav="register"]')?.click()) : '<div class="empty-state">No providers found</div>');
           return;
         }
         const d = state.usdcDecimals;
@@ -9800,9 +9920,12 @@ console.log("call opened:", tx.hash);`;
           return `
             <div class="prov-card${isSelf ? " self-card" : ""}" data-pid="${p.id}">
               <div class="prov-card-header">
-                <div>
-                  <div class="prov-card-id">Provider #${p.id}${isSelf ? ` <span class="self-tag">you</span>` : ""}</div>
-                  <div class="prov-card-owner">${short(p.owner, 6)}</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  ${window.providerAvatar ? window.providerAvatar(p.id, p.owner) : ''}
+                  <div>
+                    <div class="prov-card-id">Provider #${p.id}${isSelf ? ` <span class="self-tag">you</span>` : ""}</div>
+                    <div class="prov-card-owner">${short(p.owner, 6)}</div>
+                  </div>
                 </div>
                 <div class="prov-rep-ring">
                   <svg width="52" height="52" viewBox="0 0 36 36">
@@ -9947,7 +10070,7 @@ console.log("call opened:", tx.hash);`;
                 const cs = data.data.calls || [];
 
                 // Provider sayısı
-                $("heroProviders").textContent = String(ps.length);
+                if(window.animCount){window.animCount($("heroProviders"),parseInt(String(ps.length))||0)}else{$("heroProviders").textContent=String(ps.length)};
 
                 // Toplam call (calls listesi)
                 $("heroCalls").textContent = cs.length >= 1000
@@ -9956,7 +10079,7 @@ console.log("call opened:", tx.hash);`;
 
                 // Toplam slash — providers'ın slashedCalls toplamı (gerçek tüm-zaman verisi)
                 const totalSlashes = ps.reduce((sum, p) => sum + Number(p.slashedCalls || 0), 0);
-                $("heroSlashes").textContent = String(totalSlashes);
+                if(window.animCount){window.animCount($("heroSlashes"),parseInt(String(totalSlashes))||0)}else{$("heroSlashes").textContent=String(totalSlashes)};
 
                 // Honor rate gauge (disconnected ekranda görünmez ama hesapla)
                 const totalCompleted = ps.reduce((sum, p) => sum + Number(p.completedCalls || 0), 0);
@@ -9985,7 +10108,7 @@ console.log("call opened:", tx.hash);`;
                 if (rpcJson.result && rpcJson.result !== "0x") {
                   const nextId = parseInt(rpcJson.result, 16);
                   if (!isNaN(nextId) && nextId > 1) {
-                    $("heroProviders").textContent = String(nextId - 1);
+                    if(window.animCount){window.animCount($("heroProviders"),parseInt(String(nextId - 1))||0)}else{$("heroProviders").textContent=String(nextId - 1)};
                   }
                 }
               } catch {}
@@ -12416,6 +12539,180 @@ console.log("call opened:", tx.hash);`;
   // ── TOOLTIP EXTRA INIT ──
   // Ensure all elements with data-tip have .tip class
   document.querySelectorAll("[data-tip]:not(.tip)").forEach(el => el.classList.add("tip"));
+  </script>
+
+  <script>
+  // ── PROVIDER AVATAR ──
+  window.providerAvatar = function(id, name) {
+    const colors = [
+      ['#00ff94','#000'],['#3b82f6','#fff'],['#8b5cf6','#fff'],
+      ['#f59e0b','#000'],['#ef4444','#fff'],['#06b6d4','#000'],
+      ['#10b981','#000'],['#f97316','#000']
+    ];
+    const idx = (parseInt(id) || 0) % colors.length;
+    const [bg, fg] = colors[idx];
+    const letter = name ? name[0].toUpperCase() : '#' + id;
+    return `<div class="prov-avatar" style="background:${bg};color:${fg}">${letter}</div>`;
+  };
+
+  // ── SLOT COUNTER ──
+  window.SlotCounter = function(el, initial) {
+    let current = initial || 0;
+    function render(n) {
+      const str = String(Math.round(n));
+      el.innerHTML = str.split('').map(d => {
+        const digits = Array.from({length:10},(_,i)=>`<span>${i}</span>`).join('');
+        return `<span class="slot-digit" style="transform:translateY(-${parseInt(d)*1.2}em)">${digits}</span>`;
+      }).join('');
+    }
+    render(current);
+    return {
+      set(n) {
+        if (n === current) return;
+        const str = String(Math.round(n));
+        const slots = el.querySelectorAll('.slot-digit');
+        str.split('').forEach((d,i) => {
+          if (slots[i]) slots[i].style.transform = `translateY(-${parseInt(d)*1.2}em)`;
+        });
+        current = n;
+      }
+    };
+  };
+
+  // ── SKELETON HELPERS ──
+  window.skeletonCards = function(count) {
+    return Array.from({length:count}, () => `
+      <div class="skeleton-card">
+        <div class="skeleton-row">
+          <div class="skeleton skeleton-circle"></div>
+          <div style="flex:1">
+            <div class="skeleton skeleton-line wide"></div>
+            <div class="skeleton skeleton-line medium"></div>
+          </div>
+          <div class="skeleton skeleton-line narrow" style="width:50px;height:20px"></div>
+        </div>
+        <div class="skeleton skeleton-line wide"></div>
+        <div class="skeleton skeleton-line medium"></div>
+      </div>`).join('');
+  };
+
+  // ── EMPTY STATE ──
+  window.emptyState = function(icon, title, desc, ctaLabel, ctaFn) {
+    const id = 'es_' + Math.random().toString(36).slice(2);
+    setTimeout(() => {
+      const btn = document.getElementById(id);
+      if (btn && ctaFn) btn.onclick = ctaFn;
+    }, 100);
+    return `<div class="empty-state-svg">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2"/>
+        <text x="32" y="40" text-anchor="middle" font-size="24">${icon}</text>
+      </svg>
+      <h3>${title}</h3>
+      <p>${desc}</p>
+      ${ctaLabel ? `<button class="empty-cta" id="${id}">${ctaLabel}</button>` : ''}
+    </div>`;
+  };
+
+  // ── MICRO ANIMATIONS ──
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-primary, .btn[class*="primary"]');
+    if (btn) {
+      btn.classList.remove('btn-pulse');
+      void btn.offsetWidth;
+      btn.classList.add('btn-pulse');
+      setTimeout(() => btn.classList.remove('btn-pulse'), 500);
+    }
+  });
+
+  // ── CONFETTI ──
+  window.fireConfetti = function() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    canvas.classList.add('active');
+    const ctx = canvas.getContext('2d');
+    const colors = ['#00ff94','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#fff'];
+    const particles = Array.from({length:120}, () => ({
+      x: Math.random()*innerWidth, y: -20,
+      vx: (Math.random()-0.5)*6, vy: Math.random()*4+2,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      size: Math.random()*6+3, rot: Math.random()*360,
+      rSpeed: (Math.random()-0.5)*8
+    }));
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.rSpeed; p.vy += 0.1;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+        ctx.fillStyle = p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+        ctx.restore();
+      });
+      frame++;
+      if (frame < 120) requestAnimationFrame(draw);
+      else { canvas.classList.remove('active'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    }
+    draw();
+  };
+
+  // ── RICH TOAST OVERRIDE ──
+  (function() {
+    const orig = window.toast;
+    window.toast = function(opts) {
+      if (!opts) return;
+      const container = document.getElementById('toastContainer') || (() => {
+        const d = document.createElement('div');
+        d.id = 'toastContainer';
+        d.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:99998;display:flex;flex-direction:column;gap:8px;max-width:380px';
+        document.body.appendChild(d); return d;
+      })();
+      const icons = { ok:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
+      const icon = icons[opts.kind] || icons.info;
+      const el = document.createElement('div');
+      el.className = 'toast-rich';
+      const timeout = opts.timeout || 4000;
+      const explorerLink = opts.txHash
+        ? `<a class="toast-link" href="https://testnet.arcscan.io/tx/${opts.txHash}" target="_blank">View on ArcScan ↗</a>`
+        : '';
+      el.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-body">
+          <div class="toast-title">${opts.title||''}</div>
+          <div class="toast-detail">${opts.detail||''}</div>
+          ${explorerLink}
+          <div class="toast-progress" style="width:100%"></div>
+        </div>
+        <button onclick="this.closest('.toast-rich').remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:16px;padding:0;line-height:1">✕</button>
+      `;
+      container.appendChild(el);
+      const bar = el.querySelector('.toast-progress');
+      const start = Date.now();
+      const tick = () => {
+        const pct = Math.max(0, 100 - (Date.now()-start)/timeout*100);
+        if (bar) bar.style.width = pct + '%';
+        if (pct > 0) requestAnimationFrame(tick);
+        else el.remove();
+      };
+      tick();
+      // confetti on first success
+      if (opts.kind === 'ok' && opts.confetti) window.fireConfetti();
+    };
+  })();
+
+  // ── SLASH FLASH on leaderboard update ──
+  const _origRenderLB = window.renderLeaderboard;
+  if (_origRenderLB) {
+    window.renderLeaderboard = function(...args) {
+      _origRenderLB(...args);
+      document.querySelectorAll('.lb-row').forEach((row, i) => {
+        setTimeout(() => {
+          row.classList.add('honor-flash');
+          setTimeout(() => row.classList.remove('honor-flash'), 600);
+        }, i * 80);
+      });
+    };
+  }
   </script>
 
   </body>
