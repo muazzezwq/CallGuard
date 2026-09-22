@@ -4467,11 +4467,150 @@
     .sub-plan-price { font-size: 20px; font-weight: 800; color: #8b5cf6; }
     .sub-plan-desc { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
 
+    /* ── PANEL DESCRIPTION BAND ── */
+    .panel-desc-band {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: linear-gradient(135deg, rgba(0,208,132,0.06), rgba(37,99,235,0.04));
+      border: 1px solid rgba(0,208,132,0.15);
+      border-radius: 10px; padding: 12px 14px; margin: 0 0 16px;
+      font-size: 12px; line-height: 1.6; color: var(--text-dim);
+    }
+    .panel-desc-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .panel-desc-text strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 13px; }
+    .panel-desc-band.collapsed .panel-desc-text p { display: none; }
+    .panel-desc-toggle { margin-left: auto; font-size: 11px; color: var(--accent); cursor: pointer; white-space: nowrap; align-self: center; }
+
+    /* ── COMMAND PALETTE ── */
+    .cmd-overlay {
+      display: none; position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+      align-items: flex-start; justify-content: center; padding-top: 80px;
+    }
+    .cmd-overlay.open { display: flex; }
+    .cmd-box {
+      width: min(560px, 92vw); background: var(--bg-1);
+      border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden;
+    }
+    .cmd-input-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+    }
+    .cmd-input-wrap span { font-size: 18px; }
+    .cmd-input {
+      flex: 1; background: none; border: none; outline: none;
+      font-size: 15px; color: var(--text); font-family: var(--font-sans);
+    }
+    .cmd-input::placeholder { color: var(--text-faint); }
+    .cmd-results { max-height: 360px; overflow-y: auto; }
+    .cmd-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px; cursor: pointer; transition: background 0.1s;
+    }
+    .cmd-item:hover, .cmd-item.selected { background: var(--bg-2); }
+    .cmd-item-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+    .cmd-item-label { font-size: 13px; color: var(--text); font-weight: 500; }
+    .cmd-item-desc { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+    .cmd-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-faint); text-transform: uppercase; }
+    .cmd-kbd { margin-left: auto; font-size: 10px; color: var(--text-faint); background: var(--bg-0); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: var(--font-mono); }
+    .cmd-footer { padding: 8px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); display: flex; gap: 16px; }
+    .cmd-footer span b { color: var(--text-dim); }
+
+    /* ── QUICK HELP FLOAT ── */
+    .help-fab {
+      position: fixed; bottom: 72px; right: 16px; z-index: 900;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--accent); color: #000; font-size: 18px; font-weight: 800;
+      border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(0,208,132,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .help-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,208,132,0.5); }
+    @media (min-width: 769px) { .help-fab { bottom: 24px; } }
+
+    /* ── QUICK HELP PANEL ── */
+    .help-panel {
+      display: none; position: fixed; bottom: 120px; right: 16px; z-index: 901;
+      width: min(320px, 90vw); background: var(--bg-1);
+      border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4); padding: 16px;
+    }
+    .help-panel.open { display: block; }
+    @media (min-width: 769px) { .help-panel { bottom: 72px; } }
+    .help-panel h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+    .help-role { padding: 10px 12px; background: var(--bg-2); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+    .help-role:hover { background: var(--bg-0); }
+    .help-role-title { font-size: 12px; font-weight: 600; color: var(--text); }
+    .help-role-desc { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .help-steps { display: none; margin-top: 8px; }
+    .help-steps.open { display: block; }
+    .help-step { display: flex; gap: 8px; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; align-items: flex-start; }
+    .help-step-num { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
     </style>
   </head>
   <body>
     <!-- Particle Background -->
     <canvas id="cgCanvas"></canvas>
+
+    <!-- ── COMMAND PALETTE ── -->
+    <div class="cmd-overlay" id="cmdPalette">
+      <div class="cmd-box">
+        <div class="cmd-input-wrap">
+          <span>🔍</span>
+          <input class="cmd-input" id="cmdInput" placeholder="Search panels, actions, docs…" autocomplete="off" />
+          <span style="font-size:11px;color:var(--text-faint);white-space:nowrap">ESC to close</span>
+        </div>
+        <div class="cmd-results" id="cmdResults"></div>
+        <div class="cmd-footer">
+          <span><b>↑↓</b> navigate</span>
+          <span><b>Enter</b> select</span>
+          <span><b>Ctrl+K</b> or <b>/</b> to open</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HELP FAB ── -->
+    <button class="help-fab" id="helpFab" title="Quick Help">?</button>
+    <div class="help-panel" id="helpPanel">
+      <h3>👋 What do you want to do?</h3>
+      <div class="help-role" data-role="caller">
+        <div class="help-role-title">📞 I want to call a service</div>
+        <div class="help-role-desc">Pay per request, get cryptographic receipt</div>
+        <div class="help-steps" id="steps-caller">
+          <div class="help-step"><div class="help-step-num">1</div><span>Get testnet USDC (top bar "Get test USDC")</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Connect wallet (MetaMask, Arc Testnet)</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Go to <b>Providers</b> → pick one by reputation</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>Use <b>Call Wizard</b> or the <b>x402</b> panel</span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Track call in <b>My Calls</b>, claim timeout if needed</span></div>
+        </div>
+      </div>
+      <div class="help-role" data-role="provider">
+        <div class="help-role-title">🖥️ I want to earn as a provider</div>
+        <div class="help-role-desc">Stake USDC, commit to SLA, earn per request</div>
+        <div class="help-steps" id="steps-provider">
+          <div class="help-step"><div class="help-step-num">1</div><span>Connect wallet with enough USDC to stake</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Go to <b>Register</b> → fill stake, price, response time</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Deploy your API endpoint, set up receipt signing</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>When calls come in, submit receipt via <b>Submit Receipt</b></span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Monitor reputation in <b>Analytics</b> and <b>Leaderboard</b></span></div>
+        </div>
+      </div>
+      <div class="help-role" data-role="agent">
+        <div class="help-role-title">🤖 I'm building an AI agent</div>
+        <div class="help-role-desc">Integrate CallGuard into your agent workflow</div>
+        <div class="help-steps" id="steps-agent">
+          <div class="help-step"><div class="help-step-num">1</div><span>Check <b>MCP Agent</b> panel for Claude/Cursor config</span></div>
+          <div class="help-step"><div class="help-step-num">2</div><span>Use <b>x402</b> panel for HTTP 402 auto-payment</span></div>
+          <div class="help-step"><div class="help-step-num">3</div><span>Use <b>Nanopayment</b> for gasless 0.001 USDC calls</span></div>
+          <div class="help-step"><div class="help-step-num">4</div><span>Set budget limits in <b>Settings</b></span></div>
+          <div class="help-step"><div class="help-step-num">5</div><span>Subscribe for bulk calls in <b>Marketplace</b></span></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-faint);text-align:center">
+        Press <b style="color:var(--text)">Ctrl+K</b> or <b style="color:var(--text)">/</b> for command palette
+      </div>
+    </div>
     <!-- Mouse spotlight -->
     <div id="mouseSpotlight"></div>
 
@@ -4571,6 +4710,7 @@
           </div>
         </div>
         <div class="wallet-box">
+          <button data-open-cmd class="btn" style="font-size:11px;padding:4px 10px;opacity:0.7;border-color:var(--border)" title="Search (Ctrl+K)">⌘K</button>
           <div class="network-pill" id="netPill">
             <span class="net-dot" id="netDot"></span>
             <span id="netLabel">Disconnected</span>
@@ -5024,6 +5164,14 @@
             <h2>Actions</h2>
           </div>
           <div class="panel-body compact">
+            <div class="panel-desc-band">
+              <div class="panel-desc-icon">⚡</div>
+              <div class="panel-desc-text">
+                <strong>What can you do here?</strong>
+                <p><b>Register</b> to become a provider (stake USDC, commit to SLA). <b>Call a service</b> to pay a provider per request. <b>Submit receipt</b> if you're a provider responding to a call. <b>Claim timeout</b> if a provider missed the deadline — you get a refund + slash reward.</p>
+              </div>
+              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
+            </div>
             <details class="action" id="actionRegister">
               <summary>Register as provider</summary>
               <div class="action-body">
@@ -5465,6 +5613,16 @@
         <section class="panel full-width" data-category="nano">
           <div class="panel-head">
             <h2>⚡ Nanopayment</h2>
+            </div>
+            <div class="panel-body">
+            <div class="panel-desc-band">
+              <div class="panel-desc-icon">⚡</div>
+              <div class="panel-desc-text">
+                <strong>Gasless micropayments via Circle Gateway</strong>
+                <p>Send 0.001 USDC per call with no wallet prompt and no gas fee. The facilitator handles the transaction. Ideal for AI agents making hundreds of small payments automatically.</p>
+              </div>
+              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
+            </div>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">Circle Gateway · 0.001 USDC · gasless</span>
           </div>
           <div class="panel-body">
@@ -5508,6 +5666,16 @@
         <section class="panel full-width" data-category="mcp">
           <div class="panel-head">
             <h2>🤖 MCP Agent</h2>
+            </div>
+            <div class="panel-body">
+            <div class="panel-desc-band">
+              <div class="panel-desc-icon">🤖</div>
+              <div class="panel-desc-text">
+                <strong>Connect any AI agent to CallGuard</strong>
+                <p>Claude Desktop, Cursor, or any MCP-compatible agent can list providers, check health, and send payments without writing integration code. Add the config below and restart your agent.</p>
+              </div>
+              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
+            </div>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">Model Context Protocol · AI agent integration</span>
           </div>
           <div class="panel-body">
@@ -5626,6 +5794,16 @@ npm install</pre>
         <section class="panel full-width" data-category="marketplace">
           <div class="panel-head">
             <h2>🛒 Agent Marketplace</h2>
+            </div>
+            <div class="panel-body">
+            <div class="panel-desc-band">
+              <div class="panel-desc-icon">🛒</div>
+              <div class="panel-desc-text">
+                <strong>Browse and hire AI-powered service providers</strong>
+                <p>All providers have staked USDC as collateral — if they miss your deadline, their stake is slashed automatically. Sort by reputation, price, or call volume. Use <b>Call Wizard</b> for a guided flow.</p>
+              </div>
+              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
+            </div>
             <p class="panel-sub">Browse &amp; hire AI-powered providers</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
@@ -5656,6 +5834,16 @@ npm install</pre>
         <section class="panel full-width" data-category="webhooks">
           <div class="panel-head">
             <h2>🔔 Webhook Notifications</h2>
+            </div>
+            <div class="panel-body">
+            <div class="panel-desc-band">
+              <div class="panel-desc-icon">🔔</div>
+              <div class="panel-desc-text">
+                <strong>Get notified when important events happen</strong>
+                <p>Paste any webhook URL (Slack, Discord, your API). You'll get a POST request when a call is slashed, times out, completes, or is about to expire. Failed deliveries are retried 3 times automatically.</p>
+              </div>
+              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
+            </div>
             <p class="panel-sub">Get notified on-chain events in real time</p>
           </div>
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text-dim)">
@@ -12120,6 +12308,111 @@ console.log("call opened:", tx.hash);`;
       }
     };
   })();
+  </script>
+
+  <script>
+  // ── COMMAND PALETTE ──
+  (function() {
+    const COMMANDS = [
+      { label: "📊 Overview", desc: "Dashboard & network stats", nav: "overview" },
+      { label: "🖥️ Providers", desc: "All registered providers", nav: "providers" },
+      { label: "📞 My Calls", desc: "Your call history", nav: "calls" },
+      { label: "⚡ x402", desc: "HTTP 402 auto-payment", nav: "x402" },
+      { label: "💼 Jobs", desc: "ERC-8183 job settlement", nav: "jobs" },
+      { label: "⚡ Nanopayment", desc: "Gasless 0.001 USDC", nav: "nano" },
+      { label: "🤖 MCP Agent", desc: "AI agent integration", nav: "mcp" },
+      { label: "🌉 Bridge", desc: "CCTP cross-chain", nav: "bridge" },
+      { label: "🛒 Marketplace", desc: "Browse & hire providers", nav: "marketplace" },
+      { label: "🔔 Webhooks", desc: "Event notifications", nav: "webhooks" },
+      { label: "🔐 Register", desc: "Become a provider", nav: "register" },
+      { label: "📈 Analytics", desc: "Network analytics", nav: "analytics" },
+      { label: "🔒 Privacy (APS)", desc: "Private SLA calls", nav: "privacy" },
+      { label: "⚙️ Settings", desc: "Budget & theme", nav: "settings" },
+      { label: "🧙 Call Wizard", desc: "Guided call flow", action: () => window.openCallWizard?.() },
+      { label: "❓ Help", desc: "How does CallGuard work?", action: () => document.getElementById("helpPanel")?.classList.add("open") },
+    ];
+
+    const overlay = document.getElementById("cmdPalette");
+    const input = document.getElementById("cmdInput");
+    const results = document.getElementById("cmdResults");
+
+    function renderCmds(q) {
+      const filtered = COMMANDS.filter(c => !q || c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q));
+      results.innerHTML = filtered.map((c, i) => `
+        <div class="cmd-item" data-idx="${i}" tabindex="0">
+          <span style="font-size:16px">${c.label.split(" ")[0]}</span>
+          <div>
+            <div style="font-size:13px;color:var(--text);font-weight:500">${c.label.slice(c.label.indexOf(" ")+1)}</div>
+            <div style="font-size:11px;color:var(--text-faint)">${c.desc}</div>
+          </div>
+        </div>`).join("") || `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:13px">No results for "${q}"</div>`;
+      // Store filtered for click handling
+      overlay.dataset.filtered = JSON.stringify(filtered.map(c => ({ label: c.label, nav: c.nav, hasAction: !!c.action })));
+    }
+
+    function openPalette() { overlay.classList.add("open"); input.value = ""; renderCmds(""); setTimeout(() => input.focus(), 50); }
+    function closePalette() { overlay.classList.remove("open"); }
+
+    // Keyboard shortcut
+    document.addEventListener("keydown", e => {
+      if ((e.key === "/" || (e.ctrlKey && e.key === "k")) && !e.target.matches("input,textarea")) {
+        e.preventDefault(); openPalette();
+      }
+      if (e.key === "Escape") closePalette();
+    });
+
+    // Click outside
+    overlay.addEventListener("click", e => { if (e.target === overlay) closePalette(); });
+
+    // Search
+    input?.addEventListener("input", () => renderCmds(input.value.toLowerCase()));
+
+    // Item click
+    results?.addEventListener("click", e => {
+      const item = e.target.closest(".cmd-item");
+      if (!item) return;
+      const idx = parseInt(item.dataset.idx);
+      const filtered = JSON.parse(overlay.dataset.filtered || "[]");
+      const cmd = filtered[idx];
+      if (!cmd) return;
+      closePalette();
+      if (cmd.nav) document.querySelector(`[data-nav="${cmd.nav}"]`)?.click();
+      else {
+        const orig = COMMANDS.find(c => c.label === cmd.label);
+        if (orig?.action) orig.action();
+      }
+    });
+
+    // Ctrl+K button in topbar
+    document.querySelectorAll("[data-open-cmd]").forEach(b => b.addEventListener("click", openPalette));
+  })();
+
+  // ── HELP FAB ──
+  (function() {
+    const fab = document.getElementById("helpFab");
+    const panel = document.getElementById("helpPanel");
+    const closeBtn = document.getElementById("helpClose");
+
+    fab?.addEventListener("click", () => panel?.classList.toggle("open"));
+    closeBtn?.addEventListener("click", () => panel?.classList.remove("open"));
+    document.addEventListener("click", e => {
+      if (panel?.classList.contains("open") && !panel.contains(e.target) && e.target !== fab) {
+        panel.classList.remove("open");
+      }
+    });
+
+    // Role accordion
+    document.querySelectorAll(".help-role").forEach(role => {
+      role.addEventListener("click", () => {
+        const steps = role.nextElementSibling;
+        if (steps?.classList.contains("help-steps")) steps.classList.toggle("open");
+      });
+    });
+  })();
+
+  // ── TOOLTIP EXTRA INIT ──
+  // Ensure all elements with data-tip have .tip class
+  document.querySelectorAll("[data-tip]:not(.tip)").forEach(el => el.classList.add("tip"));
   </script>
 
   </body>
