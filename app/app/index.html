@@ -3953,10 +3953,13 @@
         opacity: 0;
       }
 
-      /* ---- Scrolling ticker (inside topbar, below topbar-inner) ---- */
+      /* ---- Scrolling ticker ---- */
       #cgTicker {
-        background: rgba(16,185,129,0.06);
-        border-top: 1px solid rgba(16,185,129,0.10);
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 200;
+        background: rgba(10,14,20,0.95);
+        border-bottom: 1px solid rgba(16,185,129,0.15);
         padding: 3px 0;
         overflow: hidden;
         white-space: nowrap;
@@ -3964,7 +3967,12 @@
         font-size: 10px;
         color: var(--text-faint);
         display: none;
+        height: 22px;
       }
+      body.ticker-visible #cgTicker { display: block; }
+      body.ticker-visible .topbar { top: 22px; }
+      body.ticker-visible .sidebar { top: calc(22px + 56px); }
+      body.ticker-visible .bottom-nav { bottom: 0; }
       .ticker-track {
         display: inline-block;
         animation: tickerScroll 30s linear infinite;
