@@ -8905,6 +8905,10 @@ async function refreshBalance() {
         // Paneller açıldığında veri yükle
         if (cat === "analytics") loadAnalytics();
         if (cat === "overview") refreshOverviewDashboard();
+        if (cat === "providers") { refreshAllProviders().catch(()=>{}); refreshLeaderboard().catch(()=>{}); }
+        if (cat === "calls") loadMyCalls().catch(()=>{});
+        if (cat === "nano") fetchNanoBalance().catch(()=>{});
+        if (cat === "jobs") loadMyJobs().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
