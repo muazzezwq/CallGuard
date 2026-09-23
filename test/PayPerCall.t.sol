@@ -169,11 +169,26 @@ contract PayPerCallTest is Test {
         bytes32 responseHash = keccak256("r-out");
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
-        skip(MAX_RESP + 1);
+        // Must skip past deadline + SUBMIT_GRACE to trigger DeadlineExceeded.
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         vm.expectRevert(PayPerCall.DeadlineExceeded.selector);
         vm.prank(provider1);
         payPerCall.submitReceipt(callId, responseHash, sig);
+    }
+
+    function test_submitReceipt_withinGrace_succeeds() public {
+        bytes32 callId = _callService(keccak256("r-grace"));
+        bytes32 responseHash = keccak256("r-grace-out");
+        bytes memory sig = _sign(signerPk, callId, responseHash);
+
+        // Skip past the deadline but still within the grace window.
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() - 1);
+
+        vm.prank(provider1);
+        payPerCall.submitReceipt(callId, responseHash, sig);
+
+        assertEq(uint8(payPerCall.getCall(callId).status), uint8(PayPerCall.CallStatus.Completed));
     }
 
     function test_submitReceipt_twice_reverts() public {
@@ -222,7 +237,7 @@ contract PayPerCallTest is Test {
         bytes32 callId = _callService(keccak256("r"));
 
         uint256 callerBalBefore = usdc.balanceOf(caller);
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         vm.prank(caller);
         payPerCall.claimTimeout(callId);
@@ -234,7 +249,7 @@ contract PayPerCallTest is Test {
 
     function test_claimTimeout_reducesStake() public {
         bytes32 callId = _callService(keccak256("r"));
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         vm.prank(caller);
         payPerCall.claimTimeout(callId);
@@ -259,7 +274,7 @@ contract PayPerCallTest is Test {
         vm.prank(provider1);
         payPerCall.submitReceipt(callId, responseHash, sig);
 
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         vm.expectRevert(PayPerCall.InvalidStatus.selector);
         vm.prank(caller);
@@ -282,7 +297,7 @@ contract PayPerCallTest is Test {
         vm.prank(caller);
         bytes32 callId = payPerCall.callService(pid, keccak256("r"));
 
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         uint256 callerBalBefore = usdc.balanceOf(caller);
         vm.prank(caller);
@@ -308,7 +323,7 @@ contract PayPerCallTest is Test {
         vm.prank(caller);
         bytes32 callId = payPerCall.callService(pid, keccak256("r"));
 
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         uint256 callerBalBefore = usdc.balanceOf(caller);
         vm.prank(caller);
@@ -340,7 +355,7 @@ contract PayPerCallTest is Test {
         assertEq(registry.pendingCalls(providerId), 2);
 
         // Time out the first one.
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
         vm.prank(caller);
         payPerCall.claimTimeout(id1);
 
@@ -372,7 +387,7 @@ contract PayPerCallTest is Test {
 
     function test_claimTimeout_bumpsSlashedCounter() public {
         bytes32 callId = _callService(keccak256("r"));
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         assertEq(registry.slashedCalls(providerId), 0);
 
@@ -397,7 +412,7 @@ contract PayPerCallTest is Test {
 
         // One more call, don't submit receipt, let it time out
         bytes32 doomed = _callService(keccak256("doomed"));
-        skip(MAX_RESP + 1);
+        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
         vm.prank(caller);
         payPerCall.claimTimeout(doomed);
 

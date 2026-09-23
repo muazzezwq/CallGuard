@@ -52,6 +52,17 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     );
 
     // ---------------------------------------------------------------------
+    // Constants
+    // ---------------------------------------------------------------------
+
+    /// @notice Extra seconds added to the deadline window for submitReceipt.
+    /// @dev    Protects providers from being slashed due to block propagation
+    ///         latency. On Arc (~0.5s blocks) 5 seconds = ~10 blocks of buffer.
+    ///         claimTimeout requires the full grace period to have passed too,
+    ///         so the two windows never overlap.
+    uint32 public constant SUBMIT_GRACE = 5;
+
+    // ---------------------------------------------------------------------
     // Errors
     // ---------------------------------------------------------------------
 
@@ -284,7 +295,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     function submitReceipt(bytes32 callId, bytes32 responseHash, bytes calldata signature) external nonReentrant {
         Call storage c = _calls[callId];
         if (c.status != CallStatus.Pending) revert InvalidStatus();
-        if (block.timestamp > c.deadline) revert DeadlineExceeded();
+        if (block.timestamp > uint256(c.deadline) + SUBMIT_GRACE) revert DeadlineExceeded();
 
         // EIP-712 typed digest — wallets display structured Receipt fields.
         bytes32 digest = hashReceipt(Receipt({ callId: callId, responseHash: responseHash }));
@@ -316,7 +327,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     function claimTimeout(bytes32 callId) external nonReentrant {
         Call storage c = _calls[callId];
         if (c.status != CallStatus.Pending) revert InvalidStatus();
-        if (block.timestamp <= c.deadline) revert DeadlineNotReached();
+        if (block.timestamp <= uint256(c.deadline) + SUBMIT_GRACE) revert DeadlineNotReached();
 
         c.status = CallStatus.Slashed;
 
