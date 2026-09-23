@@ -48,7 +48,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     /// Type string MUST match exactly (no spaces between fields, fields
     /// comma-separated, struct name and parentheses included).
     bytes32 public constant RECEIPT_TYPEHASH = keccak256(
-        "Receipt(bytes32 callId,bytes32 responseHash)"
+        "Receipt(bytes32 callId,bytes32 responseHash,uint64 respondedAt)"
     );
 
     // ---------------------------------------------------------------------
@@ -101,12 +101,21 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     }
 
     /// @notice EIP-712 typed receipt that the provider signs off-chain.
-    /// @dev Mirrors the v1 signed payload (callId + responseHash) but as a
-    ///      structured type so wallets can display readable fields instead
-    ///      of a hex blob.
+    /// @dev    `respondedAt` is the Unix timestamp (seconds) at which the
+    ///         provider claims to have produced the response. It is NOT
+    ///         enforced on-chain — the contract only checks that the TX lands
+    ///         before deadline + SUBMIT_GRACE. The field exists so that:
+    ///           (a) wallets render a human-readable "responded at HH:MM:SS",
+    ///           (b) off-chain dispute tooling can compare respondedAt against
+    ///               the call's deadline to prove the provider answered in time
+    ///               even if the TX was delayed by network congestion.
+    ///         A provider who backdates respondedAt gains nothing on-chain, but
+    ///         loses credibility in any off-chain dispute — the signed value is
+    ///         cryptographically bound to the receipt digest.
     struct Receipt {
         bytes32 callId;
         bytes32 responseHash;
+        uint64  respondedAt; // Unix timestamp when provider produced the response
     }
 
     // ---------------------------------------------------------------------
@@ -135,7 +144,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         bytes32 requestHash,
         uint32 deadline
     );
-    event ReceiptSubmitted(bytes32 indexed callId, bytes32 responseHash);
+    event ReceiptSubmitted(bytes32 indexed callId, bytes32 responseHash, uint64 respondedAt);
     event CallSlashed(bytes32 indexed callId, uint256 refunded, uint256 slashed);
 
     // ---------------------------------------------------------------------
@@ -166,7 +175,8 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         bytes32 structHash = keccak256(abi.encode(
             RECEIPT_TYPEHASH,
             receipt.callId,
-            receipt.responseHash
+            receipt.responseHash,
+            receipt.respondedAt
         ));
         return _hashTypedDataV4(structHash);
     }
@@ -292,13 +302,31 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     // Close a call — happy path (EIP-712 typed receipt)
     // ---------------------------------------------------------------------
 
-    function submitReceipt(bytes32 callId, bytes32 responseHash, bytes calldata signature) external nonReentrant {
+    /// @notice Submit a signed receipt to close the call and release escrow.
+    /// @param callId       The call identifier returned by callService.
+    /// @param responseHash keccak256 of the provider's response payload.
+    /// @param respondedAt  Unix timestamp (seconds) when the provider produced
+    ///                     the response. NOT enforced on-chain — stored in the
+    ///                     event for off-chain dispute resolution. The provider
+    ///                     must include this value in the EIP-712 signature.
+    /// @param signature    EIP-712 signature over Receipt(callId, responseHash, respondedAt).
+    function submitReceipt(
+        bytes32 callId,
+        bytes32 responseHash,
+        uint64  respondedAt,
+        bytes calldata signature
+    ) external nonReentrant {
         Call storage c = _calls[callId];
         if (c.status != CallStatus.Pending) revert InvalidStatus();
         if (block.timestamp > uint256(c.deadline) + SUBMIT_GRACE) revert DeadlineExceeded();
 
-        // EIP-712 typed digest — wallets display structured Receipt fields.
-        bytes32 digest = hashReceipt(Receipt({ callId: callId, responseHash: responseHash }));
+        // EIP-712 typed digest — wallets display structured Receipt fields
+        // including the human-readable respondedAt timestamp.
+        bytes32 digest = hashReceipt(Receipt({
+            callId: callId,
+            responseHash: responseHash,
+            respondedAt: respondedAt
+        }));
 
         // Replay protection — the same digest cannot be consumed twice.
         if (usedReceipts[digest]) revert ReceiptAlreadyUsed();
@@ -317,7 +345,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         registry.incCompleted(c.providerId); // bump reputation
         usdc.safeTransfer(p.owner, c.amount);
 
-        emit ReceiptSubmitted(callId, responseHash);
+        emit ReceiptSubmitted(callId, responseHash, respondedAt);
     }
 
     // ---------------------------------------------------------------------

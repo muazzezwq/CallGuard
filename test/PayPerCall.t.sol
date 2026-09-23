@@ -119,7 +119,7 @@ contract PayPerCallTest is Test {
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         assertEq(usdc.balanceOf(provider1), providerBalBefore + PRICE);
         assertEq(usdc.balanceOf(address(payPerCall)), 0);
@@ -135,7 +135,7 @@ contract PayPerCallTest is Test {
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         assertEq(registry.pendingCalls(providerId), 0);
     }
@@ -150,7 +150,7 @@ contract PayPerCallTest is Test {
 
         vm.expectRevert(PayPerCall.InvalidSignature.selector);
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
     }
 
     function test_submitReceipt_tamperedHash_reverts() public {
@@ -161,7 +161,7 @@ contract PayPerCallTest is Test {
         // Try to submit a different response hash with the signature meant for another.
         vm.expectRevert(PayPerCall.InvalidSignature.selector);
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, keccak256("different"), sig);
+        payPerCall.submitReceipt(callId, keccak256("different"), uint64(block.timestamp), sig);
     }
 
     function test_submitReceipt_afterDeadline_reverts() public {
@@ -174,7 +174,7 @@ contract PayPerCallTest is Test {
 
         vm.expectRevert(PayPerCall.DeadlineExceeded.selector);
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
     }
 
     function test_submitReceipt_withinGrace_succeeds() public {
@@ -186,7 +186,7 @@ contract PayPerCallTest is Test {
         skip(MAX_RESP + payPerCall.SUBMIT_GRACE() - 1);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         assertEq(uint8(payPerCall.getCall(callId).status), uint8(PayPerCall.CallStatus.Completed));
     }
@@ -197,11 +197,11 @@ contract PayPerCallTest is Test {
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         vm.expectRevert(PayPerCall.InvalidStatus.selector);
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
     }
 
     function test_submitReceipt_updatedSigner_works() public {
@@ -220,11 +220,11 @@ contract PayPerCallTest is Test {
         // Old key must now fail.
         vm.expectRevert(PayPerCall.InvalidSignature.selector);
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, oldSig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), oldSig);
 
         // New key must succeed.
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, newSig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), newSig);
 
         assertEq(uint8(payPerCall.getCall(callId).status), uint8(PayPerCall.CallStatus.Completed));
     }
@@ -272,7 +272,7 @@ contract PayPerCallTest is Test {
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
@@ -350,7 +350,7 @@ contract PayPerCallTest is Test {
         bytes32 respHash = keccak256("r2-out");
         bytes memory sig = _sign(signerPk, id2, respHash);
         vm.prank(provider1);
-        payPerCall.submitReceipt(id2, respHash, sig);
+        payPerCall.submitReceipt(id2, respHash, uint64(block.timestamp), sig);
 
         assertEq(registry.pendingCalls(providerId), 2);
 
@@ -377,7 +377,7 @@ contract PayPerCallTest is Test {
         assertEq(registry.completedCalls(providerId), 0);
 
         vm.prank(provider1);
-        payPerCall.submitReceipt(callId, responseHash, sig);
+        payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
 
         assertEq(registry.completedCalls(providerId), 1);
         assertEq(registry.slashedCalls(providerId), 0);
@@ -407,7 +407,7 @@ contract PayPerCallTest is Test {
             bytes32 rh = keccak256(abi.encode("resp", i));
             bytes memory sig = _sign(signerPk, cid, rh);
             vm.prank(provider1);
-            payPerCall.submitReceipt(cid, rh, sig);
+            payPerCall.submitReceipt(cid, rh, uint64(block.timestamp), sig);
         }
 
         // One more call, don't submit receipt, let it time out
@@ -431,12 +431,20 @@ contract PayPerCallTest is Test {
         callId = payPerCall.callService(providerId, requestHash);
     }
 
+    /// @dev Signs a Receipt with the given private key.
+    ///      Uses block.timestamp as respondedAt — in tests this is whatever
+    ///      the forge clock is at the moment of signing.
     function _sign(uint256 pk, bytes32 callId, bytes32 responseHash) internal view returns (bytes memory) {
-        // EIP-712 digest — uses the contract's domainSeparator and Receipt typehash.
-        // This matches what providers will sign via `signTypedData` in wallets.
+        return _signAt(pk, callId, responseHash, uint64(block.timestamp));
+    }
+
+    function _signAt(uint256 pk, bytes32 callId, bytes32 responseHash, uint64 respondedAt)
+        internal view returns (bytes memory)
+    {
         bytes32 digest = payPerCall.hashReceipt(PayPerCall.Receipt({
             callId: callId,
-            responseHash: responseHash
+            responseHash: responseHash,
+            respondedAt: respondedAt
         }));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
