@@ -5274,6 +5274,9 @@
                     address is used.
                   </div>
                 </div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+                  <button class="btn" id="btnFillDefaults" style="font-size:12px;padding:4px 12px;opacity:0.8">⚡ Fill recommended values</button>
+                </div>
                 <div class="field-row">
                   <div class="field">
                     <label>Stake (USDC) <span class="tip" data-tip="USDC you lock as collateral. A slice is paid out to any caller who successfully claims a timeout against you. Minimum is 10 USDC.">?</span></label>
@@ -5611,6 +5614,17 @@
 
         <!-- Overview: Network stats dashboard -->
         <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
+          <!-- Not-a-provider banner — shown only when wallet connected + not registered -->
+          <div id="notProviderBanner" style="display:none;background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(16,185,129,0.08));border:1px solid rgba(234,179,8,0.3);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">💰</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">You're not a provider yet</div>
+                <div style="font-size:11px;color:var(--text-faint)">Stake USDC, commit to an SLA, and earn per request.</div>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="showCategory('register')" style="font-size:12px;padding:6px 14px;white-space:nowrap">Register now →</button>
+          </div>
           <div class="panel-head">
             <h2>Network Overview</h2>
             <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint)">
@@ -6689,6 +6703,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
           // Third wave: provider dashboard (needs state.providerInfo)
           await refreshProviderDashboard();
+
+          // Show/hide "not a provider" banner
+          const banner = document.getElementById("notProviderBanner");
+          if (banner) {
+            const isProvider = state.providerInfo && state.providerInfo.id;
+            banner.style.display = isProvider ? "none" : "flex";
+          }
 } finally {
           refreshRunning = false;
 
@@ -9154,6 +9175,16 @@ async function refreshBalance() {
 
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
+
+      // Fill recommended register values
+      $("btnFillDefaults").addEventListener("click", () => {
+        $("regStake").value = "10";
+        $("regPrice").value = "1";
+        $("regMaxResp").value = "120";
+        $("regSlashPct").value = "10";
+        $("regEndpoint").value = "";
+        toast({ kind: "info", title: "Recommended values filled", detail: "10 USDC stake · 1 USDC/call · 120s · 10% slash", timeout: 4000 });
+      });
       $("btnX402Call").addEventListener("click", doX402Call);
 
       // ---- Nanopayment ----
