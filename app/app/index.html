@@ -6463,6 +6463,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         // Polling fallback (in case event listener misses an event)
       };
 
+      // Expose state globally so external scripts (onboarding, marketplace, etc.) can read it
+      window.state = state;
+      // toast and showCategory are exposed after definition below via window.toast / window.showCategory
+
       // -------- Loading state helpers --------
       function setLoading(on) {
         state.loading = on;
@@ -6496,16 +6500,19 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // -------- UI helpers --------
       const $ = (id) => document.getElementById(id);
 
-      const toast = ({ title, detail, kind = "info", link, timeout = 6000 }) => {
+      const toast = ({ title, detail, kind = "info", link, txHash, timeout = 6000 }) => {
         const el = document.createElement("div");
         el.className = `toast ${kind}`;
         const body = document.createElement("div");
         body.className = "toast-body";
+        const explorerLink = txHash
+          ? `https://explorer.testnet.arc.io/tx/${txHash}`
+          : link;
         body.innerHTML = `<div class="title">${title}</div>${
           detail ? `<div class="detail">${detail}</div>` : ""
         }${
-          link
-            ? `<div class="detail"><a href="${link}" target="_blank" rel="noreferrer">view on arcscan →</a></div>`
+          explorerLink
+            ? `<div class="detail"><a href="${explorerLink}" target="_blank" rel="noreferrer">view on ArcScan →</a></div>`
             : ""
         }`;
         el.appendChild(body);
@@ -6515,6 +6522,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         }
         return el;
       };
+      // Expose globally for onboarding / external modules
+      window.toast = toast;
 
       const short = (a, n = 4) =>
         a ? `${a.slice(0, n + 2)}…${a.slice(-n)}` : "";
@@ -9583,6 +9592,8 @@ async function refreshBalance() {
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
+      // Expose globally for onboarding / external modules
+      window.showCategory = showCategory;
 
       // Sidebar click handlers
       document.querySelectorAll(".sb-item").forEach(el => {
