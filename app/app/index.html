@@ -5154,15 +5154,15 @@
           </div>
           <div>
             <span class="label">CrossChainReceiver</span>
-            <a href="https://testnet.arcscan.app/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer">0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c</a>
+            <a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer">0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c</a>
           </div>
           <div>
             <span class="label">RegisterWithNFT</span>
-            <a href="https://testnet.arcscan.app/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer">0x0aBC433356754Cd269bEF9A46273d7a152a0F169</a>
+            <a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer">0x0aBC433356754Cd269bEF9A46273d7a152a0F169</a>
           </div>
           <div>
             <span class="label">AgenticCommerce</span>
-            <a href="https://testnet.arcscan.app/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer">0x0747EEf0706327138c69792bF28Cd525089e4583</a>
+            <a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer">0x0747EEf0706327138c69792bF28Cd525089e4583</a>
           </div>
         </div>
       </div>
@@ -6323,7 +6323,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <h4>Testnet tools</h4>
             <ul>
               <li><a href="https://faucet.circle.com/" target="_blank" rel="noreferrer">Arc Testnet Faucet</a></li>
-              <li><a href="https://testnet.arcscan.app/" target="_blank" rel="noreferrer">ArcScan Testnet</a></li>
+              <li><a href="https://explorer.testnet.arc.io/" target="_blank" rel="noreferrer">ArcScan Testnet</a></li>
               <li><a href="https://thirdweb.com/arc-testnet" target="_blank" rel="noreferrer">thirdweb Arc Testnet</a></li>
             </ul>
           </div>
@@ -6344,9 +6344,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
             <span>CallGuard · built on Arc Testnet</span>
           </div>
           <div>
-            <a href="https://testnet.arcscan.app/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">Registry</a>
+            <a href="https://explorer.testnet.arc.io/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">Registry</a>
             &nbsp;·&nbsp;
-            <a href="https://testnet.arcscan.app/address/0x10387347678d9f7106D5625bE0BD6C915158B130" target="_blank" rel="noreferrer">PayPerCall</a>
+            <a href="https://explorer.testnet.arc.io/address/0x10387347678d9f7106D5625bE0BD6C915158B130" target="_blank" rel="noreferrer">PayPerCall</a>
             &nbsp;·&nbsp; MIT License
           </div>
         </div>
@@ -6368,7 +6368,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         chainIdHex: "0x4CEF52",
         chainName: "Arc Testnet",
         rpcUrl: "https://rpc.testnet.arc.network",
-        explorerBase: "https://testnet.arcscan.app",
+        explorerBase: "https://explorer.testnet.arc.io",
         registry: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF",
         payPerCall: "0x10387347678d9f7106D5625bE0BD6C915158B130",
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
@@ -6894,6 +6894,7 @@ async function refreshBalance() {
           }
           const b = await state.usdc.connect(state.provider).balanceOf(state.address);
           const formatted = ethers.formatUnits(b, state.usdcDecimals);
+          state.balanceFormatted = formatted; // cache for balance checks in doCall / doRegister
           // Show up to 4 decimal places
           $("usdcBal").textContent = parseFloat(formatted).toFixed(4).replace(/\.?0+$/, "") || "0";
 
@@ -7120,13 +7121,11 @@ async function refreshBalance() {
                     slashedCalls: slashed,
                   };
                 });
-                console.log("[MAP RESULT]", state.allProviders.length);
 
                 // Cache Goldsky providers for callService fallback
                 window.__providers = state.allProviders;
 
                 subgraphLoaded = true;
-                console.log("[AFTER MAP CHECK]", state.allProviders.length);
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
                 console.log("[REP DEBUG]", state.allProviders.slice(0,5).map(p => ({
                   id: p.id,
@@ -8060,6 +8059,13 @@ async function refreshBalance() {
           return;
         }
 
+        // Balance check before staking
+        const regBal = parseFloat(state.balanceFormatted || "0");
+        if (regBal < stakeNum) {
+          toast({ kind: "err", title: "Insufficient USDC balance", detail: `Need ${stakeNum} USDC to stake but have ${regBal.toFixed(4)} USDC. Get testnet USDC from the faucet.`, timeout: 8000 });
+          return;
+        }
+
         if (maxResp < 10) {
           toast({
             kind: "err",
@@ -8279,8 +8285,14 @@ async function refreshBalance() {
           }
           const price = p.pricePerCall;
 
-          // Check session budget before proceeding
+          // Check USDC balance before proceeding
           const priceNum = parseFloat(ethers.formatUnits(price, state.usdcDecimals));
+          const currentBal = parseFloat(state.balanceFormatted || "0");
+          if (currentBal < priceNum) {
+            toast({ kind: "err", title: "Insufficient USDC balance", detail: `Need ${priceNum} USDC but have ${currentBal.toFixed(4)} USDC. Get testnet USDC from the faucet.`, timeout: 8000 });
+            throw new Error("insufficient balance");
+          }
+          // Check session budget before proceeding
           if (!checkBudget(priceNum)) throw new Error("budget exceeded");
           // Approve only when needed — MaxUint256 = fires only once ever, no more double-TX
           const currentAllowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
@@ -10305,7 +10317,7 @@ console.log("call opened:", tx.hash);`;
           sepolia: { chainId: "0xaa36a7", chainIdDecimal: 11155111, rpcUrl: "https://rpc.sepolia.org", name: "Ethereum Sepolia", explorer: "https://sepolia.etherscan.io" },
           base:    { chainId: "0x14a34",  chainIdDecimal: 84532,    rpcUrl: "https://sepolia.base.org", name: "Base Sepolia", explorer: "https://sepolia.basescan.org" },
           amoy:    { chainId: "0x13882",  chainIdDecimal: 80002,    rpcUrl: "https://rpc-amoy.polygon.technology", name: "Polygon Amoy", explorer: "https://amoy.polygonscan.com" },
-          arc:     { chainId: "0x4CEF52", chainIdDecimal: 5042002,  rpcUrl: "https://rpc.testnet.arc.network", name: "Arc Testnet", explorer: "https://testnet.arcscan.app" },
+          arc:     { chainId: "0x4CEF52", chainIdDecimal: 5042002,  rpcUrl: "https://rpc.testnet.arc.network", name: "Arc Testnet", explorer: "https://explorer.testnet.arc.io" },
         },
         irisApi: "https://iris-api-sandbox.circle.com/v2/messages",
         crossChainReceiver: "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c",
@@ -10438,7 +10450,7 @@ console.log("call opened:", tx.hash);`;
             detail: `provider #${providerId} · ${amountFormatted} USDC bridged`,
             txHash: mintTx.hash,
           });
-          toast({ kind: "ok", title: "✅ Cross-chain call complete!", detail: `USDC bridged → Arc. CrossChainReceiver executed callService().`, link: `https://testnet.arcscan.app/address/${CCTP_CONFIG.crossChainReceiver}`, timeout: 12000 });
+          toast({ kind: "ok", title: "✅ Cross-chain call complete!", detail: `USDC bridged → Arc. CrossChainReceiver executed callService().`, link: `https://explorer.testnet.arc.io/address/${CCTP_CONFIG.crossChainReceiver}`, timeout: 12000 });
           state.provider = arcBrowserProvider;
           state.signer = arcSigner;
           state.chainId = CONFIG.chainId;
