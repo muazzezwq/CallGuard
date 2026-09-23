@@ -4678,9 +4678,52 @@
     }
     #confettiCanvas.active { opacity: 1; }
 
+    /* ── Progress Tracker ── */
+    #progressTracker { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: none; }
+    #progressTracker .pt-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+    .pt-steps { display: flex; gap: 0; align-items: center; }
+    .pt-step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+    .pt-step:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 2px; background: rgba(255,255,255,0.08); z-index: 0; }
+    .pt-step.done::after { background: var(--accent); }
+    .pt-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); background: var(--bg-1); display: flex; align-items: center; justify-content: center; font-size: 13px; position: relative; z-index: 1; transition: all .3s; }
+    .pt-step.done .pt-dot { background: var(--accent); border-color: var(--accent); }
+    .pt-step.active .pt-dot { border-color: var(--accent); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+    .pt-label { font-size: 10px; color: var(--text-faint); margin-top: 4px; text-align: center; }
+    .pt-step.done .pt-label { color: var(--accent); }
+
+    /* ── Next Step Box ── */
+    .next-step-box { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 8px; padding: 10px 14px; margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .next-step-box .ns-text { font-size: 12px; color: var(--text-faint); }
+    .next-step-box .ns-text strong { color: var(--text); }
+    .next-step-box .ns-btn { font-size: 11px; padding: 4px 12px; white-space: nowrap; }
+
+    /* ── Glossary tooltips ── */
+    .glossary { border-bottom: 1px dashed rgba(16,185,129,0.5); cursor: help; position: relative; }
+    .glossary::after { content: attr(data-def); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 11px; color: var(--text); white-space: nowrap; max-width: 240px; white-space: normal; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    .glossary:hover::after { opacity: 1; }
+
+    /* ── Wrong Network Banner ── */
+    #wrongNetworkBanner { display: none; position: sticky; top: 0; z-index: 500; background: rgba(234,179,8,0.15); border-bottom: 1px solid rgba(234,179,8,0.4); padding: 8px 16px; text-align: center; font-size: 12px; color: #fbbf24; }
+    #wrongNetworkBanner button { margin-left: 10px; padding: 3px 10px; font-size: 11px; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); border-radius: 4px; color: #fbbf24; cursor: pointer; }
+    #wrongNetworkBanner button:hover { background: rgba(234,179,8,0.35); }
+
+    /* ── First-call Confirmation Modal ── */
+    #firstCallOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9900; align-items: center; justify-content: center; }
+    #firstCallOverlay.open { display: flex; }
+    #firstCallBox { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; padding: 24px; max-width: 360px; width: 90%; }
+    #firstCallBox h3 { font-size: 16px; margin-bottom: 8px; }
+    #firstCallBox p { font-size: 13px; color: var(--text-faint); margin-bottom: 16px; line-height: 1.5; }
+    .first-call-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+    .first-call-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-faint); }
+    .first-call-item span:first-child { font-size: 16px; }
     </style>
   </head>
   <body>
+    <!-- Wrong network banner -->
+    <div id="wrongNetworkBanner">
+      ⚠️ You're on the wrong network. Switch to <strong>Arc Testnet</strong> to use CallGuard.
+      <button onclick="switchToArc()">Switch Network</button>
+    </div>
     <canvas id="confettiCanvas"></canvas>
     <!-- Particle Background -->
     <canvas id="cgCanvas"></canvas>
@@ -5614,6 +5657,32 @@
 
         <!-- Overview: Network stats dashboard -->
         <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
+          <!-- Progress Tracker — shown when wallet connected -->
+          <div id="progressTracker">
+            <div class="pt-title">🎯 Your progress</div>
+            <div class="pt-steps">
+              <div class="pt-step" id="pt0">
+                <div class="pt-dot">💧</div>
+                <div class="pt-label">Get USDC</div>
+              </div>
+              <div class="pt-step" id="pt1">
+                <div class="pt-dot">🔗</div>
+                <div class="pt-label">Connect</div>
+              </div>
+              <div class="pt-step" id="pt2">
+                <div class="pt-dot">📋</div>
+                <div class="pt-label">Register</div>
+              </div>
+              <div class="pt-step" id="pt3">
+                <div class="pt-dot">📞</div>
+                <div class="pt-label">First Call</div>
+              </div>
+              <div class="pt-step" id="pt4">
+                <div class="pt-dot">🧾</div>
+                <div class="pt-label">Receipt</div>
+              </div>
+            </div>
+          </div>
           <!-- Not-a-provider banner — shown only when wallet connected + not registered -->
           <div id="notProviderBanner" style="display:none;background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(16,185,129,0.08));border:1px solid rgba(234,179,8,0.3);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
             <div style="display:flex;align-items:center;gap:10px">
@@ -12724,6 +12793,24 @@ console.log("call opened:", tx.hash);`;
 
     <!-- ── HELP FAB ── -->
     <button class="help-fab" id="helpFab" title="Quick Help">?</button>
+
+    <!-- First-call Confirmation Modal -->
+    <div id="firstCallOverlay">
+      <div id="firstCallBox">
+        <h3>⚡ Confirm your first call</h3>
+        <p>This will lock <strong id="firstCallAmount">1 USDC</strong> in escrow. The provider has <strong id="firstCallWindow">120s</strong> to respond. If they miss the deadline, you get a refund + slash bonus.</p>
+        <div class="first-call-items">
+          <div class="first-call-item"><span>🔒</span><span>USDC locked in escrow until resolved</span></div>
+          <div class="first-call-item"><span>⚡</span><span>Auto-slashed if provider misses deadline</span></div>
+          <div class="first-call-item"><span>🧾</span><span>Cryptographic receipt proves delivery</span></div>
+          <div class="first-call-item"><span>✅</span><span>No arbiter, no middleman — contract enforces</span></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" onclick="document.getElementById('firstCallOverlay').classList.remove('open')">Cancel</button>
+          <button class="btn btn-primary" id="btnFirstCallConfirm">Understood — make the call</button>
+        </div>
+      </div>
+    </div>
     <div class="help-panel" id="helpPanel">
       <h3>👋 What do you want to do?</h3>
       <div class="help-role" data-role="caller">
@@ -12763,5 +12850,208 @@ console.log("call opened:", tx.hash);`;
         Press <b style="color:var(--text)">Ctrl+K</b> or <b style="color:var(--text)">/</b> for command palette
       </div>
     </div>
+
+  <script>
+  // ── ONBOARDING UX MODULE ──
+
+  // 1. Progress Tracker
+  const PT_KEY = "cg_progress";
+  function getProgress() {
+    try { return JSON.parse(localStorage.getItem(PT_KEY) || "{}"); } catch { return {}; }
+  }
+  function setProgress(key) {
+    const p = getProgress(); p[key] = true; localStorage.setItem(PT_KEY, JSON.stringify(p));
+  }
+  function updateProgressTracker() {
+    const p = getProgress();
+    const addr = window.state?.account;
+    if (!addr) return;
+    const tracker = document.getElementById("progressTracker");
+    if (tracker) tracker.style.display = "block";
+
+    // Step 0: Has USDC (balance > 0)
+    const hasUsdc = (parseFloat(window.state?.balanceFormatted || "0") > 0);
+    if (hasUsdc) setProgress("usdc");
+
+    // Step 1: Wallet connected (always true here)
+    setProgress("connected");
+
+    // Step 2: Registered as provider
+    if (window.state?.providerInfo?.id) setProgress("registered");
+
+    // Step 3: Has made at least 1 call
+    const hasCalls = (window.state?.calls?.length > 0 || window.state?.networkStats?.calls > 0);
+    if (hasCalls) setProgress("called");
+
+    // Step 4: Has submitted a receipt
+    if (window.state?.receiptCount > 0) setProgress("receipt");
+
+    const steps = [
+      { id: "pt0", key: "usdc" },
+      { id: "pt1", key: "connected" },
+      { id: "pt2", key: "registered" },
+      { id: "pt3", key: "called" },
+      { id: "pt4", key: "receipt" },
+    ];
+    let lastDone = -1;
+    steps.forEach((s, i) => {
+      const el = document.getElementById(s.id);
+      if (!el) return;
+      if (p[s.key]) { el.classList.add("done"); el.classList.remove("active"); lastDone = i; }
+      else { el.classList.remove("done"); }
+    });
+    // Mark next step as active
+    if (lastDone < steps.length - 1) {
+      const next = document.getElementById(steps[lastDone + 1].id);
+      if (next) next.classList.add("active");
+    }
+  }
+
+  // 2. Wrong Network Banner
+  const ARC_TESTNET_CHAIN_ID = "0x4CE5CE2"; // 80200002 hex
+
+  async function checkNetwork() {
+    if (!window.ethereum) return;
+    try {
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      const banner = document.getElementById("wrongNetworkBanner");
+      if (!banner) return;
+      // Arc Testnet chainId = 5042002 = 0x4CE452
+      const arcChainIds = ["0x4CE452", "0x4ce452", "5042002"];
+      const isArc = arcChainIds.includes(chainId) || parseInt(chainId, 16) === 5042002;
+      banner.style.display = (window.state?.account && !isArc) ? "block" : "none";
+    } catch {}
+  }
+
+  async function switchToArc() {
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x4CE452" }]
+      });
+    } catch (e) {
+      if (e.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x4CE452",
+            chainName: "Arc Testnet",
+            nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+            rpcUrls: ["https://rpc.testnet.arc.network"],
+            blockExplorerUrls: ["https://explorer.testnet.arc.network"]
+          }]
+        });
+      }
+    }
+    await checkNetwork();
+  }
+
+  if (window.ethereum) {
+    window.ethereum.on("chainChanged", checkNetwork);
+    window.ethereum.on("accountsChanged", () => { checkNetwork(); updateProgressTracker(); });
+  }
+
+  // 3. Glossary tooltips — auto-apply to known terms
+  const GLOSSARY = {
+    "SLA": "Service Level Agreement — the provider commits to respond within a time window.",
+    "slash": "Automatic penalty: if the provider misses the deadline, a % of their stake is sent to the caller.",
+    "escrow": "USDC locked in the contract until the call resolves (complete, timeout, or dispute).",
+    "receipt": "EIP-712 signed message proving the provider delivered a response on time.",
+    "EIP-712": "Ethereum standard for typed structured data signing — used for off-chain receipts.",
+    "reputation": "Bayesian score: (good+2)/(total+3)×100. Readable by any contract.",
+    "stake": "USDC the provider deposits as collateral. Slashed on timeout, returned on deactivation.",
+    "CCTP": "Circle Cross-Chain Transfer Protocol — bridges USDC across chains.",
+    "x402": "HTTP 402 Payment Required — lets AI agents pay for API calls automatically.",
+    "nanopayment": "0.001 USDC micro-payment via Circle Gateway — gasless, no wallet popup."
+  };
+
+  function applyGlossary() {
+    document.querySelectorAll(".panel-body, .guide-content, .scenario-card").forEach(el => {
+      if (el.dataset.glossaryDone) return;
+      el.dataset.glossaryDone = "1";
+      let html = el.innerHTML;
+      Object.entries(GLOSSARY).forEach(([term, def]) => {
+        const escaped = def.replace(/"/g, "&quot;");
+        const regex = new RegExp(`\\b(${term})\\b(?![^<]*>)`, "g");
+        html = html.replace(regex, `<span class="glossary" data-def="${escaped}">$1</span>`);
+      });
+      el.innerHTML = html;
+    });
+  }
+
+  // 4. Balance warning before call
+  const _origDoCall = window.doCall;
+  window.doCallWithBalanceCheck = async function(providerId) {
+    const price = parseFloat(window.state?.allProviders?.find(p => p.id === providerId)?.pricePerCall || "1");
+    const balance = parseFloat(window.state?.balanceFormatted || "0");
+    if (balance < price) {
+      if (typeof toast === "function") {
+        toast({ kind: "error", title: "Insufficient balance", detail: `You need ${price} USDC but have ${balance.toFixed(2)} USDC. Get testnet USDC from the faucet.`, timeout: 8000 });
+      }
+      return;
+    }
+    // First-call confirmation
+    const p = getProgress();
+    if (!p.called) {
+      document.getElementById("firstCallOverlay").classList.add("open");
+      document.getElementById("firstCallAmount").textContent = price + " USDC";
+      const prov = window.state?.allProviders?.find(pr => pr.id === providerId);
+      if (prov) document.getElementById("firstCallWindow").textContent = (prov.maxResponseTime || 120) + "s";
+      window._pendingCallProviderId = providerId;
+      return;
+    }
+    if (typeof doCall === "function") doCall(providerId);
+  };
+
+  document.getElementById("btnFirstCallConfirm")?.addEventListener("click", () => {
+    document.getElementById("firstCallOverlay").classList.remove("open");
+    if (typeof doCall === "function" && window._pendingCallProviderId) {
+      doCall(window._pendingCallProviderId);
+      window._pendingCallProviderId = null;
+    }
+  });
+
+  // 5. Contextual next-step boxes — injected after panel bodies load
+  const NEXT_STEPS = {
+    register: { icon: "📞", text: "Now try calling a service", btn: "Call a service →", nav: "calls" },
+    calls: { icon: "🧾", text: "After the call, submit a receipt", btn: "Submit receipt →", nav: "calls" },
+    analytics: { icon: "📋", text: "Register as a provider to earn USDC", btn: "Register →", nav: "register" },
+  };
+  function injectNextStep(cat) {
+    const cfg = NEXT_STEPS[cat];
+    if (!cfg) return;
+    const panel = document.querySelector(`.panel[data-category="${cat}"]`);
+    if (!panel || panel.querySelector(".next-step-box")) return;
+    const box = document.createElement("div");
+    box.className = "next-step-box";
+    box.innerHTML = `<div class="ns-text"><span style="font-size:16px;margin-right:6px">${cfg.icon}</span><strong>Next:</strong> ${cfg.text}</div><button class="btn ns-btn" onclick="showCategory('${cfg.nav}')">${cfg.btn}</button>`;
+    panel.querySelector(".panel-body")?.appendChild(box);
+  }
+
+  // Hook into showCategory
+  const _origShowCategory = window.showCategory;
+  window.showCategory = function(cat) {
+    if (typeof _origShowCategory === "function") _origShowCategory(cat);
+    setTimeout(() => {
+      applyGlossary();
+      injectNextStep(cat);
+      checkNetwork();
+      updateProgressTracker();
+    }, 300);
+  };
+
+  // Run on connect
+  document.addEventListener("cg:connected", () => {
+    checkNetwork();
+    updateProgressTracker();
+    applyGlossary();
+  });
+
+  // Also run on load if already connected
+  setTimeout(() => {
+    if (window.state?.account) { checkNetwork(); updateProgressTracker(); applyGlossary(); }
+  }, 3000);
+  </script>
   </body>
 </html>
