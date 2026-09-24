@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     // Verify EIP-712 signature
     const domain = {
-      name: "USD Coin", version: "2",
+      name: "USDC", version: "2",
       chainId: CHAIN_ID,
       verifyingContract: USDC_ADDR,
     };
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     // Demo mode
     if (!process.env.FACILITATOR_PRIVATE_KEY) {
       const mockCallId = ethers.keccak256(ethers.toUtf8Bytes(requestHash + Date.now()));
-      return res.json({ ok: true, callId: mockCallId, txHash: null, demo: true,
+      return res.json({ success: true, callId: mockCallId, txHash: null, demo: true,
         message: "Signature verified — demo mode (no on-chain call)" });
     }
 
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
       } catch { /* skip */ }
     }
 
-    return res.json({ ok: true, callId, txHash: receipt.hash, blockNumber: receipt.blockNumber });
+    return res.json({ success: true, callId, txHash: receipt.hash, blockNumber: receipt.blockNumber });
 
   } catch (e) {
     console.error("[x402/call-service] error:", e.message);

@@ -11341,13 +11341,15 @@ console.log("call opened:", tx.hash);`;
             body: JSON.stringify({
               providerId: providerId.toString(),
               requestHash,
-              from: state.address,
-              validAfter,
-              validBefore,
-              authNonce,
-              v: sig.v,
-              r: sig.r,
-              s: sig.s,
+              authorization: {
+                from:        state.address,
+                to:          CONFIG.payPerCall,
+                value:       price.toString(),
+                validAfter:  validAfter.toString(),
+                validBefore: validBefore.toString(),
+                nonce:       authNonce,
+              },
+              signature: rawSig,
             }),
           });
           const facData = await facRes.json();
