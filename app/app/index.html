@@ -4663,13 +4663,26 @@
     #progressTracker .pt-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
     .pt-steps { display: flex; gap: 0; align-items: center; }
     .pt-step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
-    .pt-step:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 2px; background: rgba(255,255,255,0.08); z-index: 0; }
+    .pt-step:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 1px; background: var(--border); z-index: 0; }
     .pt-step.done::after { background: var(--accent); }
-    .pt-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); background: var(--bg-1); display: flex; align-items: center; justify-content: center; font-size: 13px; position: relative; z-index: 1; transition: all .3s; }
-    .pt-step.done .pt-dot { background: var(--accent); border-color: var(--accent); }
-    .pt-step.active .pt-dot { border-color: var(--accent); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
-    .pt-label { font-size: 10px; color: var(--text-faint); margin-top: 4px; text-align: center; }
-    .pt-step.done .pt-label { color: var(--accent); }
+    .pt-dot { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg-0); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--text-faint); position: relative; z-index: 1; transition: all .25s; font-family: var(--font-mono); }
+    .pt-step.done .pt-dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .pt-step.active .pt-dot { border-color: var(--accent); color: var(--accent); }
+    .pt-label { font-size: 10px; color: var(--text-faint); margin-top: 5px; text-align: center; font-weight: 500; }
+    .pt-step.done .pt-label { color: var(--accent); font-weight: 600; }
+    .pt-step.active .pt-label { color: var(--text); }
+
+    /* Accordion modernize */
+    details.action { border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; }
+    details.action > summary { padding: 13px 20px !important; font-size: 13px !important; font-weight: 500 !important; color: var(--text) !important; }
+    details.action > summary:hover { background: var(--bg-1) !important; }
+    details.action > summary::after { content: "+" !important; font-size: 16px !important; font-weight: 300 !important; color: var(--text-faint) !important; }
+    details.action[open] > summary { background: var(--bg-1) !important; }
+    details.action[open] > summary::after { content: "−" !important; }
+    .action-body { padding: 0 20px 20px !important; }
+
+    /* Panel headers */
+    .panel-head h2 { font-size: 14px !important; font-weight: 600 !important; letter-spacing: -.01em !important; }
 
     /* ── Next Step Box ── */
     .next-step-box { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 8px; padding: 10px 14px; margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -6260,84 +6273,83 @@
 
         <!-- Overview: Network stats dashboard -->
         <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
-          <!-- Progress Tracker — shown when wallet connected -->
-          <div id="progressTracker">
-            <div class="pt-title">🎯 Your progress</div>
-            <div class="pt-steps">
-              <div class="pt-step" id="pt0">
-                <div class="pt-dot">💧</div>
-                <div class="pt-label">Get USDC</div>
+          <!-- Progress Tracker -->
+          <div id="progressTracker" style="display:none;margin-bottom:20px;background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:16px 20px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px">Getting started</div>
+            <div class="pt-steps" style="display:flex;gap:0;align-items:center">
+              <div class="pt-step" id="pt0" style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+                <div class="pt-dot" style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-faint);transition:.2s">1</div>
+                <div class="pt-label" style="font-size:10px;color:var(--text-faint);white-space:nowrap">Get USDC</div>
               </div>
-              <div class="pt-step" id="pt1">
-                <div class="pt-dot">🔗</div>
-                <div class="pt-label">Connect</div>
+              <div style="flex:1;height:1px;background:var(--border);margin-bottom:14px"></div>
+              <div class="pt-step" id="pt1" style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+                <div class="pt-dot" style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-faint);transition:.2s">2</div>
+                <div class="pt-label" style="font-size:10px;color:var(--text-faint);white-space:nowrap">Connect</div>
               </div>
-              <div class="pt-step" id="pt2">
-                <div class="pt-dot">📋</div>
-                <div class="pt-label">Register</div>
+              <div style="flex:1;height:1px;background:var(--border);margin-bottom:14px"></div>
+              <div class="pt-step" id="pt2" style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+                <div class="pt-dot" style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-faint);transition:.2s">3</div>
+                <div class="pt-label" style="font-size:10px;color:var(--text-faint);white-space:nowrap">Register</div>
               </div>
-              <div class="pt-step" id="pt3">
-                <div class="pt-dot">📞</div>
-                <div class="pt-label">First Call</div>
+              <div style="flex:1;height:1px;background:var(--border);margin-bottom:14px"></div>
+              <div class="pt-step" id="pt3" style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+                <div class="pt-dot" style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-faint);transition:.2s">4</div>
+                <div class="pt-label" style="font-size:10px;color:var(--text-faint);white-space:nowrap">First Call</div>
               </div>
-              <div class="pt-step" id="pt4">
-                <div class="pt-dot">🧾</div>
-                <div class="pt-label">Receipt</div>
+              <div style="flex:1;height:1px;background:var(--border);margin-bottom:14px"></div>
+              <div class="pt-step" id="pt4" style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+                <div class="pt-dot" style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-faint);transition:.2s">5</div>
+                <div class="pt-label" style="font-size:10px;color:var(--text-faint);white-space:nowrap">Receipt</div>
               </div>
             </div>
           </div>
-          <!-- Not-a-provider banner — shown only when wallet connected + not registered -->
-          <div id="notProviderBanner" style="display:none;background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(16,185,129,0.08));border:1px solid rgba(234,179,8,0.3);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:20px">💰</span>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text)">You're not a provider yet</div>
-                <div style="font-size:11px;color:var(--text-faint)">Stake USDC, commit to an SLA, and earn per request.</div>
-              </div>
+
+          <!-- Not-a-provider banner -->
+          <div id="notProviderBanner" style="display:none;background:var(--accent-bg);border:1px solid rgba(22,163,74,0.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Earn USDC as a provider</div>
+              <div style="font-size:12px;color:var(--text-faint)">Stake USDC, commit to an SLA, earn per request. Automatically slashed only if you miss your deadline.</div>
             </div>
-            <button class="btn btn-primary" onclick="showCategory('register')" style="font-size:12px;padding:6px 14px;white-space:nowrap">Register now →</button>
+            <button class="btn btn-primary" onclick="window.showCategory('register')" style="font-size:12px;padding:7px 16px;white-space:nowrap;flex-shrink:0">Register now →</button>
           </div>
-          <div class="panel-head">
-            <h2>Network Overview</h2>
+
+          <!-- Network stats -->
+          <div class="panel-head" style="margin-bottom:12px">
+            <h2 style="font-size:15px;font-weight:600">Network</h2>
             <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint)">
-              <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
               live · Arc Testnet
             </span>
           </div>
-          <div class="panel-body">
-            <div class="overview-grid">
-              <div class="ov-stat">
-                <span class="ov-icon">🔌</span>
-                <div class="ov-label">Active Providers</div>
-                <div class="ov-val" id="ovProviders" style="color:var(--accent)">—</div>
-                <div class="ov-sub" id="ovProvidersSub">loading…</div>
+          <div class="panel-body" style="padding:0 0 16px">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Providers</div>
+                <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--text);line-height:1" id="ovProviders">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="ovProvidersSub">loading</div>
               </div>
-              <div class="ov-stat">
-                <span class="ov-icon">⚡</span>
-                <div class="ov-label">Recent Calls</div>
-                <div class="ov-val" id="ovCalls" style="color:var(--info)">—</div>
-                <div class="ov-sub" id="ovCallsSub">last 20</div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Total Calls</div>
+                <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--text);line-height:1" id="ovCalls">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="ovCallsSub">on-chain</div>
               </div>
-              <div class="ov-stat">
-                <span class="ov-icon">🛡</span>
-                <div class="ov-label">Honor Rate</div>
-                <div class="ov-val" id="ovHonor" style="color:var(--accent)">—</div>
-                <div class="ov-sub" id="ovHonorSub">completed / closed</div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Honor Rate</div>
+                <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--accent);line-height:1" id="ovHonor">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="ovHonorSub">completed / closed</div>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
-                  <span style="font-size:14px">📡</span>
-                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Live Activity</span>
-                  <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:auto"></span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)">Live Activity</span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
                 </div>
-                <div id="ovLiveFeed"><div class="empty-state" style="font-size:12px">Loading activity…</div></div>
+                <div id="ovLiveFeed"><div class="empty-state" style="font-size:12px">Loading…</div></div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
-                  <span style="font-size:14px">🏆</span>
-                  <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)">Top Providers</span>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="margin-bottom:12px">
+                  <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)">Top Providers</span>
                 </div>
                 <div id="ovTopProviders"><div class="empty-state" style="font-size:12px">Loading…</div></div>
               </div>
