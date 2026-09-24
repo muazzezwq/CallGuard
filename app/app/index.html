@@ -5281,6 +5281,64 @@
     /* Skeleton loaders */
     .skeleton { background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%) !important; background-size: 200% 100% !important; }
 
+    /* ── Professional polish ── */
+
+    /* Brand: no subtitle */
+    .brand-sub { display: none !important; }
+    .brand-mark { background: var(--accent) !important; border-radius: 7px !important; width: 28px !important; height: 28px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+
+    /* Inputs: cleaner labels */
+    .field-label, label { font-size: 10px !important; font-weight: 600 !important; letter-spacing: .08em !important; text-transform: uppercase !important; color: var(--text-faint) !important; margin-bottom: 5px !important; }
+    input[type=text], input[type=number], select, textarea {
+      background: var(--bg-0) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      color: var(--text) !important;
+      font-family: var(--font-mono) !important;
+      font-size: 13px !important;
+      padding: 8px 12px !important;
+      width: 100% !important;
+      transition: border-color .15s !important;
+      outline: none !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.08) !important;
+    }
+
+    /* Toast: sade */
+    .toast { border-radius: 8px !important; font-size: 13px !important; padding: 10px 16px !important; box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important; }
+
+    /* Remove scenario icons (emoji) */
+    .scenario-icon { display: none !important; }
+    .scenario-badge { font-size: 10px !important; font-weight: 600 !important; letter-spacing: .06em !important; text-transform: uppercase !important; }
+
+    /* Leaderboard: cleaner */
+    .lb-row { border-bottom: 1px solid var(--border) !important; padding: 8px 0 !important; }
+
+    /* ov-stat: stat card modernize */
+    .ov-stat { background: var(--bg-1) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; padding: 16px 18px !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
+    .ov-icon { display: none !important; }
+    .ov-label { font-size: 10px !important; font-weight: 600 !important; letter-spacing: .08em !important; text-transform: uppercase !important; color: var(--text-faint) !important; }
+    .ov-val { font-size: 28px !important; font-weight: 700 !important; font-family: var(--font-mono) !important; line-height: 1.1 !important; margin-top: 4px !important; }
+    .ov-sub { font-size: 11px !important; color: var(--text-faint) !important; }
+
+    /* Disconnected hero */
+    .disconnected { padding: 80px 24px 60px !important; }
+    .disconnected h1 { font-size: clamp(28px, 5vw, 48px) !important; font-weight: 700 !important; letter-spacing: -.02em !important; line-height: 1.15 !important; margin-bottom: 16px !important; }
+    .disconnected .lead { font-size: 16px !important; color: var(--text-dim) !important; max-width: 520px !important; margin: 0 auto 28px !important; line-height: 1.6 !important; }
+
+    /* Hero stats */
+    .hero-stat-num { font-family: var(--font-mono) !important; font-size: 32px !important; font-weight: 700 !important; }
+    .hero-stat-label { font-size: 11px !important; text-transform: uppercase !important; letter-spacing: .06em !important; }
+    .hero-stats { gap: 40px !important; margin-top: 40px !important; }
+
+    /* Mobile: hide bottom nav */
+    @media (max-width: 768px) {
+      .mobile-nav { display: none !important; }
+      .app-content { padding-bottom: 0 !important; }
+    }
+
     </style>
   </head>
   <body>
@@ -5402,35 +5460,34 @@
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <div class="brand-mark">A</div>
-          <div>
-            <div class="brand-title">CallGuard</div>
-            <div class="brand-sub">on-chain SLA marketplace · arc testnet</div>
+          <div class="brand-mark">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" stroke-width="1.5" fill="none"/></svg>
           </div>
+          <div class="brand-title">CallGuard</div>
         </div>
         <div class="wallet-box">
-          <button data-open-cmd class="btn" style="font-size:11px;padding:4px 10px;opacity:0.7;border-color:var(--border)" title="Search (Ctrl+K)">⌘K</button>
+          <button data-open-cmd class="btn" style="font-size:11px;padding:4px 10px;color:var(--text-faint);border-color:var(--border);background:transparent" title="Search (Ctrl+K)">⌘K</button>
           <div class="network-pill" id="netPill">
             <span class="net-dot" id="netDot"></span>
             <span id="netLabel">Disconnected</span>
           </div>
-          <div class="usdc-balance hidden" id="balanceBox">
-            <span class="label">USDC</span>
-            <span class="amount" id="usdcBal">0.00</span>
+          <div class="usdc-balance hidden" id="balanceBox" style="font-family:var(--font-mono);font-size:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;font-weight:600;color:var(--text-faint);letter-spacing:.06em">USDC</span>
+            <span style="font-weight:600;color:var(--text)" id="usdcBal">0.00</span>
           </div>
-          <div class="usdc-balance hidden" id="eurcBalBox">
-            <span class="label">EURC</span>
-            <span class="amount" id="eurcBal">0.00</span>
+          <div class="usdc-balance hidden" id="eurcBalBox" style="font-family:var(--font-mono);font-size:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;font-weight:600;color:var(--text-faint);letter-spacing:.06em">EURC</span>
+            <span style="font-weight:600;color:var(--text)" id="eurcBal">0.00</span>
           </div>
-          <div class="usdc-balance hidden" id="usycBalBox">
-            <span class="label">USYC</span>
-            <span class="amount" id="usycBal">0.00</span>
+          <div class="usdc-balance hidden" id="usycBalBox" style="font-family:var(--font-mono);font-size:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;font-weight:600;color:var(--text-faint);letter-spacing:.06em">USYC</span>
+            <span style="font-weight:600;color:var(--text)" id="usycBal">0.00</span>
           </div>
-          <button class="btn btn-primary" id="connectBtn" style="pointer-events:auto">Connect wallet</button>
-          <div class="addr-pill hidden" id="addrPill" title="Click to copy">
+          <button class="btn btn-primary" id="connectBtn" style="pointer-events:auto;font-size:12px;padding:6px 14px">Connect wallet</button>
+          <div class="addr-pill hidden" id="addrPill" title="Click to copy" style="font-family:var(--font-mono);font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;color:var(--text-dim)">
             <span id="addrText"></span>
           </div>
-          <button class="btn btn-sm btn-danger hidden" id="btnResetMM" title="Takili islemler varsa kullan" style="font-size:11px;padding:5px 10px">Reset</button>
+          <button class="btn btn-sm btn-danger hidden" id="btnResetMM" style="font-size:11px;padding:5px 10px">Reset</button>
         </div>
       </div>
     </header>
@@ -5440,13 +5497,15 @@
     <!-- ============================================================ -->
     <main id="disconnectedView">
       <div class="disconnected">
-        <h1>Pay-per-call, enforced on-chain.</h1>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">On-chain SLA Infrastructure</div>
+        <h1>Service guarantees,<br>enforced on-chain.</h1>
         <p id="heroSubtitle" class="lead">
-          Service providers stake USDC and commit to an SLA. Callers — including AI agents — pay
-          per request and receive a cryptographically signed receipt. If the provider misses the
-          deadline, the stake is slashed automatically. No arbiter, no middleman.
+          Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
         </p>
-        <button class="btn btn-primary" id="connectBtn2">Connect wallet</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+          <button class="btn btn-primary" id="connectBtn2" style="padding:10px 24px;font-size:14px">Connect wallet</button>
+          <a href="/" style="display:inline-flex;align-items:center;padding:10px 20px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);text-decoration:none;font-weight:500;background:var(--bg-1)">Learn more →</a>
+        </div>
 
         <div class="hero-stats">
           <div class="hero-stat">
