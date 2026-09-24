@@ -5081,6 +5081,22 @@
       .hero-stat-num { font-size: 28px !important; }
     }
 
+    /* ── FINALITY BADGE ── */
+    .finality-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      color: #22c55e;
+      background: rgba(34,197,94,.1);
+      border: 1px solid rgba(34,197,94,.2);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-top: 2px;
+    }
+
     </style>
   </head>
   <body>
@@ -6861,7 +6877,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // -------- UI helpers --------
       const $ = (id) => document.getElementById(id);
 
-      const toast = ({ title, detail, kind = "info", link, txHash, timeout = 6000 }) => {
+      const toast = ({ title, detail, kind = "info", link, txHash, timeout = 6000, finalityMs = null }) => {
         const el = document.createElement("div");
         el.className = `toast ${kind}`;
         const body = document.createElement("div");
@@ -6874,6 +6890,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         }${
           explorerLink
             ? `<div class="detail"><a href="${explorerLink}" target="_blank" rel="noreferrer">view on ArcScan →</a></div>`
+            : ""
+        }${
+          finalityMs != null
+            ? `<div class="detail finality-badge">⚡ finalized in ${finalityMs < 1000 ? finalityMs + 'ms' : (finalityMs/1000).toFixed(2) + 's'}</div>`
             : ""
         }`;
         el.appendChild(body);
@@ -6891,6 +6911,14 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
       const txLink = (hash) => `${CONFIG.explorerBase}/tx/${hash}`;
       const addrLink = (a) => `${CONFIG.explorerBase}/address/${a}`;
+
+      // Measures actual time from tx.send to tx.wait() resolution (Arc sub-second finality)
+      const waitWithFinality = async (tx) => {
+        const t0 = Date.now();
+        const rc = await tx.wait();
+        const finalityMs = Date.now() - t0;
+        return { rc, finalityMs };
+      };
 
       // WALLET CONNECTION
       // Single entry point — cleans up old listeners, validates chain,
@@ -8506,7 +8534,7 @@ async function refreshBalance() {
             tReg.remove();
             throw regErr;
           }
-          await tx.wait();
+          const { finalityMs: regFinalityMs } = await waitWithFinality(tx);
           tReg.remove();
           toast({
             kind: "ok",
@@ -8514,6 +8542,7 @@ async function refreshBalance() {
             link: txLink(tx.hash),
             detail: `stake: ${stake} usdc`,
             txHash: tx.hash,
+            finalityMs: regFinalityMs,
           });
           pushActivity({
             type: "register",
@@ -8717,7 +8746,7 @@ async function refreshBalance() {
             tC.remove();
             throw callErr;
           }
-          const rc = await tx.wait();
+          const { rc, finalityMs: callFinalityMs } = await waitWithFinality(tx);
           tC.remove();
 
           // Find CallStarted event to grab callId
@@ -8740,6 +8769,7 @@ async function refreshBalance() {
               detail: `call id ${short(callId, 8)}`,
               link: txLink(tx.hash),
               txHash: tx.hash,
+              finalityMs: callFinalityMs,
             });
             if (window.confetti) window.confetti();
             pushActivity({
@@ -8895,7 +8925,7 @@ async function refreshBalance() {
             timeout: 60000,
           });
           const tx = await state.payPerCall.submitReceipt(callId, responseHash, signature);
-          await tx.wait();
+          const { finalityMs: rcFinalityMs } = await waitWithFinality(tx);
           tSub.remove();
           toast({
             kind: "ok",
@@ -8903,6 +8933,7 @@ async function refreshBalance() {
             link: txLink(tx.hash),
             detail: "escrow released to provider",
             txHash: tx.hash,
+            finalityMs: rcFinalityMs,
           });
           pushActivity({
             type: "receipt",
@@ -8957,12 +8988,14 @@ async function refreshBalance() {
             tTO.remove();
             throw toErr;
           }
-          await tx.wait();
+          const { finalityMs: toFinalityMs } = await waitWithFinality(tx);
           tTO.remove();
           toast({
             kind: "ok",
             title: "Timeout claimed — provider slashed",
             link: txLink(tx.hash),
+            txHash: tx.hash,
+            finalityMs: toFinalityMs,
           });
           pushActivity({
             type: "timeout",
