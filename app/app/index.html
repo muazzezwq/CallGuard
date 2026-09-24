@@ -7,39 +7,40 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
     <style>
       :root {
-        /* Dark theme — developer/protocol product */
-        --bg-0: #0a0e14;
-        --bg-1: #0f1419;
-        --bg-2: #161d27;
-        --bg-3: #1e2836;
-        --border: rgba(255,255,255,0.07);
-        --border-hi: rgba(255,255,255,0.13);
-        --text: #e8edf3;
-        --text-dim: #8b95a3;
-        --text-faint: #4a5568;
-        --accent: #10b981;
-        --accent-dim: #059669;
-        --accent-bg: rgba(16, 185, 129, 0.1);
+        /* Bloomberg × Linear — institutional dark */
+        --bg-0: #09090b;
+        --bg-1: #111113;
+        --bg-2: #18181b;
+        --bg-3: #1c1c1f;
+        --border: #27272a;
+        --border-hi: #3f3f46;
+        --text: #fafafa;
+        --text-dim: #a1a1aa;
+        --text-faint: #52525b;
+        --accent: #22c55e;
+        --accent-dim: #16a34a;
+        --accent-bg: rgba(34,197,94,0.08);
+        --accent-fg: #dcfce7;
         --danger: #f87171;
-        --danger-bg: rgba(248, 113, 113, 0.1);
+        --danger-bg: rgba(248,113,113,0.08);
         --warn: #fbbf24;
-        --warn-bg: rgba(251, 191, 36, 0.1);
+        --warn-bg: rgba(251,191,36,0.08);
         --info: #60a5fa;
-        --info-bg: rgba(96, 165, 250, 0.1);
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-        --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-        --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
-        --glow: 0 0 0 2px rgba(16,185,129,0.2);
-        --glow-strong: 0 0 20px rgba(16,185,129,0.25);
-        --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Menlo", monospace;
-        --font-sans: "Spline Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --font-display: "Fraunces", Georgia, serif;
+        --info-bg: rgba(96,165,250,0.08);
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.6);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+        --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+        --radius: 6px;
+        --radius-lg: 10px;
+        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
       * {
@@ -177,11 +178,11 @@
         .sidebar-overlay { display: none !important; }
       }
 
-      /* Corporate display type — match landing page (Fraunces serif headings) */
-      h1, h2, h3 {
-        font-family: var(--font-display);
-        font-weight: 500;
-        letter-spacing: -0.01em;
+      h1, h2, h3, h4 {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0;
       }
 
       html,
@@ -191,32 +192,12 @@
         background: var(--bg-0);
         color: var(--text);
         font-family: var(--font-sans);
-        font-size: 15px;
-        line-height: 1.55;
-        letter-spacing: -0.005em;
+        font-size: 14px;
+        line-height: 1.5;
+        letter-spacing: -0.01em;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         min-height: 100vh;
-      }
-
-      body {
-        background-image:
-          radial-gradient(
-            ellipse 1400px 700px at 15% -5%,
-            rgba(16, 185, 129, 0.06),
-            transparent 55%
-          ),
-          radial-gradient(
-            ellipse 1000px 600px at 105% 15%,
-            rgba(96, 165, 250, 0.04),
-            transparent 55%
-          ),
-          radial-gradient(
-            ellipse 800px 400px at 50% 100%,
-            rgba(16, 185, 129, 0.03),
-            transparent 60%
-          );
-        background-attachment: fixed;
       }
 
       button,
@@ -4716,6 +4697,357 @@
     .first-call-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
     .first-call-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-faint); }
     .first-call-item span:first-child { font-size: 16px; }
+
+    /* ══════════════════════════════════════════
+       INSTITUTIONAL REDESIGN — Bloomberg × Linear
+       ══════════════════════════════════════════ */
+
+    /* Remove all glow/particle/animation noise */
+    #cgCanvas, #confettiCanvas, #mouseSpotlight,
+    .hero-orb, .border-beam, .noise-overlay, .grid-overlay { display: none !important; }
+
+    /* Kill all decorative animations */
+    .border-beam-wrap::before, .border-beam-wrap::after { display: none !important; }
+    .live-dot-pulse { animation: none !important; background: var(--accent) !important; opacity: 0.7 !important; }
+    .hero-subtitle-cursor::after { display: none !important; }
+    @keyframes shimmer { 0%,100% { opacity: 0.5; } }
+    .stat-val-animate, .counter-animate { transition: none !important; }
+    /* Skeleton shimmer stays for loading states */
+    .shimmer-line { animation: skeleton-shimmer 1.6s ease infinite !important; }
+    @keyframes skeleton-shimmer { 0%{opacity:0.4} 50%{opacity:0.8} 100%{opacity:0.4} }
+
+    /* Clean topbar */
+    .topbar {
+      background: var(--bg-0) !important;
+      backdrop-filter: none !important;
+      border-bottom: 1px solid var(--border) !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 100 !important;
+    }
+    .topbar-inner { height: 48px !important; padding: 0 20px !important; }
+    .brand-mark {
+      background: var(--accent) !important;
+      border-radius: var(--radius) !important;
+      width: 28px !important; height: 28px !important;
+      font-size: 13px !important;
+      box-shadow: none !important;
+    }
+    .brand-title { font-size: 14px !important; font-weight: 600 !important; letter-spacing: -0.02em !important; }
+    .brand-sub { display: none !important; }
+    .topbar-right { gap: 8px !important; }
+    #btnCmdPalette {
+      font-size: 11px !important;
+      background: var(--bg-2) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-dim) !important;
+      padding: 4px 10px !important;
+      border-radius: var(--radius) !important;
+    }
+
+    /* Ticker — thin single line */
+    #cgTicker {
+      background: var(--bg-1) !important;
+      border-bottom: 1px solid var(--border) !important;
+      font-size: 11px !important;
+      color: var(--text-faint) !important;
+      letter-spacing: 0.02em !important;
+    }
+    .ticker-item strong { color: var(--text-dim) !important; }
+
+    /* Sidebar — clean Linear-style */
+    .app-sidebar {
+      background: var(--bg-0) !important;
+      border-right: 1px solid var(--border) !important;
+      width: 192px !important;
+    }
+    .app-content { margin-left: 192px !important; }
+    .sb-logo {
+      padding: 12px 14px !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .sb-section {
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      color: var(--text-faint) !important;
+      letter-spacing: 0.06em !important;
+      padding: 14px 12px 4px !important;
+    }
+    .sb-item {
+      padding: 6px 12px !important;
+      font-size: 13px !important;
+      border-radius: 0 !important;
+      border-left: 2px solid transparent !important;
+      color: var(--text-dim) !important;
+      gap: 8px !important;
+    }
+    .sb-item:hover { background: var(--bg-2) !important; color: var(--text) !important; }
+    .sb-item.on {
+      background: transparent !important;
+      color: var(--text) !important;
+      font-weight: 500 !important;
+      border-left-color: var(--accent) !important;
+    }
+
+    /* Disconnected hero — clean, centered, no orbs */
+    .disconnected {
+      max-width: 480px !important;
+      margin: 0 auto !important;
+      padding: 64px 24px 48px !important;
+      text-align: center !important;
+    }
+    .disconnected h1 {
+      font-size: 28px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.04em !important;
+      line-height: 1.15 !important;
+      color: var(--text) !important;
+      background: none !important;
+      -webkit-background-clip: unset !important;
+      -webkit-text-fill-color: unset !important;
+      animation: none !important;
+      margin-bottom: 12px !important;
+    }
+    .disconnected .lead {
+      font-size: 14px !important;
+      color: var(--text-dim) !important;
+      line-height: 1.6 !important;
+      margin-bottom: 28px !important;
+    }
+    .btn-primary {
+      background: var(--accent) !important;
+      color: #000 !important;
+      font-weight: 600 !important;
+      font-size: 13px !important;
+      padding: 10px 20px !important;
+      border-radius: var(--radius) !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: opacity 0.15s !important;
+      box-shadow: none !important;
+    }
+    .btn-primary:hover { opacity: 0.85 !important; transform: none !important; }
+
+    /* Hero stat cards — compact table style */
+    .hero-stats {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 1px !important;
+      background: var(--border) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      overflow: hidden !important;
+      margin: 28px 0 !important;
+    }
+    .hero-stat {
+      background: var(--bg-1) !important;
+      padding: 16px 14px !important;
+      text-align: left !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      animation: none !important;
+    }
+    .hero-stat-num {
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.04em !important;
+      color: var(--text) !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    .hero-stat-label {
+      font-size: 11px !important;
+      color: var(--text-faint) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
+      margin-top: 2px !important;
+    }
+
+    /* Dashboard panels — clean cards */
+    .panel, .stat-card, .overview-stat, .action-section {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      box-shadow: none !important;
+    }
+    .panel:hover, .stat-card:hover { box-shadow: none !important; transform: none !important; }
+
+    /* Stat card numbers */
+    .stat-num, .ov-stat-num {
+      font-size: 24px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.04em !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+
+    /* Provider cards → compact row list */
+    .prov-card {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      padding: 12px 14px !important;
+      transition: border-color 0.15s !important;
+      box-shadow: none !important;
+    }
+    .prov-card:hover { border-color: var(--border-hi) !important; transform: none !important; }
+    .prov-honor-bar { height: 3px !important; border-radius: 2px !important; }
+
+    /* Leaderboard rows */
+    .lb-row {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      padding: 10px 14px !important;
+      transition: border-color 0.15s !important;
+    }
+    .lb-row:hover { border-color: var(--border-hi) !important; transform: none !important; }
+
+    /* Buttons */
+    .btn-secondary, .btn-ghost, button.btn {
+      background: var(--bg-2) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      border-radius: var(--radius) !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      padding: 6px 12px !important;
+      transition: border-color 0.15s, background 0.15s !important;
+      box-shadow: none !important;
+    }
+    .btn-secondary:hover, .btn-ghost:hover { border-color: var(--border-hi) !important; background: var(--bg-3) !important; }
+    .btn-danger { background: var(--danger-bg) !important; border-color: var(--danger) !important; color: var(--danger) !important; }
+
+    /* Inputs */
+    input[type="text"], input[type="number"], input[type="url"], select, textarea {
+      background: var(--bg-0) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      color: var(--text) !important;
+      font-size: 13px !important;
+      padding: 8px 10px !important;
+      transition: border-color 0.15s !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none !important;
+      border-color: var(--accent) !important;
+    }
+
+    /* Toasts — clean pill */
+    .toast {
+      background: var(--bg-2) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: var(--shadow-lg) !important;
+      backdrop-filter: none !important;
+    }
+    .toast.success { border-left: 3px solid var(--accent) !important; }
+    .toast.error { border-left: 3px solid var(--danger) !important; }
+    .toast.warn { border-left: 3px solid var(--warn) !important; }
+
+    /* Modals — clean sheet */
+    .wizard-box, .dispute-box, .sub-box, #firstCallBox, #helpPanel {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: var(--shadow-lg) !important;
+    }
+    .wizard-overlay, .dispute-overlay, .sub-overlay,
+    #firstCallOverlay, #helpOverlay, #cmdOverlay {
+      background: rgba(0,0,0,0.75) !important;
+      backdrop-filter: blur(4px) !important;
+    }
+
+    /* Scenario cards */
+    .scenario {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      box-shadow: none !important;
+    }
+    .scenario:hover { box-shadow: none !important; transform: none !important; }
+    .scenario-badge {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.06em !important;
+      padding: 2px 8px !important;
+      border-radius: 3px !important;
+    }
+
+    /* Guide tabs */
+    .guide-tabs { background: var(--bg-1) !important; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; }
+    .guide-tab { font-size: 12px !important; font-weight: 500 !important; }
+    .guide-tab.on { background: var(--bg-3) !important; color: var(--text) !important; }
+
+    /* Badges / tags */
+    .badge, .tag, .chip {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.04em !important;
+      padding: 2px 7px !important;
+      border-radius: 3px !important;
+    }
+
+    /* Code */
+    code, .mono, pre {
+      font-family: var(--font-mono) !important;
+      font-size: 12px !important;
+    }
+
+    /* How it works section heading */
+    .how-section > h2 {
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.03em !important;
+    }
+
+    /* Sparkline */
+    .hero-sparkline { opacity: 0.6 !important; }
+
+    /* SLA banner */
+    #slaBanner {
+      background: var(--bg-1) !important;
+      border-bottom: 1px solid var(--border) !important;
+      font-size: 11px !important;
+    }
+
+    /* Progress bar */
+    #userProgressTracker {
+      background: var(--bg-1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+    }
+
+    /* Activity feed */
+    .feed-row {
+      border-bottom: 1px solid var(--border) !important;
+      font-size: 12px !important;
+    }
+    .feed-row:last-child { border-bottom: none !important; }
+
+    /* Bottom nav */
+    #mobileBottomNav {
+      background: var(--bg-0) !important;
+      border-top: 1px solid var(--border) !important;
+    }
+
+    /* Remove all glow box-shadows */
+    * { text-shadow: none !important; }
+    .btn-primary, .sb-item.on, .brand-mark { box-shadow: none !important; }
+
+    /* Panel info banners */
+    .panel-info-banner {
+      background: var(--bg-2) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      font-size: 12px !important;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-0); }
+    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
     </style>
   </head>
   <body>
@@ -4875,30 +5207,26 @@
     <!-- ============================================================ -->
     <main id="disconnectedView">
       <div class="disconnected">
-        <!-- Glow orbs -->
-        <div class="hero-orb hero-orb-1"></div>
-        <div class="hero-orb hero-orb-2"></div>
-        <div class="hero-orb hero-orb-3"></div>
         <h1>Pay-per-call, enforced on-chain.</h1>
-        <p id="heroSubtitle" class="hero-subtitle-cursor">
+        <p id="heroSubtitle" class="lead">
           Service providers stake USDC and commit to an SLA. Callers — including AI agents — pay
           per request and receive a cryptographically signed receipt. If the provider misses the
           deadline, the stake is slashed automatically. No arbiter, no middleman.
         </p>
         <button class="btn btn-primary" id="connectBtn2">Connect wallet</button>
 
-        <div class="hero-stat-row">
-          <div class="hero-stat border-beam-wrap">
-            <div class="num mono" id="heroProviders">—</div>
-            <div class="lbl">Registered providers</div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="heroProviders">—</div>
+            <div class="hero-stat-label">Providers</div>
           </div>
-          <div class="hero-stat border-beam-wrap">
-            <div class="num mono" id="heroCalls">—</div>
-            <div class="lbl">Calls on chain</div>
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="heroCalls">—</div>
+            <div class="hero-stat-label">Calls on-chain</div>
           </div>
-          <div class="hero-stat border-beam-wrap">
-            <div class="num mono" id="heroSlashes">—</div>
-            <div class="lbl">Slashes enforced</div>
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="heroSlashes">—</div>
+            <div class="hero-stat-label">Slashes</div>
           </div>
         </div>
 
@@ -4915,8 +5243,8 @@
             <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(16,185,129,0.3)"/>
-                  <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+                  <stop offset="0%" stop-color="rgba(34,197,94,0.15)"/>
+                  <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
                 </linearGradient>
               </defs>
               <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
