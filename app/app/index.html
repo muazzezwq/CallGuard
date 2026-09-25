@@ -2106,16 +2106,15 @@
       }
 
       .scenario {
-        background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 18px;
-        padding: 28px 26px;
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px 22px;
         display: flex;
         flex-direction: column;
         position: relative;
         overflow: hidden;
-        transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), border-color 0.25s, box-shadow 0.25s;
-        backdrop-filter: blur(8px);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .scenario::before {
@@ -5438,6 +5437,20 @@
     }
 
     /* ── Dedicated page layout ── */
+    /* Disconnected: sidebar gizli, content full width */
+    .disconnected .sidebar { display: none !important; }
+    .disconnected .app-content { margin-left: 0 !important; }
+
+    /* How it works cards: mobile single column */
+    @media (max-width: 700px) {
+      .how-works-grid { grid-template-columns: 1fr !important; }
+      .disc-hero { padding: 32px 20px !important; }
+      .hero-stats { grid-template-columns: repeat(3,1fr) !important; gap: 8px !important; }
+      .hero-stat-val { font-size: 22px !important; }
+      .page-screen { padding: 20px 16px !important; }
+      .page-header h1 { font-size: 20px !important; }
+    }
+
     .page-screen {
       min-height: calc(100vh - 52px);
       padding: 32px 40px;
