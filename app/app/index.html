@@ -4799,12 +4799,12 @@
       border-left-color: var(--accent) !important;
     }
 
-    /* Disconnected hero — clean, centered, no orbs */
+    /* Disconnected hero — clean, full-width */
     .disconnected {
-      max-width: 480px !important;
-      margin: 0 auto !important;
-      padding: 64px 24px 48px !important;
-      text-align: center !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 48px 48px 40px !important;
+      text-align: left !important;
     }
     .disconnected h1 {
       font-size: 28px !important;
@@ -5066,7 +5066,7 @@
       .app-sidebar.open { transform: translateX(0); }
 
       /* Hero — daha rahat */
-      .disconnected { padding: 32px 20px 32px !important; }
+      .disconnected { padding: 28px 20px 24px !important; max-width: 100% !important; text-align: left !important; }
       .disconnected h1 { font-size: 22px !important; }
       .hero-stats { grid-template-columns: repeat(3,1fr) !important; }
       .hero-stat-num { font-size: 18px !important; }
@@ -5370,7 +5370,7 @@
     }
     @media (max-width: 700px) {
       .ov-grid-2 { grid-template-columns: 1fr !important; }
-      .disconnected { padding: 32px 20px 32px !important; }
+      .disconnected { padding: 28px 20px 24px !important; max-width: 100% !important; text-align: left !important; }
       .disconnected h1 { font-size: 26px !important; }
       .hero-stats { gap: 24px !important; }
     }
@@ -5500,7 +5500,7 @@
     }
 
     .page-screen {
-      min-height: calc(100vh - 52px);
+      min-height: unset;
       padding: 32px 40px;
       max-width: 1280px;
     }
