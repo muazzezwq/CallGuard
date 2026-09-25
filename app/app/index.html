@@ -5321,15 +5321,58 @@
     .ov-val { font-size: 28px !important; font-weight: 700 !important; font-family: var(--font-mono) !important; line-height: 1.1 !important; margin-top: 4px !important; }
     .ov-sub { font-size: 11px !important; color: var(--text-faint) !important; }
 
-    /* Disconnected hero */
-    .disconnected { padding: 80px 24px 60px !important; }
-    .disconnected h1 { font-size: clamp(28px, 5vw, 48px) !important; font-weight: 700 !important; letter-spacing: -.02em !important; line-height: 1.15 !important; margin-bottom: 16px !important; }
-    .disconnected .lead { font-size: 16px !important; color: var(--text-dim) !important; max-width: 520px !important; margin: 0 auto 28px !important; line-height: 1.6 !important; }
+    /* ── Disconnected hero ── */
+    #disconnectedView { width: 100% !important; max-width: 100% !important; }
+    .disconnected {
+      padding: 56px 48px 48px !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      text-align: left !important;
+    }
+    .disconnected h1 {
+      font-size: clamp(28px, 4vw, 48px) !important;
+      font-weight: 700 !important;
+      letter-spacing: -.02em !important;
+      line-height: 1.15 !important;
+      margin-bottom: 16px !important;
+      max-width: 640px !important;
+    }
+    .disconnected .lead {
+      font-size: 16px !important;
+      color: var(--text-dim) !important;
+      max-width: 560px !important;
+      margin: 0 0 28px !important;
+      line-height: 1.6 !important;
+    }
 
-    /* Hero stats */
+    /* Hero stats — full width row */
     .hero-stat-num { font-family: var(--font-mono) !important; font-size: 32px !important; font-weight: 700 !important; }
     .hero-stat-label { font-size: 11px !important; text-transform: uppercase !important; letter-spacing: .06em !important; }
-    .hero-stats { gap: 40px !important; margin-top: 40px !important; }
+    .hero-stats { gap: 40px !important; margin-top: 40px !important; justify-content: flex-start !important; }
+
+    /* ── App content: no extra padding when sidebar hidden ── */
+    body.no-sidebar .app-content,
+    body:not(.sidebar-open) .app-content {
+      margin-left: 0 !important;
+    }
+
+    /* ── Overview grid: 2 col on desktop, 1 on mobile ── */
+    .ov-grid-2 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+    }
+    @media (max-width: 700px) {
+      .ov-grid-2 { grid-template-columns: 1fr !important; }
+      .disconnected { padding: 32px 20px 32px !important; }
+      .disconnected h1 { font-size: 26px !important; }
+      .hero-stats { gap: 24px !important; }
+    }
+
+    /* ── Panel: no min-height, no dead space ── */
+    .panel { min-height: unset !important; }
+    .panel-body { min-height: unset !important; }
 
     /* Mobile: hide bottom nav */
     @media (max-width: 768px) {
@@ -6895,7 +6938,7 @@
                 <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="ovHonorSub">completed / closed</div>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="ov-grid-2">
               <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                   <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)">Live Activity</span>
