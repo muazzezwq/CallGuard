@@ -5068,6 +5068,7 @@
       /* Hero — daha rahat */
       .disconnected { padding: 28px 20px 24px !important; max-width: 100% !important; text-align: left !important; }
       .disconnected h1 { font-size: 22px !important; }
+      .disconnected > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; gap: 24px !important; }
       .hero-stats { grid-template-columns: repeat(3,1fr) !important; }
       .hero-stat-num { font-size: 18px !important; }
 
@@ -5903,51 +5904,58 @@
     <!-- ============================================================ -->
     <main id="disconnectedView">
       <div class="disconnected">
-        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">On-chain SLA Infrastructure</div>
-        <h1>Service guarantees,<br>enforced on-chain.</h1>
-        <p id="heroSubtitle" class="lead">
-          Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
-        </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-          <button class="btn btn-primary" id="connectBtn2" style="padding:10px 24px;font-size:14px">Connect wallet</button>
-          <a href="/" style="display:inline-flex;align-items:center;padding:10px 20px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);text-decoration:none;font-weight:500;background:var(--bg-1)">Learn more →</a>
-        </div>
-
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="hero-stat-num" id="heroProviders">—</div>
-            <div class="hero-stat-label">Providers</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num" id="heroCalls">—</div>
-            <div class="hero-stat-label">Calls on-chain</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num" id="heroSlashes">—</div>
-            <div class="hero-stat-label">Slashes</div>
-          </div>
-        </div>
-
-        <!-- Hero Sparkline Chart -->
-        <div id="heroSparkline">
-          <div class="sparkline-wrap">
-            <div class="sparkline-header">
-              <div class="sparkline-title">
-                <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
-                Network Call Activity
-              </div>
-              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
+        <!-- 2-column hero grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-bottom:40px">
+          <!-- Left: headline + CTA -->
+          <div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">On-chain SLA Infrastructure</div>
+            <h1 style="font-size:36px;font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:16px">Service guarantees,<br>enforced on-chain.</h1>
+            <p id="heroSubtitle" class="lead" style="font-size:15px;line-height:1.6;color:var(--text-dim);margin-bottom:24px;max-width:440px">
+              Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" id="connectBtn2" style="padding:10px 24px;font-size:14px">Connect wallet</button>
+              <a href="/" style="display:inline-flex;align-items:center;padding:10px 20px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);text-decoration:none;font-weight:500;background:var(--bg-1)">Learn more →</a>
             </div>
-            <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(34,197,94,0.15)"/>
-                  <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
-                </linearGradient>
-              </defs>
-              <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
-              <path class="sparkline-line" id="sparklinePath"/>
-            </svg>
+          </div>
+          <!-- Right: stats + sparkline -->
+          <div>
+            <div class="hero-stats" style="margin-bottom:20px">
+              <div class="hero-stat">
+                <div class="hero-stat-num" id="heroProviders">—</div>
+                <div class="hero-stat-label">Providers</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-num" id="heroCalls">—</div>
+                <div class="hero-stat-label">Calls on-chain</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-num" id="heroSlashes">—</div>
+                <div class="hero-stat-label">Slashes</div>
+              </div>
+            </div>
+            <!-- Hero Sparkline Chart -->
+            <div id="heroSparkline">
+              <div class="sparkline-wrap">
+                <div class="sparkline-header">
+                  <div class="sparkline-title">
+                    <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+                    Network Call Activity
+                  </div>
+                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
+                </div>
+                <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="rgba(34,197,94,0.15)"/>
+                      <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
+                  <path class="sparkline-line" id="sparklinePath"/>
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
