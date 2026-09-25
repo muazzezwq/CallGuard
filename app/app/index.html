@@ -2066,9 +2066,9 @@
          HOW IT WORKS — PREMIUM REDESIGN
          ======================================================== */
       .explainer {
-        margin: 64px auto 0;
-        max-width: 1160px;
-        padding: 0 20px;
+        margin: 48px 0 0;
+        max-width: 100%;
+        padding: 0;
         text-align: left;
       }
 
@@ -5072,7 +5072,8 @@
       .hero-stat-num { font-size: 18px !important; }
 
       /* How it works — tek kolon */
-      .explainer-grid { grid-template-columns: 1fr !important; }
+      .explainer-grid { grid-template-columns: repeat(2,1fr) !important; }
+      @media (max-width: 700px) { .explainer-grid { grid-template-columns: 1fr !important; } }
       .scenario { padding: 16px !important; }
 
       /* Topbar */
@@ -5351,10 +5352,14 @@
     .hero-stat-label { font-size: 11px !important; text-transform: uppercase !important; letter-spacing: .06em !important; }
     .hero-stats { gap: 40px !important; margin-top: 40px !important; justify-content: flex-start !important; }
 
-    /* ── App content: no extra padding when sidebar hidden ── */
-    body.no-sidebar .app-content,
-    body:not(.sidebar-open) .app-content {
-      margin-left: 0 !important;
+    /* ── App content: sidebar always visible on desktop ── */
+    @media (min-width: 769px) {
+      .app-content { margin-left: 192px !important; }
+      .sidebar { display: flex !important; }
+    }
+    @media (max-width: 768px) {
+      .app-content { margin-left: 0 !important; }
+      .sidebar { display: none !important; }
     }
 
     /* ── Overview grid: 2 col on desktop, 1 on mobile ── */
