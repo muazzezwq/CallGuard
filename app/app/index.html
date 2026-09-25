@@ -5339,6 +5339,104 @@
       .app-content { padding-bottom: 0 !important; }
     }
 
+    /* ---- Action cards (replaces accordion) ---- */
+    .action-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg-1);
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.15s;
+    }
+    .action-card:hover { box-shadow: var(--shadow-sm); }
+    .action-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      gap: 12px;
+    }
+    .action-card-head:hover { background: var(--bg-2); }
+    .action-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-card-sub {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+    .action-card-chevron {
+      color: var(--text-faint);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .action-card.open .action-card-chevron { transform: rotate(180deg); }
+    .action-card-body {
+      display: none;
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .action-card.open .action-card-body { display: block; }
+
+    /* ---- Call timeline rows ---- */
+    .call-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      transition: background 0.1s;
+    }
+    .call-row:last-child { border-bottom: none; }
+    .call-row:hover { background: var(--bg-2); }
+    .call-status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .call-status-dot.open { background: var(--warn); }
+    .call-status-dot.settled { background: var(--accent); }
+    .call-status-dot.slashed { background: var(--danger); }
+    .call-status-dot.expired { background: var(--text-faint); }
+    .call-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .call-badge.open { background: var(--warn-bg); color: var(--warn); }
+    .call-badge.settled { background: var(--accent-bg); color: var(--accent); }
+    .call-badge.slashed { background: var(--danger-bg); color: var(--danger); }
+    .call-badge.expired { background: var(--bg-3); color: var(--text-faint); }
+
+    /* ---- Settings clean form ---- */
+    .settings-section {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    .settings-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 14px;
+    }
     </style>
   </head>
   <body>
@@ -5973,17 +6071,15 @@
             <h2>Actions</h2>
           </div>
           <div class="panel-body compact">
-            <div class="panel-desc-band">
-              <div class="panel-desc-icon">⚡</div>
-              <div class="panel-desc-text">
-                <strong>What can you do here?</strong>
-                <p><b>Register</b> to become a provider (stake USDC, commit to SLA). <b>Call a service</b> to pay a provider per request. <b>Submit receipt</b> if you're a provider responding to a call. <b>Claim timeout</b> if a provider missed the deadline — you get a refund + slash reward.</p>
+            <div class="action-card" id="actionRegister">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Register as provider</div>
+                  <div class="action-card-sub">Stake USDC · Define your SLA terms</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
-              <span class="panel-desc-toggle" onclick="this.closest('.panel-desc-band').classList.toggle('collapsed')">Hide</span>
-            </div>
-            <details class="action" id="actionRegister">
-              <summary>Register as provider <span class="panel-badge">Stake USDC · Define SLA</span></summary>
-              <div class="action-body">
+              <div class="action-card-body">
                 <div class="field">
                   <label>Signer address <span class="tip" data-tip="The address whose key will sign each receipt you deliver. Keep the owner (payout) key cold and the signer key hot for safety. Leave blank to use your current address.">?</span></label>
                   <input type="text" id="regSigner" placeholder="0x… (defaults to your address)" />
@@ -6030,7 +6126,7 @@
                 </div>
 
                 <div class="calc-box">
-                  <div class="calc-head">📊 Live calculator</div>
+                  <div class="calc-head">Live calculator</div>
                   <div class="calc-row">
                     <span class="calc-label">Stake locked</span>
                     <span class="calc-value" id="calcStake">10.00 USDC</span>
@@ -6053,18 +6149,26 @@
                   </div>
                 </div>
 
-                <button class="btn btn-primary" id="btnRegisterV2">🔐 Register with NFT — recommended</button>
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-                  <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Advanced</div>
-                  <button class="btn" id="btnRegister" style="width:100%;font-size:13px">Register without NFT (basic)</button>
-                  <div style="font-size:11px;color:var(--text-faint);margin-top:6px;line-height:1.5">The NFT version mints an ERC-8004 AgentIdentity and registers in one flow. The basic version skips the NFT.</div>
-                </div>
+                <button class="btn btn-primary" id="btnRegisterV2">Register with NFT identity</button>
+                <details style="margin-top:10px">
+                  <summary style="font-size:11px;color:var(--text-faint);cursor:pointer;user-select:none">Advanced options</summary>
+                  <div style="margin-top:8px">
+                    <button class="btn" id="btnRegister" style="width:100%;font-size:13px">Register without NFT (basic)</button>
+                    <div style="font-size:11px;color:var(--text-faint);margin-top:6px;line-height:1.5">Basic registration skips the ERC-8004 AgentIdentity NFT.</div>
+                  </div>
+                </details>
               </div>
-            </details>
+            </div>
 
-            <details class="action" id="actionCall">
-              <summary>Call a service <span style="font-size:11px;background:rgba(5,150,105,0.15);color:var(--accent);padding:2px 8px;border-radius:100px;margin-left:6px;font-weight:600">⚡ Gas-free</span></summary>
-              <div class="action-body">
+            <div class="action-card open" id="actionCall">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Call a service <span style="font-size:11px;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:100px;margin-left:8px;font-weight:600">Gas-free</span></div>
+                  <div class="action-card-sub">Pay a provider per request · EIP-3009 off-chain auth</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="action-card-body">
                 <div style="background:var(--accent-bg);border:1px solid rgba(5,150,105,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim)">
                   <strong style="color:var(--accent)">No gas required.</strong> You sign an EIP-3009 authorization off-chain — no USDC approval tx, no gas fee. The facilitator pays gas on your behalf and settles the payment on Arc in a single transaction.
                 </div>
@@ -6102,15 +6206,28 @@
                 <div id="callPreview" style="display:none; margin:4px 0 10px; padding:10px 12px; background:var(--info-bg); border:1px solid rgba(37,99,235,0.2); border-radius:8px; font-size:12px; line-height:1.5; color:var(--text-dim)">
                   <strong style="color:var(--info)">What happens:</strong> <span id="callPreviewText">—</span>
                 </div>
-                <button class="btn btn-primary" id="btnCall">Approve & call</button>
-                <button class="btn" id="btnX402Call" style="margin-top:8px">⚡ Call via x402</button>
-                <button class="btn" data-open-wizard style="margin-top:8px;border-color:#8b5cf6;color:#8b5cf6">🧙 Use Call Wizard</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                  <button class="btn btn-primary" id="btnCall" style="flex:1;min-width:140px">Approve & call</button>
+                  <button class="btn" id="btnX402Call" style="flex:1;min-width:120px">Call via x402</button>
+                </div>
+                <details style="margin-top:10px">
+                  <summary style="font-size:11px;color:var(--text-faint);cursor:pointer;user-select:none">More options</summary>
+                  <div style="margin-top:8px">
+                    <button class="btn" data-open-wizard style="width:100%">Use Call Wizard</button>
+                  </div>
+                </details>
               </div>
-            </details>
+            </div>
 
-            <details class="action" id="actionReceipt">
-              <summary>Submit receipt <span class="panel-badge">Provider · Release escrow</span></summary>
-              <div class="action-body">
+            <div class="action-card" id="actionReceipt">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Submit receipt</div>
+                  <div class="action-card-sub">Provider · Sign and release escrow</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="action-card-body">
                 <div class="field">
                   <label>Call ID (bytes32) <span class="tip" data-tip="The unique ID assigned when the caller opened this call. If you just opened a call above, this field was auto-filled for you.">?</span></label>
                   <input type="text" id="rcpCallId" placeholder="0x… — auto-filled after Approve & call" />
@@ -6127,11 +6244,17 @@
                 </div>
                 <button class="btn btn-primary" id="btnReceipt">Sign & submit</button>
               </div>
-            </details>
+            </div>
 
-            <details class="action" id="actionTimeout">
-              <summary>Claim timeout <span class="panel-badge">Caller · Slash + refund</span></summary>
-              <div class="action-body">
+            <div class="action-card" id="actionTimeout">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Claim timeout</div>
+                  <div class="action-card-sub">Caller · Slash provider + get refund</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="action-card-body">
                 <div class="field">
                   <label>Call ID (bytes32) <span class="tip" data-tip="ID of a call you opened that passed its SLA deadline without a receipt. Claiming refunds your payment and slashes a percentage of the provider's stake to you.">?</span></label>
                   <input type="text" id="toCallId" placeholder="0x…" />
@@ -6142,11 +6265,17 @@
                 </div>
                 <button class="btn btn-danger" id="btnTimeout">Claim timeout</button>
               </div>
-            </details>
+            </div>
 
-            <details class="action" id="actionRouter">
-              <summary>Auto-router <span class="panel-badge">Best provider by score</span></summary>
-              <div class="action-body">
+            <div class="action-card" id="actionRouter">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Auto-router</div>
+                  <div class="action-card-sub">Best provider by reputation score</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="action-card-body">
                 <p style="font-size:13px;color:var(--text-dim);margin:0 0 10px">Automatically selects the provider with the highest reputation score that is currently active. You can set a max price filter.</p>
                 <div class="field-row">
                   <div class="field">
@@ -6161,11 +6290,17 @@
                 <button class="btn btn-primary" id="btnRouter">Find best provider</button>
                 <div class="router-result" id="routerResult"></div>
               </div>
-            </details>
+            </div>
 
-            <details class="action" id="actionMulti">
-              <summary>Multi-provider call <span class="panel-badge">Parallel · Fastest wins</span></summary>
-              <div class="action-body">
+            <div class="action-card" id="actionMulti">
+              <div class="action-card-head" onclick="this.closest('.action-card').classList.toggle('open')">
+                <div>
+                  <div class="action-card-title">Multi-provider call</div>
+                  <div class="action-card-sub">Parallel calls · Fastest receipt wins</div>
+                </div>
+                <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="action-card-body">
                 <p style="font-size:13px;color:var(--text-dim);margin:0 0 10px">Send the same request to multiple providers simultaneously. The first one to submit a valid receipt gets paid; the others are ignored (calls time out naturally).</p>
                 <div class="field">
                   <label>Provider IDs <span class="tip" data-tip="Enter up to 3 provider IDs. The same request will be sent to all of them. First receipt wins.">?</span></label>
@@ -6177,11 +6312,13 @@
                   <label>Request payload</label>
                   <textarea id="multiPayload" rows="2" placeholder="any string — will be hashed on-chain">ping</textarea>
                 </div>
-                <button class="btn btn-primary" id="btnMultiCall">Approve &amp; call all</button>
-                <button class="btn btn-accent" id="btnMultiCallNative" style="background:linear-gradient(135deg,#059669,#0284c7);color:#fff">⚡ Multicall3From (1 tx)</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-primary" id="btnMultiCall" style="flex:1">Approve & call all</button>
+                  <button class="btn" id="btnMultiCallNative" style="flex:1">Multicall3 (1 tx)</button>
+                </div>
                 <div id="multiCallResults" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
               </div>
-            </details>
+            </div>
 
           </div>
         </section>
@@ -6433,9 +6570,8 @@
 
         <section class="panel full-width" data-category="calls">
           <div class="panel-head">
-            <h2>Your calls</h2>
-            <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="callsSummary"
-              ></span>
+            <h2>My Calls</h2>
+            <span class="mono" style="font-size:11px;color:var(--text-faint)" id="callsSummary"></span>
           </div>
           <div class="panel-body compact" id="callsBox">
             <div class="empty-state" style="padding:32px;text-align:center">
@@ -6471,7 +6607,7 @@
 
         <section class="panel full-width" data-category="nano">
           <div class="panel-head">
-            <h2>⚡ Nanopayment</h2>
+            <h2>Nanopayment</h2>
             </div>
             <div class="panel-body">
             <div class="panel-desc-band">
@@ -6652,7 +6788,7 @@ npm install</pre>
         <!-- AGENT MARKETPLACE -->
         <section class="panel full-width" data-category="marketplace">
           <div class="panel-head">
-            <h2>🛒 Agent Marketplace</h2>
+            <h2>Agent Marketplace</h2>
             </div>
             <div class="panel-body">
             <div class="panel-desc-band">
@@ -6692,7 +6828,7 @@ npm install</pre>
         <!-- WEBHOOK NOTIFICATIONS -->
         <section class="panel full-width" data-category="webhooks">
           <div class="panel-head">
-            <h2>🔔 Webhook Notifications</h2>
+            <h2>Webhooks</h2>
             </div>
             <div class="panel-body">
             <div class="panel-desc-band">
@@ -6933,7 +7069,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
         <section class="panel" data-category="settings">
           <div class="panel-head">
-            <h2>🔄 My Subscriptions</h2>
+            <h2>My Subscriptions</h2>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">active plans</span>
           </div>
           <div class="panel-body">
@@ -12896,7 +13032,7 @@ console.log("call opened:", tx.hash);`;
   <div class="sub-overlay" id="subOverlay">
     <div class="sub-box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2>🔄 Subscribe to Provider</h2>
+        <h2>Subscribe to Provider</h2>
         <button class="wizard-close" id="subClose">✕</button>
       </div>
       <p style="font-size:12px;color:var(--text-faint);margin-bottom:16px;line-height:1.6">
