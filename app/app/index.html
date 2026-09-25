@@ -218,8 +218,7 @@
         position: sticky;
         top: 0;
         z-index: 100;
-        backdrop-filter: blur(20px) saturate(180%);
-        background: rgba(10, 14, 20, 0.92);
+        background: var(--bg-1);
         border-bottom: 1px solid var(--border);
       }
 
@@ -5437,6 +5436,254 @@
       color: var(--text-faint);
       margin-bottom: 14px;
     }
+
+    /* ── Dedicated page layout ── */
+    .page-screen {
+      min-height: calc(100vh - 52px);
+      padding: 32px 40px;
+      max-width: 1280px;
+    }
+    .page-header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 4px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin: 0;
+    }
+    .page-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Metric grid ── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 900px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .metric-grid { grid-template-columns: 1fr; } }
+    .metric-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .metric-card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+    .metric-card-value {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+    }
+    .metric-card-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+    .metric-card-accent { border-left: 3px solid var(--accent); }
+    .metric-card-danger  { border-left: 3px solid var(--danger); }
+    .metric-card-info    { border-left: 3px solid var(--info); }
+
+    /* ── Two column builder layout ── */
+    .builder-grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 860px) { .builder-grid { grid-template-columns: 1fr; } }
+    .builder-form-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+    .builder-summary-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: sticky;
+      top: 72px;
+    }
+    .builder-summary-card h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-faint);
+      margin: 0 0 16px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .summary-row:last-of-type { border-bottom: none; }
+    .summary-row-label { color: var(--text-dim); }
+    .summary-row-value { font-family: var(--font-mono); font-weight: 500; color: var(--text); }
+    .summary-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--accent-bg);
+      color: var(--accent);
+    }
+
+    /* ── Activity feed ── */
+    .activity-feed { display: flex; flex-direction: column; gap: 0; }
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .activity-dot-green { background: var(--accent); }
+    .activity-dot-red   { background: var(--danger); }
+    .activity-dot-blue  { background: var(--info); }
+    .activity-dot-gray  { background: var(--border-hi); }
+    .activity-title { font-size: 13px; font-weight: 500; color: var(--text); }
+    .activity-sub   { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+    .activity-time  { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); margin-left: auto; white-space: nowrap; }
+
+    /* ── Data table ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-faint);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--bg-2); }
+    .data-table td.mono-cell { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .status-pill-green { background: var(--accent-bg); color: var(--accent); }
+    .status-pill-red   { background: var(--danger-bg); color: var(--danger); }
+    .status-pill-blue  { background: var(--info-bg); color: var(--info); }
+    .status-pill-gray  { background: var(--bg-3); color: var(--text-dim); }
+
+    /* ── Content card ── */
+    .content-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .content-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .content-card-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .content-card-body { padding: 0; }
+    .content-card-body-padded { padding: 20px; }
+
+    /* ── Dashboard 2-col layout ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    /* ── Form group ── */
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--text);
+      transition: border-color .15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22,163,74,.08);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* Make app-content use page-screen padding */
+    .app-content > div[style] { padding: 0 !important; }
     </style>
   </head>
   <body>
@@ -5900,77 +6147,61 @@
               <div class="sb-net">Arc Testnet</div>
             </div>
           </div>
-          <div class="sb-section">Main</div>
+          <div class="sb-section">Workspace</div>
           <div class="sb-item on" data-nav="overview">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </span>
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
             Overview
           </div>
+          <div class="sb-item" data-nav="x402">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            Call Builder
+          </div>
           <div class="sb-item" data-nav="marketplace">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            </span>
-            Marketplace
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
+            Services
           </div>
 
-          <div class="sb-section">As Caller</div>
-          <div class="sb-item" data-nav="calls" data-role="caller">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            </span>
-            My Calls
+          <div class="sb-section">Operations</div>
+          <div class="sb-item" data-nav="calls">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+            Requests
           </div>
-          <div class="sb-item" data-nav="x402" data-role="caller">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            </span>
-            Call via x402
-          </div>
-          <div class="sb-item" data-nav="nano" data-role="caller">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-            </span>
-            Nanopayment
-          </div>
-
-          <div class="sb-section">As Provider</div>
-          <div class="sb-item" data-nav="register" data-role="provider">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            </span>
-            Register
-          </div>
-          <div class="sb-item" data-nav="providers" data-role="provider">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </span>
+          <div class="sb-item" data-nav="providers">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
             Providers
           </div>
+          <div class="sb-item" data-nav="nano">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+            Receipts
+          </div>
 
-          <div class="sb-section">Advanced</div>
-          <div class="sb-item" data-nav="jobs">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-            </span>
-            Jobs
-          </div>
-          <div class="sb-item" data-nav="mcp">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </span>
-            MCP Agent
-          </div>
+          <div class="sb-section">Settlement</div>
           <div class="sb-item" data-nav="analytics">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            </span>
-            Analytics
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            Payments
+          </div>
+          <div class="sb-item" data-nav="jobs">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z"/></svg></span>
+            Claims
+          </div>
+
+          <div class="sb-section">Developer</div>
+          <div class="sb-item" data-nav="mcp">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+            API
+          </div>
+          <div class="sb-item" data-nav="webhooks">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+            Webhooks
+          </div>
+
+          <div class="sb-section">System</div>
+          <div class="sb-item" data-nav="register">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
+            Register
           </div>
           <div class="sb-item" data-nav="settings">
-            <span class="sb-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </span>
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
             Settings
           </div>
         </nav>
@@ -6067,7 +6298,7 @@
 
       <div class="grid">
         <!-- Left: Actions -->
-        <section class="panel cat-visible" data-category="overview register calls x402 bridge">          <div class="panel-head">
+        <section class="panel cat-visible" data-category="overview">          <div class="panel-head">
             <h2>Actions</h2>
           </div>
           <div class="panel-body compact">
@@ -6323,6 +6554,107 @@
           </div>
         </section>
 
+        <!-- ── Call Builder (dedicated screen) ── -->
+        <section class="panel full-width" data-category="x402" style="background:transparent;border:none;box-shadow:none;padding:0">
+          <div class="page-screen" style="padding:32px 40px;max-width:1280px">
+            <div class="page-header">
+              <div class="page-header-row">
+                <div>
+                  <h1>Call Builder</h1>
+                  <p>Configure and execute an API call with on-chain SLA enforcement.</p>
+                </div>
+                <span class="summary-status-badge">
+                  <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
+                  Gas-free · EIP-3009
+                </span>
+              </div>
+            </div>
+            <div class="builder-grid">
+              <!-- Left: form -->
+              <div class="builder-form-card">
+                <div style="background:var(--accent-bg);border:1px solid rgba(22,163,74,0.15);border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:var(--text-dim);line-height:1.5">
+                  <strong style="color:var(--accent)">No gas required.</strong> You sign an EIP-3009 authorization off-chain. The facilitator pays gas on your behalf and settles the payment on Arc in a single transaction.
+                </div>
+                <div class="form-group">
+                  <label>Pay from chain</label>
+                  <select id="sourceChainSelect2" onchange="document.getElementById('sourceChainSelect').value=this.value;document.getElementById('sourceChainSelect2').value=this.value;updateSourceChainHint()">
+                    <option value="arc">Arc Testnet (direct)</option>
+                    <option value="sepolia">Ethereum Sepolia (via CCTP)</option>
+                    <option value="base">Base Sepolia (via CCTP)</option>
+                    <option value="amoy">Polygon Amoy (via CCTP)</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Provider ID</label>
+                    <input type="text" id="callProviderId2" placeholder="1" oninput="document.getElementById('callProviderId').value=this.value;updateCallPreview();updateBuilderSummary()" />
+                  </div>
+                  <div class="form-group">
+                    <label>Request payload</label>
+                    <input type="text" id="callPayload2" placeholder="ping" oninput="document.getElementById('callPayload').value=this.value;updateBuilderSummary()" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Call ID (for receipt / timeout)</label>
+                  <input type="text" id="rcpCallId2" placeholder="Auto-filled after call" class="mono" oninput="document.getElementById('rcpCallId').value=this.value" />
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="document.getElementById('btnCall').click()">Approve &amp; call</button>
+                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px" onclick="document.getElementById('btnX402Call').click()">Call via x402</button>
+                </div>
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:12px">Provider actions</div>
+                  <div class="form-group">
+                    <label>Response payload</label>
+                    <input type="text" id="rcpPayload2" placeholder="pong" oninput="document.getElementById('rcpPayload').value=this.value" />
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn" style="flex:1" onclick="document.getElementById('btnReceipt').click()">Submit receipt</button>
+                    <button class="btn btn-danger" style="flex:1" onclick="document.getElementById('btnTimeout').click()">Claim timeout</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Right: execution summary -->
+              <div class="builder-summary-card">
+                <h3>Execution Summary</h3>
+                <div class="summary-row">
+                  <span class="summary-row-label">Provider</span>
+                  <span class="summary-row-value" id="bsProvider">#—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">Price</span>
+                  <span class="summary-row-value" id="bsPrice">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">SLA window</span>
+                  <span class="summary-row-value" id="bsSla">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">Slash %</span>
+                  <span class="summary-row-value" id="bsSlash">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">Network</span>
+                  <span class="summary-row-value">Arc Testnet</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">Settlement</span>
+                  <span class="summary-row-value">On-chain</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-row-label">Payment type</span>
+                  <span class="summary-row-value">EIP-3009</span>
+                </div>
+                <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="document.getElementById('btnCall').click()">Review &amp; Execute →</button>
+                <div id="bsCallId" style="margin-top:12px;display:none">
+                  <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Last Call ID</div>
+                  <div class="mono" style="font-size:11px;word-break:break-all;color:var(--text-dim)" id="bsCallIdVal">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Right: Live state -->
         <section class="panel" data-category="providers">
           <div class="panel-head">
@@ -6468,7 +6800,22 @@
         </section>
 
         <!-- Overview: Network stats dashboard -->
-        <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection">
+        <section class="panel full-width cat-visible" data-category="overview" id="overviewDashSection" style="background:transparent;border:none;box-shadow:none;padding:0">
+          <div class="page-screen">
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Overview</h1>
+                <p>Monitor your services, requests and settlements on Arc Testnet.</p>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-faint);background:var(--bg-1);border:1px solid var(--border);border-radius:20px;padding:5px 12px">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block"></span>
+                  Arc Testnet · Live
+                </span>
+              </div>
+            </div>
+          </div>
           <!-- Progress Tracker -->
           <div id="progressTracker" style="display:none;margin-bottom:20px;background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:16px 20px">
             <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px">Getting started</div>
@@ -6551,6 +6898,7 @@
               </div>
             </div>
           </div>
+          </div><!-- /page-screen -->
         </section>
 
         <!-- My Activity -->
@@ -13917,6 +14265,48 @@ console.log("call opened:", tx.hash);`;
   setTimeout(() => {
     if (window.state?.account) { checkNetwork(); updateProgressTracker(); applyGlossary(); }
   }, 3000);
+
+  // ── Builder summary live update ──
+  function updateBuilderSummary() {
+    const pid = (document.getElementById('callProviderId2')?.value || document.getElementById('callProviderId')?.value || '—').trim();
+    document.getElementById('bsProvider').textContent = pid ? '#' + pid : '#—';
+    // Try to read from state.providers
+    const providers = window.state?.providers || [];
+    const p = providers.find(x => String(x.id) === String(pid) || String(x.providerId) === String(pid));
+    if (p) {
+      document.getElementById('bsPrice').textContent = (parseFloat(p.pricePerCall || p.price || 0) / 1e6).toFixed(4) + ' USDC';
+      document.getElementById('bsSla').textContent = (p.maxResponseTime || p.slaWindow || '—') + 's';
+      document.getElementById('bsSlash').textContent = ((p.slashBps || 0) / 100).toFixed(0) + '%';
+    } else {
+      document.getElementById('bsPrice').textContent = '—';
+      document.getElementById('bsSla').textContent = '—';
+      document.getElementById('bsSlash').textContent = '—';
+    }
+    // Sync call ID
+    const cid = document.getElementById('rcpCallId')?.value;
+    if (cid) {
+      const bsCid = document.getElementById('bsCallId');
+      const bsCidVal = document.getElementById('bsCallIdVal');
+      if (bsCid && bsCidVal) { bsCid.style.display = 'block'; bsCidVal.textContent = cid.slice(0,10) + '...' + cid.slice(-6); }
+    }
+  }
+  // Keep builder inputs in sync with main inputs
+  document.getElementById('callProviderId')?.addEventListener('input', e => {
+    const el = document.getElementById('callProviderId2');
+    if (el) el.value = e.target.value;
+    updateBuilderSummary();
+  });
+  document.addEventListener('cg:txSuccess', e => {
+    const callId = e.detail?.callId || document.getElementById('rcpCallId')?.value;
+    if (callId) {
+      const el = document.getElementById('rcpCallId2');
+      if (el) el.value = callId;
+      const bsCid = document.getElementById('bsCallId');
+      const bsCidVal = document.getElementById('bsCallIdVal');
+      if (bsCid && bsCidVal) { bsCid.style.display = 'block'; bsCidVal.textContent = callId.slice(0,10) + '...' + callId.slice(-6); }
+    }
+    updateBuilderSummary();
+  });
   </script>
 
   <!-- ── Role selection modal ── -->
