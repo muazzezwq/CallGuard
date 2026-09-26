@@ -10318,9 +10318,18 @@ async function refreshBalance() {
                   toast({ kind: "ok", title: "Call ID copied", timeout: 2000 });
                 });
               } else if (a === "fill-receipt") {
+                // Fill receipt form, open Overview panel and scroll to it
                 $("rcpCallId").value = id;
-                $("actionReceipt").open = true;
-                $("rcpPayload").focus();
+                showCategory("overview");
+                setTimeout(() => {
+                  const card = $("actionReceipt");
+                  if (card) {
+                    const body = card.querySelector(".action-card-body");
+                    if (body) body.style.display = "block";
+                    card.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                  if ($("rcpPayload")) $("rcpPayload").focus();
+                }, 300);
               } else if (a === "fill-timeout") {
                 $("toCallId").value = id;
                 doTimeout();
