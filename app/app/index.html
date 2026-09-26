@@ -5370,6 +5370,15 @@
       grid-template-columns: 1fr 1fr !important;
       gap: 12px !important;
     }
+    /* Overview: collapse gaps between sibling sections */
+    section.panel[data-category="overview"] + section.panel[data-category="overview"],
+    section.panel[data-category="calls"] + section.panel[data-category="calls"] {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    section.panel[data-category="overview"]:not(#overviewDashSection) {
+      margin-top: 0 !important;
+    }
     @media (max-width: 700px) {
       .ov-grid-2 { grid-template-columns: 1fr !important; }
       .disconnected { padding: 28px 20px 24px !important; max-width: 100% !important; text-align: left !important; }
@@ -6968,22 +6977,21 @@
               </div>
             </div>
           </div>
-          </div><!-- /page-screen -->
-        </section>
-
-        <!-- My Activity -->
-        <section class="panel full-width cat-visible" data-category="overview">
-          <div class="panel-head">
-            <h2>My Activity</h2>
-            <span class="mono" style="font-size: 11px; color: var(--text-faint)" id="activitySummary"></span>
-          </div>
-          <div class="panel-body compact" id="activityBox">
-            <div class="empty-state" style="padding:32px;text-align:center">
-              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Connect your wallet</div>
-              <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">Your on-chain call history, receipts and settlements will appear here.</div>
-              <button onclick="document.querySelector('.connect-btn')?.click()" style="padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer">Connect wallet →</button>
+          <!-- My Activity -->
+          <div style="margin-top:20px;background:var(--bg-1);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)">My Activity</span>
+              <span class="mono" style="font-size:11px;color:var(--text-faint)" id="activitySummary"></span>
+            </div>
+            <div id="activityBox" style="padding:8px 0">
+              <div style="padding:32px;text-align:center">
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Connect your wallet</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">Your on-chain call history, receipts and settlements will appear here.</div>
+                <button onclick="document.querySelector('.connect-btn')?.click()" style="padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer">Connect wallet →</button>
+              </div>
             </div>
           </div>
+          </div><!-- /page-screen -->
         </section>
 
         <section class="panel full-width" data-category="calls">
