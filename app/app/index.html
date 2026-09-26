@@ -6390,6 +6390,29 @@
                 <svg class="action-card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
               <div class="action-card-body">
+                <!-- Starter preset banner -->
+                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Recommended starter values</div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+                    <div style="text-align:center;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:8px">
+                      <div style="font-size:16px;font-weight:700;font-family:var(--font-mono);color:var(--text)">10</div>
+                      <div style="font-size:10px;color:var(--text-faint)">USDC stake</div>
+                    </div>
+                    <div style="text-align:center;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:8px">
+                      <div style="font-size:16px;font-weight:700;font-family:var(--font-mono);color:var(--text)">1</div>
+                      <div style="font-size:10px;color:var(--text-faint)">USDC/call</div>
+                    </div>
+                    <div style="text-align:center;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:8px">
+                      <div style="font-size:16px;font-weight:700;font-family:var(--font-mono);color:var(--text)">120s</div>
+                      <div style="font-size:10px;color:var(--text-faint)">SLA window</div>
+                    </div>
+                    <div style="text-align:center;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:8px">
+                      <div style="font-size:16px;font-weight:700;font-family:var(--font-mono);color:var(--text)">10%</div>
+                      <div style="font-size:10px;color:var(--text-faint)">slash</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" id="btnFillDefaults2" onclick="document.getElementById('btnFillDefaults').click()" style="width:100%;font-size:12px;padding:7px">Use these values →</button>
+                </div>
                 <div class="field">
                   <label>Signer address <span class="tip" data-tip="The address whose key will sign each receipt you deliver. Keep the owner (payout) key cold and the signer key hot for safety. Leave blank to use your current address.">?</span></label>
                   <input type="text" id="regSigner" placeholder="0x… (defaults to your address)" />
@@ -6678,8 +6701,14 @@
                   <input type="text" id="rcpCallId2" placeholder="Auto-filled after call" class="mono" oninput="document.getElementById('rcpCallId').value=this.value" />
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
-                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="document.getElementById('btnCall').click()">Approve &amp; call</button>
-                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px" onclick="document.getElementById('btnX402Call').click()">Call via x402</button>
+                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="document.getElementById('btnCall').click()">
+                    Standard call
+                    <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">MetaMask approval required</span>
+                  </button>
+                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px;border-color:var(--accent);color:var(--accent)" onclick="document.getElementById('btnX402Call').click()">
+                    ⚡ Gas-free call
+                    <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">Recommended · No approval TX</span>
+                  </button>
                 </div>
                 <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
                   <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:12px">Provider actions</div>
@@ -6959,6 +6988,7 @@
                 <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Honor Rate</div>
                 <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--accent);line-height:1" id="ovHonor">—</div>
                 <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="ovHonorSub">completed / closed</div>
+                <div style="font-size:10px;color:var(--text-faint);margin-top:6px;padding:4px 8px;background:var(--bg-2);border-radius:4px;border:1px solid var(--border)">⚠ Testnet data — real slashing on mainnet</div>
               </div>
             </div>
             <div class="ov-grid-2">
@@ -9643,6 +9673,8 @@ async function refreshBalance() {
             });
             if (window.confetti) window.confetti();
             document.dispatchEvent(new CustomEvent('cg:txSuccess', { detail: { type: 'call' } }));
+            // Show "what happens next" flow
+            showNextStepFlow(providerId, callId, priceNum);
             pushActivity({
               type: "call",
               icon: "📞",
@@ -10147,8 +10179,8 @@ async function refreshBalance() {
                 </div>
                 <div style="display: flex; gap: 6px">
                   <button class="btn btn-sm" data-action="copy-id" data-callid="${c.callId}" title="Copy call ID">⎘ ID</button>
-                  ${canSubmit ? `<button class="btn btn-sm" data-action="fill-receipt" data-callid="${c.callId}">receipt</button>` : ""}
-                  ${canTimeout ? `<button class="btn btn-sm btn-danger" data-action="fill-timeout" data-callid="${c.callId}">claim slash</button>` : ""}
+                  ${canSubmit ? `<button class="btn btn-sm btn-primary" data-action="fill-receipt" data-callid="${c.callId}" title="Submit signed receipt to settle payment">Submit Receipt →</button>` : ""}
+                  ${canTimeout ? `<button class="btn btn-sm btn-danger" data-action="fill-timeout" data-callid="${c.callId}" title="Provider missed deadline — claim refund + slash reward">Claim Timeout →</button>` : ""}
                 </div>
               </div>
             `;
@@ -14500,6 +14532,87 @@ console.log("call opened:", tx.hash);`;
       }
     };
   }
+  </script>
+
+  <!-- ── What Happens Next modal ── -->
+  <div id="nextStepModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.12)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">Call opened — what happens next?</div>
+        <button onclick="document.getElementById('nextStepModal').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-faint);line-height:1">×</button>
+      </div>
+      <div id="nextStepBody"></div>
+      <div style="margin-top:20px;display:flex;gap:10px">
+        <button class="btn" style="flex:1" onclick="document.getElementById('nextStepModal').style.display='none';window.showCategory&&window.showCategory('calls')">View My Calls →</button>
+        <button class="btn btn-primary" style="flex:1" id="nsSubmitBtn">Submit Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function showNextStepFlow(providerId, callId, priceNum) {
+    const maxResp = 120; // fallback
+    const p = window.state?.allProviders?.find(x => String(x.id) === String(providerId));
+    const sla = p ? (parseInt(p.maxResponseTime) || maxResp) : maxResp;
+    const price = priceNum || 1;
+    const callIdShort = callId ? (String(callId).slice(0,10) + '…') : '—';
+
+    const body = document.getElementById('nextStepBody');
+    if (!body) return;
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--bg-1);border-radius:8px;border:1px solid var(--border)">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Provider responds off-chain</div><div style="font-size:12px;color:var(--text-dim)">Provider #${providerId} has <strong>${sla}s</strong> to deliver a response and sign a receipt.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--bg-1);border-radius:8px;border:1px solid var(--border)">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Submit the signed receipt</div><div style="font-size:12px;color:var(--text-dim)">Once you have the receipt, click <strong>Submit Receipt</strong> below. Call ID <code style="font-family:var(--font-mono);font-size:11px">${callIdShort}</code> is pre-filled.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--bg-1);border-radius:8px;border:1px solid var(--border)">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Settlement completes</div><div style="font-size:12px;color:var(--text-dim)">On-chain SLA verified → <strong>${price} USDC</strong> released to provider. If deadline missed, claim timeout to get a refund + slash reward.</div></div>
+        </div>
+        <div style="padding:10px 12px;background:#fefce8;border:1px solid #fde047;border-radius:8px;font-size:12px;color:#713f12">
+          ⏱ Timeout claimable in <strong>${sla}s</strong> if no receipt arrives — go to <em>Claim Timeout</em> in the Call Builder.
+        </div>
+      </div>`;
+
+    // Wire submit button
+    const btn = document.getElementById('nsSubmitBtn');
+    if (btn) {
+      btn.onclick = () => {
+        document.getElementById('nextStepModal').style.display = 'none';
+        // Open submit receipt accordion
+        const acc = document.querySelector('[data-card="receipt"]');
+        if (acc) acc.open = true;
+        window.showCategory && window.showCategory('calls');
+      };
+    }
+
+    const modal = document.getElementById('nextStepModal');
+    modal.style.display = 'flex';
+  }
+
+  // My Calls: countdown timers
+  function startCallCountdowns() {
+    setInterval(() => {
+      document.querySelectorAll('[data-deadline]').forEach(el => {
+        const dl = parseInt(el.dataset.deadline);
+        if (!dl) return;
+        const remaining = dl - Math.floor(Date.now()/1000);
+        if (remaining > 0) {
+          el.textContent = `Timeout in ${remaining}s`;
+          el.style.color = remaining < 30 ? 'var(--danger)' : 'var(--warn)';
+        } else {
+          el.textContent = 'Claim timeout now';
+          el.style.color = 'var(--danger)';
+          el.style.fontWeight = '600';
+        }
+      });
+    }, 1000);
+  }
+  startCallCountdowns();
   </script>
   </body>
 </html>
