@@ -1,12 +1,15 @@
 {
-  "buildCommand": "",
   "outputDirectory": "app",
   "cleanUrls": true,
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
-    { "source": "/callService", "destination": "/api/call-service" },
-    { "source": "/nano/call",   "destination": "/api/nano-call" },
-    { "source": "/nano/balance","destination": "/api/nano-balance" },
-    { "source": "/api/(.*)",    "destination": "/api/$1" }
+    { "source": "/callService",    "destination": "/api/call-service" },
+    { "source": "/nano/call",      "destination": "/api/nano-call" },
+    { "source": "/nano/balance",   "destination": "/api/nano-balance" }
   ],
   "headers": [
     {
