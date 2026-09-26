@@ -14614,5 +14614,317 @@ console.log("call opened:", tx.hash);`;
   }
   startCallCountdowns();
   </script>
+
+  <!-- GUIDED ONBOARDING FLOW -->
+  <div id="guidedOnboarding" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.15);overflow:hidden">
+
+      <!-- Header -->
+      <div id="goHeader" style="padding:24px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <span style="font-weight:700;font-size:15px;color:var(--text)">CallGuard</span>
+          </div>
+          <button onclick="window.dismissOnboarding()" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:18px;padding:4px;line-height:1">×</button>
+        </div>
+        <!-- Progress bar -->
+        <div style="display:flex;gap:4px;margin-bottom:20px" id="goProgress"></div>
+      </div>
+
+      <!-- Step content -->
+      <div id="goContent" style="padding:0 24px 24px"></div>
+    </div>
+  </div>
+
+  <style>
+    .go-step-title { font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.3 }
+    .go-step-sub { font-size:14px;color:var(--text-dim);margin-bottom:20px;line-height:1.5 }
+    .go-card { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s }
+    .go-card:hover { border-color:var(--accent);background:var(--accent-bg) }
+    .go-card.selected { border-color:var(--accent);background:var(--accent-bg) }
+    .go-card-title { font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px }
+    .go-card-desc { font-size:12px;color:var(--text-dim);line-height:1.4 }
+    .go-btn-primary { width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px }
+    .go-btn-primary:hover { opacity:.9 }
+    .go-btn-primary:disabled { opacity:.4;cursor:not-allowed }
+    .go-btn-secondary { width:100%;padding:10px;background:transparent;color:var(--text-dim);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;margin-top:8px;transition:border-color .15s }
+    .go-btn-secondary:hover { border-color:var(--accent);color:var(--accent) }
+    .go-checklist { list-style:none;padding:0;margin:0 0 16px }
+    .go-checklist li { display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-dim);padding:6px 0;border-bottom:1px solid var(--border) }
+    .go-checklist li:last-child { border-bottom:none }
+    .go-checklist li svg { flex-shrink:0;margin-top:1px }
+    .go-pbar-seg { flex:1;height:3px;border-radius:2px;background:var(--bg-3);transition:background .3s }
+    .go-pbar-seg.done { background:var(--accent) }
+    .go-pbar-seg.active { background:var(--accent);opacity:.5 }
+    .go-success-icon { width:48px;height:48px;background:var(--accent-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px }
+  </style>
+
+  <script>
+  (function() {
+    const KEY = "cg_onboarding_v2";
+    let state_go = { step: 0, role: null, providerId: null };
+
+    function save() { localStorage.setItem(KEY, JSON.stringify(state_go)); }
+    function load() {
+      try { const s = JSON.parse(localStorage.getItem(KEY)||"{}"); if (s.done) return false; state_go = {...state_go,...s}; return true; } catch(e) { return true; }
+    }
+
+    window.dismissOnboarding = function() {
+      state_go.done = true; save();
+      const el = document.getElementById("guidedOnboarding");
+      if (el) el.style.display = "none";
+    };
+
+    window.showGuidedOnboarding = function(force) {
+      if (!force && !load()) return;
+      const el = document.getElementById("guidedOnboarding");
+      if (el) { el.style.display = "flex"; render(); }
+    };
+
+    function render() {
+      const totalSteps = state_go.role ? 3 : 1;
+      const cur = state_go.step;
+
+      // Progress bar
+      const pg = document.getElementById("goProgress");
+      if (pg) {
+        const segs = state_go.role ? 3 : 1;
+        pg.innerHTML = Array.from({length: segs}, (_,i) =>
+          `<div class="go-pbar-seg ${i < cur ? 'done' : i === cur ? 'active' : ''}"></div>`
+        ).join("");
+      }
+
+      const content = document.getElementById("goContent");
+      if (!content) return;
+
+      if (!state_go.role) {
+        // Step 0: Role selection
+        content.innerHTML = `
+          <div class="go-step-title">Welcome to CallGuard</div>
+          <div class="go-step-sub">On-chain SLA enforcement for API calls. Choose how you want to use it:</div>
+          <div class="go-card" id="goCallerCard" onclick="window.goSelectRole('caller')">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:22px">📞</div>
+              <div>
+                <div class="go-card-title">I want to call a service</div>
+                <div class="go-card-desc">Pay per request, get a signed receipt, claim refund if the SLA is missed.</div>
+              </div>
+            </div>
+          </div>
+          <div class="go-card" id="goProviderCard" onclick="window.goSelectRole('provider')">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:22px">🔌</div>
+              <div>
+                <div class="go-card-title">I want to earn as a provider</div>
+                <div class="go-card-desc">Stake USDC, commit to a response-time SLA, earn per request.</div>
+              </div>
+            </div>
+          </div>
+          <button class="go-btn-secondary" onclick="window.dismissOnboarding()">Skip for now</button>
+        `;
+      } else if (state_go.role === "caller") {
+        if (cur === 1) {
+          // Caller step 1: Browse providers
+          content.innerHTML = `
+            <div class="go-step-title">Step 1 — Pick a provider</div>
+            <div class="go-step-sub">Browse available services. Each provider has staked USDC as a reliability commitment.</div>
+            <ul class="go-checklist">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Providers stake USDC — they pay if they miss the deadline</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>You pay only per successful request</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SLA is enforced on-chain — no trust required</li>
+            </ul>
+            <button class="go-btn-primary" onclick="window.goBrowseProviders()">Browse Providers →</button>
+            <button class="go-btn-secondary" onclick="window.goNext()">I already know the provider ID</button>
+          `;
+        } else if (cur === 2) {
+          // Caller step 2: Make the call
+          const provText = state_go.providerId ? `Provider #${state_go.providerId} selected.` : "Enter the provider ID in the form.";
+          content.innerHTML = `
+            <div class="go-step-title">Step 2 — Make your first call</div>
+            <div class="go-step-sub">${provText} The Call Builder is now open on the left. Click <strong>Gas-free (recommended)</strong> to send.</div>
+            <ul class="go-checklist">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Your USDC is escrowed in the contract</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Provider has the SLA window to respond</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>If they miss it — you get a refund + slash reward</li>
+            </ul>
+            <button class="go-btn-primary" onclick="window.goOpenCallBuilder()">Open Call Builder →</button>
+          `;
+        } else if (cur === 3) {
+          // Caller step 3: Done
+          content.innerHTML = `
+            <div class="go-success-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="go-step-title">Call sent!</div>
+            <div class="go-step-sub">Your call is live. Watch the countdown in <strong>My Calls</strong>. If the provider delivers — payment settles. If not — claim your refund.</div>
+            <button class="go-btn-primary" onclick="window.goFinishCaller()">View My Calls →</button>
+            <button class="go-btn-secondary" onclick="window.dismissOnboarding()">Done</button>
+          `;
+        }
+      } else if (state_go.role === "provider") {
+        if (cur === 1) {
+          // Provider step 1: Register
+          content.innerHTML = `
+            <div class="go-step-title">Step 1 — Register your service</div>
+            <div class="go-step-sub">Stake USDC and define your SLA. Recommended starting values are pre-filled.</div>
+            <ul class="go-checklist">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 USDC stake — your reliability commitment</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>1 USDC per call — callers pay this per request</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>120s response window — you have 2 min per call</li>
+            </ul>
+            <button class="go-btn-primary" onclick="window.goOpenRegister()">Open Register Form →</button>
+          `;
+        } else if (cur === 2) {
+          // Provider step 2: TX pending
+          content.innerHTML = `
+            <div class="go-step-title">Step 2 — Approve & stake</div>
+            <div class="go-step-sub">Two transactions: first approve USDC, then register. Both require MetaMask confirmation.</div>
+            <ul class="go-checklist">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>TX 1: Approve USDC spending</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>TX 2: Register service + stake</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Your service goes live immediately after</li>
+            </ul>
+            <button class="go-btn-primary" id="goRegisterBtn" onclick="window.goTriggerRegister()">Register Now →</button>
+            <button class="go-btn-secondary" onclick="window.dismissOnboarding()">I'll do this later</button>
+          `;
+        } else if (cur === 3) {
+          // Provider step 3: Done
+          content.innerHTML = `
+            <div class="go-success-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="go-step-title">You're live!</div>
+            <div class="go-step-sub">Your service is registered on Arc Testnet. Callers can now find and call you. Monitor incoming calls in <strong>My Calls</strong>.</div>
+            <button class="go-btn-primary" onclick="window.goFinishProvider()">View My Service →</button>
+            <button class="go-btn-secondary" onclick="window.dismissOnboarding()">Done</button>
+          `;
+        }
+      }
+    }
+
+    window.goSelectRole = function(role) {
+      state_go.role = role;
+      state_go.step = 1;
+      save();
+      render();
+    };
+
+    window.goNext = function() {
+      state_go.step++;
+      save();
+      render();
+    };
+
+    window.goBrowseProviders = function() {
+      window.dismissOnboarding();
+      // Open providers panel
+      setTimeout(() => {
+        const btn = document.querySelector('[data-nav="providers"]');
+        if (btn) btn.click();
+        // After provider selected, re-open onboarding at step 2
+        window._goWaitingForProvider = true;
+      }, 100);
+    };
+
+    window.goProviderSelected = function(providerId) {
+      if (!window._goWaitingForProvider) return;
+      window._goWaitingForProvider = false;
+      state_go.providerId = providerId;
+      state_go.step = 2;
+      save();
+      const el = document.getElementById("guidedOnboarding");
+      if (el) { el.style.display = "flex"; render(); }
+    };
+
+    window.goOpenCallBuilder = function() {
+      const btn = document.querySelector('[data-nav="x402"]') || document.querySelector('[data-nav="calls"]');
+      if (btn) btn.click();
+      if (state_go.providerId) {
+        setTimeout(() => {
+          const inp = document.getElementById("regProvId") || document.getElementById("callProviderId");
+          if (inp) { inp.value = state_go.providerId; inp.dispatchEvent(new Event("input")); }
+        }, 300);
+      }
+      window.dismissOnboarding();
+      // Listen for successful call
+      window.addEventListener("cg:txSuccess", function handler(e) {
+        if (e.detail?.type === "call") {
+          window.removeEventListener("cg:txSuccess", handler);
+          state_go.step = 3;
+          save();
+          setTimeout(() => {
+            const el = document.getElementById("guidedOnboarding");
+            if (el) { el.style.display = "flex"; render(); }
+          }, 2000);
+        }
+      });
+    };
+
+    window.goFinishCaller = function() {
+      window.dismissOnboarding();
+      const btn = document.querySelector('[data-nav="calls"]');
+      if (btn) btn.click();
+    };
+
+    window.goOpenRegister = function() {
+      const btn = document.querySelector('[data-nav="register"]');
+      if (btn) btn.click();
+      // Fill recommended values
+      setTimeout(() => {
+        const fillBtn = document.getElementById("btnFillDefaults");
+        if (fillBtn) fillBtn.click();
+      }, 300);
+      window.dismissOnboarding();
+      state_go.step = 2;
+      save();
+      setTimeout(() => {
+        const el = document.getElementById("guidedOnboarding");
+        if (el) { el.style.display = "flex"; render(); }
+      }, 500);
+    };
+
+    window.goTriggerRegister = function() {
+      window.dismissOnboarding();
+      const btn = document.getElementById("btnRegister");
+      if (btn) btn.click();
+      // Listen for register TX
+      window.addEventListener("cg:txSuccess", function handler(e) {
+        if (e.detail?.type === "register") {
+          window.removeEventListener("cg:txSuccess", handler);
+          state_go.step = 3;
+          save();
+          setTimeout(() => {
+            const el = document.getElementById("guidedOnboarding");
+            if (el) { el.style.display = "flex"; render(); }
+          }, 2000);
+        }
+      });
+    };
+
+    window.goFinishProvider = function() {
+      window.dismissOnboarding();
+      const btn = document.querySelector('[data-nav="providers"]');
+      if (btn) btn.click();
+    };
+
+    // Trigger onboarding after wallet connect (hook into afterConnect)
+    const _origAfterConnect = window.afterConnect;
+    window.afterConnect = function(...args) {
+      if (_origAfterConnect) _origAfterConnect.apply(this, args);
+      const done = localStorage.getItem(KEY);
+      try { if (JSON.parse(done||"{}").done) return; } catch(e) {}
+      setTimeout(() => window.showGuidedOnboarding(), 800);
+    };
+
+    // cg:txSuccess type tagging — enrich existing events
+    window.addEventListener("cg:txSuccess", function(e) {
+      if (!e.detail?.type) {
+        // Try to infer from detail
+        if (e.detail?.callId) e.detail.type = "call";
+        else if (e.detail?.providerId !== undefined) e.detail.type = "register";
+      }
+    });
+
+  })();
+  </script>
   </body>
 </html>
