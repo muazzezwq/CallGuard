@@ -7057,6 +7057,101 @@
           </div>
         </section>
 
+        <!-- PROVIDER SETUP GUIDE -->
+        <section class="panel" data-category="providers" style="margin-top:0">
+          <div class="panel-head">
+            <h2>Provider Setup Guide</h2>
+            <span style="font-size:11px;color:var(--text-faint)">How to run a CallGuard-compatible service</span>
+          </div>
+          <div class="panel-body" style="padding:20px">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+              <!-- Step 1 -->
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:6px">STEP 1</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Register on-chain</div>
+                <div style="font-size:12px;color:var(--text-dim)">Stake USDC, set your price and SLA. Use the Register panel → fill recommended values → register.</div>
+              </div>
+              <!-- Step 2 -->
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:6px">STEP 2</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Set up your webhook</div>
+                <div style="font-size:12px;color:var(--text-dim)">When a caller opens a call, CallGuard POSTs to your webhook URL. Your server responds and submits the receipt.</div>
+              </div>
+              <!-- Step 3 -->
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:6px">STEP 3</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Submit receipts automatically</div>
+                <div style="font-size:12px;color:var(--text-dim)">Your server calls <code style="font-family:monospace;background:var(--bg-2);padding:1px 4px;border-radius:3px">submitReceipt(callId, responseHash, sig)</code> on-chain within the SLA window.</div>
+              </div>
+              <!-- Step 4 -->
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:6px">STEP 4</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Earn USDC</div>
+                <div style="font-size:12px;color:var(--text-dim)">Escrow is released to your wallet after receipt verification. Build reputation with every successful call.</div>
+              </div>
+            </div>
+
+            <!-- Example server code -->
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Minimal provider server (Bun / Node.js)</div>
+            <pre style="background:#0a0e14;color:#a8b5c8;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;padding:16px;border-radius:8px;overflow-x:auto;border:1px solid #1e2530;margin-bottom:16px"><code>import { ethers } from "ethers";
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+const SIGNER_PRIVATE_KEY = process.env.SIGNER_PRIVATE_KEY;
+const PAY_PER_CALL = process.env.PAY_PER_CALL_ADDRESS;
+const RPC_URL = process.env.ARC_RPC_URL;
+
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const signer = new ethers.Wallet(SIGNER_PRIVATE_KEY, provider);
+
+const ABI = [
+  "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
+];
+const contract = new ethers.Contract(PAY_PER_CALL, ABI, signer);
+
+// CallGuard webhook — called when a caller opens a call
+app.post("/callguard-hook", async (req, res) => {
+  const { callId, requestHash, payload, deadline } = req.body;
+
+  // 1. Process the request (your actual service logic here)
+  const response = await processRequest(payload);
+  const responseHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(response)));
+  const respondedAt = Math.floor(Date.now() / 1000);
+
+  // 2. Sign the receipt (EIP-712)
+  const domain = { name: "CallGuard", version: "2", chainId: 5042002, verifyingContract: PAY_PER_CALL };
+  const types = { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }, { name: "respondedAt", type: "uint64" }] };
+  const sig = await signer.signTypedData(domain, types, { callId, responseHash, respondedAt });
+
+  // 3. Submit on-chain
+  const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig);
+  await tx.wait();
+
+  res.json({ ok: true, txHash: tx.hash });
+});
+
+async function processRequest(payload) {
+  // Your service logic here — return the response
+  return { result: "pong", timestamp: Date.now() };
+}
+
+app.listen(3000, () => console.log("Provider running on :3000"));</code></pre>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a href="https://github.com/muazzezwq/CallGuard/blob/main/x402-facilitator/server.js" target="_blank"
+                style="font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:6px 14px;border-radius:6px">
+                View full example on GitHub ↗
+              </a>
+              <button onclick="showCategory('register')"
+                style="font-size:12px;background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer">
+                Register as Provider →
+              </button>
+            </div>
+          </div>
+        </section>
 
 
 
@@ -9673,6 +9768,20 @@ async function refreshBalance() {
             });
             if (window.confetti) window.confetti();
             document.dispatchEvent(new CustomEvent('cg:txSuccess', { detail: { type: 'call' } }));
+            // Notify provider webhook
+            fetch('/api/notify-provider', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                callId,
+                providerId,
+                requestHash: state.lastRequestHash || '0x',
+                payload: $('reqPayload')?.value || '',
+                caller: state.account,
+              }),
+            }).then(r => r.json()).then(d => {
+              if (d.notified) toast({ kind: 'ok', title: 'Provider notified', detail: 'Webhook delivered' });
+            }).catch(() => {});
             // Show "what happens next" flow
             showNextStepFlow(providerId, callId, priceNum);
             pushActivity({

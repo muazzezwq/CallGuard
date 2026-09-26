@@ -364,6 +364,55 @@ app.get("/ping", async (req, res) => {
   }
 });
 
+// ---- Auto-Receipt Provider Hook ----
+// When CallGuard notifies this facilitator of a call, automatically
+// process the request and submit a signed receipt on-chain.
+const PAY_PER_CALL_ADDR = env.VITE_PAY_PER_CALL || env.PAY_PER_CALL;
+const AUTO_RECEIPT_ABI = [
+  "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
+];
+
+async function autoSubmitReceipt({ callId, requestHash, payload, providerId }) {
+  if (!env.SELLER_PRIVATE_KEY || !PAY_PER_CALL_ADDR) return;
+  try {
+    const signerWallet = new ethers.Wallet(env.SELLER_PRIVATE_KEY, _rpcProvider);
+    const contract = new ethers.Contract(PAY_PER_CALL_ADDR, AUTO_RECEIPT_ABI, signerWallet);
+
+    // Process request — return a real response
+    const responseData = { result: "pong", providerId, requestEcho: payload, timestamp: Date.now() };
+    const responseHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(responseData)));
+    const respondedAt = BigInt(Math.floor(Date.now() / 1000));
+
+    // EIP-712 sign
+    const chainId = env.VITE_CHAIN_ID ? parseInt(env.VITE_CHAIN_ID) : 5042002;
+    const domain = { name: "CallGuard", version: "2", chainId, verifyingContract: PAY_PER_CALL_ADDR };
+    const types = {
+      Receipt: [
+        { name: "callId", type: "bytes32" },
+        { name: "responseHash", type: "bytes32" },
+        { name: "respondedAt", type: "uint64" },
+      ],
+    };
+    const sig = await signerWallet.signTypedData(domain, types, { callId, responseHash, respondedAt });
+    const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig);
+    console.log(`[auto-receipt] callId=${callId} tx=${tx.hash}`);
+    await tx.wait();
+    console.log(`[auto-receipt] confirmed tx=${tx.hash}`);
+    return { txHash: tx.hash, responseHash };
+  } catch (e) {
+    console.error("[auto-receipt] failed:", e.message);
+  }
+}
+
+app.post("/callguard-hook", async (req, res) => {
+  const { event, callId, requestHash, payload, providerId, deadline } = req.body;
+  console.log(`[hook] ${event} callId=${callId} provider=${providerId}`);
+  res.json({ received: true, callId }); // respond immediately
+  if (event === "call.opened" && callId) {
+    setImmediate(() => autoSubmitReceipt({ callId, requestHash, payload, providerId }));
+  }
+});
+
 app.get("/health", async (_, res) => {
   let buyerAddr = "not set";
   try {
