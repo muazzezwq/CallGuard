@@ -6274,6 +6274,16 @@
             Webhooks
           </div>
 
+          <div class="sb-item" data-nav="notifications" id="sbNotifications">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+            Notifications
+            <span id="notifBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
+          </div>
+          <div class="sb-item" data-nav="leaderboard">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+            Leaderboard
+          </div>
+
           <div class="sb-section">System</div>
           <div class="sb-item" data-nav="register">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
@@ -7671,6 +7681,35 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           </div>
         </section>
       </div>
+        <!-- NOTIFICATIONS PANEL -->
+        <section class="panel page-screen" data-category="notifications">
+          <div class="page-header"><h1 class="page-title">Notifications</h1><p class="page-desc">Your on-chain activity feed — SLA events, settlements, slashes.</p></div>
+          <div id="notifPanel" style="max-width:680px">
+            <div id="notifList" style="display:flex;flex-direction:column;gap:8px"></div>
+            <div id="notifEmpty" style="text-align:center;padding:48px 0;color:var(--text-faint);font-size:13px">No notifications yet. Activity will appear here after your first call.</div>
+          </div>
+        </section>
+
+        <!-- LEADERBOARD PANEL -->
+        <section class="panel page-screen" data-category="leaderboard">
+          <div class="page-header"><h1 class="page-title">Leaderboard</h1><p class="page-desc">Top providers by reputation score — on-chain, tamper-proof.</p></div>
+          <div id="leaderboardPanel" style="max-width:860px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+              <div class="stat-card" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Network</div>
+                <div style="font-size:18px;font-weight:700;color:var(--accent);font-family:monospace">Arc Testnet</div>
+              </div>
+              <div class="stat-card" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Scoring</div>
+                <div style="font-size:12px;color:var(--text);font-family:monospace">(good+2)/(total+3)×100</div>
+              </div>
+            </div>
+            <div id="leaderboardFullList" style="display:flex;flex-direction:column;gap:6px">
+              <div style="text-align:center;padding:32px;color:var(--text-faint);font-size:13px">Loading leaderboard...</div>
+            </div>
+          </div>
+        </section>
+
       </div> <!-- /app-content -->
       </div> <!-- /app-shell -->
     </main>
@@ -15988,6 +16027,149 @@ console.log("call opened:", tx.hash);`;
 
     // Expose globally
     window.applyTheme = applyTheme;
+
+  })();
+  </script>
+  <script>
+  (function() {
+    // ── Notification Center ──────────────────────────────────────────
+    const NOTIF_KEY = "cg_notifications";
+    function loadNotifs() {
+      try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); } catch { return []; }
+    }
+    function saveNotifs(list) {
+      try { localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0, 100))); } catch {}
+    }
+    window.addNotification = function(type, title, body, txHash) {
+      const notifs = loadNotifs();
+      notifs.unshift({ id: Date.now(), type, title, body, txHash, read: false, ts: Date.now() });
+      saveNotifs(notifs);
+      renderNotifBadge();
+      renderNotifPanel();
+    };
+    function renderNotifBadge() {
+      const notifs = loadNotifs();
+      const unread = notifs.filter(n => !n.read).length;
+      const badge = document.getElementById("notifBadge");
+      if (!badge) return;
+      if (unread > 0) { badge.style.display = ""; badge.textContent = unread > 9 ? "9+" : unread; }
+      else badge.style.display = "none";
+    }
+    function renderNotifPanel() {
+      const list = document.getElementById("notifList");
+      const empty = document.getElementById("notifEmpty");
+      if (!list) return;
+      const notifs = loadNotifs();
+      if (!notifs.length) { list.innerHTML = ""; if (empty) empty.style.display = ""; return; }
+      if (empty) empty.style.display = "none";
+      const icons = { success: "✓", error: "✕", warning: "⚠", info: "ℹ" };
+      const colors = { success: "var(--success)", error: "var(--danger)", warning: "#f59e0b", info: "var(--accent)" };
+      list.innerHTML = notifs.map(n => `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--bg-1);border:1px solid ${n.read ? "var(--border)" : "var(--accent)"};border-radius:8px;cursor:pointer" onclick="markNotifRead(${n.id})">
+          <span style="font-size:16px;color:${colors[n.type]||colors.info};flex-shrink:0;margin-top:1px">${icons[n.type]||"•"}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-main)">${n.title}</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${n.body||""}</div>
+            ${n.txHash ? `<a href="https://explorer.testnet.arc.io/tx/${n.txHash}" target="_blank" style="font-size:11px;color:var(--accent);font-family:monospace;text-decoration:none">view tx →</a>` : ""}
+          </div>
+          <div style="font-size:10px;color:var(--text-faint);white-space:nowrap;flex-shrink:0">${timeAgo(n.ts)}</div>
+        </div>`).join("");
+    }
+    window.markNotifRead = function(id) {
+      const notifs = loadNotifs();
+      const n = notifs.find(x => x.id === id);
+      if (n) { n.read = true; saveNotifs(notifs); renderNotifBadge(); renderNotifPanel(); }
+    };
+    function timeAgo(ts) {
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 60) return s + "s ago";
+      if (s < 3600) return Math.floor(s/60) + "m ago";
+      if (s < 86400) return Math.floor(s/3600) + "h ago";
+      return Math.floor(s/86400) + "d ago";
+    }
+    // Mark all read when opening notifications panel
+    document.addEventListener("click", function(e) {
+      const nav = e.target.closest("[data-nav]");
+      if (nav && nav.dataset.nav === "notifications") {
+        setTimeout(() => {
+          const notifs = loadNotifs().map(n => ({ ...n, read: true }));
+          saveNotifs(notifs); renderNotifBadge(); renderNotifPanel();
+        }, 500);
+      }
+    });
+    // Hook into existing toast system to auto-add notifications
+    const _origToast = window.toast;
+    if (_origToast) {
+      window.toast = function(msg, type, txHash) {
+        _origToast(msg, type, txHash);
+        if (type === "success" || type === "error") {
+          window.addNotification(type === "success" ? "success" : "error",
+            type === "success" ? "Transaction confirmed" : "Transaction failed",
+            typeof msg === "string" ? msg : msg?.message || "", txHash);
+        }
+      };
+    }
+    // Init badge on load
+    renderNotifBadge();
+
+    // ── Leaderboard Full Panel ──────────────────────────────────────
+    window.renderLeaderboardFull = function(providers) {
+      const el = document.getElementById("leaderboardFullList");
+      if (!el || !providers?.length) return;
+      const sorted = [...providers].sort((a, b) => {
+        const scoreA = (Number(a.good||a.honorCount||0)+2)/(Number(a.total||a.callCount||0)+3)*100;
+        const scoreB = (Number(b.good||b.honorCount||0)+2)/(Number(b.total||b.callCount||0)+3)*100;
+        return scoreB - scoreA;
+      });
+      el.innerHTML = sorted.map((p, i) => {
+        const id = p.id || p.providerId;
+        const score = ((Number(p.good||p.honorCount||0)+2)/(Number(p.total||p.callCount||0)+3)*100).toFixed(1);
+        const stake = (Number(p.stake||p.stakedAmount||0)/1e6).toFixed(2);
+        const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i+1}`;
+        const barW = Math.min(100, parseFloat(score));
+        const barColor = barW >= 80 ? "var(--success)" : barW >= 50 ? "#f59e0b" : "var(--danger)";
+        return `<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg-1);border:1px solid var(--border);border-radius:8px">
+          <span style="font-size:18px;width:32px;text-align:center;flex-shrink:0">${medal}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:13px;font-weight:600;color:var(--text-main)">Provider #${id}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-main);font-family:monospace">${score}%</span>
+            </div>
+            <div style="height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:${barW}%;background:${barColor};border-radius:99px;transition:width .4s"></div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:5px;font-size:11px;color:var(--text-faint)">
+              <span>${stake} USDC staked</span>
+              <span>${p.total||p.callCount||0} calls</span>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    };
+
+    // Auto-render leaderboard when panel opens
+    document.addEventListener("click", function(e) {
+      const nav = e.target.closest("[data-nav]");
+      if (nav && nav.dataset.nav === "leaderboard") {
+        setTimeout(() => {
+          const providers = window.state?.providers || [];
+          if (providers.length) window.renderLeaderboardFull(providers);
+          else {
+            const el = document.getElementById("leaderboardFullList");
+            if (el) el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-faint);font-size:13px">Connect your wallet to load live leaderboard data.</div>`;
+          }
+        }, 100);
+      }
+    });
+
+    // ── Provider Uptime Ping via /api/ping-provider ──────────────────
+    window.pingProviderUrl = async function(url) {
+      if (!url) return null;
+      try {
+        const r = await fetch(`/api/ping-provider?url=${encodeURIComponent(url)}`);
+        return await r.json();
+      } catch { return null; }
+    };
 
   })();
   </script>
