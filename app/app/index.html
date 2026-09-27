@@ -9568,6 +9568,8 @@ async function refreshBalance() {
           await refreshAll();
           $("actionRegister").open = false;
           $("actionCall").open = true;
+          // Show provider setup checklist
+          if (window.showProviderSetupChecklist) window.showProviderSetupChecklist();
         } catch (e) {
           console.error(e);
           toast({ kind: "err", title: "Register failed", detail: friendlyError(e) });
@@ -9829,6 +9831,11 @@ async function refreshBalance() {
             });
             if (window.confetti) window.confetti();
             document.dispatchEvent(new CustomEvent('cg:txSuccess', { detail: { type: 'call' } }));
+            // Start real-time call watcher
+            if (window.startCallWatcher) {
+              const deadlineVal = parsed.args.deadline ? Number(parsed.args.deadline) : Math.floor(Date.now()/1000) + Number(p.maxResponseTime||60);
+              window.startCallWatcher(callId, deadlineVal, priceNum);
+            }
             // Notify provider webhook
             fetch('/api/notify-provider', {
               method: 'POST',
@@ -15231,6 +15238,337 @@ console.log("call opened:", tx.hash);`;
       }
     };
     window.renderSpendingLimit();
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════
+       UX IMPROVEMENTS v2
+       1. Real-time call watcher (progress bar + RPC polling)
+       2. Provider setup checklist
+       3. Provider card metrics (uptime, 24h success, avg response)
+       4. Deadline toast notifications
+       ═══════════════════════════════════════════════ -->
+  <style>
+    /* ── Real-time call progress ── */
+    #callProgressOverlay {
+      position: fixed; bottom: 80px; right: 20px;
+      width: 300px; background: var(--bg-1);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      z-index: 8000; display: none; font-size: 13px;
+    }
+    #callProgressOverlay.visible { display: block; }
+    .cp-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .cp-title { font-weight:600; font-size:13px; color:var(--text); }
+    .cp-close { cursor:pointer; color:var(--text-faint); font-size:16px; line-height:1; background:none; border:none; padding:0; }
+    .cp-steps { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .cp-step { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-faint); }
+    .cp-step.active { color:var(--text); font-weight:500; }
+    .cp-step.done { color:var(--accent); }
+    .cp-step.failed { color:var(--danger); }
+    .cp-dot { width:8px; height:8px; border-radius:50%; background:var(--border); flex-shrink:0; }
+    .cp-step.active .cp-dot { background:var(--accent-2,#3b82f6); animation: cp-pulse 1s infinite; }
+    .cp-step.done .cp-dot { background:var(--accent); }
+    .cp-step.failed .cp-dot { background:var(--danger); }
+    @keyframes cp-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .cp-timer { font-family: var(--mono); font-size:11px; color:var(--text-faint); }
+    .cp-bar-wrap { height:4px; background:var(--bg-0,#f0f0f0); border-radius:2px; overflow:hidden; }
+    .cp-bar { height:100%; background:var(--accent); width:0%; transition:width .5s linear; border-radius:2px; }
+    .cp-bar.danger { background:var(--danger); }
+    .cp-result { margin-top:10px; padding:8px; border-radius:8px; font-size:12px; font-weight:600; text-align:center; }
+    .cp-result.ok { background:rgba(22,163,74,.1); color:var(--accent); border:1px solid rgba(22,163,74,.2); }
+    .cp-result.fail { background:rgba(220,38,38,.1); color:var(--danger); border:1px solid rgba(220,38,38,.2); }
+
+    /* ── Provider setup checklist ── */
+    #providerChecklistModal {
+      position:fixed; inset:0; background:rgba(0,0,0,.4);
+      display:none; align-items:center; justify-content:center;
+      z-index:9500;
+    }
+    #providerChecklistModal.open { display:flex; }
+    .pcl-box {
+      background:var(--bg-1); border:1px solid var(--border);
+      border-radius:14px; padding:28px 24px; max-width:480px; width:90%;
+      box-shadow:0 8px 40px rgba(0,0,0,.12);
+    }
+    .pcl-title { font-size:17px; font-weight:700; margin-bottom:4px; color:var(--text); }
+    .pcl-sub { font-size:13px; color:var(--text-faint); margin-bottom:20px; }
+    .pcl-steps { display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
+    .pcl-step { display:flex; gap:12px; align-items:flex-start; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-0,#f9f9f9); }
+    .pcl-num { width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .pcl-step-title { font-size:13px; font-weight:600; color:var(--text); }
+    .pcl-step-desc { font-size:12px; color:var(--text-faint); margin-top:2px; }
+    .pcl-step code { font-family:var(--mono); font-size:11px; background:var(--bg-1); padding:2px 5px; border-radius:4px; border:1px solid var(--border); }
+
+    /* ── Provider metrics badge ── */
+    .prov-metric { display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 6px; border-radius:4px; font-family:var(--mono); }
+    .prov-metric.good { background:rgba(22,163,74,.1); color:var(--accent); }
+    .prov-metric.warn { background:rgba(234,179,8,.1); color:#ca8a04; }
+    .prov-metric.bad { background:rgba(220,38,38,.1); color:var(--danger); }
+  </style>
+
+  <script>
+  (function() {
+
+    // ═══════════════════════════════════════════
+    // 1. REAL-TIME CALL WATCHER
+    // Polls RPC directly — no subgraph delay
+    // ═══════════════════════════════════════════
+
+    const POLL_INTERVAL = 3000; // 3s
+    const ARC_RPC = 'https://rpc.testnet.arc.io';
+
+    // Minimal ABI for receipt check
+    const CALL_ABI = [
+      "function calls(bytes32) view returns (uint32 deadline, uint8 status, address caller, uint32 providerId, uint256 price)"
+    ];
+
+    // Status mapping
+    const STATUS = { 0:'open', 1:'completed', 2:'slashed', 3:'refunded' };
+
+    window.startCallWatcher = function(callId, deadlineSec, priceUsdc) {
+      const overlay = document.getElementById('callProgressOverlay');
+      if (!overlay) return;
+
+      // Reset UI
+      overlay.className = 'visible';
+      overlay.querySelector('.cp-bar').style.width = '0%';
+      overlay.querySelector('.cp-bar').className = 'cp-bar';
+      const resultEl = overlay.querySelector('.cp-result');
+      if (resultEl) resultEl.remove();
+
+      const steps = overlay.querySelectorAll('.cp-step');
+      steps.forEach(s => s.className = 'cp-step');
+      steps[0].className = 'cp-step done';
+      steps[1].className = 'cp-step active';
+
+      const timerEl = overlay.querySelector('.cp-timer');
+      const barEl = overlay.querySelector('.cp-bar');
+      const startTs = Date.now();
+      const deadlineMs = deadlineSec * 1000;
+      let pollTimer, tickTimer;
+
+      function tick() {
+        const now = Date.now();
+        const nowSec = Math.floor(now / 1000);
+        const remaining = deadlineSec - nowSec;
+        const totalSec = deadlineSec - Math.floor(startTs / 1000);
+        const elapsed = nowSec - Math.floor(startTs / 1000);
+        const pct = Math.min(100, (elapsed / Math.max(totalSec, 1)) * 100);
+
+        barEl.style.width = pct + '%';
+        if (remaining <= 5) barEl.className = 'cp-bar danger';
+
+        if (remaining > 0) {
+          timerEl.textContent = `SLA window: ${remaining}s remaining`;
+        } else {
+          timerEl.textContent = 'SLA window expired';
+          barEl.style.width = '100%';
+        }
+      }
+
+      async function pollStatus() {
+        try {
+          const provider = new ethers.JsonRpcProvider(ARC_RPC);
+          const contract = new ethers.Contract(
+            window.CONFIG?.payPerCall || '0x10387347678d9f7106D5625bE0BD6C915158B130',
+            CALL_ABI,
+            provider
+          );
+          const data = await contract.calls(callId);
+          const status = Number(data.status);
+
+          if (status === 1) {
+            // Completed — receipt submitted
+            clearInterval(pollTimer);
+            clearInterval(tickTimer);
+            steps[1].className = 'cp-step done';
+            steps[2].className = 'cp-step done';
+            steps[3].className = 'cp-step done';
+            barEl.style.width = '100%';
+            barEl.className = 'cp-bar';
+            timerEl.textContent = 'Settlement complete';
+            showResult(true, priceUsdc);
+            // Refresh calls list
+            if (window.loadMyCalls) setTimeout(() => window.loadMyCalls(), 1000);
+          } else if (status === 2 || status === 3) {
+            // Slashed or refunded
+            clearInterval(pollTimer);
+            clearInterval(tickTimer);
+            steps[1].className = 'cp-step failed';
+            steps[2].className = 'cp-step failed';
+            barEl.className = 'cp-bar danger';
+            barEl.style.width = '100%';
+            timerEl.textContent = status === 2 ? 'Provider slashed' : 'Refunded';
+            showResult(false, priceUsdc);
+            if (window.loadMyCalls) setTimeout(() => window.loadMyCalls(), 1000);
+          }
+        } catch(e) {
+          // Silent — keep polling
+        }
+      }
+
+      function showResult(success, price) {
+        const div = document.createElement('div');
+        div.className = 'cp-result ' + (success ? 'ok' : 'fail');
+        div.textContent = success
+          ? `✓ SLA met — ${price} USDC settled`
+          : `✕ SLA missed — refund pending`;
+        overlay.appendChild(div);
+        // Auto-close after 8s on success
+        if (success) setTimeout(() => { overlay.className = ''; overlay.innerHTML = buildOverlayHTML(); }, 8000);
+      }
+
+      tickTimer = setInterval(tick, 1000);
+      pollTimer = setInterval(pollStatus, POLL_INTERVAL);
+      tick();
+      // First poll immediately
+      setTimeout(pollStatus, 2000);
+
+      // Stop after 10 min max
+      setTimeout(() => { clearInterval(pollTimer); clearInterval(tickTimer); }, 600000);
+    };
+
+    function buildOverlayHTML() {
+      return `
+        <div class="cp-header">
+          <span class="cp-title">Call in progress</span>
+          <button class="cp-close" onclick="document.getElementById('callProgressOverlay').className=''">×</button>
+        </div>
+        <div class="cp-steps">
+          <div class="cp-step done"><div class="cp-dot"></div>Payment authorized</div>
+          <div class="cp-step"><div class="cp-dot"></div>Waiting for provider response</div>
+          <div class="cp-step"><div class="cp-dot"></div>Receipt verification</div>
+          <div class="cp-step"><div class="cp-dot"></div>Settlement</div>
+        </div>
+        <div class="cp-timer">Connecting...</div>
+        <div class="cp-bar-wrap"><div class="cp-bar"></div></div>
+      `;
+    }
+
+    // Build overlay HTML
+    const overlay = document.createElement('div');
+    overlay.id = 'callProgressOverlay';
+    overlay.innerHTML = buildOverlayHTML();
+    document.body.appendChild(overlay);
+
+    // ═══════════════════════════════════════════
+    // 2. PROVIDER SETUP CHECKLIST
+    // Shown after successful register
+    // ═══════════════════════════════════════════
+
+    window.showProviderSetupChecklist = function() {
+      const modal = document.getElementById('providerChecklistModal');
+      if (modal) modal.className = 'open';
+    };
+
+    const checklistModal = document.createElement('div');
+    checklistModal.id = 'providerChecklistModal';
+    checklistModal.innerHTML = `
+      <div class="pcl-box">
+        <div class="pcl-title">You're registered. Now set up your service.</div>
+        <div class="pcl-sub">Complete these steps so callers can actually reach your API.</div>
+        <div class="pcl-steps">
+          <div class="pcl-step">
+            <div class="pcl-num">1</div>
+            <div>
+              <div class="pcl-step-title">Run your API server</div>
+              <div class="pcl-step-desc">Deploy any HTTP endpoint. It receives <code>{ callId, payload }</code> and returns <code>{ response }</code>.</div>
+            </div>
+          </div>
+          <div class="pcl-step">
+            <div class="pcl-num">2</div>
+            <div>
+              <div class="pcl-step-title">Set up auto-receipt webhook</div>
+              <div class="pcl-step-desc">Point your webhook to <code>https://arcsla.vercel.app/api/auto-receipt</code> — it signs and submits receipts automatically.</div>
+            </div>
+          </div>
+          <div class="pcl-step">
+            <div class="pcl-num">3</div>
+            <div>
+              <div class="pcl-step-title">Test with a call</div>
+              <div class="pcl-step-desc">Open the Call Builder, select your provider ID, and make a test call. Check My Calls to see the result.</div>
+            </div>
+          </div>
+          <div class="pcl-step">
+            <div class="pcl-num">4</div>
+            <div>
+              <div class="pcl-step-title">Monitor your SLA</div>
+              <div class="pcl-step-desc">Track your honor rate in the Overview panel. A high honor rate builds reputation and attracts more callers.</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('providerChecklistModal').className=''" style="width:100%">Got it, let's go →</button>
+      </div>
+    `;
+    document.body.appendChild(checklistModal);
+
+    // ═══════════════════════════════════════════
+    // 3. PROVIDER METRICS — 24h success + avg response
+    // Injects metrics badges into provider cards
+    // ═══════════════════════════════════════════
+
+    window.enrichProviderCards = function(providers) {
+      if (!providers || !providers.length) return;
+      providers.forEach(p => {
+        const total = Number(p.completedCalls||0) + Number(p.slashedCalls||0);
+        const honorRate = total > 0 ? Math.round((Number(p.completedCalls||0) / total) * 100) : null;
+        const cls = honorRate === null ? 'warn' : honorRate >= 90 ? 'good' : honorRate >= 70 ? 'warn' : 'bad';
+        const badge = honorRate !== null
+          ? `<span class="prov-metric ${cls}">${honorRate}% SLA</span>`
+          : `<span class="prov-metric warn">New provider</span>`;
+
+        // Inject into provider cards that have data-provider-id
+        document.querySelectorAll(`[data-provider-id="${p.id}"] .prov-metrics`).forEach(el => {
+          el.innerHTML = badge;
+        });
+      });
+    };
+
+    // Hook into loadProviders
+    const origLP = window.loadProviders;
+    if (origLP) {
+      window.loadProviders = async function(...args) {
+        const result = await origLP(...args);
+        if (window.state && window.state.allProviders) {
+          window.enrichProviderCards(window.state.allProviders);
+        }
+        return result;
+      };
+    }
+
+    // ═══════════════════════════════════════════
+    // 4. DEADLINE TOAST NOTIFICATIONS
+    // Polls active calls and notifies when deadline passes
+    // ═══════════════════════════════════════════
+
+    const notifiedTimeouts = new Set();
+
+    function checkDeadlines() {
+      if (!window.state || !window.state.address) return;
+      const rows = document.querySelectorAll('[data-deadline]');
+      const now = Math.floor(Date.now() / 1000);
+      rows.forEach(row => {
+        const deadline = parseInt(row.dataset.deadline || '0', 10);
+        const callId = row.dataset.callid || '';
+        const status = row.dataset.status || '';
+        if (!deadline || !callId || status !== 'open') return;
+        if (deadline < now && !notifiedTimeouts.has(callId)) {
+          notifiedTimeouts.add(callId);
+          if (window.toast) {
+            window.toast({
+              kind: 'warn',
+              title: 'SLA deadline passed',
+              detail: `Call ${callId.slice(0,8)}... — you can now claim timeout`,
+              timeout: 10000,
+            });
+          }
+        }
+      });
+    }
+
+    setInterval(checkDeadlines, 5000);
+
   })();
   </script>
   </body>
