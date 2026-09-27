@@ -1,0 +1,589 @@
+{
+  "contractAddress": "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
+  "network": "ARC-TESTNET",
+  "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
+  "contract_code_path": "/home/user/app/contracts/Subscription.sol",
+  "contract_compiled_code_path": "/home/user/app/out/Subscription.sol/Subscription.json",
+  "contract_network_and_links": {
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xef7d56390f86a5cecc05f75e265859a1c79cefe6"
+  },
+  "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
+      "txHash": "0x3b647a2402a8558439198747edeb1dfa590936312895d7a13eab8bec1c7b7a28",
+      "deployedAt": "2026-09-27T00:58:10.492Z"
+    }
+  ],
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "_usdc",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_registry",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_payPerCall",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "MAX_CALLS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MAX_DURATION",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MIN_CALLS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MIN_DURATION",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "activeSub",
+      "inputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "cancel",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getActiveSub",
+      "inputs": [
+        {
+          "name": "subscriber",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getSub",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct Subscription.Sub",
+          "components": [
+            {
+              "name": "subscriber",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "providerId",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "pricePerCall",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "remaining",
+              "type": "uint32",
+              "internalType": "uint32"
+            },
+            {
+              "name": "total",
+              "type": "uint32",
+              "internalType": "uint32"
+            },
+            {
+              "name": "expiresAt",
+              "type": "uint64",
+              "internalType": "uint64"
+            },
+            {
+              "name": "lockedBalance",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "cancelled",
+              "type": "bool",
+              "internalType": "bool"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isValid",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "payPerCall",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "registry",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract IServiceRegistry"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "releaseExpired",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setPayPerCall",
+      "inputs": [
+        {
+          "name": "next",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "subCount",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "inputs": [
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "calls",
+          "type": "uint32",
+          "internalType": "uint32"
+        },
+        {
+          "name": "duration",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "subscriptions",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "subscriber",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "pricePerCall",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "remaining",
+          "type": "uint32",
+          "internalType": "uint32"
+        },
+        {
+          "name": "total",
+          "type": "uint32",
+          "internalType": "uint32"
+        },
+        {
+          "name": "expiresAt",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "lockedBalance",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "cancelled",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "usdc",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract IERC20"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "useCall",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "escrow",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "CallUsed",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "remaining",
+          "type": "uint32",
+          "indexed": false,
+          "internalType": "uint32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Cancelled",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "refund",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ExpiredReleased",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "refund",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PayPerCallSet",
+      "inputs": [
+        {
+          "name": "prev",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "next",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Subscribed",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "subscriber",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "calls",
+          "type": "uint32",
+          "indexed": false,
+          "internalType": "uint32"
+        },
+        {
+          "name": "expiresAt",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "AlreadyExpired",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidCallCount",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidDuration",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NoCallsLeft",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NotSubscriber",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "OnlyPayPerCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ProviderInactive",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ReentrancyGuardReentrantCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SafeERC20FailedOperation",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SubscriptionActive",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SubscriptionExpired",
+      "inputs": []
+    }
+  ]
+}

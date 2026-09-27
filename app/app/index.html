@@ -7758,6 +7758,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
         memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
+        dispute: "0xa47162d8e4785d867f05800f35a334fd78575e56",
+        subscription: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
       };
 
       // -------- ABIs (minimal — only what we call) --------
@@ -7958,6 +7960,23 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           state.usdc      = new ethers.Contract(CONFIG.usdc,      ERC20_ABI,    state.signer);
           state.registry  = new ethers.Contract(CONFIG.registry,  REGISTRY_ABI, state.signer);
           state.payPerCall = new ethers.Contract(CONFIG.payPerCall, PAY_ABI,     state.signer);
+          state.dispute    = new ethers.Contract(CONFIG.dispute, [
+            "function openDispute(bytes32 callId, string calldata reason) external returns (uint256 disputeId)",
+            "function resolveDispute(uint256 disputeId, bool upheld) external",
+            "function getDispute(uint256 disputeId) external view returns (address caller, address provider, bytes32 callId, string reason, uint8 status, uint256 createdAt)",
+            "event DisputeOpened(uint256 indexed disputeId, bytes32 indexed callId, address indexed caller)",
+            "event DisputeResolved(uint256 indexed disputeId, bool upheld)",
+          ], state.signer);
+          state.subscription = new ethers.Contract(CONFIG.subscription, [
+            "function subscribe(uint32 providerId, uint32 durationDays) external returns (uint256 subId)",
+            "function renew(uint256 subId) external",
+            "function cancel(uint256 subId) external",
+            "function isActive(address caller, uint32 providerId) external view returns (bool)",
+            "function getSubscription(uint256 subId) external view returns (address caller, uint32 providerId, uint256 expiresAt, bool active)",
+            "event Subscribed(uint256 indexed subId, address indexed caller, uint32 indexed providerId)",
+            "event Renewed(uint256 indexed subId, uint256 newExpiresAt)",
+            "event Cancelled(uint256 indexed subId)",
+          ], state.signer);
 
           try { state.usdcDecimals = Number(await state.usdc.decimals()); } catch { state.usdcDecimals = 6; }
 
@@ -9632,6 +9651,11 @@ async function refreshBalance() {
       }
 
       async function doCall() {
+        // Wallet guard
+        if (!state.signer || !state.address) {
+          toast({ kind: "err", title: "Connect your wallet first", detail: "Click 'Connect wallet' in the top bar.", timeout: 6000 });
+          return;
+        }
         // Network guard — reject if not on Arc Testnet
         if (state.chainId && state.chainId !== CONFIG.chainId) {
           toast({ kind: "err", title: "Wrong network", detail: `Switch to Arc Testnet (chain ID ${CONFIG.chainId}) to continue.`, timeout: 8000 });
@@ -13813,20 +13837,22 @@ console.log("call opened:", tx.hash);`;
       const result = document.getElementById("disputeResult");
       if (!callId) { result.textContent = "Enter a call ID."; result.style.color = "#ef4444"; return; }
       if (!window.state?.signer) { result.textContent = "Connect wallet first."; result.style.color = "#ef4444"; return; }
-      result.textContent = "Submitting dispute…"; result.style.color = "var(--text-faint)";
+      result.textContent = "Opening dispute on-chain…"; result.style.color = "var(--text-faint)";
       try {
-        // Dispute is recorded as a signed message (off-chain record, on-chain in v3)
-        const msg = JSON.stringify({ callId, reason, details, ts: Date.now(), disputer: window.state.address });
-        const sig = await window.state.signer.signMessage(msg);
-        // Store locally + show success
-        const disputes = JSON.parse(localStorage.getItem("cgDisputes") || "[]");
-        disputes.push({ callId, reason, details, sig, ts: Date.now() });
-        localStorage.setItem("cgDisputes", JSON.stringify(disputes));
-        result.textContent = "✅ Dispute recorded. Signature: " + sig.slice(0,20) + "… (v3 will enforce on-chain)";
+        if (!window.state?.dispute) throw new Error("Dispute contract not loaded. Reconnect wallet.");
+        const callIdBytes = callId.startsWith("0x") ? callId : ethers.id(callId);
+        const fullReason = reason + (details ? " — " + details : "");
+        const tx = await window.state.dispute.openDispute(callIdBytes, fullReason);
+        result.textContent = "Waiting for confirmation…";
+        const { t0, receipt: txReceipt } = await window.waitWithFinality?.(tx) || { t0: Date.now(), receipt: await tx.wait() };
+        const disputeId = txReceipt?.logs?.[0] ? BigInt(txReceipt.logs[0].topics[1] || 0) : "?";
+        const finalityMs = Date.now() - t0;
+        result.textContent = `✅ Dispute #${disputeId} opened on-chain`;
         result.style.color = "var(--accent)";
-        window.toast?.({ kind: "ok", title: "Dispute submitted", detail: "Signed message recorded. On-chain enforcement in v3.", timeout: 5000 });
+        window.toast?.({ kind: "ok", title: `Dispute #${disputeId} opened`, detail: `On-chain · finalized in ${finalityMs}ms`, txHash: tx.hash, timeout: 6000 });
+        document.getElementById("disputeOverlay").classList.remove("open");
       } catch(e) {
-        result.textContent = "Error: " + e.message;
+        result.textContent = "Error: " + (e.reason || e.message);
         result.style.color = "#ef4444";
       }
     });
@@ -13870,33 +13896,26 @@ console.log("call opened:", tx.hash);`;
       if (!subProvider) { result.textContent = "No provider selected."; result.style.color="#ef4444"; return; }
       result.textContent = "Processing subscription…"; result.style.color = "var(--text-faint)";
       try {
+        if (!window.state?.subscription) throw new Error("Subscription contract not loaded. Reconnect wallet.");
         const price = parseFloat(subProvider.pricePerCall || 1);
         const discounts = { 10: 0.05, 50: 0.10, 100: 0.15 };
         const disc = discounts[selectedPlan] || 0;
-        const total = price * selectedPlan * (1 - disc);
-        const totalWei = ethers.parseUnits(total.toFixed(6), 6);
-        // Approve USDC
+        const durationDays = selectedPlan === 10 ? 7 : selectedPlan === 50 ? 30 : 90;
+        const totalPerCall = price * (1 - disc);
+        const totalWei = ethers.parseUnits((totalPerCall * selectedPlan).toFixed(6), 6);
+        // Approve USDC for subscription contract
         result.textContent = "Approving USDC…";
-        const approveTx = await window.state.usdc.approve(window.CONFIG?.payPerCall, totalWei);
+        const approveTx = await window.state.usdc.approve(CONFIG.subscription, totalWei);
         await approveTx.wait();
-        // Record subscription on-chain via multiple openCall batching or a note
-        // For now: store subscription record locally, execute calls from this pool
-        const sub = {
-          providerId: String(subProvider.id),
-          totalCalls: selectedPlan,
-          usedCalls: 0,
-          totalUsdc: total.toFixed(3),
-          pricePerCall: (price * (1-disc)).toFixed(4),
-          discount: Math.round(disc*100),
-          createdAt: Date.now(),
-          txHash: approveTx.hash
-        };
-        const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
-        subs.push(sub);
-        localStorage.setItem("cgSubscriptions", JSON.stringify(subs));
-        result.textContent = `✅ Subscribed! ${selectedPlan} calls at ${sub.pricePerCall} USDC each (${sub.discount}% off)`;
+        // Subscribe on-chain
+        result.textContent = "Subscribing on-chain…";
+        const tx = await window.state.subscription.subscribe(Number(subProvider.id), durationDays);
+        const { t0, receipt: txReceipt } = await window.waitWithFinality?.(tx) || { t0: Date.now(), receipt: await tx.wait() };
+        const subId = txReceipt?.logs?.[0] ? BigInt(txReceipt.logs[0].topics[1] || 0) : "?";
+        const finalityMs = Date.now() - t0;
+        result.textContent = `✅ Subscribed! Sub #${subId} · ${durationDays} days active`;
         result.style.color = "var(--accent)";
-        window.toast?.({ kind: "ok", title: `Subscribed to Provider #${subProvider.id}`, detail: `${selectedPlan} calls · ${total.toFixed(2)} USDC locked`, timeout: 6000 });
+        window.toast?.({ kind: "ok", title: `Subscribed to Provider #${subProvider.id}`, detail: `Sub #${subId} · ${durationDays} days · finalized in ${finalityMs}ms`, txHash: tx.hash, timeout: 6000 });
         window.refreshSubscriptions?.();
       } catch(e) {
         result.textContent = "Error: " + (e.reason || e.message);
