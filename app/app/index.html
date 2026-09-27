@@ -9751,6 +9751,8 @@ async function refreshBalance() {
             warning: priceNum >= 1 ? `${priceNum} USDC will be locked in escrow until the provider responds or the SLA is breached.` : null,
           });
           if (!confirmed) throw new Error("user cancelled");
+          // Show gas estimate async (non-blocking)
+          if (window.showGasEstimate) window.showGasEstimate(idStr, priceNum).catch(() => {});
           // Approve only when needed — MaxUint256 = fires only once ever, no more double-TX
           const currentAllowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
           if (currentAllowance < price) {
@@ -11545,8 +11547,10 @@ console.log("call opened:", tx.hash);`;
               <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-bottom:12px">
                 <span>Honor rate</span><span style="color:${honorColor};font-weight:700">${honorPct}%</span>
               </div>
+              ${window.getHealthBadgeHtml ? window.getHealthBadgeHtml(p) : ''}
               <div class="prov-card-footer">
                 <button class="prov-card-btn" onclick="event.stopPropagation();openProviderModal(${p.id})">Details →</button>
+                ${p.endpoint ? `<button class="prov-card-btn" onclick="event.stopPropagation();window.openApiPlayground(${p.id},'${p.endpoint}')">▶ Test</button>` : ''}
                 <button class="prov-card-btn primary btn-nano" data-nano-provider="${p.id}" onclick="event.stopPropagation()">⚡ Nanopay</button>
               </div>
             </div>`;
@@ -15145,6 +15149,9 @@ console.log("call opened:", tx.hash);`;
     <div id="confirmTxModal">
       <h3>Confirm Transaction</h3>
       <div id="ctmRows"></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);padding:6px 0;border-top:1px solid var(--border);margin-top:8px">
+        <span>Estimated gas</span><span id="confirmGasCost" style="font-family:monospace">calculating...</span>
+      </div>
       <div class="ctm-warning" id="ctmWarning" style="display:none"></div>
       <div class="ctm-actions">
         <button class="btn" id="ctmCancel">Cancel</button>
@@ -15568,6 +15575,419 @@ console.log("call opened:", tx.hash);`;
     }
 
     setInterval(checkDeadlines, 5000);
+
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════
+       UX IMPROVEMENTS v3
+       1. Provider Health Score
+       2. Call History Export
+       3. Provider Uptime Monitor
+       4. API Playground
+       5. Notification Center
+       7. Dark/Light theme fix
+       8. Provider Leaderboard page
+       9. Gas Estimator
+  ═══════════════════════════════════════════════ -->
+  <style>
+    /* Notification Center */
+    #notifCenter { position:fixed; top:52px; right:0; width:320px; max-height:calc(100vh - 52px); background:var(--bg-1); border-left:1px solid var(--border); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .2s ease; z-index:500; }
+    #notifCenter.open { transform:translateX(0); }
+    .notif-header { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .notif-header h3 { font-size:13px; font-weight:600; margin:0; }
+    .notif-badge { background:var(--accent); color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 6px; }
+    .notif-list { overflow-y:auto; flex:1; }
+    .notif-item { padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+    .notif-item:hover { background:var(--bg-2); }
+    .notif-item-title { font-size:12px; font-weight:600; margin-bottom:2px; }
+    .notif-item-body { font-size:11px; color:var(--text-faint); }
+    .notif-item-time { font-size:10px; color:var(--text-faint); margin-top:4px; }
+    .notif-item.unread { border-left:3px solid var(--accent); }
+    .notif-item.type-ok .notif-item-title { color:var(--accent); }
+    .notif-item.type-err .notif-item-title { color:var(--danger); }
+    .notif-item.type-warn .notif-item-title { color:var(--warn); }
+    .notif-bell { position:relative; cursor:pointer; padding:4px; border-radius:6px; display:flex; align-items:center; }
+    .notif-bell-badge { position:absolute; top:-2px; right:-2px; background:var(--danger); color:#fff; border-radius:8px; font-size:9px; font-weight:700; padding:0 4px; min-width:14px; text-align:center; display:none; }
+    .notif-bell-badge.visible { display:block; }
+    /* API Playground */
+    .playground-wrap { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .playground-req, .playground-res { background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:14px; }
+    .playground-req label { font-size:10px; font-weight:600; text-transform:uppercase; color:var(--text-faint); display:block; margin-bottom:4px; }
+    .playground-res pre { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-2); white-space:pre-wrap; word-break:break-all; margin:0; }
+    .playground-status { font-size:11px; font-weight:700; margin-bottom:8px; }
+    /* Gas Estimator */
+    .gas-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+    .gas-row:last-child { border-bottom:none; }
+    .gas-label { font-size:12px; color:var(--text-faint); }
+    .gas-val { font-size:12px; font-weight:600; font-family:'JetBrains Mono',monospace; }
+    /* Provider Health Badge */
+    .health-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; padding:2px 7px; border-radius:12px; margin-left:6px; }
+    .health-badge.excellent { background:rgba(34,197,94,.15); color:var(--accent); }
+    .health-badge.good { background:rgba(234,179,8,.15); color:var(--warn); }
+    .health-badge.poor { background:rgba(239,68,68,.15); color:var(--danger); }
+    /* Uptime dot */
+    .uptime-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .uptime-dot.online { background:var(--accent); }
+    .uptime-dot.offline { background:var(--danger); }
+    .uptime-dot.checking { background:var(--warn); animation:pulse 1s infinite; }
+    @media (max-width:600px) { #notifCenter { width:100%; } .playground-wrap { grid-template-columns:1fr; } }
+  </style>
+
+  <!-- Notification Center HTML -->
+  <div id="notifCenter">
+    <div class="notif-header">
+      <h3>Notifications</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+        <button onclick="window.clearNotifs()" style="font-size:11px;color:var(--text-faint);background:none;border:none;cursor:pointer">Clear all</button>
+        <button onclick="document.getElementById('notifCenter').classList.remove('open')" style="font-size:16px;background:none;border:none;cursor:pointer;color:var(--text-faint)">×</button>
+      </div>
+    </div>
+    <div class="notif-list" id="notifList">
+      <div style="padding:32px;text-align:center;color:var(--text-faint);font-size:12px">No notifications yet</div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // ─── 5. NOTIFICATION CENTER ─────────────────────────────────────────
+    const NOTIF_KEY = 'cg_notifications';
+    let notifStore = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
+
+    function saveNotifs() { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifStore.slice(0, 100))); }
+
+    function renderNotifs() {
+      const list = document.getElementById('notifList');
+      const badge = document.getElementById('notifBadge');
+      const bellBadge = document.getElementById('notifBellBadge');
+      if (!list) return;
+      const unread = notifStore.filter(n => !n.read).length;
+      if (badge) { badge.textContent = unread; badge.style.display = unread > 0 ? '' : 'none'; }
+      if (bellBadge) { bellBadge.textContent = unread; bellBadge.classList.toggle('visible', unread > 0); }
+      if (notifStore.length === 0) {
+        list.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-faint);font-size:12px">No notifications yet</div>';
+        return;
+      }
+      list.innerHTML = notifStore.map((n, i) => `
+        <div class="notif-item ${n.read ? '' : 'unread'} type-${n.kind || 'info'}" onclick="window.markNotifRead(${i})">
+          <div class="notif-item-title">${n.title}</div>
+          ${n.detail ? `<div class="notif-item-body">${n.detail}</div>` : ''}
+          <div class="notif-item-time">${new Date(n.ts).toLocaleTimeString()}</div>
+        </div>`).join('');
+    }
+
+    window.addNotif = function(kind, title, detail) {
+      notifStore.unshift({ kind, title, detail, ts: Date.now(), read: false });
+      saveNotifs();
+      renderNotifs();
+    };
+
+    window.markNotifRead = function(i) {
+      if (notifStore[i]) { notifStore[i].read = true; saveNotifs(); renderNotifs(); }
+    };
+
+    window.clearNotifs = function() { notifStore = []; saveNotifs(); renderNotifs(); };
+
+    // Hook into existing toast to also add to notification center
+    const origToast = window.toast;
+    if (origToast) {
+      window.toast = function(opts) {
+        origToast(opts);
+        if (opts.title) window.addNotif(opts.kind || 'info', opts.title, opts.detail || '');
+      };
+    }
+
+    renderNotifs();
+
+    // Add bell icon to topbar
+    setTimeout(() => {
+      const topbarRight = document.querySelector('.topbar-right');
+      if (topbarRight && !document.getElementById('notifBell')) {
+        const bell = document.createElement('div');
+        bell.id = 'notifBell';
+        bell.className = 'notif-bell';
+        bell.title = 'Notifications';
+        bell.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notifBellBadge" class="notif-bell-badge"></span>`;
+        bell.onclick = () => document.getElementById('notifCenter').classList.toggle('open');
+        topbarRight.insertBefore(bell, topbarRight.firstChild);
+      }
+    }, 500);
+
+    // ─── 2. CALL HISTORY EXPORT ──────────────────────────────────────────
+    window.exportCallHistory = function(format = 'csv') {
+      const calls = window.state?.myCalls || [];
+      if (!calls.length) { if (window.toast) window.toast({ kind: 'warn', title: 'No calls to export' }); return; }
+      if (format === 'csv') {
+        const headers = ['Call ID', 'Provider', 'Amount (USDC)', 'Status', 'Deadline', 'TX Hash'];
+        const rows = calls.map(c => [
+          c.callId || c.id || '',
+          c.providerId || '',
+          c.amount || '',
+          c.status || '',
+          c.deadline ? new Date(Number(c.deadline) * 1000).toISOString() : '',
+          c.txHash || ''
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `callguard-history-${Date.now()}.csv`; a.click();
+      } else {
+        const blob = new Blob([JSON.stringify(calls, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `callguard-history-${Date.now()}.json`; a.click();
+      }
+      if (window.toast) window.toast({ kind: 'ok', title: `Exported ${calls.length} calls as ${format.toUpperCase()}` });
+    };
+
+    // Add export button to My Calls panel after it loads
+    function injectExportBtn() {
+      const header = document.querySelector('#myCallsSection .panel-header, #myCallsSection h2');
+      if (header && !document.getElementById('exportCallsBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'exportCallsBtn';
+        btn.style.cssText = 'font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text-2);cursor:pointer;margin-left:auto';
+        btn.innerHTML = '↓ Export';
+        btn.onclick = () => window.exportCallHistory('csv');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.appendChild(btn);
+      }
+    }
+    setTimeout(injectExportBtn, 2000);
+
+    // ─── 3. PROVIDER UPTIME MONITOR ──────────────────────────────────────
+    const uptimeCache = {}; // { providerId: { status, lastCheck } }
+
+    window.checkProviderUptime = async function(providerId, endpoint) {
+      if (!endpoint) return 'unknown';
+      const now = Date.now();
+      const cached = uptimeCache[providerId];
+      if (cached && now - cached.lastCheck < 5 * 60 * 1000) return cached.status;
+
+      uptimeCache[providerId] = { status: 'checking', lastCheck: now };
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch(endpoint, { method: 'HEAD', signal: ctrl.signal });
+        clearTimeout(timer);
+        const status = resp.ok || resp.status < 500 ? 'online' : 'offline';
+        uptimeCache[providerId] = { status, lastCheck: now };
+        return status;
+      } catch {
+        uptimeCache[providerId] = { status: 'offline', lastCheck: now };
+        return 'offline';
+      }
+    };
+
+    window.getUptimeHtml = function(pid) {
+      const u = uptimeCache[pid];
+      if (!u || u.status === 'checking') return `<span class="uptime-dot checking"></span><span style="font-size:10px;color:var(--warn)">checking...</span>`;
+      if (u.status === 'online') return `<span class="uptime-dot online"></span><span style="font-size:10px;color:var(--accent)">online</span>`;
+      return `<span class="uptime-dot offline"></span><span style="font-size:10px;color:var(--danger)">offline</span>`;
+    };
+
+    // Check all provider endpoints every 5 minutes
+    async function checkAllProviderUptime() {
+      const providers = window.state?.allProviders || [];
+      for (const p of providers) {
+        if (p.endpoint) await window.checkProviderUptime(p.id, p.endpoint);
+      }
+    }
+    setInterval(checkAllProviderUptime, 5 * 60 * 1000);
+    setTimeout(checkAllProviderUptime, 3000);
+
+    // ─── 1. PROVIDER HEALTH SCORE ────────────────────────────────────────
+    window.getProviderHealthScore = function(p) {
+      const total = (p.completedCalls || 0) + (p.slashedCalls || 0);
+      if (total === 0) return { score: 'new', label: 'New', cls: 'good' };
+      const honorPct = Math.round((p.completedCalls || 0) / total * 100);
+      const uptime = uptimeCache[p.id];
+      const uptimePenalty = uptime?.status === 'offline' ? -20 : 0;
+      const score = Math.max(0, honorPct + uptimePenalty);
+      if (score >= 80) return { score, label: `${score}% Health`, cls: 'excellent' };
+      if (score >= 50) return { score, label: `${score}% Health`, cls: 'good' };
+      return { score, label: `${score}% Health`, cls: 'poor' };
+    };
+
+    window.getHealthBadgeHtml = function(p) {
+      const h = window.getProviderHealthScore(p);
+      return `<span class="health-badge ${h.cls}">${h.label}</span>`;
+    };
+
+    // ─── 4. API PLAYGROUND ───────────────────────────────────────────────
+    window.openApiPlayground = function(providerId, endpoint) {
+      const existing = document.getElementById('apiPlaygroundModal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'apiPlaygroundModal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';
+      modal.innerHTML = `
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:24px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:700;margin:0">API Playground — Provider #${providerId}</h3>
+            <button onclick="document.getElementById('apiPlaygroundModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-faint)">×</button>
+          </div>
+          <div class="playground-wrap">
+            <div class="playground-req">
+              <label>Endpoint URL</label>
+              <input id="pgEndpoint" value="${endpoint || ''}" style="width:100%;margin-bottom:10px;font-size:11px;font-family:monospace;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-0);color:var(--text-1)" />
+              <label>Method</label>
+              <select id="pgMethod" style="width:100%;margin-bottom:10px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-0);color:var(--text-1);font-size:12px">
+                <option>GET</option><option selected>POST</option><option>PUT</option>
+              </select>
+              <label>Body (JSON)</label>
+              <textarea id="pgBody" rows="4" style="width:100%;font-family:monospace;font-size:11px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-0);color:var(--text-1);resize:vertical">{"ping":true}</textarea>
+              <button id="pgSend" style="width:100%;margin-top:10px;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px">Send Request</button>
+            </div>
+            <div class="playground-res">
+              <div id="pgStatus" class="playground-status" style="color:var(--text-faint)">—</div>
+              <div style="font-size:10px;color:var(--text-faint);margin-bottom:8px">Response</div>
+              <pre id="pgResponse" style="min-height:120px">Waiting for request...</pre>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--text-faint)">⚠ This is a direct test request — no USDC payment, no SLA enforcement.</div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+      document.getElementById('pgSend').addEventListener('click', async () => {
+        const url = document.getElementById('pgEndpoint').value.trim();
+        const method = document.getElementById('pgMethod').value;
+        const body = document.getElementById('pgBody').value.trim();
+        const statusEl = document.getElementById('pgStatus');
+        const resEl = document.getElementById('pgResponse');
+        if (!url) return;
+        statusEl.textContent = 'Sending...';
+        statusEl.style.color = 'var(--warn)';
+        resEl.textContent = '...';
+        const t0 = Date.now();
+        try {
+          const opts = { method, headers: { 'Content-Type': 'application/json' } };
+          if (method !== 'GET' && body) opts.body = body;
+          const resp = await fetch(url, opts);
+          const ms = Date.now() - t0;
+          const text = await resp.text();
+          let pretty = text;
+          try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+          statusEl.textContent = `${resp.status} ${resp.statusText} · ${ms}ms`;
+          statusEl.style.color = resp.ok ? 'var(--accent)' : 'var(--danger)';
+          resEl.textContent = pretty;
+        } catch (e) {
+          statusEl.textContent = `Error: ${e.message}`;
+          statusEl.style.color = 'var(--danger)';
+          resEl.textContent = e.toString();
+        }
+      });
+    };
+
+    // ─── 8. PROVIDER LEADERBOARD PAGE ────────────────────────────────────
+    window.renderLeaderboardPage = function() {
+      const providers = window.state?.allProviders || [];
+      const box = document.getElementById('leaderboardBox');
+      if (!box) return;
+      if (providers.length === 0) {
+        box.innerHTML = '<div class="empty-state">No providers yet</div>';
+        return;
+      }
+      const d = window.state?.usdcDecimals || 6;
+      const sorted = [...providers].sort((a, b) => (b.reputation || 0) - (a.reputation || 0));
+      const rows = sorted.map((p, i) => {
+        const total = (p.completedCalls || 0) + (p.slashedCalls || 0);
+        const sla = total > 0 ? Math.round((p.completedCalls || 0) / total * 100) : 100;
+        const health = window.getProviderHealthScore ? window.getProviderHealthScore(p) : { cls: 'good', label: '' };
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+        return `<div class="gas-row" style="cursor:pointer" onclick="window.openProviderModal && window.openProviderModal(${p.id})">
+          <span style="font-size:13px;font-weight:600;min-width:36px">${medal}</span>
+          <span style="font-family:monospace;font-size:11px;flex:1;color:var(--text-faint)">Provider #${p.id} · ${(p.owner || '').slice(0, 8)}...</span>
+          <span style="font-size:11px;margin-right:12px;color:var(--text-faint)">${total} calls</span>
+          <span class="health-badge ${health.cls}" style="font-size:10px">${sla}% SLA</span>
+          <span style="font-size:12px;font-weight:700;min-width:36px;text-align:right;color:var(--accent)">${p.reputation || 0}</span>
+        </div>`;
+      }).join('');
+      box.innerHTML = `
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Ranked by reputation score · ${providers.length} providers</div>
+          <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:12px">${rows}</div>
+        </div>`;
+    };
+
+    // Re-render leaderboard when providers load
+    const origRefreshLeaderboard = window.refreshLeaderboard;
+    if (origRefreshLeaderboard) {
+      window.refreshLeaderboard = function() {
+        origRefreshLeaderboard();
+        setTimeout(window.renderLeaderboardPage, 100);
+      };
+    }
+
+    // ─── 9. GAS ESTIMATOR ────────────────────────────────────────────────
+    window.estimateCallGas = async function(providerId, priceUsdc) {
+      try {
+        const provider = window.state?.provider;
+        const contract = window.state?.contract;
+        if (!provider || !contract) return null;
+        const d = window.state?.usdcDecimals || 6;
+        const priceWei = ethers.parseUnits(String(priceUsdc || '1'), d);
+        // Estimate gas for callService
+        const gasEst = await contract.callService.estimateGas(providerId, ethers.ZeroHash, priceWei).catch(() => BigInt(150000));
+        const feeData = await provider.getFeeData();
+        const gasPrice = feeData.gasPrice || BigInt(20000000000);
+        const gasCostWei = gasEst * gasPrice;
+        const gasCostUsdc = Number(ethers.formatUnits(gasCostWei, d));
+        return { gasUnits: Number(gasEst), gasCostUsdc: gasCostUsdc.toFixed(6) };
+      } catch { return null; }
+    };
+
+    window.showGasEstimate = async function(providerId, priceUsdc) {
+      const est = await window.estimateCallGas(providerId, priceUsdc);
+      if (!est) return;
+      // Inject gas estimate into confirm modal if open
+      const gasCostEl = document.getElementById('confirmGasCost');
+      if (gasCostEl) {
+        gasCostEl.textContent = `~${est.gasCostUsdc} USDC`;
+      }
+    };
+
+    // ─── 7. DARK/LIGHT THEME FIX ─────────────────────────────────────────
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      if (theme === 'light') {
+        root.style.setProperty('--bg-0', '#f7faf8');
+        root.style.setProperty('--bg-1', '#ffffff');
+        root.style.setProperty('--bg-2', '#f0f4f1');
+        root.style.setProperty('--text-1', '#0a1628');
+        root.style.setProperty('--text-2', '#1e293b');
+        root.style.setProperty('--text-faint', '#64748b');
+        root.style.setProperty('--border', '#e2e8e4');
+        root.style.setProperty('--border-hi', '#c8d5cc');
+      } else {
+        root.style.setProperty('--bg-0', '#09090b');
+        root.style.setProperty('--bg-1', '#18181b');
+        root.style.setProperty('--bg-2', '#27272a');
+        root.style.setProperty('--text-1', '#f4f4f5');
+        root.style.setProperty('--text-2', '#a1a1aa');
+        root.style.setProperty('--text-faint', '#71717a');
+        root.style.setProperty('--border', '#3f3f46');
+        root.style.setProperty('--border-hi', '#52525b');
+      }
+      localStorage.setItem('cg_theme', theme);
+    }
+
+    // Read saved theme on load
+    const savedTheme = localStorage.getItem('cg_theme') || 'light';
+    applyTheme(savedTheme);
+
+    // Hook into settings theme toggle
+    const themeToggle = document.getElementById('themeToggle') || document.getElementById('settingTheme') || document.getElementById('darkMode');
+    if (themeToggle) {
+      themeToggle.addEventListener('change', e => applyTheme(e.target.checked ? 'dark' : 'light'));
+      themeToggle.checked = savedTheme === 'dark';
+    }
+
+    // Expose globally
+    window.applyTheme = applyTheme;
 
   })();
   </script>
