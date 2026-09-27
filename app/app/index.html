@@ -5915,6 +5915,11 @@
             <span id="addrText"></span>
           </div>
           <button class="btn btn-sm btn-danger hidden" id="btnResetMM" style="font-size:11px;padding:5px 10px">Reset</button>
+          <!-- Simple / Pro toggle -->
+          <div id="modeToggle" style="display:flex;align-items:center;gap:0;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:600">
+            <button id="btnSimpleMode" onclick="window.setAppMode('simple')" style="padding:5px 10px;background:var(--accent);color:#fff;border:none;cursor:pointer;letter-spacing:.04em">Simple</button>
+            <button id="btnProMode" onclick="window.setAppMode('pro')" style="padding:5px 10px;background:transparent;color:var(--text-faint);border:none;cursor:pointer;letter-spacing:.04em">Pro</button>
+          </div>
         </div>
       </div>
     </header>
@@ -16596,5 +16601,245 @@ console.log("call opened:", tx.hash);`;
 
   })();
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SIMPLE MODE SYSTEM
+  ════════════════════════════════════════════════════════════ -->
+  <style>
+    /* Simple mode: hide advanced sidebar items */
+    body.simple-mode [data-nav="nano"],
+    body.simple-mode [data-nav="analytics"],
+    body.simple-mode [data-nav="jobs"],
+    body.simple-mode [data-nav="mcp"],
+    body.simple-mode [data-nav="webhooks"],
+    body.simple-mode [data-nav="leaderboard"],
+    body.simple-mode [data-nav="register"],
+    body.simple-mode .sb-section { display: none !important; }
+
+    /* Simple mode: show only 4 items + notifications + settings */
+    body.simple-mode [data-nav="overview"],
+    body.simple-mode [data-nav="marketplace"],
+    body.simple-mode [data-nav="x402"],
+    body.simple-mode [data-nav="calls"],
+    body.simple-mode [data-nav="providers"],
+    body.simple-mode [data-nav="notifications"],
+    body.simple-mode [data-nav="settings"] { display: flex !important; }
+
+    /* Simple mode: plain language labels */
+    body.simple-mode [data-nav="overview"] .sb-label::after { content: "Home"; }
+    body.simple-mode [data-nav="marketplace"] .sb-label::after { content: "Browse Services"; }
+    body.simple-mode [data-nav="x402"] .sb-label::after { content: "Make a Request"; }
+    body.simple-mode [data-nav="calls"] .sb-label::after { content: "My Requests"; }
+    body.simple-mode [data-nav="providers"] .sb-label::after { content: "Providers"; }
+
+    /* Hide original text in simple mode, show via ::after */
+    body.simple-mode [data-nav="overview"] > *:not(.sb-icon),
+    body.simple-mode [data-nav="marketplace"] > *:not(.sb-icon),
+    body.simple-mode [data-nav="x402"] > *:not(.sb-icon),
+    body.simple-mode [data-nav="calls"] > *:not(.sb-icon),
+    body.simple-mode [data-nav="providers"] > *:not(.sb-icon) { display: none !important; }
+    body.simple-mode [data-nav="overview"] .sb-icon,
+    body.simple-mode [data-nav="marketplace"] .sb-icon,
+    body.simple-mode [data-nav="x402"] .sb-icon,
+    body.simple-mode [data-nav="calls"] .sb-icon,
+    body.simple-mode [data-nav="providers"] .sb-icon { display: flex !important; }
+    body.simple-mode [data-nav="overview"]::after { content: "Home"; font-size:13px; }
+    body.simple-mode [data-nav="marketplace"]::after { content: "Browse Services"; font-size:13px; }
+    body.simple-mode [data-nav="x402"]::after { content: "Make a Request"; font-size:13px; }
+    body.simple-mode [data-nav="calls"]::after { content: "My Requests"; font-size:13px; }
+    body.simple-mode [data-nav="providers"]::after { content: "Providers"; font-size:13px; }
+
+    /* Simple mode: plain language in panels */
+    body.simple-mode .panel-tag-slash { display: none !important; }
+    body.simple-mode .call-status-label[data-status="completed"]::before { content: "✓ Delivered — "; }
+    body.simple-mode .call-status-label[data-status="slashed"]::before { content: "⚑ Refunded — "; }
+    body.simple-mode .call-status-label[data-status="open"]::before { content: "⌛ Waiting — "; }
+
+    /* Simple mode: hide technical fields */
+    body.simple-mode .tech-only { display: none !important; }
+
+    /* Simple overview in simple mode */
+    body.simple-mode .simple-overview { display: block !important; }
+    body.simple-mode .pro-overview { display: none !important; }
+    .simple-overview { display: none; }
+
+    /* Mode toggle active state */
+    body.simple-mode #btnSimpleMode { background: var(--accent) !important; color: #fff !important; }
+    body.simple-mode #btnProMode { background: transparent !important; color: var(--text-faint) !important; }
+    body:not(.simple-mode) #btnProMode { background: var(--accent) !important; color: #fff !important; }
+    body:not(.simple-mode) #btnSimpleMode { background: transparent !important; color: var(--text-faint) !important; }
+  </style>
+
+  <!-- Simple Overview Panel -->
+  <template id="simpleOverviewTpl">
+    <div class="simple-overview" style="padding:32px 40px;max-width:900px">
+      <!-- Welcome header -->
+      <div id="simpleWelcome" style="margin-bottom:32px">
+        <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px">Welcome to CallGuard</div>
+        <div style="font-size:14px;color:var(--text-dim)">API requests with money-back guarantees. Pick a service, make a request, get results.</div>
+      </div>
+
+      <!-- 3 big action cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px">
+        <div class="simple-action-card" onclick="document.querySelector('[data-nav=marketplace]')?.click()" style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:24px;cursor:pointer;transition:border-color .15s">
+          <div style="font-size:28px;margin-bottom:12px">🔍</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Browse Services</div>
+          <div style="font-size:12px;color:var(--text-dim)">Find a provider and see their guarantees</div>
+        </div>
+        <div class="simple-action-card" onclick="document.querySelector('[data-nav=x402]')?.click()" style="background:var(--bg-1);border:2px solid var(--accent);border-radius:12px;padding:24px;cursor:pointer;transition:border-color .15s">
+          <div style="font-size:28px;margin-bottom:12px">⚡</div>
+          <div style="font-size:15px;font-weight:600;color:var(--accent);margin-bottom:4px">Make a Request</div>
+          <div style="font-size:12px;color:var(--text-dim)">Pay per request with a response guarantee</div>
+        </div>
+        <div class="simple-action-card" onclick="document.querySelector('[data-nav=calls]')?.click()" style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:24px;cursor:pointer;transition:border-color .15s">
+          <div style="font-size:28px;margin-bottom:12px">📋</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">My Requests</div>
+          <div style="font-size:12px;color:var(--text-dim)">Track your requests and payments</div>
+        </div>
+      </div>
+
+      <!-- Balance + recent activity -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px">
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-faint);letter-spacing:.08em;margin-bottom:12px">YOUR BALANCE</div>
+          <div style="font-size:28px;font-weight:700;color:var(--text);font-family:var(--font-mono)" id="simpleBalance">—</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px">USDC on Arc Testnet</div>
+          <div style="margin-top:16px;display:flex;gap:8px">
+            <a href="https://faucet.circle.com" target="_blank" class="btn" style="font-size:11px;padding:5px 10px">Get test USDC →</a>
+          </div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-faint);letter-spacing:.08em;margin-bottom:12px">RECENT ACTIVITY</div>
+          <div id="simpleRecentActivity" style="font-size:13px;color:var(--text-dim)">Loading...</div>
+        </div>
+      </div>
+
+      <!-- "Want more control?" -->
+      <div style="margin-top:24px;padding:16px 20px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Want full control?</div>
+          <div style="font-size:12px;color:var(--text-dim)">Switch to Pro mode for advanced features: webhooks, analytics, dispute, bulk calls</div>
+        </div>
+        <button onclick="window.setAppMode('pro')" class="btn" style="font-size:12px;padding:6px 14px;white-space:nowrap">Switch to Pro →</button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+  (function() {
+    /* ── SIMPLE / PRO MODE ── */
+    const STORAGE_KEY = 'cg_app_mode';
+
+    window.setAppMode = function(mode) {
+      localStorage.setItem(STORAGE_KEY, mode);
+      applyMode(mode);
+    };
+
+    function applyMode(mode) {
+      if (mode === 'simple') {
+        document.body.classList.add('simple-mode');
+        injectSimpleOverview();
+      } else {
+        document.body.classList.remove('simple-mode');
+      }
+    }
+
+    function injectSimpleOverview() {
+      const tpl = document.getElementById('simpleOverviewTpl');
+      if (!tpl) return;
+      const ovSection = document.getElementById('overviewDashSection') || document.querySelector('[data-category="overview"]');
+      if (!ovSection) return;
+      if (document.getElementById('simpleOverviewInjected')) return;
+
+      const div = document.createElement('div');
+      div.id = 'simpleOverviewInjected';
+      div.className = 'simple-overview';
+      div.appendChild(tpl.content.cloneNode(true));
+      ovSection.prepend(div);
+
+      // Update balance
+      const balEl = document.getElementById('simpleBalance');
+      const usdcEl = document.getElementById('usdcBal');
+      if (balEl && usdcEl) {
+        const update = () => { if (usdcEl.textContent !== '0.00') balEl.textContent = usdcEl.textContent + ' USDC'; };
+        update();
+        new MutationObserver(update).observe(usdcEl, { childList: true, characterData: true, subtree: true });
+      }
+
+      // Recent activity (last 3 calls from state)
+      const actEl = document.getElementById('simpleRecentActivity');
+      if (actEl) {
+        const checkCalls = setInterval(() => {
+          const calls = window.state?.myCalls;
+          if (!calls) return;
+          clearInterval(checkCalls);
+          if (!calls.length) { actEl.textContent = 'No requests yet — make your first one!'; return; }
+          const labels = { open: '⌛ Waiting', completed: '✓ Delivered', slashed: '⚑ Refunded' };
+          actEl.innerHTML = calls.slice(0, 3).map(c => {
+            const st = c.status === 'open' ? 'Waiting for response' : c.status === 'completed' ? '✓ Delivered' : '⚑ Refunded (penalty applied)';
+            const col = c.status === 'completed' ? 'var(--success)' : c.status === 'slashed' ? 'var(--danger)' : 'var(--warning,#f59e0b)';
+            return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <span style="color:var(--text)">${st}</span>
+              <span style="font-family:var(--font-mono);font-size:12px;color:${col}">${c.amount || '1.0'} USDC</span>
+            </div>`;
+          }).join('');
+        }, 1000);
+      }
+    }
+
+    // Action card hover effect
+    document.addEventListener('mouseover', e => {
+      const card = e.target.closest('.simple-action-card');
+      if (card) card.style.borderColor = 'var(--accent)';
+    });
+    document.addEventListener('mouseout', e => {
+      const card = e.target.closest('.simple-action-card');
+      if (card && !card.style.border.includes('2px')) card.style.borderColor = 'var(--border)';
+    });
+
+    // "Make a Request" panel: plain language labels
+    const plainLabels = {
+      'regSigner': 'Your signing address',
+      'regStake': 'Security deposit (USDC)',
+      'regPrice': 'Price per request (USDC)',
+      'regResp': 'Max response time (ms)',
+      'regSlash': 'Penalty if late (%)',
+    };
+
+    document.addEventListener('click', e => {
+      const nav = e.target.closest('[data-nav]');
+      if (!nav || !document.body.classList.contains('simple-mode')) return;
+      const panel = nav.dataset.nav;
+      // Rename labels in simple mode
+      if (panel === 'x402') {
+        setTimeout(() => {
+          const provLabel = document.querySelector('label[for="regSigner"]');
+          if (provLabel && !provLabel.dataset.plain) {
+            provLabel.dataset.original = provLabel.textContent;
+            provLabel.textContent = 'Your address';
+            provLabel.dataset.plain = '1';
+          }
+        }, 200);
+      }
+    });
+
+    // Init on load
+    const saved = localStorage.getItem(STORAGE_KEY) || 'simple';
+    // Show toggle only when connected
+    const modeToggle = document.getElementById('modeToggle');
+    if (modeToggle) {
+      modeToggle.style.display = 'none';
+      const observer = new MutationObserver(() => {
+        const connected = !document.getElementById('connectedView')?.classList.contains('hidden');
+        modeToggle.style.display = connected ? 'flex' : 'none';
+        if (connected) applyMode(saved);
+      });
+      const cv = document.getElementById('connectedView');
+      if (cv) observer.observe(cv, { attributes: true, attributeFilter: ['class'] });
+    }
+
+  })();
+  </script>
+
   </body>
 </html>
