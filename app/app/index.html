@@ -4331,9 +4331,19 @@
     .theme-toggle-track.light .theme-toggle-thumb { transform: translateX(18px); }
     body.light-mode {
       --bg-0: #f8fafb; --bg-1: #ffffff; --bg-2: #f1f4f7;
-      --border: rgba(0,0,0,0.1); --text: #0a0e14; --text-dim: #374151;
-      --text-faint: #6b7280; --card-bg: rgba(255,255,255,0.9);
+      --border: rgba(0,0,0,0.09); --border-hi: rgba(0,0,0,0.18);
+      --text: #0a0e14; --text-dim: #374151; --text-faint: #6b7280;
+      --card-bg: rgba(255,255,255,0.95);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
     }
+    body.light-mode .topbar { background: #ffffff; border-bottom: 1px solid rgba(0,0,0,0.09); }
+    body.light-mode .sidebar { background: #f8fafb; border-right: 1px solid rgba(0,0,0,0.09); }
+    body.light-mode .sb-item:hover { background: rgba(0,0,0,0.04); }
+    body.light-mode .sb-item.active { background: rgba(22,163,74,0.08); }
+    body.light-mode .ticker { background: #0a0e14; }
+    body.light-mode .action-card { background: #fff; }
+    body.light-mode input, body.light-mode select, body.light-mode textarea { background: #fff; color: #0a0e14; }
 
 
     /* ── CALL WIZARD ── */
