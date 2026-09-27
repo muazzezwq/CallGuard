@@ -9598,6 +9598,17 @@ async function refreshBalance() {
         "0x8baa579f": "SLA deadline has passed — the provider missed the response window.",
         "0xb3b42b14": "Call ID collision — please try again.",
         "0xac4e7849": "Provider is not active.",
+        // Dispute errors
+        "0x1f6a65b6": "Dispute not found.",
+        "0x3b6a8c3d": "Dispute already resolved.",
+        "0x7c3a1f2e": "Only the arbiter can resolve disputes.",
+        // Subscription errors
+        "0x4e487b71": "Arithmetic overflow — check amounts.",
+        "0x6d4a1f3c": "Subscription not found.",
+        "0x2e4b8a1d": "Subscription already active.",
+        "0x5c3f2a1b": "Subscription expired.",
+        // Gas / balance
+        "0x": "Transaction failed — check your USDC balance and try again.",
       };
 
       function friendlyError(e) {
@@ -9611,6 +9622,14 @@ async function refreshBalance() {
         // Network / RPC error
         if (e.code === -32603)
           return "RPC error — check your network connection and try again.";
+        // Insufficient funds (native or ERC-20)
+        const msg = (e.message || "").toLowerCase();
+        if (msg.includes("insufficient funds") || msg.includes("insufficient balance"))
+          return "Insufficient USDC balance. Get test USDC from the faucet.";
+        if (msg.includes("gas required exceeds allowance"))
+          return "Not enough USDC for gas. Your balance may be exactly equal to the call cost — leave a small buffer.";
+        if (msg.includes("nonce too low"))
+          return "Nonce mismatch — please reset MetaMask account or wait a moment and retry.";
         // Try custom contract error selector (first 4 bytes of revert data)
         const data = e.data || e.error?.data;
         if (typeof data === "string" && data.length >= 10) {
@@ -9712,6 +9731,24 @@ async function refreshBalance() {
           }
           // Check session budget before proceeding
           if (!checkBudget(priceNum)) throw new Error("budget exceeded");
+          // session budget via existing checkBudget()
+
+          // TX Confirmation modal
+          const slaMs = Number(p.maxResponseTime) * 1000;
+          const slashPct = (Number(p.slashBps) / 100).toFixed(0);
+          const confirmed = await window.confirmTx({
+            title: "Confirm API Call",
+            rows: [
+              ["Provider", `#${idStr}`],
+              ["Cost", `${priceNum} USDC`],
+              ["SLA guarantee", `${slaMs} ms response`],
+              ["Slash if missed", `${slashPct}% of provider stake`],
+              ["Network", "Arc Testnet"],
+              ["Settlement", "On-chain, automatic"],
+            ],
+            warning: priceNum >= 1 ? `${priceNum} USDC will be locked in escrow until the provider responds or the SLA is breached.` : null,
+          });
+          if (!confirmed) throw new Error("user cancelled");
           // Approve only when needed — MaxUint256 = fires only once ever, no more double-TX
           const currentAllowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
           if (currentAllowance < price) {
@@ -10197,7 +10234,7 @@ async function refreshBalance() {
 
       let _callsPage = 0;
       const CALLS_PER_PAGE = 15;
-      let _callsFilter = "all";
+      let _callsFilter = "pending";
       function renderCalls() {
         const allCalls = Array.from(state.myCalls.values()).reverse();
         const filtered = _callsFilter === "all" ? allCalls
@@ -14797,6 +14834,38 @@ console.log("call opened:", tx.hash);`;
     .go-pbar-seg.done { background:var(--accent) }
     .go-pbar-seg.active { background:var(--accent);opacity:.5 }
     .go-success-icon { width:48px;height:48px;background:var(--accent-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px }
+
+    /* ── TX Confirm Modal ── */
+    #confirmTxOverlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9900;display:none;align-items:center;justify-content:center;padding:16px }
+    #confirmTxOverlay.open { display:flex }
+    #confirmTxModal { background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:28px 28px 24px;max-width:440px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18) }
+    #confirmTxModal h3 { font-size:16px;font-weight:600;margin:0 0 16px;color:var(--text-main) }
+    .ctm-row { display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-faint);font-size:13px }
+    .ctm-row:last-of-type { border-bottom:none }
+    .ctm-label { color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em }
+    .ctm-val { font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text-main) }
+    .ctm-warning { background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin:12px 0 }
+    .ctm-actions { display:flex;gap:10px;margin-top:18px }
+    .ctm-actions button { flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border) }
+    .ctm-cancel { background:var(--bg-0);color:var(--text-main) }
+    .ctm-confirm { background:var(--accent);color:#fff;border-color:var(--accent) }
+
+    /* ── Session Spending Limit ── */
+    .spend-limit-bar { display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-1);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;font-size:12px }
+    .spend-limit-fill { height:4px;border-radius:2px;background:var(--accent);transition:width .3s }
+    .spend-limit-track { flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden }
+    .spend-limit-warn { background:#fef3c7;border-color:#f59e0b }
+    .spend-limit-danger { background:#fef2f2;border-color:#ef4444 }
+
+    /* ── Mobil modal düzeltmeleri ── */
+    @media (max-width: 600px) {
+      #disputeOverlay .modal-box,
+      #subOverlay .modal-box,
+      #first-call-overlay .modal-box,
+      #confirmTxModal { max-width:100%;margin:8px;border-radius:12px;padding:20px 16px }
+      .ctm-actions { flex-direction:column }
+      .ctm-actions button { width:100% }
+    }
   </style>
 
   <script>
@@ -15061,6 +15130,107 @@ console.log("call opened:", tx.hash);`;
       }
     });
 
+  })();
+  </script>
+
+  <!-- TX Confirm Modal -->
+  <div id="confirmTxOverlay">
+    <div id="confirmTxModal">
+      <h3>Confirm Transaction</h3>
+      <div id="ctmRows"></div>
+      <div class="ctm-warning" id="ctmWarning" style="display:none"></div>
+      <div class="ctm-actions">
+        <button class="btn" id="ctmCancel">Cancel</button>
+        <button class="btn btn-primary" id="ctmConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session Spending Limit Banner -->
+  <div id="spendLimitBanner" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;z-index:9800;box-shadow:0 4px 16px rgba(0,0,0,.12)">
+    <span id="spendLimitText"></span>
+    <button onclick="document.getElementById('spendLimitBanner').style.display='none'" style="margin-left:12px;background:none;border:none;cursor:pointer;color:var(--text-muted)">✕</button>
+  </div>
+
+  <script>
+  (function() {
+    // ── TX Confirm Modal ──────────────────────────────────────────
+    let _ctmResolve = null;
+
+    window.confirmTx = function({ title, rows, warning } = {}) {
+      return new Promise(resolve => {
+        _ctmResolve = resolve;
+        const overlay = document.getElementById("confirmTxOverlay");
+        const rowsEl  = document.getElementById("ctmRows");
+        const warnEl  = document.getElementById("ctmWarning");
+        if (title) document.querySelector("#confirmTxModal h3").textContent = title;
+        rowsEl.innerHTML = (rows || []).map(([label, value]) =>
+          `<div class="ctm-row"><span style="color:var(--text-muted)">${label}</span><span style="font-weight:600;font-family:'JetBrains Mono',monospace">${value}</span></div>`
+        ).join("");
+        if (warning) { warnEl.textContent = warning; warnEl.style.display = "block"; }
+        else warnEl.style.display = "none";
+        overlay.classList.add("open");
+      });
+    };
+
+    document.getElementById("ctmConfirm").addEventListener("click", () => {
+      document.getElementById("confirmTxOverlay").classList.remove("open");
+      if (_ctmResolve) { _ctmResolve(true); _ctmResolve = null; }
+    });
+    document.getElementById("ctmCancel").addEventListener("click", () => {
+      document.getElementById("confirmTxOverlay").classList.remove("open");
+      if (_ctmResolve) { _ctmResolve(false); _ctmResolve = null; }
+    });
+    document.getElementById("confirmTxOverlay").addEventListener("click", e => {
+      if (e.target === e.currentTarget) {
+        e.currentTarget.classList.remove("open");
+        if (_ctmResolve) { _ctmResolve(false); _ctmResolve = null; }
+      }
+    });
+
+    // ── Session Spending Limit ────────────────────────────────────
+    const SPEND_LIMIT_KEY = "cg_session_limit";
+    const DEFAULT_LIMIT = 10; // USDC per session
+
+    window.getSessionLimit  = () => parseFloat(localStorage.getItem(SPEND_LIMIT_KEY) || DEFAULT_LIMIT);
+    window.getSessionSpent  = () => parseFloat(sessionStorage.getItem("cg_session_spent") || "0");
+    window.addSessionSpent  = (amt) => {
+      const spent = window.getSessionSpent() + amt;
+      sessionStorage.setItem("cg_session_spent", spent.toFixed(6));
+      const limit = window.getSessionLimit();
+      const banner = document.getElementById("spendLimitBanner");
+      const text   = document.getElementById("spendLimitText");
+      if (spent >= limit * 0.8) {
+        text.innerHTML = `Session spending: <strong>${spent.toFixed(3)} / ${limit} USDC</strong> — <a href="#" onclick="document.getElementById('spendLimitBanner').style.display='none';window.showCategory('settings');return false">adjust limit</a>`;
+        banner.style.display = "flex";
+      }
+    };
+    window.checkSessionBudget = (amount) => {
+      const spent = window.getSessionSpent();
+      const limit = window.getSessionLimit();
+      if (spent + amount > limit) {
+        if (window.toast) window.toast({ kind: "err", title: "Session spending limit reached", detail: `You've spent ${spent.toFixed(3)} USDC this session. Limit: ${limit} USDC. Adjust in Settings.`, timeout: 8000 });
+        return false;
+      }
+      return true;
+    };
+
+    // Expose to settings panel
+    window.renderSpendingLimit = function() {
+      const el = document.getElementById("spendLimitValue");
+      if (el) el.textContent = window.getSessionLimit() + " USDC";
+      const inp = document.getElementById("spendLimitInput");
+      if (inp) inp.value = window.getSessionLimit();
+    };
+    window.saveSpendingLimit = function(val) {
+      const n = parseFloat(val);
+      if (!isNaN(n) && n > 0) {
+        localStorage.setItem(SPEND_LIMIT_KEY, n);
+        window.renderSpendingLimit();
+        if (window.toast) window.toast({ kind: "ok", title: `Session limit set to ${n} USDC` });
+      }
+    };
+    window.renderSpendingLimit();
   })();
   </script>
   </body>
