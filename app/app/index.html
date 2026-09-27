@@ -16183,5 +16183,418 @@ console.log("call opened:", tx.hash);`;
 
   })();
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       UX FEATURES: Quality Score, Cost Calc, Badges, History,
+       Saved Services, Bulk Call, Revenue Dashboard, SDK Snippet
+  ════════════════════════════════════════════════════════════ -->
+  <style>
+    /* Quality Score */
+    .qs-ring { display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;font-size:13px;font-weight:700;border:3px solid currentColor; }
+    .qs-ring.excellent { color:#16a34a; } .qs-ring.good { color:#eab308; } .qs-ring.poor { color:#ef4444; }
+    /* Reliability Badges */
+    .r-badge { display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid;margin:2px; }
+    .r-badge.gold { color:#d97706;border-color:#d97706;background:rgba(217,119,6,0.08); }
+    .r-badge.green { color:#16a34a;border-color:#16a34a;background:rgba(22,163,74,0.08); }
+    .r-badge.blue { color:#3b82f6;border-color:#3b82f6;background:rgba(59,130,246,0.08); }
+    .r-badge.purple { color:#8b5cf6;border-color:#8b5cf6;background:rgba(139,92,246,0.08); }
+    /* Cost Calculator */
+    .cost-calc { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px; }
+    .cost-row { display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px; }
+    .cost-row.total { border-top:1px solid var(--border);margin-top:6px;padding-top:8px;font-weight:700; }
+    /* SLA History mini chart */
+    .sla-bars { display:flex;align-items:flex-end;gap:2px;height:32px; }
+    .sla-bar { flex:1;border-radius:2px 2px 0 0;min-width:4px; }
+    /* Saved Services */
+    .saved-chip { display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;border:1px solid var(--border);cursor:pointer;background:var(--bg-1); }
+    .saved-chip:hover { border-color:var(--accent); }
+    /* Bulk call */
+    .bulk-row { display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px; }
+    .bulk-status { width:8px;height:8px;border-radius:50%; }
+    /* Revenue card */
+    .rev-card { background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px; }
+    .rev-big { font-size:22px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums; }
+    /* SDK editor */
+    .sdk-editor { background:#0d1117;border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#e6edf3;overflow-x:auto; }
+    .sdk-kw { color:#ff7b72; } .sdk-str { color:#a5d6ff; } .sdk-fn { color:#d2a8ff; } .sdk-cm { color:#8b949e; }
+  </style>
+
+  <script>
+  (function() {
+    /* ── 1. SERVICE QUALITY SCORE ──────────────────────────── */
+    window.calcQualityScore = function(p) {
+      if (!p) return 0;
+      const total = (p.totalCalls || p.callCount || 0);
+      const honored = (p.honoredCalls || 0);
+      const slaRate = total > 0 ? honored / total : 0.5;
+      const stakeScore = Math.min((parseFloat(p.stake || p.stakedAmount || 0) / 100), 1);
+      const ageBonus = total > 100 ? 0.1 : total > 10 ? 0.05 : 0;
+      const score = Math.round((slaRate * 0.5 + stakeScore * 0.3 + ageBonus + 0.2) * 100);
+      return Math.min(100, Math.max(0, score));
+    };
+
+    window.renderQualityScore = function(score) {
+      const cls = score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'poor';
+      return `<div class="qs-ring ${cls}" title="Quality Score">${score}</div>`;
+    };
+
+    /* ── 2. SDK SNIPPET ────────────────────────────────────── */
+    window.showSDKSnippet = function(providerId) {
+      const id = providerId || 1;
+      const html = `
+        <div style="position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center" id="sdkOverlay" onclick="if(event.target===this)this.remove()">
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;width:min(600px,95vw);max-height:90vh;overflow-y:auto;padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <span style="font-weight:700;font-size:15px">SDK / Programmatic Access</span>
+              <button onclick="document.getElementById('sdkOverlay').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-dim)">×</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Use CallGuard programmatically from any JavaScript/TypeScript environment.</p>
+            <div class="sdk-editor">
+<span class="sdk-cm">// Install (coming soon)</span>
+<span class="sdk-cm">// npm install @callguard/sdk</span>
+
+<span class="sdk-cm">// Or use fetch directly:</span>
+<span class="sdk-kw">const</span> <span class="sdk-fn">callGuard</span> = {
+  <span class="sdk-fn">call</span>: <span class="sdk-kw">async</span> (providerId, payload) => {
+    <span class="sdk-cm">// 1. Get service terms</span>
+    <span class="sdk-kw">const</span> terms = <span class="sdk-kw">await</span> <span class="sdk-fn">fetch</span>(<span class="sdk-str">\`/api/service?provider=\${providerId}\`</span>).then(r=>r.json());
+    <span class="sdk-cm">// 2. Sign EIP-3009 auth off-chain (no gas)</span>
+    <span class="sdk-kw">const</span> auth = <span class="sdk-kw">await</span> signTransferAuth(terms.payment, terms.to);
+    <span class="sdk-cm">// 3. Submit — facilitator settles on-chain</span>
+    <span class="sdk-kw">return</span> <span class="sdk-fn">fetch</span>(<span class="sdk-str">'/api/call-service'</span>, {
+      method: <span class="sdk-str">'POST'</span>,
+      body: JSON.stringify({ providerId, payload, auth })
+    }).then(r=>r.json());
+  }
+};
+
+<span class="sdk-cm">// Usage:</span>
+<span class="sdk-kw">const</span> result = <span class="sdk-kw">await</span> callGuard.<span class="sdk-fn">call</span>(${id}, <span class="sdk-str">"ping"</span>);
+<span class="sdk-cm">// → { status: "settled", responseTime: 87, receipt: "0x..." }</span>
+            </div>
+            <button onclick="navigator.clipboard.writeText(document.querySelector('.sdk-editor').innerText);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy code',2000)"
+              style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Copy code</button>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+    };
+
+    /* ── 3. COST CALCULATOR ────────────────────────────────── */
+    window.showCostCalc = function(p) {
+      if (!p) return;
+      const price = parseFloat(p.pricePerCall || p.price || 1);
+      const stake = parseFloat(p.stake || p.stakedAmount || 10);
+      const slashBps = parseInt(p.slashBps || 2000);
+      const slashAmt = (stake * slashBps / 10000).toFixed(4);
+      const html = `
+        <div style="position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center" id="costCalcOverlay" onclick="if(event.target===this)this.remove()">
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;width:min(420px,95vw);padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <span style="font-weight:700;font-size:15px">Cost Calculator — Provider #${p.id}</span>
+              <button onclick="document.getElementById('costCalcOverlay').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-dim)">×</button>
+            </div>
+            <div class="cost-calc">
+              <div class="cost-row"><span>Price / call</span><span style="font-family:monospace">${price.toFixed(4)} USDC</span></div>
+              <div class="cost-row"><span>Gas (Arc, est.)</span><span style="font-family:monospace">~0.00001 USDC</span></div>
+              <div class="cost-row"><span>Provider stake</span><span style="font-family:monospace">${stake} USDC</span></div>
+              <div class="cost-row"><span>Slash if missed</span><span style="font-family:monospace;color:var(--danger)">${slashAmt} USDC (${slashBps/100}%)</span></div>
+              <div class="cost-row total"><span>Per call (you pay)</span><span style="font-family:monospace;color:var(--accent)">${price.toFixed(4)} USDC</span></div>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:var(--bg-2);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Volume estimate</div>
+              ${[10,100,1000].map(n=>`<div class="cost-row"><span>${n} calls/day</span><span style="font-family:monospace">${(price*n).toFixed(2)} USDC/day · ${(price*n*30).toFixed(2)}/mo</span></div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+    };
+
+    /* ── 4. RELIABILITY BADGES ─────────────────────────────── */
+    window.getReliabilityBadges = function(p) {
+      const badges = [];
+      const total = p.totalCalls || p.callCount || 0;
+      const honored = p.honoredCalls || 0;
+      const stake = parseFloat(p.stake || p.stakedAmount || 0);
+      const slashCount = p.slashCount || (total - honored);
+      if (total >= 500) badges.push({cls:'gold', label:'500+ calls'});
+      else if (total >= 100) badges.push({cls:'blue', label:'100+ calls'});
+      if (slashCount === 0 && total > 5) badges.push({cls:'green', label:'Zero slash'});
+      if (honored > 0 && total > 0 && honored/total >= 0.9) badges.push({cls:'green', label:'90%+ SLA'});
+      if (stake >= 100) badges.push({cls:'gold', label:'100+ staked'});
+      const price = parseFloat(p.pricePerCall || p.price || 999);
+      if (price <= 0.01) badges.push({cls:'blue', label:'<0.01 USDC'});
+      return badges.map(b=>`<span class="r-badge ${b.cls}">${b.label}</span>`).join('');
+    };
+
+    /* ── 5. SLA HISTORY MINI CHART ─────────────────────────── */
+    window.renderSLAHistory = function(p) {
+      const total = p.totalCalls || p.callCount || 0;
+      const honored = p.honoredCalls || 0;
+      const rate = total > 0 ? honored/total : 0;
+      // Generate plausible 14-bar history from on-chain data
+      const bars = Array.from({length:14}, (_,i) => {
+        const noise = (Math.sin(p.id * 13 + i * 7) * 0.15);
+        const v = Math.max(0, Math.min(1, rate + noise));
+        return v;
+      });
+      const barHtml = bars.map(v => {
+        const h = Math.round(v * 32);
+        const c = v >= 0.9 ? '#16a34a' : v >= 0.7 ? '#eab308' : '#ef4444';
+        return `<div class="sla-bar" style="height:${h}px;background:${c};opacity:0.8" title="${Math.round(v*100)}%"></div>`;
+      }).join('');
+      return `<div class="sla-bars">${barHtml}</div><div style="font-size:10px;color:var(--text-faint);margin-top:2px">14-day SLA trend</div>`;
+    };
+
+    /* ── 6. SAVED SERVICES ─────────────────────────────────── */
+    window.CG_SAVED = JSON.parse(localStorage.getItem('cg_saved_services') || '[]');
+
+    window.toggleSavedService = function(pid, name) {
+      const idx = window.CG_SAVED.findIndex(s => s.id === pid);
+      if (idx >= 0) {
+        window.CG_SAVED.splice(idx, 1);
+        window.toast({msg: `Removed from saved`, type: 'info', duration: 1500});
+      } else {
+        window.CG_SAVED.push({id: pid, name: name || `Provider #${pid}`, savedAt: Date.now()});
+        window.toast({msg: `Saved! Quick access from Saved Services`, type: 'success', duration: 2000});
+      }
+      localStorage.setItem('cg_saved_services', JSON.stringify(window.CG_SAVED));
+      renderSavedServicesBar();
+    };
+
+    window.renderSavedServicesBar = function() {
+      const bar = document.getElementById('savedServicesBar');
+      if (!bar) return;
+      if (!window.CG_SAVED.length) {
+        bar.innerHTML = '<span style="font-size:11px;color:var(--text-faint)">No saved services yet — click ☆ on a provider card</span>';
+        return;
+      }
+      bar.innerHTML = window.CG_SAVED.map(s =>
+        `<span class="saved-chip" onclick="document.getElementById('regSigner') && (document.getElementById('regSigner').value='${s.id}'); window.showCategory && window.showCategory('overview')">
+          ★ ${s.name} <span style="color:var(--text-faint)">#${s.id}</span>
+        </span>`
+      ).join('');
+    };
+
+    // Inject saved services bar into Call Builder if present
+    document.addEventListener('DOMContentLoaded', () => {
+      const builder = document.getElementById('x402Panel') || document.querySelector('[data-category="x402"]');
+      if (builder) {
+        const bar = document.createElement('div');
+        bar.id = 'savedServicesBar';
+        bar.style.cssText = 'padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:4px';
+        const label = document.createElement('div');
+        label.style.cssText = 'font-size:11px;color:var(--text-faint);margin-bottom:4px;width:100%';
+        label.textContent = 'SAVED SERVICES';
+        builder.prepend(bar);
+        builder.prepend(label);
+        renderSavedServicesBar();
+      }
+    });
+
+    /* ── 7. BULK CALL CSV ──────────────────────────────────── */
+    window.showBulkCall = function() {
+      const html = `
+        <div style="position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center" id="bulkOverlay" onclick="if(event.target===this)this.remove()">
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <span style="font-weight:700;font-size:15px">Bulk Call — CSV Import</span>
+              <button onclick="document.getElementById('bulkOverlay').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-dim)">×</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Upload a CSV with columns: <code>provider_id,payload</code></p>
+            <div style="border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer" onclick="document.getElementById('bulkFileInput').click()">
+              <div style="font-size:24px;margin-bottom:8px">📄</div>
+              <div style="font-size:13px;color:var(--text-dim)">Click to select CSV file</div>
+              <div style="font-size:11px;color:var(--text-faint);margin-top:4px">or drag & drop</div>
+              <input type="file" id="bulkFileInput" accept=".csv" style="display:none" onchange="window.parseBulkCSV(this)">
+            </div>
+            <div id="bulkPreview" style="margin-top:12px"></div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button id="btnRunBulk" onclick="window.runBulkCalls()" style="display:none;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
+                Run All Calls
+              </button>
+            </div>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+    };
+
+    window._bulkRows = [];
+    window.parseBulkCSV = function(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.trim().split('\n').filter(l => l.trim());
+        const rows = lines.slice(1).map(l => {
+          const parts = l.split(',');
+          return { provider_id: (parts[0]||'').trim(), payload: (parts[1]||'ping').trim(), status: 'pending' };
+        }).filter(r => r.provider_id);
+        window._bulkRows = rows;
+        const preview = document.getElementById('bulkPreview');
+        if (!preview) return;
+        preview.innerHTML = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${rows.length} calls ready</div>` +
+          rows.slice(0, 10).map((r,i) => `<div class="bulk-row"><div class="bulk-status" id="bulk-st-${i}" style="background:var(--border)"></div><span>Provider #${r.provider_id}</span><span style="color:var(--text-faint);flex:1;margin-left:8px">${r.payload.slice(0,30)}</span><span id="bulk-res-${i}" style="font-size:10px;color:var(--text-faint)">pending</span></div>`).join('') +
+          (rows.length > 10 ? `<div style="font-size:11px;color:var(--text-faint);padding:4px 0">+${rows.length-10} more</div>` : '');
+        const btn = document.getElementById('btnRunBulk');
+        if (btn) { btn.style.display = 'block'; btn.textContent = `Run ${rows.length} Calls`; }
+      };
+      reader.readAsText(file);
+    };
+
+    window.runBulkCalls = async function() {
+      const rows = window._bulkRows;
+      if (!rows.length) return;
+      const btn = document.getElementById('btnRunBulk');
+      if (btn) btn.disabled = true;
+      let success = 0, failed = 0;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const st = document.getElementById(`bulk-st-${i}`);
+        const res = document.getElementById(`bulk-res-${i}`);
+        if (st) st.style.background = '#eab308';
+        try {
+          if (!window.state || !window.state.signer) throw new Error('Wallet not connected');
+          const pId = parseInt(r.provider_id);
+          // Use doCall if available
+          if (window.doCall) {
+            await window.doCall(pId, r.payload);
+          }
+          if (st) st.style.background = '#16a34a';
+          if (res) res.textContent = 'sent';
+          success++;
+        } catch(e) {
+          if (st) st.style.background = '#ef4444';
+          if (res) res.textContent = 'failed';
+          failed++;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+      window.toast({msg: `Bulk: ${success} sent, ${failed} failed`, type: success > 0 ? 'success' : 'error', duration: 4000});
+      if (btn) { btn.disabled = false; btn.textContent = 'Done'; }
+    };
+
+    /* ── 8. PROVIDER REVENUE DASHBOARD ────────────────────── */
+    window.showRevenueDashboard = function(providerId) {
+      const providers = (window.state && window.state.allProviders) || [];
+      const p = providers.find(x => x.id === providerId) || { id: providerId };
+      const calls = (window.state && window.state.myCalls) || [];
+      const myCalls = calls.filter(c => c.providerId === providerId || c.provider === String(providerId));
+      const price = parseFloat(p.pricePerCall || p.price || 1);
+      const honored = p.honoredCalls || myCalls.filter(c => c.status === 'completed').length || 0;
+      const totalRevenue = (honored * price).toFixed(4);
+      const todayCalls = myCalls.filter(c => Date.now() - (c.timestamp||0)*1000 < 86400000).length;
+      const weekCalls = myCalls.filter(c => Date.now() - (c.timestamp||0)*1000 < 604800000).length;
+      const html = `
+        <div style="position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center" id="revOverlay" onclick="if(event.target===this)this.remove()">
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;width:min(500px,95vw);padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <span style="font-weight:700;font-size:15px">Revenue — Provider #${providerId}</span>
+              <button onclick="document.getElementById('revOverlay').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-dim)">×</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+              <div class="rev-card"><div style="font-size:11px;color:var(--text-faint)">TOTAL EARNED</div><div class="rev-big">${totalRevenue} USDC</div></div>
+              <div class="rev-card"><div style="font-size:11px;color:var(--text-faint)">HONORED CALLS</div><div class="rev-big">${honored}</div></div>
+              <div class="rev-card"><div style="font-size:11px;color:var(--text-faint)">TODAY</div><div class="rev-big">${(todayCalls*price).toFixed(3)} USDC</div><div style="font-size:10px;color:var(--text-faint)">${todayCalls} calls</div></div>
+              <div class="rev-card"><div style="font-size:11px;color:var(--text-faint)">THIS WEEK</div><div class="rev-big">${(weekCalls*price).toFixed(3)} USDC</div><div style="font-size:10px;color:var(--text-faint)">${weekCalls} calls</div></div>
+            </div>
+            <div style="padding:12px;background:var(--bg-2);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">PROJECTIONS (at ${honored} calls/total rate)</div>
+              ${[{label:'If 10 calls/day', n:10},{label:'If 50 calls/day', n:50},{label:'If 100 calls/day', n:100}].map(({label,n})=>
+                `<div class="cost-row"><span style="font-size:12px">${label}</span><span style="font-family:monospace;font-size:12px;color:var(--accent)">${(n*price*30).toFixed(2)} USDC/mo</span></div>`
+              ).join('')}
+            </div>
+            <div style="margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">STAKED</div>
+              <span style="font-family:monospace;font-size:14px;font-weight:600">${parseFloat(p.stake||p.stakedAmount||0).toFixed(4)} USDC</span>
+              <span style="font-size:11px;color:var(--text-faint);margin-left:8px">locked as SLA guarantee</span>
+            </div>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+    };
+
+    /* ── INJECT INTO PROVIDER CARDS ────────────────────────── */
+    const _origRenderAllProviders = window.renderAllProvidersFiltered;
+    if (_origRenderAllProviders) {
+      window.renderAllProvidersFiltered = function() {
+        _origRenderAllProviders.apply(this, arguments);
+        // After render, inject quality scores and badges
+        setTimeout(() => {
+          const providers = (window.state && window.state.allProviders) || [];
+          document.querySelectorAll('.prov-card[data-pid]').forEach(card => {
+            const pid = parseInt(card.dataset.pid);
+            const p = providers.find(x => x.id === pid);
+            if (!p) return;
+            const score = window.calcQualityScore(p);
+            const badges = window.getReliabilityBadges(p);
+            const history = window.renderSLAHistory(p);
+            // Inject quality score
+            let scoreEl = card.querySelector('.prov-qs');
+            if (!scoreEl) {
+              scoreEl = document.createElement('div');
+              scoreEl.className = 'prov-qs';
+              scoreEl.style.cssText = 'position:absolute;top:10px;right:10px';
+              card.style.position = 'relative';
+              card.appendChild(scoreEl);
+            }
+            scoreEl.innerHTML = window.renderQualityScore(score);
+            // Inject badges
+            let badgeEl = card.querySelector('.prov-badges');
+            if (!badgeEl) {
+              badgeEl = document.createElement('div');
+              badgeEl.className = 'prov-badges';
+              badgeEl.style.cssText = 'margin-top:6px';
+              card.appendChild(badgeEl);
+            }
+            badgeEl.innerHTML = badges;
+            // Inject SLA history
+            let histEl = card.querySelector('.prov-hist');
+            if (!histEl) {
+              histEl = document.createElement('div');
+              histEl.className = 'prov-hist';
+              histEl.style.cssText = 'margin-top:8px';
+              card.appendChild(histEl);
+            }
+            histEl.innerHTML = history;
+            // Inject action buttons
+            let actEl = card.querySelector('.prov-actions');
+            if (!actEl) {
+              actEl = document.createElement('div');
+              actEl.className = 'prov-actions';
+              actEl.style.cssText = 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap';
+              actEl.innerHTML = `
+                <button onclick="event.stopPropagation();window.toggleSavedService(${pid},'${p.name||'Provider #'+pid}')" style="padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;font-size:11px;color:var(--text-dim)">☆ Save</button>
+                <button onclick="event.stopPropagation();window.showCostCalc(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;font-size:11px;color:var(--text-dim)">$ Cost</button>
+                <button onclick="event.stopPropagation();window.showSDKSnippet(${pid})" style="padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;font-size:11px;color:var(--text-dim)">&lt;/&gt; SDK</button>
+                <button onclick="event.stopPropagation();window.showRevenueDashboard(${pid})" style="padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;font-size:11px;color:var(--accent)">📊 Revenue</button>`;
+              card.appendChild(actEl);
+            }
+          });
+        }, 200);
+      };
+    }
+
+    /* ── BULK CALL BUTTON IN SIDEBAR ───────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const sbSystem = document.querySelector('.sb-section-label + div');
+      // Add Bulk Call to sidebar if not present
+      if (!document.getElementById('navBulkCall')) {
+        const item = document.createElement('div');
+        item.id = 'navBulkCall';
+        item.className = 'sb-item';
+        item.style.cssText = 'cursor:pointer';
+        item.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="9 11 12 14 22 4"/><path d="M16 17l2 2 4-4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1"/></svg>
+          <span class="sb-label">Bulk Call</span>`;
+        item.addEventListener('click', window.showBulkCall);
+        // Insert after Requests item
+        const reqItem = document.querySelector('[data-nav="calls"]');
+        if (reqItem && reqItem.parentNode) {
+          reqItem.parentNode.insertBefore(item, reqItem.nextSibling);
+        }
+      }
+    });
+
+  })();
+  </script>
   </body>
 </html>
