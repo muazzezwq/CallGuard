@@ -5784,31 +5784,24 @@
     .app-content > div[style] { padding: 0 !important; }
     </style>
   <script>
-    // Suppress noisy MetaMask internal RPC errors (selectExtension, eth_call spam)
+    // Suppress noisy MetaMask internal logs — duplicate _cw removed
     (function() {
-      // warn'ları da filtrele
       const _cw = console.warn.bind(console);
       console.warn = function(...args) {
-        const msg = args[0] && args[0].toString ? args[0].toString() : '';
-        if (msg.includes('MaxListenersExceeded') || msg.includes('ObjectMultiplex') || msg.includes('Unrecognized feature')) return;
+        const msg = (args[0] && args[0].toString) ? args[0].toString() : '';
+        if (msg.includes('MaxListenersExceeded') ||
+            msg.includes('ObjectMultiplex') ||
+            msg.includes('Unrecognized feature')) return;
         _cw.apply(console, args);
       };
       const _ce = console.error.bind(console);
       console.error = function(...args) {
-        const msg = args[0] && args[0].toString ? args[0].toString() : '';
+        const msg = (args[0] && args[0].toString) ? args[0].toString() : '';
         if (msg.includes('Internal JSON-RPC error') ||
             msg.includes('selectExtension') ||
             msg.includes('EthereumProvider') ||
             msg.includes('non-200 status code')) return;
-        _ce(...args);
-      };
-      const _cw = console.warn.bind(console);
-      console.warn = function(...args) {
-        const msg = args[0] && args[0].toString ? args[0].toString() : '';
-        if (msg.includes('MaxListenersExceeded') ||
-            msg.includes('Unrecognized feature') ||
-            msg.includes('ObjectMultiplex')) return;
-        _cw(...args);
+        _ce.apply(console, args);
       };
     })();
   </script>
