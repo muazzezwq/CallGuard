@@ -17237,16 +17237,27 @@ console.log("call opened:", tx.hash);`;
     document.getElementById('walletConnectModal').style.display = 'none';
   }
 
-  // connectBtn'ları modal'a yönlendir (window.ethereum varsa da modal göster)
-  document.addEventListener('DOMContentLoaded', function() {
-    ['connectBtn','connectBtn2'].forEach(function(id) {
-      var btn = document.getElementById(id);
-      if (btn) btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showWalletModal();
+  // connectBtn'ları modal'a yönlendir — DOMContentLoaded kullanma, script </body> sonunda
+  (function wireConnectBtns() {
+    function bind() {
+      ['connectBtn','connectBtn2'].forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        // Önceki listener'ları temizle — cloneNode ile
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function(e) {
+          e.stopPropagation();
+          window.showWalletModal();
+        });
       });
-    });
-  });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bind);
+    } else {
+      bind(); // DOM zaten hazır
+    }
+  })();
 
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
