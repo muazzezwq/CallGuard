@@ -5805,8 +5805,54 @@
       };
     })();
   </script>
+  <!-- WalletConnect QR kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.js"></script>
   </head>
   <body>
+    <!-- Wallet Connect Modal -->
+    <div id="walletConnectModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+      <div style="background:var(--bg-1,#fff);border-radius:16px;padding:24px;max-width:360px;width:calc(100%-32px);margin:16px;box-shadow:0 24px 64px rgba(0,0,0,0.3);position:relative;">
+        <button onclick="document.getElementById('walletConnectModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted,#888);">×</button>
+        <h3 style="margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text,#111);">Cüzdanını bağla</h3>
+        <p style="margin:0 0 20px;font-size:13px;color:var(--text-muted,#888);">Bir yöntem seç</p>
+
+        <!-- MetaMask seçeneği -->
+        <button id="wcOptMetaMask" onclick="connectWithMetaMask()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:32px;height:32px;" />
+          <div style="text-align:left;">
+            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">MetaMask</div>
+            <div style="font-size:12px;color:var(--text-muted,#888);">Tarayıcı extension veya masaüstü</div>
+          </div>
+        </button>
+
+        <!-- WalletConnect QR seçeneği -->
+        <button id="wcOptWC" onclick="connectWithWalletConnect()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
+          <img src="https://avatars.githubusercontent.com/u/37784886" style="width:32px;height:32px;border-radius:8px;" />
+          <div style="text-align:left;">
+            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">WalletConnect</div>
+            <div style="font-size:12px;color:var(--text-muted,#888);">QR ile tara — mobil cüzdanlar</div>
+          </div>
+        </button>
+
+        <!-- MetaMask mobil deep link -->
+        <button onclick="connectMetaMaskMobile()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;transition:all .2s;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:32px;height:32px;" />
+          <div style="text-align:left;">
+            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">MetaMask Mobil</div>
+            <div style="font-size:12px;color:var(--text-muted,#888);">Uygulamada aç (Android/iOS)</div>
+          </div>
+        </button>
+
+        <!-- WC QR görüntüleme alanı -->
+        <div id="wcQrArea" style="display:none;margin-top:16px;text-align:center;">
+          <p style="font-size:12px;color:var(--text-muted,#888);margin:0 0 12px;">MetaMask veya başka bir cüzdan uygulamasıyla tara</p>
+          <canvas id="wcQrCanvas" style="border-radius:8px;max-width:200px;"></canvas>
+          <p id="wcStatus" style="font-size:12px;color:var(--accent,#16a34a);margin:8px 0 0;">Bağlantı bekleniyor...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Wrong network banner -->
     <div id="wrongNetworkBanner">
       ⚠️ You're on the wrong network. Switch to <strong>Arc Testnet</strong> to use CallGuard.
@@ -8015,17 +8061,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // ================================================================
       async function connect() {
         if (!window.ethereum) {
-          // Mobil tarayıcıda MetaMask inject etmiyor — deep link ile aç
-          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-          if (isMobile) {
-            const dappUrl = encodeURIComponent(window.location.href);
-            const mmDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-            if (confirm("MetaMask uygulamasına yönlendirileceksiniz. Devam?")) {
-              window.location.href = mmDeepLink;
-            }
-            return;
-          }
-          toast({ kind: "err", title: "Cüzdan bulunamadı", detail: "MetaMask yükleyin veya MetaMask uygulamasının tarayıcısından açın." });
+          // window.ethereum yok — modal aç
+          showWalletModal();
           return;
         }
         setLoading(true);
@@ -17180,6 +17217,111 @@ console.log("call opened:", tx.hash);`;
       }
     }
   });
+  </script>
+
+  <!-- WalletConnect + Modal JS -->
+  <script>
+  // ── Wallet modal aç/kapat ──────────────────────────────────────────
+  function showWalletModal() {
+    const m = document.getElementById('walletConnectModal');
+    m.style.display = 'flex';
+    document.getElementById('wcQrArea').style.display = 'none';
+  }
+  function hideWalletModal() {
+    document.getElementById('walletConnectModal').style.display = 'none';
+  }
+
+  // connectBtn'ları modal'a yönlendir (window.ethereum varsa da modal göster)
+  document.addEventListener('DOMContentLoaded', function() {
+    ['connectBtn','connectBtn2'].forEach(function(id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showWalletModal();
+      });
+    });
+  });
+
+  // ── 1. MetaMask (masaüstü extension) ─────────────────────────────
+  async function connectWithMetaMask() {
+    hideWalletModal();
+    if (typeof connect === 'function') await connect();
+  }
+
+  // ── 2. MetaMask mobil deep link ───────────────────────────────────
+  function connectMetaMaskMobile() {
+    hideWalletModal();
+    const host = window.location.host;
+    const path = window.location.pathname;
+    window.location.href = 'https://metamask.app.link/dapp/' + host + path;
+  }
+
+  // ── 3. WalletConnect v2 QR ────────────────────────────────────────
+  let wcProvider = null;
+  async function connectWithWalletConnect() {
+    const qrArea = document.getElementById('wcQrArea');
+    const status = document.getElementById('wcStatus');
+    qrArea.style.display = 'block';
+    status.textContent = 'Başlatılıyor...';
+
+    try {
+      // WalletConnect EthereumProvider — UMD build window.EthereumProvider olarak gelir
+      const WCProvider = window.EthereumProvider || (window.WalletConnect && window.WalletConnect.EthereumProvider);
+      if (!WCProvider) {
+        status.textContent = 'WalletConnect yüklenemedi. Sayfayı yenileyin.';
+        return;
+      }
+
+      wcProvider = await WCProvider.init({
+        projectId: 'b56e7a8e0f2e1c4d3a9f6b2e5c8d1a7f', // demo project id — ücretsiz tier
+        chains: [5042002], // Arc Testnet chain ID
+        optionalChains: [1],
+        showQrModal: false, // kendi QR'ımızı çizeceğiz
+        metadata: {
+          name: 'CallGuard',
+          description: 'On-chain SLA marketplace on Arc',
+          url: window.location.origin,
+          icons: [window.location.origin + '/favicon.ico']
+        }
+      });
+
+      // QR URI gelince çiz
+      wcProvider.on('display_uri', async function(uri) {
+        status.textContent = 'Cüzdanınla tara →';
+        if (window.QRCode) {
+          await QRCode.toCanvas(document.getElementById('wcQrCanvas'), uri, {
+            width: 200, margin: 2,
+            color: { dark: '#000000', light: '#ffffff' }
+          });
+        } else {
+          // QRCode kütüphanesi yoksa URI göster
+          status.innerHTML = '<small style="word-break:break-all">' + uri + '</small>';
+        }
+      });
+
+      // Bağlantı kurulunca
+      wcProvider.on('connect', async function() {
+        status.textContent = '✓ Bağlandı! Yükleniyor...';
+        try {
+          window.ethereum = wcProvider;
+          if (typeof connect === 'function') await connect();
+          hideWalletModal();
+        } catch(e) {
+          status.textContent = 'Hata: ' + e.message;
+        }
+      });
+
+      wcProvider.on('disconnect', function() {
+        wcProvider = null;
+        if (typeof showDisconnected === 'function') showDisconnected();
+      });
+
+      await wcProvider.connect();
+    } catch(e) {
+      status.textContent = 'Bağlantı hatası: ' + (e.message || e);
+      console.warn('WalletConnect error:', e);
+    }
+  }
   </script>
 
   </body>
