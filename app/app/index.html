@@ -17249,40 +17249,27 @@ console.log("call opened:", tx.hash);`;
   window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
 
-    const ua = navigator.userAgent || '';
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-
-    // Mobilde Mises dahil mevcut tarayıcının injected provider'ını kullanma.
-    // Doğrudan MetaMask uygulamasını aç ve CallGuard'ı MetaMask içinde çalıştır.
-    if (isMobile) {
-      const host = window.location.host;
-      const path = window.location.pathname || '/';
-      const search = window.location.search || '';
-      const hash = window.location.hash || '';
-
-      const dappUrl =
-        'https://metamask.app.link/dapp/' +
-        host + path + search + hash;
-
-      console.log('[CallGuard] Opening CallGuard in MetaMask:', dappUrl);
-      window.location.href = dappUrl;
-      return;
-    }
-
-    // Masaüstünde mevcut injected MetaMask/extension akışını koru.
-    if (window.ethereum && typeof window.connect === 'function') {
+    // Önce mevcut injected MetaMask provider'ını kullan.
+    // Bu özellikle Android/Mises gibi ortamlarda önemlidir:
+    // window.ethereum zaten MetaMask ise gereksiz deep-link açma.
+    if (window.ethereum?.isMetaMask && typeof window.connect === 'function') {
+      console.log('[CallGuard] MetaMask provider detected — connecting...');
       await window.connect();
       return;
     }
 
+    // Injected MetaMask provider yoksa MetaMask uygulamasını aç.
     const host = window.location.host;
     const path = window.location.pathname || '/';
     const search = window.location.search || '';
     const hash = window.location.hash || '';
 
-    window.location.href =
+    const dappUrl =
       'https://metamask.app.link/dapp/' +
       host + path + search + hash;
+
+    console.log('[CallGuard] Opening CallGuard in MetaMask:', dappUrl);
+    window.location.href = dappUrl;
   };
 
 
