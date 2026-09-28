@@ -3623,7 +3623,8 @@
         pointer-events: none;
         opacity: 0.55;
       }
-      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay) { position: relative; z-index: 1; }
+      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal) { position: relative; z-index: 1; }
+      #walletConnectModal { position: fixed !important; z-index: 99999 !important; }
 
       /* ---- Topbar shrink on scroll ---- */
       .topbar {
@@ -5994,7 +5995,7 @@
             <span style="font-size:10px;font-weight:600;color:var(--text-faint);letter-spacing:.06em">USYC</span>
             <span style="font-weight:600;color:var(--text)" id="usycBal">0.00</span>
           </div>
-          <button class="btn btn-primary" id="connectBtn" style="pointer-events:auto;font-size:12px;padding:6px 14px">Connect wallet</button>
+          <button class="btn btn-primary" id="connectBtn" onclick="window.showWalletModal&&window.showWalletModal()" style="pointer-events:auto;font-size:12px;padding:6px 14px">Connect wallet</button>
           <div class="addr-pill hidden" id="addrPill" title="Click to copy" style="font-family:var(--font-mono);font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;color:var(--text-dim)">
             <span id="addrText"></span>
           </div>
@@ -6023,7 +6024,7 @@
               Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
             </p>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary" id="connectBtn2" style="padding:10px 24px;font-size:14px">Connect wallet</button>
+              <button class="btn btn-primary" id="connectBtn2" onclick="window.showWalletModal&&window.showWalletModal()" style="padding:10px 24px;font-size:14px">Connect wallet</button>
               <a href="/" style="display:inline-flex;align-items:center;padding:10px 20px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);text-decoration:none;font-weight:500;background:var(--bg-1)">Learn more →</a>
             </div>
           </div>
