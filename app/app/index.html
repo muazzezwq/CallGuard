@@ -17233,10 +17233,10 @@ console.log("call opened:", tx.hash);`;
         ? 'MetaMask uygulamasında aç →'
         : (window.ethereum ? 'Extension ile bağlan →' : 'MetaMask yükle veya uygulamayı aç');
     }
-  }
+  };
   window.hideWalletModal = function hideWalletModal() {
     document.getElementById('walletConnectModal').style.display = 'none';
-  }
+  };
 
     // Connect buttons use inline onclick -> window.showWalletModal().
     // No additional listener is required here.
