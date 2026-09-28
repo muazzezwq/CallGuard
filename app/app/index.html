@@ -17299,59 +17299,6 @@ console.log("call opened:", tx.hash);`;
     });
   }
 
-  // MetaMask mobile deep-link ile açıldığında bağlantıyı otomatik başlat.
-  // Provider sonradan inject edilirse ethereum#initialized olayını da bekler.
-  (function autoConnectMetaMaskMobile() {
-    const ua = navigator.userAgent || '';
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-
-    if (!isMobile) return;
-
-    // Mises gibi harici mobil tarayıcılarda injected provider'a
-    // otomatik eth_requestAccounts gönderme.
-    // Kullanıcı MetaMask butonuna bastığında MetaMask uygulaması
-    // doğrudan açılacak.
-    const isMises = /Mises/i.test(ua);
-
-    if (isMises) {
-      console.log('[CallGuard] Mises detected — skipping injected auto-connect.');
-      return;
-    }
-
-    let attempted = false;
-
-    const run = async () => {
-      if (attempted) return;
-      if (!window.ethereum) return;
-      if (typeof window.connect !== 'function') return;
-
-      attempted = true;
-
-      try {
-        console.log('[CallGuard] MetaMask mobile detected — starting connect...');
-        await window.connect();
-      } catch (e) {
-        attempted = false;
-        console.warn('[CallGuard] MetaMask mobile auto-connect failed:', e);
-      }
-    };
-
-    if (window.ethereum) {
-      setTimeout(run, 300);
-    }
-
-    window.addEventListener('ethereum#initialized', () => {
-      setTimeout(run, 300);
-    }, { once: true });
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(run, 300);
-      }, { once: true });
-    }
-  })();
-
-  // ── 2. MetaMask mobil deep link ───────────────────────────────────
   function connectMetaMaskMobile() {
     hideWalletModal();
     const host = window.location.host;
