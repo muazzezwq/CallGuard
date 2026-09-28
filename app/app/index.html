@@ -8070,7 +8070,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       async function connect() {
         if (_isConnecting) return; // -32002 önlemi: çift tıklama koruması
         if (!window.ethereum) {
-          showWalletModal();
+          // showWalletModal farklı script bloğunda — güvenli çağır
+          if (typeof window.showWalletModal === 'function') window.showWalletModal();
           return;
         }
         _isConnecting = true;
@@ -8147,6 +8148,8 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           _isConnecting = false; // lock serbest bırak
         }
       }
+      // connect'i global scope'a bağla — connectWithMetaMask ve onclick'ler erişebilsin
+      window.connect = connect;
 
       // -------- Listener cleanup --------
       function stopEventListeners() {
