@@ -17238,27 +17238,9 @@ console.log("call opened:", tx.hash);`;
     document.getElementById('walletConnectModal').style.display = 'none';
   }
 
-  // connectBtn'ları modal'a yönlendir — DOMContentLoaded kullanma, script </body> sonunda
-  (function wireConnectBtns() {
-    function bind() {
-      ['connectBtn','connectBtn2'].forEach(function(id) {
-        var btn = document.getElementById(id);
-        if (!btn) return;
-        // Önceki listener'ları temizle — cloneNode ile
-        var fresh = btn.cloneNode(true);
-        btn.parentNode.replaceChild(fresh, btn);
-        fresh.addEventListener('click', function(e) {
-          e.stopPropagation();
-          window.showWalletModal();
-        });
-      });
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bind);
-    } else {
-      bind(); // DOM zaten hazır
-    }
-  })();
+    // Connect buttons use inline onclick -> window.showWalletModal().
+    // No additional listener is required here.
+
 
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
@@ -17331,8 +17313,8 @@ console.log("call opened:", tx.hash);`;
         status.textContent = '✓ Bağlandı! Yükleniyor...';
         try {
           window.ethereum = wcProvider;
-          if (typeof connect === 'function') await connect();
-          hideWalletModal();
+          if (typeof window.connect === 'function') await window.connect();
+          window.hideWalletModal();
         } catch(e) {
           status.textContent = 'Hata: ' + e.message;
         }
@@ -17340,7 +17322,7 @@ console.log("call opened:", tx.hash);`;
 
       wcProvider.on('disconnect', function() {
         wcProvider = null;
-        if (typeof showDisconnected === 'function') showDisconnected();
+        if (typeof window.showDisconnected === 'function') window.showDisconnected();
       });
 
       await wcProvider.connect();
