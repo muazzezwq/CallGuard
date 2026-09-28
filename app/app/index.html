@@ -5817,30 +5817,22 @@
         <h3 style="margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text,#111);">Cüzdanını bağla</h3>
         <p style="margin:0 0 20px;font-size:13px;color:var(--text-muted,#888);">Bir yöntem seç</p>
 
-        <!-- MetaMask seçeneği -->
-        <button id="wcOptMetaMask" onclick="connectWithMetaMask()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:32px;height:32px;" />
+        <!-- MetaMask seçeneği — masaüstü extension veya mobil deep link -->
+        <button id="wcOptMetaMask" onclick="connectWithMetaMask()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--accent,#16a34a);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:36px;height:36px;" />
           <div style="text-align:left;">
-            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">MetaMask</div>
-            <div style="font-size:12px;color:var(--text-muted,#888);">Tarayıcı extension veya masaüstü</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text,#111);">MetaMask</div>
+            <div id="mmSubtitle" style="font-size:12px;color:var(--text-muted,#888);">Bağlanmak için tıkla</div>
           </div>
+          <div style="margin-left:auto;font-size:18px;">→</div>
         </button>
 
         <!-- WalletConnect QR seçeneği -->
-        <button id="wcOptWC" onclick="connectWithWalletConnect()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
-          <img src="https://avatars.githubusercontent.com/u/37784886" style="width:32px;height:32px;border-radius:8px;" />
+        <button id="wcOptWC" onclick="connectWithWalletConnect()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;transition:all .2s;">
+          <img src="https://avatars.githubusercontent.com/u/37784886" style="width:36px;height:36px;border-radius:8px;" />
           <div style="text-align:left;">
-            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">WalletConnect</div>
-            <div style="font-size:12px;color:var(--text-muted,#888);">QR ile tara — mobil cüzdanlar</div>
-          </div>
-        </button>
-
-        <!-- MetaMask mobil deep link -->
-        <button onclick="connectMetaMaskMobile()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;transition:all .2s;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:32px;height:32px;" />
-          <div style="text-align:left;">
-            <div style="font-weight:600;font-size:14px;color:var(--text,#111);">MetaMask Mobil</div>
-            <div style="font-size:12px;color:var(--text-muted,#888);">Uygulamada aç (Android/iOS)</div>
+            <div style="font-weight:600;font-size:15px;color:var(--text,#111);">WalletConnect</div>
+            <div style="font-size:12px;color:var(--text-muted,#888);">QR tara — Trust, Rainbow, Coinbase...</div>
           </div>
         </button>
 
@@ -17226,6 +17218,14 @@ console.log("call opened:", tx.hash);`;
     const m = document.getElementById('walletConnectModal');
     m.style.display = 'flex';
     document.getElementById('wcQrArea').style.display = 'none';
+    // Alt yazıyı cihaza göre güncelle
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const sub = document.getElementById('mmSubtitle');
+    if (sub) {
+      sub.textContent = isMobile
+        ? 'MetaMask uygulamasında aç →'
+        : (window.ethereum ? 'Extension ile bağlan →' : 'MetaMask yükle veya uygulamayı aç');
+    }
   }
   function hideWalletModal() {
     document.getElementById('walletConnectModal').style.display = 'none';
@@ -17242,10 +17242,19 @@ console.log("call opened:", tx.hash);`;
     });
   });
 
-  // ── 1. MetaMask (masaüstü extension) ─────────────────────────────
+  // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   async function connectWithMetaMask() {
     hideWalletModal();
-    if (typeof connect === 'function') await connect();
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (window.ethereum && !isMobile) {
+      // Masaüstü: extension var, direkt bağlan
+      if (typeof connect === 'function') await connect();
+    } else {
+      // Mobil: MetaMask deep link — direkt, confirm sormadan
+      const host = window.location.host;
+      const path = window.location.pathname;
+      window.location.href = 'https://metamask.app.link/dapp/' + host + path;
+    }
   }
 
   // ── 2. MetaMask mobil deep link ───────────────────────────────────
