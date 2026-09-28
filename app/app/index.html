@@ -8015,7 +8015,17 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // ================================================================
       async function connect() {
         if (!window.ethereum) {
-          toast({ kind: "err", title: "No wallet detected", detail: "Install MetaMask to continue." });
+          // Mobil tarayıcıda MetaMask inject etmiyor — deep link ile aç
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          if (isMobile) {
+            const dappUrl = encodeURIComponent(window.location.href);
+            const mmDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+            if (confirm("MetaMask uygulamasına yönlendirileceksiniz. Devam?")) {
+              window.location.href = mmDeepLink;
+            }
+            return;
+          }
+          toast({ kind: "err", title: "Cüzdan bulunamadı", detail: "MetaMask yükleyin veya MetaMask uygulamasının tarayıcısından açın." });
           return;
         }
         setLoading(true);
