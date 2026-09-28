@@ -7186,7 +7186,7 @@ app.listen(3000, () => console.log("Provider running on :3000"));</code></pre>
                 style="font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:6px 14px;border-radius:6px">
                 View full example on GitHub ↗
               </a>
-              <button onclick="showCategory('register')"
+              <button onclick="window.showCategory&&window.showCategory('register')"
                 style="font-size:12px;background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer">
                 Register as Provider →
               </button>
@@ -8000,6 +8000,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         try {
           state.provider = new ethers.BrowserProvider(window.ethereum);
           state.provider.polling = false; // Disable auto-polling to avoid rate limits
+          state.provider._getSubscriber && state.provider.setMaxListeners?.(20);
 
           // Force the MetaMask approval prompt on every connect, even if the
           // site was connected before. wallet_requestPermissions re-opens the
@@ -8487,7 +8488,7 @@ async function refreshBalance() {
             <dt>Status</dt>
             <dd>${data.active ? `<span style="color: var(--accent)">● active</span>` : `<span style="color: var(--danger)">● inactive</span>`}</dd>
             <dt>Signer</dt>
-            <dd>${short(data.signer, 6)}${data.signer.toLowerCase() === state.address.toLowerCase()
+            <dd>${short(data.signer, 6)}${(data.signer||'').toLowerCase() === (state.address||'').toLowerCase()
               ? ` <span style="color:var(--accent);font-size:11px">✓ matches your wallet</span>`
               : ` <span style="color:var(--danger);font-size:11px">⚠ does not match your wallet — you cannot submit receipts with this wallet</span>`
             }</dd>
@@ -10840,8 +10841,10 @@ async function refreshBalance() {
 
       async function fetchNanoBalance() {
         try {
-          const _nAddr = window.state?.account || '';
-          const _nUrl = '/api/nano-balance' + (_nAddr ? '?address=' + _nAddr : '');
+          const _nAddr = window.state?.address || window.state?.account || '';
+          // Cüzdan bağlı değilse veya geçersiz adresse çağırma
+          if (!_nAddr || !_nAddr.startsWith('0x') || _nAddr.length !== 42) return;
+          const _nUrl = '/api/nano-balance?address=' + _nAddr;
           const res = await fetch(_nUrl);
           const data = await res.json();
           if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.formatted || data.balance || 0).toFixed(4) + " USDC";
@@ -13379,7 +13382,7 @@ console.log("call opened:", tx.hash);`;
       const grid = document.getElementById("mktGrid");
       if (!grid) return;
       const search = (document.getElementById("mktSearch")?.value||"").toLowerCase();
-      let rows = _providers.filter(p => !search || p.owner.toLowerCase().includes(search) || p.id.includes(search));
+      let rows = _providers.filter(p => !search || (p.owner||'').toLowerCase().includes(search) || String(p.id||'').includes(search));
       if (_mktTag !== "all") rows = rows.filter(p => p.endpoint?.toLowerCase().includes(_mktTag));
       rows = [...rows].sort((a,b) => _mktSort==="price_asc" ? a.price-b.price : _mktSort==="price_desc" ? b.price-a.price : _mktSort==="calls" ? b.calls-a.calls : b.rep-a.rep);
       if (!rows.length) { grid.innerHTML='<div class="empty-state">No providers found</div>'; return; }
