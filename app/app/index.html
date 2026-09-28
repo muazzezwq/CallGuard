@@ -6742,11 +6742,11 @@
                   <input type="text" id="rcpCallId2" placeholder="Auto-filled after call" class="mono" oninput="document.getElementById('rcpCallId').value=this.value" />
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
-                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="syncBuilderInputs();document.getElementById('btnCall').click()">
+                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="builderCall()">
                     Standard call
                     <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">MetaMask approval required</span>
                   </button>
-                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px;border-color:var(--accent);color:var(--accent)" onclick="syncBuilderInputs();document.getElementById('btnX402Call').click()">
+                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px;border-color:var(--accent);color:var(--accent)" onclick="builderX402()">
                     ⚡ Gas-free call
                     <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">Recommended · No approval TX</span>
                   </button>
@@ -6758,7 +6758,7 @@
                     <input type="text" id="rcpPayload2" placeholder="pong" oninput="document.getElementById('rcpPayload').value=this.value" />
                   </div>
                   <div style="display:flex;gap:8px">
-                    <button class="btn" style="flex:1" onclick="syncBuilderInputs();document.getElementById('btnReceipt').click()">Submit receipt</button>
+                    <button class="btn" style="flex:1" onclick="builderReceipt()">Submit receipt</button>
                     <button class="btn btn-danger" style="flex:1" onclick="syncBuilderInputs();document.getElementById('btnTimeout').click()">Claim timeout</button>
                   </div>
                 </div>
@@ -6794,7 +6794,7 @@
                   <span class="summary-row-label">Payment type</span>
                   <span class="summary-row-value">EIP-3009</span>
                 </div>
-                <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="syncBuilderInputs();document.getElementById('btnX402Call').click()">Review &amp; Execute →</button>
+                <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="builderX402()">Review &amp; Execute →</button>
                 <div id="bsCallId" style="margin-top:12px;display:none">
                   <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Last Call ID</div>
                   <div class="mono" style="font-size:11px;word-break:break-all;color:var(--text-dim)" id="bsCallIdVal">—</div>
@@ -13468,14 +13468,33 @@ console.log("call opened:", tx.hash);`;
   (function() {
     const nav = document.createElement("nav");
     nav.className = "mob-nav";
+    nav.id = "mobileBottomNav";
     nav.innerHTML = `
       <div class="mob-nav-item on" data-mob="overview"><div class="mn-icon">📊</div>Overview</div>
       <div class="mob-nav-item" data-mob="providers"><div class="mn-icon">🖥️</div>Providers</div>
       <div class="mob-nav-item" data-mob="calls"><div class="mn-icon">📞</div>My Calls</div>
       <div class="mob-nav-item" data-mob="marketplace"><div class="mn-icon">🛒</div>Market</div>
       <div class="mob-nav-item" data-mob="register"><div class="mn-icon">⚙️</div>Account</div>
+      <div class="mob-nav-item" id="mobileModToggle" onclick="window._toggleMode&&window._toggleMode()" style="font-size:10px;opacity:0.7;">
+        <div class="mn-icon" style="font-size:14px;">⚡</div><span id="mobileModLabel">Simple</span>
+      </div>
     `;
     document.body.appendChild(nav);
+    // Expose toggle
+    window._toggleMode = function() {
+      const cur = localStorage.getItem('cg_mode') || 'simple';
+      const next = cur === 'simple' ? 'pro' : 'simple';
+      if (typeof window.setAppMode === 'function') window.setAppMode(next);
+      const lbl = document.getElementById('mobileModLabel');
+      if (lbl) lbl.textContent = next === 'simple' ? 'Simple' : 'Pro';
+    };
+    // Sync label on load
+    const _initModLabel = () => {
+      const lbl = document.getElementById('mobileModLabel');
+      const cur = localStorage.getItem('cg_mode') || 'simple';
+      if (lbl) lbl.textContent = cur === 'simple' ? 'Simple' : 'Pro';
+    };
+    _initModLabel();
     nav.querySelectorAll(".mob-nav-item").forEach(item => {
       item.addEventListener("click", () => {
         nav.querySelectorAll(".mob-nav-item").forEach(i => i.classList.remove("on"));
@@ -16868,7 +16887,7 @@ console.log("call opened:", tx.hash);`;
   <script>
   (function() {
     /* ── SIMPLE / PRO MODE ── */
-    const STORAGE_KEY = 'cg_app_mode';
+    const STORAGE_KEY = 'cg_mode';
 
     window.setAppMode = function(mode) {
       localStorage.setItem(STORAGE_KEY, mode);
@@ -16963,20 +16982,28 @@ console.log("call opened:", tx.hash);`;
       }
     });
 
-    // Init on load
-    const saved = localStorage.getItem(STORAGE_KEY) || 'simple';
-    // Show toggle only when connected
+    // Init on load — her zaman apply et, bağlantı bekleme
+    const saved = localStorage.getItem(STORAGE_KEY) || 'pro';
+    applyMode(saved);
+
+    // modeToggle topbar butonlarını aktif/pasif göster
     const modeToggle = document.getElementById('modeToggle');
-    if (modeToggle) {
-      modeToggle.style.display = 'none';
-      const observer = new MutationObserver(() => {
-        const connected = !document.getElementById('connectedView')?.classList.contains('hidden');
-        modeToggle.style.display = connected ? 'flex' : 'none';
-        if (connected) applyMode(saved);
-      });
-      const cv = document.getElementById('connectedView');
-      if (cv) observer.observe(cv, { attributes: true, attributeFilter: ['class'] });
+    function syncToggleBtns(mode) {
+      const sBtn = document.getElementById('btnSimpleMode');
+      const pBtn = document.getElementById('btnProMode');
+      if (sBtn) { sBtn.style.background = mode==='simple' ? 'var(--accent)' : 'transparent'; sBtn.style.color = mode==='simple' ? '#fff' : 'var(--text-faint)'; }
+      if (pBtn) { pBtn.style.background = mode==='pro'    ? 'var(--accent)' : 'transparent'; pBtn.style.color = mode==='pro'    ? '#fff' : 'var(--text-faint)'; }
+      // Mobil label
+      const mLbl = document.getElementById('mobileModLabel');
+      if (mLbl) mLbl.textContent = mode === 'simple' ? 'Simple' : 'Pro';
     }
+    // setAppMode'u sync ekle
+    const _origSetMode = window.setAppMode;
+    window.setAppMode = function(mode) {
+      _origSetMode(mode);
+      syncToggleBtns(mode);
+    };
+    syncToggleBtns(saved);
 
   })();
   </script>
@@ -17015,9 +17042,98 @@ console.log("call opened:", tx.hash);`;
     const c2 = document.getElementById('callChain2');
     const c1 = document.getElementById('callChain');
     if (c2 && c1) {
-      // Copy options from c1 to c2
       c2.innerHTML = c1.innerHTML;
       c2.addEventListener('change', () => { c1.value = c2.value; });
+    }
+  });
+  </script>
+
+  <script>
+  // ── Window exports: fonksiyonlar farklı script scope'unda tanımlı,
+  //    onclick="doCall()" global scope'ta bulamıyor. DOMContentLoaded
+  //    sonrası export ediyoruz.
+  // DOMContentLoaded bekleme — fonksiyonlar zaten global scope'ta tanımlı
+  // Hem inline hem de DOMContentLoaded sonrası çağrılabilir
+  window.doCall     = doCall;
+  window.doX402Call = doX402Call;
+  window.doReceipt  = doReceipt;
+  window.doTimeout  = doTimeout;
+
+  // ── Builder butonları: sync + direkt window fonksiyon çağrısı
+  //    (.click() accordion kapalıysa çalışmaz)
+  function _waitForFn(name, cb, retries) {
+    if (retries === undefined) retries = 20;
+    if (typeof window[name] === 'function') { cb(); return; }
+    if (retries <= 0) { console.warn('CallGuard: ' + name + ' not ready'); return; }
+    setTimeout(function(){ _waitForFn(name, cb, retries - 1); }, 100);
+  }
+
+  function builderCall() {
+    syncBuilderInputs();
+    const chain = document.getElementById('callChain2')?.value || 'arc';
+    const chainDst = document.getElementById('sourceChainSelect');
+    if (chainDst) chainDst.value = chain;
+    _waitForFn('doCall', function(){ window.doCall(); });
+  }
+
+  function builderX402() {
+    syncBuilderInputs();
+    _waitForFn('doX402Call', function(){ window.doX402Call(); });
+  }
+
+  function builderReceipt() {
+    syncBuilderInputs();
+    _waitForFn('doReceipt', function(){ window.doReceipt(); });
+  }
+
+  function builderTimeout() {
+    syncBuilderInputs();
+    _waitForFn('doTimeout', function(){ window.doTimeout(); });
+  }
+
+  // ── Mobil bottom nav: Simple/Pro toggle buraya taşındı
+  //    Topbar'da yer olmadığında Settings panelinde de görünür
+  document.addEventListener('DOMContentLoaded', () => {
+    // Bottom nav'a mode toggle ekle (mobil için)
+    const mobileNav = document.getElementById('mobileBottomNav');
+    if (mobileNav) {
+      const existing = mobileNav.querySelector('.mode-toggle-btn');
+      if (!existing) {
+        const wrap = document.createElement('div');
+        wrap.className = 'mobile-mode-toggle';
+        wrap.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--bg-1);border-radius:20px;margin:4px auto;';
+        wrap.innerHTML = `
+          <button onclick="window.setAppMode('simple')" id="mobileSimpleBtn"
+            style="padding:3px 10px;font-size:11px;border-radius:12px;border:none;cursor:pointer;
+                   background:var(--accent);color:#fff;font-weight:600;">Simple</button>
+          <button onclick="window.setAppMode('pro')" id="mobileProBtn"
+            style="padding:3px 10px;font-size:11px;border-radius:12px;border:none;cursor:pointer;
+                   background:transparent;color:var(--text-faint);">Pro</button>
+        `;
+        mobileNav.insertBefore(wrap, mobileNav.firstChild);
+      }
+    }
+
+    // Settings paneline de ekle
+    const settingsPanel = document.getElementById('panelSettings') ||
+                          document.querySelector('[data-panel="settings"]');
+    if (settingsPanel) {
+      const existing = settingsPanel.querySelector('.settings-mode-toggle');
+      if (!existing) {
+        const wrap = document.createElement('div');
+        wrap.className = 'settings-mode-toggle';
+        wrap.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 0;margin-bottom:8px;';
+        wrap.innerHTML = `
+          <span style="font-size:13px;color:var(--text-2);font-weight:500;">View mode:</span>
+          <button onclick="window.setAppMode('simple')" id="settingsSimpleBtn"
+            style="padding:5px 14px;font-size:12px;border-radius:6px;border:1px solid var(--accent);
+                   cursor:pointer;background:var(--accent);color:#fff;font-weight:600;">Simple</button>
+          <button onclick="window.setAppMode('pro')" id="settingsProBtn"
+            style="padding:5px 14px;font-size:12px;border-radius:6px;border:1px solid var(--border);
+                   cursor:pointer;background:transparent;color:var(--text-2);">Pro</button>
+        `;
+        settingsPanel.insertBefore(wrap, settingsPanel.firstChild);
+      }
     }
   });
   </script>
