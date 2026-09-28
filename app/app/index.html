@@ -8076,7 +8076,10 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           state.provider._getSubscriber && state.provider.setMaxListeners?.(20);
 
           // eth_requestAccounts — standart MetaMask connect
-          await window.ethereum.request({ method: "eth_requestAccounts" });
+          console.log("[CallGuard] requesting MetaMask accounts...");
+          console.log("[CallGuard] ethereum provider:", window.ethereum);
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+          console.log("[CallGuard] eth_requestAccounts result:", accounts);
 
           state.signer  = await state.provider.getSigner();
           state.address = await state.signer.getAddress();
