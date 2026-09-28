@@ -5783,6 +5783,28 @@
     /* Make app-content use page-screen padding */
     .app-content > div[style] { padding: 0 !important; }
     </style>
+  <script>
+    // Suppress noisy MetaMask internal RPC errors (selectExtension, eth_call spam)
+    (function() {
+      const _ce = console.error.bind(console);
+      console.error = function(...args) {
+        const msg = args[0] && args[0].toString ? args[0].toString() : '';
+        if (msg.includes('Internal JSON-RPC error') ||
+            msg.includes('selectExtension') ||
+            msg.includes('EthereumProvider') ||
+            msg.includes('non-200 status code')) return;
+        _ce(...args);
+      };
+      const _cw = console.warn.bind(console);
+      console.warn = function(...args) {
+        const msg = args[0] && args[0].toString ? args[0].toString() : '';
+        if (msg.includes('MaxListenersExceeded') ||
+            msg.includes('Unrecognized feature') ||
+            msg.includes('ObjectMultiplex')) return;
+        _cw(...args);
+      };
+    })();
+  </script>
   </head>
   <body>
     <!-- Wrong network banner -->
@@ -8002,20 +8024,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           state.provider.polling = false; // Disable auto-polling to avoid rate limits
           state.provider._getSubscriber && state.provider.setMaxListeners?.(20);
 
-          // Force the MetaMask approval prompt on every connect, even if the
-          // site was connected before. wallet_requestPermissions re-opens the
-          // account-selection / permission dialog so the user always confirms.
-          try {
-            await window.ethereum.request({
-              method: "wallet_requestPermissions",
-              params: [{ eth_accounts: {} }],
-            });
-          } catch (permErr) {
-            // 4001 = user rejected the permission prompt
-            if (permErr.code === 4001) throw permErr;
-            // Any other error (e.g. method unsupported by the wallet) —
-            // fall through to eth_requestAccounts below.
-          }
+          // eth_requestAccounts — standart MetaMask connect
           await window.ethereum.request({ method: "eth_requestAccounts" });
 
           state.signer  = await state.provider.getSigner();
@@ -10819,8 +10828,16 @@ async function refreshBalance() {
       }
 
       // -------- Button wiring --------
-      $("connectBtn").addEventListener("click", connect);
-      document.getElementById("connectBtn2")?.addEventListener("click", connect);
+      // DOMContentLoaded garantisi — DOM hazır olmadan çalışırsa null hatası
+      function wireButtons() {
+        document.getElementById("connectBtn")?.addEventListener("click", connect);
+        document.getElementById("connectBtn2")?.addEventListener("click", connect);
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", wireButtons);
+      } else {
+        wireButtons();
+      }
 
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
