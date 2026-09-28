@@ -17285,6 +17285,48 @@ console.log("call opened:", tx.hash);`;
     });
   }
 
+  // MetaMask mobile deep-link ile açıldığında bağlantıyı otomatik başlat.
+  // Provider sonradan inject edilirse ethereum#initialized olayını da bekler.
+  (function autoConnectMetaMaskMobile() {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
+    let attempted = false;
+
+    const run = async () => {
+      if (attempted) return;
+      if (!window.ethereum) return;
+      if (typeof window.connect !== 'function') return;
+
+      attempted = true;
+
+      try {
+        console.log('[CallGuard] MetaMask mobile detected — starting connect...');
+        await window.connect();
+      } catch (e) {
+        attempted = false;
+        console.warn('[CallGuard] MetaMask mobile auto-connect failed:', e);
+      }
+    };
+
+    // Provider zaten hazırsa beklemeden başlat.
+    if (window.ethereum) {
+      setTimeout(run, 300);
+    }
+
+    // MetaMask provider sonradan inject edilirse burada yakala.
+    window.addEventListener('ethereum#initialized', () => {
+      setTimeout(run, 300);
+    }, { once: true });
+
+    // Script, connect'ten önce çalışmışsa DOM hazırlandıktan sonra tekrar dene.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(run, 300);
+      }, { once: true });
+    }
+  })();
+
   // ── 2. MetaMask mobil deep link ───────────────────────────────────
   function connectMetaMaskMobile() {
     hideWalletModal();
