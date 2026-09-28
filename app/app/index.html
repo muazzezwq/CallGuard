@@ -4736,6 +4736,20 @@
     .shimmer-line { animation: skeleton-shimmer 1.6s ease infinite !important; }
     @keyframes skeleton-shimmer { 0%{opacity:0.4} 50%{opacity:0.8} 100%{opacity:0.4} }
 
+    /* ═══════════ LAYOUT MASTER — single source of truth ═══════════
+       All other margin-left / topbar / sidebar overrides are removed.
+       Desktop: sidebar 192px fixed, content margin-left 192px.
+       Mobile (≤768px): sidebar slides in, content full width.
+    ══════════════════════════════════════════════════════════════ */
+    .app-sidebar { width: 192px !important; }
+    .app-content { margin-left: 192px !important; }
+    @media (max-width: 768px) {
+      .app-content { margin-left: 0 !important; }
+    }
+    /* Disconnected: no sidebar */
+    body:not(.wallet-connected) .app-sidebar { display: none !important; }
+    body:not(.wallet-connected) .app-content { margin-left: 0 !important; }
+
     /* Clean topbar */
     .topbar {
       background: var(--bg-0) !important;
@@ -4745,7 +4759,7 @@
       top: 0 !important;
       z-index: 100 !important;
     }
-    .topbar-inner { height: 48px !important; padding: 0 20px !important; }
+    .topbar-inner { height: 48px !important; padding: 0 16px !important; }
     .brand-mark {
       background: var(--accent) !important;
       border-radius: var(--radius) !important;
@@ -4781,7 +4795,6 @@
       border-right: 1px solid var(--border) !important;
       width: 192px !important;
     }
-    .app-content { margin-left: 192px !important; }
     .sb-logo {
       padding: 12px 14px !important;
       border-bottom: 1px solid var(--border) !important;
@@ -5095,9 +5108,8 @@
       .ov-stats, .stat-grid { grid-template-columns: 1fr 1fr !important; }
     }
 
-    /* ── DESKTOP — bağlı olunca full layout ── */
+    /* ── DESKTOP ── */
     @media (min-width: 769px) {
-      .app-content { margin-left: 192px !important; }
       .app-sidebar { transform: none !important; }
       #disconnectedView .disconnected { max-width: 100% !important; padding: 48px 48px 40px !important; }
       .disconnected h1 { font-size: 36px !important; }
@@ -5364,15 +5376,9 @@
     .hero-stat-label { font-size: 11px !important; text-transform: uppercase !important; letter-spacing: .06em !important; }
     .hero-stats { gap: 40px !important; margin-top: 40px !important; justify-content: flex-start !important; }
 
-    /* ── App content: sidebar always visible on desktop ── */
-    @media (min-width: 769px) {
-      .app-content { margin-left: 192px !important; }
-      .sidebar { display: flex !important; }
-    }
-    @media (max-width: 768px) {
-      .app-content { margin-left: 0 !important; }
-      .sidebar { display: none !important; }
-    }
+    /* ── Sidebar visibility ── */
+    @media (min-width: 769px) { .sidebar { display: flex !important; } }
+    @media (max-width: 768px) { .sidebar { display: none !important; } }
 
     /* ── Overview grid: 2 col on desktop, 1 on mobile ── */
     .ov-grid-2 {
@@ -8132,6 +8138,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         $("netLabel").textContent = CONFIG.chainName;
         $("netDot").classList.add("ok");
         $("btnResetMM").classList.remove("hidden");
+        document.body.classList.add("wallet-connected");
         startLiveClock();
       }
 
@@ -8174,6 +8181,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         $("connectBtn").classList.remove("hidden");
         $("addrPill").classList.add("hidden");
         $("balanceBox").classList.add("hidden");
+        document.body.classList.remove("wallet-connected");
       }
 
       // -------- Refresh data --------
@@ -16685,6 +16693,103 @@ console.log("call opened:", tx.hash);`;
     body.simple-mode #btnProMode { background: transparent !important; color: var(--text-faint) !important; }
     body:not(.simple-mode) #btnProMode { background: var(--accent) !important; color: #fff !important; }
     body:not(.simple-mode) #btnSimpleMode { background: transparent !important; color: var(--text-faint) !important; }
+
+    /* ════════════════════════════════════════════════════
+       MASTER LAYOUT SYSTEM — single source of truth
+       Mobile: ≤768px | Tablet: 769-1024px | Desktop: ≥1025px
+    ════════════════════════════════════════════════════ */
+
+    /* Base layout */
+    .app-sidebar {
+      position: fixed !important;
+      top: 48px !important;
+      left: 0 !important;
+      bottom: 0 !important;
+      width: 192px !important;
+      z-index: 50 !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    .app-content {
+      min-height: calc(100vh - 48px) !important;
+    }
+
+    /* Desktop (≥769px): sidebar always visible */
+    @media (min-width: 769px) {
+      .app-sidebar { transform: translateX(0) !important; display: flex !important; }
+      body.wallet-connected .app-content { margin-left: 192px !important; }
+      body:not(.wallet-connected) .app-content { margin-left: 0 !important; }
+      .topbar-inner { padding: 0 24px !important; }
+      .topbar-balance-group { display: flex !important; }
+    }
+
+    /* Mobile (≤768px): no sidebar, full width */
+    @media (max-width: 768px) {
+      .app-sidebar { display: none !important; }
+      .app-content { margin-left: 0 !important; }
+      .topbar-inner { padding: 0 12px !important; }
+      .topbar-balance-group { display: none !important; }
+      #addrPill span:not(#addrText) { display: none !important; }
+      .ticker { font-size: 10px !important; }
+
+      /* Disconnected hero */
+      #disconnectedView .disconnected {
+        padding: 28px 20px !important;
+        max-width: 100% !important;
+        text-align: left !important;
+      }
+      .disconnected h1 { font-size: 24px !important; line-height: 1.25 !important; }
+      .hero-grid { grid-template-columns: 1fr !important; }
+      .hero-stats { flex-wrap: wrap !important; gap: 16px !important; }
+      .hero-stat-num { font-size: 22px !important; }
+
+      /* How it works */
+      .explainer-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+      .scenario { padding: 16px !important; font-size: 13px !important; }
+
+      /* Panels */
+      .panel-page { padding: 20px 16px !important; }
+      .page-header { padding: 20px 16px 16px !important; }
+      .page-header h2 { font-size: 18px !important; }
+      .action-card { padding: 16px !important; }
+      .builder-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+      .ov-grid-2 { grid-template-columns: 1fr !important; gap: 12px !important; }
+      .stat-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+
+      /* Tables */
+      .call-row { flex-wrap: wrap !important; gap: 4px !important; padding: 10px 12px !important; }
+      .prov-card { padding: 12px !important; }
+
+      /* Modals */
+      .modal-overlay .modal,
+      .wizard-box,
+      .dispute-box,
+      .sub-box,
+      #firstCallModal .modal,
+      #confirmTxModal .modal,
+      #roleModal .modal,
+      .onboard-modal {
+        max-width: calc(100vw - 16px) !important;
+        margin: 8px !important;
+        padding: 20px 16px !important;
+        border-radius: 12px !important;
+      }
+
+      /* Topbar on mobile */
+      .topbar { height: 44px !important; }
+      .topbar-inner { height: 44px !important; gap: 6px !important; }
+      .brand-text { font-size: 14px !important; }
+      #modeToggle { display: none !important; }
+    }
+
+    /* Tablet (769-1024px) */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .app-sidebar { width: 160px !important; }
+      body.wallet-connected .app-content { margin-left: 160px !important; }
+      .sb-item span { font-size: 12px !important; }
+      .builder-grid { grid-template-columns: 1fr !important; }
+      .ov-grid-2 { grid-template-columns: 1fr 1fr !important; }
+    }
   </style>
 
   <!-- Simple Overview Panel -->
