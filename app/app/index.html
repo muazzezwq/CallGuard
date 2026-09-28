@@ -17244,6 +17244,8 @@ console.log("call opened:", tx.hash);`;
 
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
+    console.log('[CallGuard] MetaMask button handler START');
+    alert('CallGuard: MetaMask handler çalıştı');
     hideWalletModal();
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (window.ethereum) {
