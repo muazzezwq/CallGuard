@@ -8066,12 +8066,14 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
       // Single entry point — cleans up old listeners, validates chain,
       // initialises contracts, syncs on-chain state.
       // ================================================================
+      let _isConnecting = false;
       async function connect() {
+        if (_isConnecting) return; // -32002 önlemi: çift tıklama koruması
         if (!window.ethereum) {
-          // window.ethereum yok — modal aç
           showWalletModal();
           return;
         }
+        _isConnecting = true;
         setLoading(true);
         try {
           state.provider = new ethers.BrowserProvider(window.ethereum);
@@ -8142,6 +8144,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
           toast({ kind: "err", title: "Connect failed", detail: msg });
         } finally {
           setLoading(false);
+          _isConnecting = false; // lock serbest bırak
         }
       }
 
@@ -10882,16 +10885,8 @@ async function refreshBalance() {
       }
 
       // -------- Button wiring --------
-      // DOMContentLoaded garantisi — DOM hazır olmadan çalışırsa null hatası
-      function wireButtons() {
-        document.getElementById("connectBtn")?.addEventListener("click", connect);
-        document.getElementById("connectBtn2")?.addEventListener("click", connect);
-      }
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", wireButtons);
-      } else {
-        wireButtons();
-      }
+      // connectBtn listener'ları showWalletModal (satır 17250) tarafından yönetiliyor.
+      // Burada ikinci listener EKLEME — çift tetikleme -32002 pending hatası yaratır.
 
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
