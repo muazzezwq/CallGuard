@@ -17245,16 +17245,27 @@ console.log("call opened:", tx.hash);`;
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
+
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (window.ethereum) {
-      // Mises/MetaMask mobil dahil injected provider varsa doğrudan bağlan
-      if (typeof window.connect === 'function') await window.connect();
-    } else {
-      // Mobil: MetaMask deep link — direkt, confirm sormadan
+
+    // Mobil tarayıcıda MetaMask uygulamasını doğrudan aç.
+    // Mises'in injected provider'ını MetaMask yerine kullanma.
+    if (isMobile) {
       const host = window.location.host;
       const path = window.location.pathname;
       window.location.href = 'https://metamask.app.link/dapp/' + host + path;
+      return;
     }
+
+    // Masaüstünde mevcut injected MetaMask/extension akışını koru.
+    if (window.ethereum && typeof window.connect === 'function') {
+      await window.connect();
+      return;
+    }
+
+    const host = window.location.host;
+    const path = window.location.pathname;
+    window.location.href = 'https://metamask.app.link/dapp/' + host + path;
   };
 
 
