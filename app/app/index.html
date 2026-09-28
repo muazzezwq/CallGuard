@@ -17224,7 +17224,7 @@ console.log("call opened:", tx.hash);`;
   <!-- WalletConnect + Modal JS -->
   <script>
   // ── Wallet modal aç/kapat ──────────────────────────────────────────
-  function showWalletModal() {
+  window.showWalletModal = function showWalletModal() {
     const m = document.getElementById('walletConnectModal');
     m.style.display = 'flex';
     document.getElementById('wcQrArea').style.display = 'none';
@@ -17237,7 +17237,7 @@ console.log("call opened:", tx.hash);`;
         : (window.ethereum ? 'Extension ile bağlan →' : 'MetaMask yükle veya uygulamayı aç');
     }
   }
-  function hideWalletModal() {
+  window.hideWalletModal = function hideWalletModal() {
     document.getElementById('walletConnectModal').style.display = 'none';
   }
 
@@ -17253,12 +17253,12 @@ console.log("call opened:", tx.hash);`;
   });
 
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
-  async function connectWithMetaMask() {
+  window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (window.ethereum && !isMobile) {
       // Masaüstü: extension var, direkt bağlan
-      if (typeof connect === 'function') await connect();
+      if (typeof window.connect === 'function') await window.connect();
     } else {
       // Mobil: MetaMask deep link — direkt, confirm sormadan
       const host = window.location.host;
@@ -17277,7 +17277,7 @@ console.log("call opened:", tx.hash);`;
 
   // ── 3. WalletConnect v2 QR ────────────────────────────────────────
   let wcProvider = null;
-  async function connectWithWalletConnect() {
+  window.connectWithWalletConnect = async function connectWithWalletConnect() {
     const qrArea = document.getElementById('wcQrArea');
     const status = document.getElementById('wcStatus');
     qrArea.style.display = 'block';
