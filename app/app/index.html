@@ -10840,9 +10840,11 @@ async function refreshBalance() {
 
       async function fetchNanoBalance() {
         try {
-          const res = await fetch(CONFIG.facilitatorUrl + "/api/nano-balance");
+          const _nAddr = window.state?.account || '';
+          const _nUrl = '/api/nano-balance' + (_nAddr ? '?address=' + _nAddr : '');
+          const res = await fetch(_nUrl);
           const data = await res.json();
-          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.balance || 0).toFixed(4) + " USDC";
+          if ($("nanoBalance")) $("nanoBalance").textContent = parseFloat(data.formatted || data.balance || 0).toFixed(4) + " USDC";
           if ($("nanoPending")) {
             const p = parseFloat(data.pendingBatch || 0);
             $("nanoPending").textContent = p > 0 ? p.toFixed(4) + " USDC" : "0 USDC";
@@ -15445,6 +15447,14 @@ console.log("call opened:", tx.hash);`;
       const startTs = Date.now();
       const deadlineMs = deadlineSec * 1000;
       let pollTimer, tickTimer;
+      // Shared provider — tek instance, her poll'da yeni açılmıyor (listener leak önlenir)
+      const _watchProvider = new ethers.JsonRpcProvider(ARC_RPC);
+      _watchProvider.setMaxListeners(3);
+      const _watchContract = new ethers.Contract(
+        window.CONFIG?.payPerCall || '0x10387347678d9f7106D5625bE0BD6C915158B130',
+        CALL_ABI,
+        _watchProvider
+      );
 
       function tick() {
         const now = Date.now();
@@ -15467,13 +15477,7 @@ console.log("call opened:", tx.hash);`;
 
       async function pollStatus() {
         try {
-          const provider = new ethers.JsonRpcProvider(ARC_RPC);
-          const contract = new ethers.Contract(
-            window.CONFIG?.payPerCall || '0x10387347678d9f7106D5625bE0BD6C915158B130',
-            CALL_ABI,
-            provider
-          );
-          const data = await contract.calls(callId);
+          const data = await _watchContract.calls(callId);
           const status = Number(data.status);
 
           if (status === 1) {
@@ -17052,6 +17056,16 @@ console.log("call opened:", tx.hash);`;
   // ── Window exports: fonksiyonlar farklı script scope'unda tanımlı,
   //    onclick="doCall()" global scope'ta bulamıyor. DOMContentLoaded
   //    sonrası export ediyoruz.
+  // BigInt JSON.stringify fix — global replacer
+  const _origStringify = JSON.stringify;
+  JSON.stringify = function(val, replacer, space) {
+    const r = replacer || ((key, v) => typeof v === 'bigint' ? v.toString() : v);
+    const safeReplacer = replacer
+      ? (key, v) => typeof v === 'bigint' ? v.toString() : replacer(key, v)
+      : (key, v) => typeof v === 'bigint' ? v.toString() : v;
+    return _origStringify(val, safeReplacer, space);
+  };
+
   // DOMContentLoaded bekleme — fonksiyonlar zaten global scope'ta tanımlı
   // Hem inline hem de DOMContentLoaded sonrası çağrılabilir
   window.doCall     = doCall;
