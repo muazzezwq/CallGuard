@@ -5827,7 +5827,7 @@
         <p style="margin:0 0 20px;font-size:13px;color:var(--text-muted,#888);">Bir yöntem seç</p>
 
         <!-- MetaMask seçeneği — masaüstü extension veya mobil deep link -->
-        <button id="wcOptMetaMask" onclick="window.connectWithMetaMask()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--accent,#16a34a);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
+        <button id="wcOptMetaMask" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--accent,#16a34a);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
           <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:36px;height:36px;" />
           <div style="text-align:left;">
             <div style="font-weight:700;font-size:15px;color:var(--text,#111);">MetaMask</div>
@@ -17244,8 +17244,6 @@ console.log("call opened:", tx.hash);`;
 
   // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
-    console.log('[CallGuard] MetaMask button handler START');
-    alert('CallGuard: MetaMask handler çalıştı');
     hideWalletModal();
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (window.ethereum) {
@@ -17257,6 +17255,20 @@ console.log("call opened:", tx.hash);`;
       const path = window.location.pathname;
       window.location.href = 'https://metamask.app.link/dapp/' + host + path;
     }
+  };
+
+
+  // Mises/Android dahil MetaMask butonunu programatik olarak bağla.
+  // Inline onclick yerine addEventListener kullanılır.
+  const metaMaskButton = document.getElementById('wcOptMetaMask');
+  if (metaMaskButton) {
+    metaMaskButton.addEventListener('click', async function () {
+      if (typeof window.connectWithMetaMask === 'function') {
+        await window.connectWithMetaMask();
+      } else {
+        console.error('[CallGuard] connectWithMetaMask is not available');
+      }
+    });
   }
 
   // ── 2. MetaMask mobil deep link ───────────────────────────────────
