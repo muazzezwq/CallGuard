@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CallGuard × Arkreen × TLAY — Integration Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f7faf8;
+    color: #111827;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    background: #fff;
+    min-height: 100vh;
+    padding: 60px 64px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 2px solid #16a34a;
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .logo {
+    width: 40px; height: 40px;
+    background: #16a34a;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 18px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.5px;
+  }
+
+  .meta {
+    display: flex; gap: 20px;
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 8px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #dcfce7; color: #16a34a;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* Sections */
+  h2 {
+    font-size: 18px; font-weight: 700;
+    color: #111827;
+    margin: 36px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  h2 .num {
+    background: #16a34a; color: #fff;
+    width: 24px; height: 24px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+
+  h3 { font-size: 15px; font-weight: 600; color: #374151; margin: 20px 0 10px; }
+
+  p { color: #4b5563; font-size: 14px; margin-bottom: 12px; }
+
+  /* Stack diagram */
+  .stack {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 0;
+  }
+
+  .stack-node {
+    text-align: center;
+    padding: 16px;
+  }
+
+  .stack-node .icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .stack-node strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+
+  .stack-node span {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  .stack-arrow {
+    font-size: 20px;
+    color: #16a34a;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Flow steps */
+  .flow-steps {
+    counter-reset: step;
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  .flow-steps li {
+    counter-increment: step;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  .flow-steps li:last-child { border-bottom: none; }
+
+  .flow-steps li::before {
+    content: counter(step);
+    min-width: 24px; height: 24px;
+    background: #16a34a; color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Status table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+  }
+
+  th {
+    background: #f9fafb;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+  }
+
+  td:first-child { font-weight: 500; color: #111827; }
+
+  .status-ok { color: #16a34a; font-weight: 600; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #0f172a;
+  }
+
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 20px 24px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.6;
+  }
+
+  pre .comment { color: #64748b; }
+  pre .keyword { color: #7dd3fc; }
+  pre .string  { color: #86efac; }
+  pre .number  { color: #fcd34d; }
+
+  /* Action cards */
+  .action-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .action-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .action-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .action-card ul {
+    list-style: none;
+    font-size: 13px;
+    color: #4b5563;
+  }
+
+  .action-card ul li {
+    padding: 4px 0;
+    display: flex; align-items: flex-start; gap: 6px;
+  }
+
+  .action-card ul li::before {
+    content: "→";
+    color: #16a34a;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Demo scenario */
+  .demo-box {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1.5px solid #86efac;
+    border-radius: 14px;
+    padding: 28px;
+    margin: 20px 0;
+  }
+
+  .demo-box h3 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #166534;
+  }
+
+  .demo-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .demo-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #374151;
+  }
+
+  .demo-step .device {
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #166534;
+    white-space: nowrap;
+  }
+
+  .demo-arrow { color: #16a34a; font-weight: 700; }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    margin: 16px 0;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .check-box {
+    width: 18px; height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  .footer a { color: #16a34a; text-decoration: none; }
+
+  /* Print */
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; padding: 20px 32px; }
+    pre { background: #1e293b !important; -webkit-print-color-adjust: exact; }
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 28px 20px; }
+    .stack { grid-template-columns: 1fr; }
+    .stack-arrow { transform: rotate(90deg); margin: 4px auto; }
+    .action-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">C</div>
+      <h1>CallGuard × Arkreen × TLAY</h1>
+    </div>
+    <div class="meta">
+      <span>Integration Brief</span>
+      <span>September 2026</span>
+      <span class="badge">✅ Testnet Live</span>
+    </div>
+  </div>
+
+  <!-- Stack -->
+  <h2><span class="num">1</span> The Stack</h2>
+  <p>Three projects building on Arc — combined, they form the first Physical AI × DePIN × SLA loop on any blockchain.</p>
+
+  <div class="stack">
+    <div class="stack-node">
+      <span class="icon">☀️</span>
+      <strong>Arkreen</strong>
+      <span>DePIN energy network<br>Solar kWh data<br>AREC certificates<br>300K+ nodes</span>
+    </div>
+    <div class="stack-arrow">→</div>
+    <div class="stack-node">
+      <span class="icon">🤖</span>
+      <strong>TLAY BoAT</strong>
+      <span>Embedded machine wallet<br>58KB C runtime<br>EIP-3009 on-device<br>eCandle · Bitaxe</span>
+    </div>
+    <div class="stack-arrow">→</div>
+    <div class="stack-node">
+      <span class="icon">🛡️</span>
+      <strong>CallGuard</strong>
+      <span>SLA enforcement<br>On-chain escrow<br>Slash on miss<br>x402 payments</span>
+    </div>
+  </div>
+
+  <h3>Full 8-Step Flow</h3>
+  <ol class="flow-steps">
+    <li>Arkreen node generates solar kWh data (real IoT, DePIN-verified on Polygon/Arc)</li>
+    <li>Arkreen node registers as CallGuard provider — stakes 1 USDC, sets SLA terms (30s window, 50% slash)</li>
+    <li>TLAY machine (eCandle / Bitaxe) discovers provider via CallGuard registry or leaderboard</li>
+    <li>Machine sends x402 call: BoAT signs EIP-3009 authorization on-device (58KB runtime, no browser)</li>
+    <li>CallGuard facilitator verifies signature, opens escrow on Arc Testnet (sub-second)</li>
+    <li>Arkreen endpoint responds with kWh data within SLA window (30 seconds)</li>
+    <li>Auto-receipt submitted → escrow released → Arkreen earns 0.01 USDC per call</li>
+    <li>If no response → machine claims timeout → Arkreen slashed → machine refunded + penalty</li>
+  </ol>
+
+  <!-- Testnet Status -->
+  <h2><span class="num">2</span> Testnet Status</h2>
+
+  <table>
+    <tr>
+      <th>Component</th>
+      <th>Status</th>
+      <th>Address / URL</th>
+    </tr>
+    <tr>
+      <td>Arc Testnet RPC</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>rpc.testnet.arc.io</code> (block ~64M)</td>
+    </tr>
+    <tr>
+      <td>PayPerCall Contract</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>0x10387...B130</code></td>
+    </tr>
+    <tr>
+      <td>ServiceRegistry Contract</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>0xea00f...BbcFF</code></td>
+    </tr>
+    <tr>
+      <td>Dispute Contract</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>0xa4716...5e56</code></td>
+    </tr>
+    <tr>
+      <td>x402 endpoint</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>arcsla.vercel.app/api/service</code></td>
+    </tr>
+    <tr>
+      <td>Energy data endpoint</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>arcsla.vercel.app/api/energy-data</code></td>
+    </tr>
+    <tr>
+      <td>CallGuard App</td>
+      <td class="status-ok">✅ Live</td>
+      <td><code>arcsla.vercel.app/app/</code></td>
+    </tr>
+  </table>
+
+  <!-- For Arkreen -->
+  <h2><span class="num">3</span> For Arkreen — Register as Provider</h2>
+  <p>Any Arkreen node operator can register on CallGuard in under 5 minutes. This gives your node SLA-enforced payments from any machine caller.</p>
+
+  <h3>Requirements</h3>
+  <ul style="font-size:14px; color:#4b5563; padding-left:20px; margin-bottom:16px;">
+    <li>Arc Testnet wallet with ~2 USDC (1 USDC stake + gas)</li>
+    <li>Your Arkreen node endpoint URL (the API that serves kWh data)</li>
+    <li>Node.js installed</li>
+  </ul>
+
+  <h3>Setup (3 commands)</h3>
+  <pre>git clone https://github.com/muazzezwq/CallGuard
+cd CallGuard && npm install ethers
+
+<span class="comment"># Set your Arkreen node wallet and endpoint</span>
+export PRIVATE_KEY=<span class="string">0x&lt;your_arkreen_node_wallet_private_key&gt;</span>
+export ARKREEN_ENDPOINT=<span class="string">https://&lt;your-node&gt;.arkreen.com/api/energy</span>
+
+node scripts/arkreen-register.js</pre>
+
+  <p>After running: your node appears on the CallGuard leaderboard at <code>arcsla.vercel.app/app/</code>. Any TLAY machine or caller can discover and call it with SLA enforcement.</p>
+
+  <h3>What gets registered</h3>
+  <table>
+    <tr><th>Parameter</th><th>Default value</th><th>Changeable?</th></tr>
+    <tr><td>Stake</td><td>1.0 USDC</td><td>Yes</td></tr>
+    <tr><td>Price per call</td><td>0.01 USDC</td><td>Yes</td></tr>
+    <tr><td>SLA window</td><td>30 seconds</td><td>Yes</td></tr>
+    <tr><td>Slash on timeout</td><td>50% of stake</td><td>Yes</td></tr>
+    <tr><td>Service schema</td><td>kWh data (JSON)</td><td>Yes</td></tr>
+  </table>
+
+  <!-- For TLAY -->
+  <h2><span class="num">4</span> For TLAY — Call via BoAT</h2>
+  <p>CallGuard's x402 endpoint speaks the same EIP-3009 protocol that BoAT already supports. No new cryptographic primitives needed.</p>
+
+  <h3>HTTP Flow</h3>
+  <pre><span class="comment"># Step 1: Discover payment terms</span>
+GET https://arcsla.vercel.app/api/energy-data
+<span class="keyword">→</span> 402 Payment Required
+  { "payTo": "0x0E515...", "asset": "USDC", "maxAmount": "100000" }
+
+<span class="comment"># Step 2: Sign EIP-3009 and call</span>
+POST https://arcsla.vercel.app/api/call-service
+  X-Machine-Id: &lt;device_address&gt;
+  Body: { providerId, payload, from, to, value,
+          validBefore, nonce, v, r, s }
+<span class="keyword">→</span> 200 { callId, txHash, data: { kwh: 4.2, timestamp: ... } }</pre>
+
+  <h3>C pseudocode (BoAT runtime)</h3>
+  <pre><span class="comment">// BoAT on-device signing — 58KB runtime, no browser required</span>
+BoatEthTxTransferWithAuth auth = {
+  .from        = machine_wallet_addr,
+  .to          = CALLGUARD_FACILITATOR,   <span class="comment">// 0x0E515...</span>
+  .value       = <span class="number">10000</span>,                   <span class="comment">// 0.01 USDC (6 decimals)</span>
+  .validBefore = unix_now + <span class="number">300</span>,
+  .nonce       = random_bytes32(),
+};
+BoatEthSignEIP3009(privateKey, &auth, &sig);
+<span class="comment">// POST to /api/call-service → SLA enforced, USDC held in escrow</span></pre>
+
+  <h3>Test without hardware</h3>
+  <pre>export PRIVATE_KEY=<span class="string">0x&lt;machine_wallet_key&gt;</span>
+export PROVIDER_ID=<span class="number">1</span>
+export PAYLOAD=<span class="string">kwh_now</span>
+node scripts/tlay-boat-call.js
+<span class="comment"># → prints callId, txHash, kWh response</span></pre>
+
+  <!-- Joint Demo -->
+  <h2><span class="num">5</span> Joint Demo Scenario</h2>
+
+  <div class="demo-box">
+    <h3>⚡ "Machine buys solar data every 10 seconds"</h3>
+    <div class="demo-flow">
+      <div class="demo-step">
+        <span class="device">Bitaxe miner</span>
+        <span class="demo-arrow">→</span>
+        evaluates energy price to decide mining schedule
+      </div>
+      <div class="demo-step">
+        <span class="device">BoAT runtime</span>
+        <span class="demo-arrow">→</span>
+        signs EIP-3009 on-device (58KB, ~10ms)
+      </div>
+      <div class="demo-step">
+        <span class="device">CallGuard</span>
+        <span class="demo-arrow">→</span>
+        opens USDC escrow on Arc Testnet (&lt;500ms)
+      </div>
+      <div class="demo-step">
+        <span class="device">Arkreen node</span>
+        <span class="demo-arrow">→</span>
+        responds within 30s SLA → earns 0.01 USDC
+      </div>
+      <div class="demo-step">
+        <span class="device">Auto-receipt</span>
+        <span class="demo-arrow">→</span>
+        submitted → escrow released → payment settled
+      </div>
+      <div class="demo-step">
+        <span class="device">Bitaxe</span>
+        <span class="demo-arrow">→</span>
+        adjusts hashrate based on solar availability data
+      </div>
+    </div>
+  </div>
+
+  <p>This is the first <strong>Physical AI × DePIN × SLA</strong> loop on any blockchain: machine autonomy (TLAY) + verified real-world data (Arkreen) + SLA enforcement with slash/escrow (CallGuard) + USDC settlement in under 1 second (Arc).</p>
+
+  <!-- Action items -->
+  <div class="action-cards">
+    <div class="action-card">
+      <h4>🌱 Arkreen — Next Steps</h4>
+      <ul>
+        <li>Share testnet node endpoint URL</li>
+        <li>Run <code>arkreen-register.js</code></li>
+        <li>Verify provider appears on leaderboard</li>
+        <li>Coordinate joint demo tweet</li>
+      </ul>
+    </div>
+    <div class="action-card">
+      <h4>🤖 TLAY — Next Steps</h4>
+      <ul>
+        <li>Test <code>tlay-boat-call.js</code> script</li>
+        <li>Map BoAT EIP-3009 to our API format</li>
+        <li>Test with eCandle / Bitaxe hardware</li>
+        <li>Coordinate joint demo video</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Open items -->
+  <h2><span class="num">6</span> Open Items</h2>
+  <ul class="checklist">
+    <li><span class="check-box"></span> Arkreen: provide testnet node endpoint URL for live demo</li>
+    <li><span class="check-box"></span> TLAY: test tlay-boat-call.js with real BoAT device</li>
+    <li><span class="check-box"></span> CallGuard: add ARKREEN_API_URL env var for live kWh feed</li>
+    <li><span class="check-box"></span> Joint: coordinate demo video — eCandle → CallGuard → Bitaxe</li>
+    <li><span class="check-box"></span> Joint: co-tweet / blog post on Arc ecosystem page</li>
+  </ul>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div>
+      <strong>CallGuard</strong> · Built on Arc Testnet · MIT License
+    </div>
+    <div>
+      <a href="https://github.com/muazzezwq/CallGuard">GitHub</a> ·
+      <a href="https://arcsla.vercel.app/app/">App</a> ·
+      <a href="https://testnet.arcscan.net/address/0x10387347678d9f7106D5625bE0BD6C915158B130">ArcScan</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
