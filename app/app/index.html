@@ -16723,9 +16723,17 @@ console.log("call opened:", tx.hash);`;
       .topbar-balance-group { display: flex !important; }
     }
 
-    /* Mobile (≤768px): no sidebar, full width */
+    /* Mobile (≤768px): sidebar hidden via transform, hamburger opens it */
     @media (max-width: 768px) {
-      .app-sidebar { display: none !important; }
+      .app-sidebar {
+        display: flex !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.25s ease !important;
+        z-index: 200 !important;
+        width: 240px !important;
+      }
+      .app-sidebar.open { transform: translateX(0) !important; }
+      .hamburger-btn { display: flex !important; }
       .app-content { margin-left: 0 !important; }
       .topbar-inner { padding: 0 12px !important; }
       .topbar-balance-group { display: none !important; }
