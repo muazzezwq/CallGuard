@@ -6742,11 +6742,11 @@
                   <input type="text" id="rcpCallId2" placeholder="Auto-filled after call" class="mono" oninput="document.getElementById('rcpCallId').value=this.value" />
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
-                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="document.getElementById('btnCall').click()">
+                  <button class="btn btn-primary" id="btnCall2" style="flex:1;min-width:140px" onclick="syncBuilderInputs();document.getElementById('btnCall').click()">
                     Standard call
                     <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">MetaMask approval required</span>
                   </button>
-                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px;border-color:var(--accent);color:var(--accent)" onclick="document.getElementById('btnX402Call').click()">
+                  <button class="btn" id="btnX402Call2" style="flex:1;min-width:120px;border-color:var(--accent);color:var(--accent)" onclick="syncBuilderInputs();document.getElementById('btnX402Call').click()">
                     ⚡ Gas-free call
                     <span style="display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:1px">Recommended · No approval TX</span>
                   </button>
@@ -6758,8 +6758,8 @@
                     <input type="text" id="rcpPayload2" placeholder="pong" oninput="document.getElementById('rcpPayload').value=this.value" />
                   </div>
                   <div style="display:flex;gap:8px">
-                    <button class="btn" style="flex:1" onclick="document.getElementById('btnReceipt').click()">Submit receipt</button>
-                    <button class="btn btn-danger" style="flex:1" onclick="document.getElementById('btnTimeout').click()">Claim timeout</button>
+                    <button class="btn" style="flex:1" onclick="syncBuilderInputs();document.getElementById('btnReceipt').click()">Submit receipt</button>
+                    <button class="btn btn-danger" style="flex:1" onclick="syncBuilderInputs();document.getElementById('btnTimeout').click()">Claim timeout</button>
                   </div>
                 </div>
               </div>
@@ -6794,7 +6794,7 @@
                   <span class="summary-row-label">Payment type</span>
                   <span class="summary-row-value">EIP-3009</span>
                 </div>
-                <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="document.getElementById('btnCall').click()">Review &amp; Execute →</button>
+                <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="syncBuilderInputs();document.getElementById('btnX402Call').click()">Review &amp; Execute →</button>
                 <div id="bsCallId" style="margin-top:12px;display:none">
                   <div style="font-size:11px;color:var(--text-faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Last Call ID</div>
                   <div class="mono" style="font-size:11px;word-break:break-all;color:var(--text-dim)" id="bsCallIdVal">—</div>
@@ -16979,6 +16979,47 @@ console.log("call opened:", tx.hash);`;
     }
 
   })();
+  </script>
+
+  <script>
+  // Sync Call Builder inputs to hidden original inputs before triggering actions
+  function syncBuilderInputs() {
+    const map = [
+      ['callProviderId2', 'callProviderId'],
+      ['callPayload2',    'callPayload'],
+      ['rcpCallId2',      'rcpCallId'],
+      ['rcpPayload2',     'rcpPayload'],
+    ];
+    map.forEach(([src, dst]) => {
+      const s = document.getElementById(src);
+      const d = document.getElementById(dst);
+      if (s && d && s.value.trim()) d.value = s.value.trim();
+    });
+    // Also sync chain selector
+    const chainSrc = document.getElementById('callChain2');
+    const chainDst = document.getElementById('callChain');
+    if (chainSrc && chainDst) chainDst.value = chainSrc.value;
+  }
+
+  // Auto-fill Call Builder callId after a successful call
+  document.addEventListener('cg:callId', (e) => {
+    const el2 = document.getElementById('rcpCallId2');
+    const bsVal = document.getElementById('bsCallIdVal');
+    const bsDiv = document.getElementById('bsCallId');
+    if (el2 && e.detail) el2.value = e.detail;
+    if (bsVal && e.detail) { bsVal.textContent = e.detail; if (bsDiv) bsDiv.style.display = ''; }
+  });
+
+  // Sync callChain2 dropdown if it exists
+  document.addEventListener('DOMContentLoaded', () => {
+    const c2 = document.getElementById('callChain2');
+    const c1 = document.getElementById('callChain');
+    if (c2 && c1) {
+      // Copy options from c1 to c2
+      c2.innerHTML = c1.innerHTML;
+      c2.addEventListener('change', () => { c1.value = c2.value; });
+    }
+  });
   </script>
 
   </body>
