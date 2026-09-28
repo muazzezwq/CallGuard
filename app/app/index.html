@@ -17249,14 +17249,23 @@ console.log("call opened:", tx.hash);`;
   window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const ua = navigator.userAgent || '';
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
 
-    // Mobil tarayıcıda MetaMask uygulamasını doğrudan aç.
-    // Mises'in injected provider'ını MetaMask yerine kullanma.
+    // Mobilde Mises dahil mevcut tarayıcının injected provider'ını kullanma.
+    // Doğrudan MetaMask uygulamasını aç ve CallGuard'ı MetaMask içinde çalıştır.
     if (isMobile) {
       const host = window.location.host;
-      const path = window.location.pathname;
-      window.location.href = 'https://metamask.app.link/dapp/' + host + path;
+      const path = window.location.pathname || '/';
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+
+      const dappUrl =
+        'https://metamask.app.link/dapp/' +
+        host + path + search + hash;
+
+      console.log('[CallGuard] Opening CallGuard in MetaMask:', dappUrl);
+      window.location.href = dappUrl;
       return;
     }
 
@@ -17267,8 +17276,13 @@ console.log("call opened:", tx.hash);`;
     }
 
     const host = window.location.host;
-    const path = window.location.pathname;
-    window.location.href = 'https://metamask.app.link/dapp/' + host + path;
+    const path = window.location.pathname || '/';
+    const search = window.location.search || '';
+    const hash = window.location.hash || '';
+
+    window.location.href =
+      'https://metamask.app.link/dapp/' +
+      host + path + search + hash;
   };
 
 
@@ -17288,8 +17302,21 @@ console.log("call opened:", tx.hash);`;
   // MetaMask mobile deep-link ile açıldığında bağlantıyı otomatik başlat.
   // Provider sonradan inject edilirse ethereum#initialized olayını da bekler.
   (function autoConnectMetaMaskMobile() {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const ua = navigator.userAgent || '';
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+
     if (!isMobile) return;
+
+    // Mises gibi harici mobil tarayıcılarda injected provider'a
+    // otomatik eth_requestAccounts gönderme.
+    // Kullanıcı MetaMask butonuna bastığında MetaMask uygulaması
+    // doğrudan açılacak.
+    const isMises = /Mises/i.test(ua);
+
+    if (isMises) {
+      console.log('[CallGuard] Mises detected — skipping injected auto-connect.');
+      return;
+    }
 
     let attempted = false;
 
@@ -17309,17 +17336,14 @@ console.log("call opened:", tx.hash);`;
       }
     };
 
-    // Provider zaten hazırsa beklemeden başlat.
     if (window.ethereum) {
       setTimeout(run, 300);
     }
 
-    // MetaMask provider sonradan inject edilirse burada yakala.
     window.addEventListener('ethereum#initialized', () => {
       setTimeout(run, 300);
     }, { once: true });
 
-    // Script, connect'ten önce çalışmışsa DOM hazırlandıktan sonra tekrar dene.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         setTimeout(run, 300);
