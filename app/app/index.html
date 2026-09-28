@@ -5786,6 +5786,13 @@
   <script>
     // Suppress noisy MetaMask internal RPC errors (selectExtension, eth_call spam)
     (function() {
+      // warn'ları da filtrele
+      const _cw = console.warn.bind(console);
+      console.warn = function(...args) {
+        const msg = args[0] && args[0].toString ? args[0].toString() : '';
+        if (msg.includes('MaxListenersExceeded') || msg.includes('ObjectMultiplex') || msg.includes('Unrecognized feature')) return;
+        _cw.apply(console, args);
+      };
       const _ce = console.error.bind(console);
       console.error = function(...args) {
         const msg = args[0] && args[0].toString ? args[0].toString() : '';
@@ -5806,6 +5813,14 @@
     })();
   </script>
   <!-- WalletConnect QR kütüphanesi -->
+  <!-- process + global polyfill — WalletConnect CDN bağımlılığı için gerekli -->
+  <script>
+    if (typeof process === 'undefined') {
+      window.process = { env: {}, browser: true, version: '', versions: {}, nextTick: function(fn){ setTimeout(fn,0); } };
+    }
+    if (typeof global === 'undefined') { window.global = window; }
+    if (typeof Buffer === 'undefined') { window.Buffer = { isBuffer: function(){ return false; } }; }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.js"></script>
   </head>
