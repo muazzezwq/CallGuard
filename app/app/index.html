@@ -17246,8 +17246,8 @@ console.log("call opened:", tx.hash);`;
   window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (window.ethereum && !isMobile) {
-      // Masaüstü: extension var, direkt bağlan
+    if (window.ethereum) {
+      // Mises/MetaMask mobil dahil injected provider varsa doğrudan bağlan
       if (typeof window.connect === 'function') await window.connect();
     } else {
       // Mobil: MetaMask deep link — direkt, confirm sormadan
