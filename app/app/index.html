@@ -6603,7 +6603,7 @@
                 <strong>Get testnet USDC</strong><br>
                 <span>You need USDC to stake or to pay for calls. On Arc it's also the gas token.</span>
               </div>
-              <a class="btn btn-sm ws-action" href="https://faucet.circle.com/" target="_blank" rel="noreferrer">Open faucet →</a>
+              <a class="btn btn-sm ws-action" href="https://faucet.circle.com/?chain=arc-testnet" target="_blank" rel="noreferrer">Open faucet →</a>
             </div>
             <div class="welcome-step" id="wsStep2">
               <div class="ws-num" id="wsNum2">2</div>
@@ -6684,7 +6684,7 @@
                       <div style="font-size:10px;color:var(--text-faint)">slash</div>
                     </div>
                   </div>
-                  <button class="btn btn-primary" id="btnFillDefaults2" onclick="document.getElementById('btnFillDefaults').click()" style="width:100%;font-size:12px;padding:7px">Use these values →</button>
+                  <button class="btn btn-primary" id="btnFillDefaults2" onclick="(function(){var s=document.getElementById('regStake'),p=document.getElementById('regPrice'),r=document.getElementById('regMaxResp'),x=document.getElementById('regSlashPct');if(s)s.value='10';if(p)p.value='1';if(r)r.value='120';if(x)x.value='10';s&&s.dispatchEvent(new Event('input'));p&&p.dispatchEvent(new Event('input'));r&&r.dispatchEvent(new Event('input'));x&&x.dispatchEvent(new Event('input'));if(window.toast)window.toast({kind:'info',title:'Recommended values filled',detail:'10 USDC stake · 1 USDC/call · 120s · 10% slash',timeout:3000})})()" style="width:100%;font-size:12px;padding:7px">Use these values →</button>
                 </div>
                 <div class="field">
                   <label>Signer address <span class="tip" data-tip="The address whose key will sign each receipt you deliver. Keep the owner (payout) key cold and the signer key hot for safety. Leave blank to use your current address.">?</span></label>
@@ -14849,8 +14849,9 @@ console.log("call opened:", tx.hash);`;
       const banner = document.getElementById("wrongNetworkBanner");
       if (!banner) return;
       // Arc Testnet chainId = 5042002 = 0x4CE452
-      const arcChainIds = ["0x4CE452", "0x4ce452", "5042002"];
-      const isArc = arcChainIds.includes(chainId) || parseInt(chainId, 16) === 5042002;
+      const arcChainIds = ["0x4CE452", "0x4ce452", "5042002", 5042002];
+      const chainIdNum = chainId.startsWith("0x") ? parseInt(chainId, 16) : parseInt(chainId, 10);
+      const isArc = arcChainIds.includes(chainId) || chainIdNum === 5042002;
       banner.style.display = (window.state?.account && !isArc) ? "block" : "none";
     } catch {}
   }
@@ -15587,7 +15588,7 @@ console.log("call opened:", tx.hash);`;
   <!-- Session Spending Limit Banner -->
   <div id="spendLimitBanner" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;z-index:9800;box-shadow:0 4px 16px rgba(0,0,0,.12)">
     <span id="spendLimitText"></span>
-    <button onclick="document.getElementById('spendLimitBanner').style.display='none'" style="margin-left:12px;background:none;border:none;cursor:pointer;color:var(--text-muted)">✕</button>
+    <button onclick="sessionStorage.setItem('cg_spend_dismissed','1');document.getElementById('spendLimitBanner').style.display='none'" style="margin-left:12px;background:none;border:none;cursor:pointer;color:var(--text-muted)">✕</button>
   </div>
 
   <script>
@@ -15638,7 +15639,8 @@ console.log("call opened:", tx.hash);`;
       const limit = window.getSessionLimit();
       const banner = document.getElementById("spendLimitBanner");
       const text   = document.getElementById("spendLimitText");
-      if (spent >= limit * 0.8) {
+      const dismissed = sessionStorage.getItem("cg_spend_dismissed");
+      if (spent >= limit * 0.8 && !dismissed) {
         text.innerHTML = `Session spending: <strong>${spent.toFixed(3)} / ${limit} USDC</strong> — <a href="#" onclick="document.getElementById('spendLimitBanner').style.display='none';window.showCategory('settings');return false">adjust limit</a>`;
         banner.style.display = "flex";
       }
