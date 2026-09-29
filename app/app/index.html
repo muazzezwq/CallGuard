@@ -6174,9 +6174,21 @@
             <p id="heroSubtitle" class="lead" style="font-size:15px;line-height:1.6;color:var(--text-dim);margin-bottom:24px;max-width:440px">
               Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
             </p>
+            <!-- Rol kartları — cüzdan bağlamadan ne yapabilirim? -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+              <div id="roleCardCaller" style="border:2px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--bg-1)" onmouseover="this.style.borderColor='var(--info)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size:20px;margin-bottom:6px">📞</div>
+                <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px">I want to call a service</div>
+                <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Pay USDC per request. Get a refund + bonus if the provider misses the SLA.</div>
+              </div>
+              <div id="roleCardProvider" style="border:2px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--bg-1)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size:20px;margin-bottom:6px">🖥️</div>
+                <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px">I want to provide a service</div>
+                <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Stake USDC, set your price and SLA window. Earn per call you answer in time.</div>
+              </div>
+            </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary" id="connectBtn2" onclick="window.showWalletModal&&window.showWalletModal()" style="padding:10px 24px;font-size:14px">Connect wallet</button>
-              <a href="/" style="display:inline-flex;align-items:center;padding:10px 20px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);text-decoration:none;font-weight:500;background:var(--bg-1)">Learn more →</a>
+              <button class="btn btn-primary" id="connectBtn2" onclick="window.showWalletModal&&window.showWalletModal()" style="padding:10px 24px;font-size:14px">Connect wallet →</button>
             </div>
           </div>
           <!-- Right: stats + sparkline -->
@@ -6477,69 +6489,71 @@
               <div class="sb-net">Arc Testnet</div>
             </div>
           </div>
-          <div class="sb-section">Workspace</div>
+          <!-- ── CORE menü ── -->
+          <div class="sb-section">Get Started</div>
           <div class="sb-item on" data-nav="overview">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
-            <span class="sb-lbl-simple">Home</span><span class="sb-lbl-pro">Overview</span>
-          </div>
-          <div class="sb-item" data-nav="x402">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-            <span class="sb-lbl-simple">Make a Request</span><span class="sb-lbl-pro">Call Builder</span>
+            Home
           </div>
           <div class="sb-item" data-nav="marketplace">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
-            <span class="sb-lbl-simple">Browse Services</span><span class="sb-lbl-pro">Services</span>
+            Browse Services
           </div>
-
-          <div class="sb-section">Operations</div>
+          <div class="sb-item" data-nav="x402">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            Call a Service
+          </div>
+          <div class="sb-item" data-nav="register">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
+            Become a Provider
+          </div>
           <div class="sb-item" data-nav="calls">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-            <span class="sb-lbl-simple">My Requests</span><span class="sb-lbl-pro">Requests</span>
-          </div>
-          <div class="sb-item" data-nav="providers">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-            Providers
-          </div>
-          <div class="sb-item" data-nav="nano">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-            Receipts
+            My Activity
           </div>
 
-          <div class="sb-section">Settlement</div>
-          <div class="sb-item" data-nav="analytics">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-            Payments
+          <!-- ── ADVANCED (daraltılabilir) ── -->
+          <div class="sb-section" id="sbAdvancedToggle" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px" onclick="(function(){var g=document.getElementById('sbAdvancedGroup');var a=document.getElementById('sbAdvancedArrow');if(g){var hidden=g.style.display==='none';g.style.display=hidden?'':'none';if(a)a.style.transform=hidden?'rotate(0deg)':'rotate(-90deg)'}})()">
+            Advanced
+            <svg id="sbAdvancedArrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-left:auto;transition:transform .2s;transform:rotate(-90deg)"><path d="M2 3.5l3 3 3-3"/></svg>
           </div>
-          <div class="sb-item" data-nav="jobs">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z"/></svg></span>
-            Claims
-          </div>
-
-          <div class="sb-section">Developer</div>
-          <div class="sb-item" data-nav="mcp">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-            API
-          </div>
-          <div class="sb-item" data-nav="webhooks">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-            Webhooks
-          </div>
-
-          <div class="sb-item" data-nav="notifications" id="sbNotifications">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-            Notifications
-            <span id="notifBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
-          </div>
-          <div class="sb-item" data-nav="leaderboard">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
-            Leaderboard
+          <div id="sbAdvancedGroup" style="display:none">
+            <div class="sb-item" data-nav="providers">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+              Providers
+            </div>
+            <div class="sb-item" data-nav="nano">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+              Receipts
+            </div>
+            <div class="sb-item" data-nav="analytics">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+              Payments
+            </div>
+            <div class="sb-item" data-nav="jobs">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z"/></svg></span>
+              Claims
+            </div>
+            <div class="sb-item" data-nav="mcp">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              API
+            </div>
+            <div class="sb-item" data-nav="webhooks">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+              Webhooks
+            </div>
+            <div class="sb-item" data-nav="notifications" id="sbNotifications">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+              Notifications
+              <span id="notifBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
+            </div>
+            <div class="sb-item" data-nav="leaderboard">
+              <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+              Leaderboard
+            </div>
           </div>
 
           <div class="sb-section">System</div>
-          <div class="sb-item" data-nav="register">
-            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
-            <span class="sb-lbl-simple">Become a Provider</span><span class="sb-lbl-pro">Register</span>
-          </div>
           <div class="sb-item" data-nav="settings">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
             Settings
@@ -8365,6 +8379,11 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         $("btnResetMM").classList.remove("hidden");
         document.body.classList.add("wallet-connected");
         startLiveClock();
+        // İlk bağlanmada rol seçim ekranı göster
+        if (!localStorage.getItem("cg_role_chosen")) {
+          const roleModal = document.getElementById("roleChoiceModal");
+          if (roleModal) roleModal.style.display = "flex";
+        }
       }
 
       // Ticking clock — updates every second while connected
@@ -11396,6 +11415,21 @@ async function refreshBalance() {
         goStep(1);
         document.querySelectorAll(".wizard-btn-next").forEach(btn => {
           btn.addEventListener("click", () => {
+            // Step 1'den step 2'ye geçmek için cüzdan bağlı olmalı
+            if (step === 1) {
+              if (!window.state?.signer) {
+                // Cüzdan bağlı değil — modal aç, wizard'ı kapat
+                if (typeof window.showWalletModal === 'function') window.showWalletModal();
+                // Bağlanınca wizard'ı step 2'ye ilerlet
+                const checkConn = setInterval(() => {
+                  if (window.state?.signer) {
+                    clearInterval(checkConn);
+                    goStep(2);
+                  }
+                }, 500);
+                return;
+              }
+            }
             if (step < totalSteps) { goStep(step + 1); }
             else {
               localStorage.setItem("cg_onboard_v2", "1");
@@ -13987,6 +14021,55 @@ console.log("call opened:", tx.hash);`;
   </div>
 
   <!-- ── DISPUTE MODAL ── -->
+  <!-- ── ROLE CHOICE MODAL ─────────────────────────────────────────────── -->
+  <div id="roleChoiceModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:32px 28px;max-width:420px;width:calc(100% - 32px);box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative;">
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.02em">What would you like to do?</div>
+      <div style="font-size:13px;color:var(--text-faint);margin-bottom:24px">Pick a starting point. You can switch anytime.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <button id="roleChoiceCaller" style="border:2px solid var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;background:var(--bg-0);text-align:left;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--info)';this.style.background='var(--bg-2)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-0)'">
+          <div style="font-size:28px;margin-bottom:10px">📞</div>
+          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px">Call a service</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Pay USDC per request. SLA-guaranteed. Refund + bonus if the provider misses the deadline.</div>
+        </button>
+        <button id="roleChoiceProvider" style="border:2px solid var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;background:var(--bg-0);text-align:left;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg-2)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-0)'">
+          <div style="font-size:28px;margin-bottom:10px">🖥️</div>
+          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px">Provide a service</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Stake USDC, set your price and SLA window. Earn per call you answer in time.</div>
+        </button>
+      </div>
+      <button id="roleChoiceSkip" style="width:100%;background:none;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;padding:6px">I'll decide later →</button>
+    </div>
+  </div>
+  <script>
+  (function() {
+    function closeRoleModal() {
+      const m = document.getElementById("roleChoiceModal");
+      if (m) m.style.display = "none";
+    }
+    document.getElementById("roleChoiceCaller")?.addEventListener("click", function() {
+      localStorage.setItem("cg_role_chosen", "caller");
+      closeRoleModal();
+      // Marketplace'e yönlendir
+      document.querySelector('[data-nav="marketplace"]')?.click();
+    });
+    document.getElementById("roleChoiceProvider")?.addEventListener("click", function() {
+      localStorage.setItem("cg_role_chosen", "provider");
+      closeRoleModal();
+      // Register'a yönlendir
+      document.querySelector('[data-nav="register"]')?.click();
+    });
+    document.getElementById("roleChoiceSkip")?.addEventListener("click", function() {
+      localStorage.setItem("cg_role_chosen", "skipped");
+      closeRoleModal();
+    });
+    // Dışarı tıklayınca kapat
+    document.getElementById("roleChoiceModal")?.addEventListener("click", function(e) {
+      if (e.target === this) { localStorage.setItem("cg_role_chosen", "skipped"); closeRoleModal(); }
+    });
+  })();
+  </script>
+
   <div class="dispute-overlay" id="disputeOverlay">
     <div class="dispute-box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
