@@ -4231,32 +4231,38 @@
       display: none;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 56px;
+      height: 60px;
       background: var(--bg-0);
       border-top: 1px solid var(--border);
-      z-index: 200;
+      z-index: 1000;
       grid-template-columns: repeat(5, 1fr);
-      align-items: center;
-      box-shadow: 0 -1px 0 var(--border);
+      align-items: stretch;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+      safe-area-inset-bottom: env(safe-area-inset-bottom);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .mob-nav-item {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-      font-size: 9px;
+      gap: 3px;
+      font-size: 10px;
       font-weight: 500;
+      letter-spacing: -0.2px;
       color: var(--text-faint);
       cursor: pointer;
-      padding: 6px 0;
+      padding: 8px 4px 6px;
       transition: color 0.15s;
       -webkit-tap-highlight-color: transparent;
+      min-width: 0;
+      overflow: hidden;
     }
-    .mob-nav-item .mn-icon { font-size: 16px; line-height: 1; width: 22px; height: 22px; }
-    .mob-nav-item svg.mn-icon { width: 22px; height: 22px; stroke: currentColor; }
+    .mob-nav-item .mn-icon { font-size: 18px; line-height: 1; width: 24px; height: 24px; flex-shrink: 0; }
+    .mob-nav-item svg.mn-icon { width: 24px; height: 24px; flex-shrink: 0; stroke: currentColor; fill: none; }
+    .mob-nav-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
     .mob-nav-item.on { color: var(--accent); font-weight: 600; }
-    .mob-nav-item.on .mn-icon { opacity: 1; }
+    .mob-nav-item.on svg.mn-icon { stroke: var(--accent); }
     /* Footer boş alan kaldır */
     .app-footer, footer { margin-bottom: 0 !important; padding-bottom: 0 !important; }
     @media (max-width: 768px) {
@@ -13632,24 +13638,24 @@ console.log("call opened:", tx.hash);`;
     nav.id = "mobileBottomNav";
     nav.innerHTML = `
       <div class="mob-nav-item on" data-mob="overview">
-        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        Overview
+        <svg class="mn-icon" viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Home</span>
       </div>
       <div class="mob-nav-item" data-mob="providers">
-        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        Providers
+        <svg class="mn-icon" viewBox="0 0 24 24" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <span>Services</span>
       </div>
       <div class="mob-nav-item" data-mob="x402">
-        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.22 2.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-        Call
+        <svg class="mn-icon" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <span>Call</span>
       </div>
       <div class="mob-nav-item" data-mob="myCalls">
-        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        My Calls
+        <svg class="mn-icon" viewBox="0 0 24 24" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>History</span>
       </div>
       <div class="mob-nav-item" data-mob="register">
-        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Account
+        <svg class="mn-icon" viewBox="0 0 24 24" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Account</span>
       </div>
     `;
     document.body.appendChild(nav);
@@ -17279,25 +17285,6 @@ console.log("call opened:", tx.hash);`;
   // ── Mobil bottom nav: Simple/Pro toggle buraya taşındı
   //    Topbar'da yer olmadığında Settings panelinde de görünür
   document.addEventListener('DOMContentLoaded', () => {
-    // Bottom nav'a mode toggle ekle (mobil için)
-    const mobileNav = document.getElementById('mobileBottomNav');
-    if (mobileNav) {
-      const existing = mobileNav.querySelector('.mode-toggle-btn');
-      if (!existing) {
-        const wrap = document.createElement('div');
-        wrap.className = 'mobile-mode-toggle';
-        wrap.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--bg-1);border-radius:20px;margin:4px auto;';
-        wrap.innerHTML = `
-          <button onclick="window.setAppMode('simple')" id="mobileSimpleBtn"
-            style="padding:3px 10px;font-size:11px;border-radius:12px;border:none;cursor:pointer;
-                   background:var(--accent);color:#fff;font-weight:600;">Simple</button>
-          <button onclick="window.setAppMode('pro')" id="mobileProBtn"
-            style="padding:3px 10px;font-size:11px;border-radius:12px;border:none;cursor:pointer;
-                   background:transparent;color:var(--text-faint);">Pro</button>
-        `;
-        mobileNav.insertBefore(wrap, mobileNav.firstChild);
-      }
-    }
 
     // Settings paneline de ekle
     const settingsPanel = document.getElementById('panelSettings') ||
