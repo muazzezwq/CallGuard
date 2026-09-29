@@ -7069,7 +7069,13 @@
         <section class="panel" id="providerDashPanel" data-category="providers" style="display:none">
           <div class="panel-head">
             <h2>Provider Dashboard</h2>
-            <span class="mono" style="font-size:11px;color:var(--text-faint)" id="dashLastUpdate">—</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="provNftBadge" style="display:none;align-items:center;gap:4px;font-size:10px;font-weight:600;letter-spacing:0.06em;padding:3px 8px;border-radius:20px;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3)">
+                <svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M8 1l2.3 4.6L16 6.5l-4 3.9.9 5.6L8 13.4l-4.9 2.6.9-5.6-4-3.9 5.7-.9z"/></svg>
+                AgentIdentity
+              </span>
+              <span class="mono" style="font-size:11px;color:var(--text-faint)" id="dashLastUpdate">—</span>
+            </div>
           </div>
           <div class="panel-body" id="providerDashBox">
             <div class="empty-state" style="padding:24px;text-align:center;font-size:12px;color:var(--text-dim)">Connect your wallet to view your dashboard.</div>
@@ -8495,6 +8501,13 @@ curl -X POST https://arcsla.vercel.app/api/service \
         if (!localStorage.getItem("cg_role_chosen")) {
           const roleModal = document.getElementById("roleChoiceModal");
           if (roleModal) roleModal.style.display = "flex";
+        }
+        // Önceki oturumdan ERC-8004 NFT ID'yi restore et
+        const savedNft = localStorage.getItem("cgAgentNftId");
+        if (savedNft) {
+          if (window.state) window.state.agentNftId = savedNft;
+          const badge = document.getElementById("provNftBadge");
+          if (badge) { badge.textContent = `AgentIdentity #${savedNft}`; badge.style.display = "inline-flex"; }
         }
       }
 
@@ -12572,6 +12585,12 @@ console.log("call opened:", tx.hash);`;
             detail: `AgentIdentity NFT #${tokenId} bound`,
             txHash: tx.hash,
           });
+          // Persist NFT ID for profile display + provider card badge
+          if (window.state) window.state.agentNftId = tokenId;
+          try { localStorage.setItem("cgAgentNftId", tokenId.toString()); } catch {}
+          // Show NFT badge in provider section
+          const nftBadgeEl = document.getElementById("provNftBadge");
+          if (nftBadgeEl) { nftBadgeEl.textContent = `AgentIdentity #${tokenId}`; nftBadgeEl.style.display = "inline-flex"; }
           btn.textContent = `✅ Provider #${providerId} (NFT #${tokenId})`;
           btn.disabled = true;
           await refreshAll();
@@ -14082,20 +14101,34 @@ console.log("call opened:", tx.hash);`;
     if (!providers || providers.length === 0) return null;
     const active = providers.filter(p => p.active !== false && Number(p.stake||0) > 0);
     if (active.length === 0) return providers[0];
+    // Normalize helpers
+    const maxStake = Math.max(...active.map(p => Number(p.stake||0))) || 1;
+    const maxResp  = Math.max(...active.map(p => Number(p.maxResponseTime||120))) || 120;
     const scored = active.map(p => {
-      const total = (p.completedCalls||0) + (p.slashedCalls||0);
-      const honor = total > 0 ? (p.completedCalls||0)/total : 0.5;
-      const rep = Math.min((p.reputation||66)/100, 1);
-      const price = Number(p.pricePerCall||1e6)/1e6;
+      const total       = (p.completedCalls||0) + (p.slashedCalls||0);
+      // Honor rate — default 0.5 if no history yet
+      const honor       = total > 5 ? (p.completedCalls||0)/total : 0.5;
+      // Reputation on-chain score (0-100 → 0-1)
+      const rep         = Math.min((p.reputation||66)/100, 1);
+      // Price factor — cheaper is better (cap at 5x advantage)
+      const price       = Number(p.pricePerCall||1e6)/1e6;
       const priceFactor = price > 0 ? Math.min(1/price, 5)/5 : 0.5;
-      const score = (honor * 0.5) + (rep * 0.35) + (priceFactor * 0.15);
-      return { ...p, _score: score };
+      // Stake factor — more skin in the game = more trustworthy
+      const stakeFactor = Number(p.stake||0) / maxStake;
+      // Speed factor — faster max response time is better
+      const respTime    = Number(p.maxResponseTime||120);
+      const speedFactor = 1 - (respTime / maxResp);
+      // Slash penalty — each slash event lowers score
+      const slashPenalty = Math.min((p.slashedCalls||0) * 0.05, 0.3);
+      const score = (honor * 0.35) + (rep * 0.25) + (priceFactor * 0.15) +
+                    (stakeFactor * 0.15) + (speedFactor * 0.10) - slashPenalty;
+      return { ...p, _score: Math.max(0, score), _honor: honor, _speedFactor: speedFactor };
     });
     scored.sort((a,b) => b._score - a._score);
     return scored[0];
   };
 
-  // Auto-router butonuna bağla
+  // Auto-router butonuna bağla — seçim gerekçesini göster
   const btnAutoRoute = document.getElementById("btnAutoRoute");
   if (btnAutoRoute) {
     btnAutoRoute.addEventListener("click", () => {
@@ -14104,7 +14137,16 @@ console.log("call opened:", tx.hash);`;
       if (!best) { toast({ kind: "err", title: "No active providers found" }); return; }
       const sel = document.getElementById("selProvider");
       if (sel) { sel.value = best.id; sel.dispatchEvent(new Event("change")); }
-      toast({ kind: "ok", title: `Auto-selected Provider #${best.id} (score: ${(best._score*100).toFixed(0)})`, timeout: 3000 });
+      const honor   = ((best._honor||0.5)*100).toFixed(0);
+      const score   = ((best._score||0)*100).toFixed(0);
+      const price   = (Number(best.pricePerCall||1e6)/1e6).toFixed(4);
+      const respSec = Number(best.maxResponseTime||120);
+      toast({
+        kind: "ok",
+        title: `Auto-selected Provider #${best.id}`,
+        detail: `Score ${score}/100 · Honor ${honor}% · ${price} USDC · ${respSec}s SLA`,
+        timeout: 5000
+      });
     });
   }
 
