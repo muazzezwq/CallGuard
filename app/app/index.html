@@ -8557,6 +8557,13 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                       }
                     }
 
+                    // totalSec: provider SLA'sından al, fallback 120
+                    let totalSec = 120;
+                    if (deadline && startedAt) totalSec = deadline - startedAt;
+                    if (!totalSec || totalSec <= 0) {
+                      const cachedProv = (window.__providers || []).find(p => String(p.id) === String(c.providerId));
+                      totalSec = cachedProv ? Number(cachedProv.maxResponseTime || 120) : 120;
+                    }
                     state.myCalls.set(callId, {
                       callId,
                       providerId: c.providerId,
@@ -8564,7 +8571,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                       amount: BigInt(c.amount || 0),
                       deadline,
                       startedAt,
-                      totalSec: 120,
+                      totalSec,
                       status
                     });
                   }
@@ -9826,8 +9833,10 @@ async function refreshBalance() {
               tApprove.remove();
               throw approveErr;
             }
-            tApprove.querySelector(".title").textContent = "Approval sent";
-            tApprove.querySelector(".detail").innerHTML = `tx ${short(txA.hash, 6)}`;
+            const _tATitle = tApprove.querySelector(".title");
+            const _tADetail = tApprove.querySelector(".detail");
+            if (_tATitle) _tATitle.textContent = "Approval sent";
+            if (_tADetail) _tADetail.innerHTML = `tx ${short(txA.hash, 6)}`;
             await txA.wait();
             tApprove.remove();
             toast({ kind: "ok", title: "USDC approved ✓", link: txLink(txA.hash), detail: short(txA.hash, 8) });
@@ -10140,8 +10149,8 @@ async function refreshBalance() {
                 callId,
                 providerId,
                 requestHash: state.lastRequestHash || '0x',
-                payload: $('reqPayload')?.value || '',
-                caller: state.account,
+                payload: $('callPayload')?.value || '',
+                caller: state.address,
               }),
             }).then(r => r.json()).then(d => {
               if (d.notified) toast({ kind: 'ok', title: 'Provider notified', detail: 'Webhook delivered' });
@@ -14316,9 +14325,8 @@ console.log("call opened:", tx.hash);`;
         const fullReason = reason + (details ? " — " + details : "");
         const tx = await window.state.dispute.openDispute(callIdBytes, fullReason);
         result.textContent = "Waiting for confirmation…";
-        const { t0, receipt: txReceipt } = await window.waitWithFinality?.(tx) || { t0: Date.now(), receipt: await tx.wait() };
+        const { t0, rc: txReceipt, finalityMs } = await window.waitWithFinality?.(tx) || { t0: Date.now(), rc: await tx.wait(), finalityMs: 0 };
         const disputeId = txReceipt?.logs?.[0] ? BigInt(txReceipt.logs[0].topics[1] || 0) : "?";
-        const finalityMs = Date.now() - t0;
         result.textContent = `✅ Dispute #${disputeId} opened on-chain`;
         result.style.color = "var(--accent)";
         window.toast?.({ kind: "ok", title: `Dispute #${disputeId} opened`, detail: `On-chain · finalized in ${finalityMs}ms`, txHash: tx.hash, timeout: 6000 });
@@ -14382,12 +14390,17 @@ console.log("call opened:", tx.hash);`;
         // Subscribe on-chain
         result.textContent = "Subscribing on-chain…";
         const tx = await window.state.subscription.subscribe(Number(subProvider.id), durationDays);
-        const { t0, receipt: txReceipt } = await window.waitWithFinality?.(tx) || { t0: Date.now(), receipt: await tx.wait() };
+        const { t0, rc: txReceipt, finalityMs } = await window.waitWithFinality?.(tx) || { t0: Date.now(), rc: await tx.wait(), finalityMs: 0 };
         const subId = txReceipt?.logs?.[0] ? BigInt(txReceipt.logs[0].topics[1] || 0) : "?";
-        const finalityMs = Date.now() - t0;
         result.textContent = `✅ Subscribed! Sub #${subId} · ${durationDays} days active`;
         result.style.color = "var(--accent)";
         window.toast?.({ kind: "ok", title: `Subscribed to Provider #${subProvider.id}`, detail: `Sub #${subId} · ${durationDays} days · finalized in ${finalityMs}ms`, txHash: tx.hash, timeout: 6000 });
+        // localStorage'a kaydet — refreshSubscriptions bunu okur
+        try {
+          const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
+          subs.unshift({ subId: subId.toString(), providerId: subProvider.id, pricePerCall: totalPerCall.toFixed(4), totalCalls: selectedPlan, usedCalls: 0, discount: Math.round(disc*100), totalUsdc: (totalPerCall*selectedPlan).toFixed(2), durationDays, createdAt: Date.now() });
+          localStorage.setItem("cgSubscriptions", JSON.stringify(subs));
+        } catch {}
         window.refreshSubscriptions?.();
       } catch(e) {
         result.textContent = "Error: " + (e.reason || e.message);
