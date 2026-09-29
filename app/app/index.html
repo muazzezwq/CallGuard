@@ -10023,18 +10023,24 @@ async function refreshBalance() {
           const slaSec = Number(p.maxResponseTime);
           const slaDisplay = slaSec >= 60 ? `${(slaSec/60).toFixed(0)}min` : `${slaSec}s`;
           const slashPct = (Number(p.slashBps) / 100).toFixed(0);
-          const confirmed = await window.confirmTx({
-            title: "Confirm API Call",
-            rows: [
-              ["Provider", `#${idStr}`],
-              ["Cost", `${priceNum} USDC`],
-              ["SLA guarantee", `${slaDisplay} response time`],
-              ["Slash if missed", `${slashPct}% of provider stake`],
-              ["Network", "Arc Testnet"],
-              ["Settlement", "On-chain, automatic"],
-            ],
-            warning: priceNum >= 1 ? `${priceNum} USDC will be locked in escrow until the provider responds or the SLA is breached.` : null,
-          });
+          let confirmed;
+          if (typeof window.confirmTx === 'function') {
+            confirmed = await window.confirmTx({
+              title: "Confirm API Call",
+              rows: [
+                ["Provider", `#${idStr}`],
+                ["Cost", `${priceNum} USDC`],
+                ["SLA guarantee", `${slaDisplay} response time`],
+                ["Slash if missed", `${slashPct}% of provider stake`],
+                ["Network", "Arc Testnet"],
+                ["Settlement", "On-chain, automatic"],
+              ],
+              warning: priceNum >= 1 ? `${priceNum} USDC will be locked in escrow until the provider responds or the SLA is breached.` : null,
+            });
+          } else {
+            // confirmTx henüz yüklenmediyse native confirm ile fallback
+            confirmed = window.confirm(`Call Provider #${idStr} for ${priceNum} USDC?\n\nSLA: ${slaDisplay} response time\nSlash: ${slashPct}% if missed`);
+          }
           if (!confirmed) throw new Error("user cancelled");
           // Show gas estimate async (non-blocking)
           if (window.showGasEstimate) window.showGasEstimate(idStr, priceNum).catch(() => {});
@@ -15492,8 +15498,8 @@ console.log("call opened:", tx.hash);`;
       </div>
       <div class="ctm-warning" id="ctmWarning" style="display:none"></div>
       <div class="ctm-actions">
-        <button class="btn" id="ctmCancel">Cancel</button>
-        <button class="btn btn-primary" id="ctmConfirm">Confirm</button>
+        <button class="btn ctm-cancel" id="ctmCancel">Cancel</button>
+        <button class="btn ctm-confirm" id="ctmConfirm">Confirm</button>
       </div>
     </div>
   </div>
