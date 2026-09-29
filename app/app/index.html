@@ -4253,9 +4253,15 @@
       transition: color 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .mob-nav-item .mn-icon { font-size: 16px; line-height: 1; }
+    .mob-nav-item .mn-icon { font-size: 16px; line-height: 1; width: 22px; height: 22px; }
+    .mob-nav-item svg.mn-icon { width: 22px; height: 22px; stroke: currentColor; }
     .mob-nav-item.on { color: var(--accent); font-weight: 600; }
     .mob-nav-item.on .mn-icon { opacity: 1; }
+    /* Footer boş alan kaldır */
+    .app-footer, footer { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+    @media (max-width: 768px) {
+      .app-footer, footer { padding-bottom: 64px !important; }
+    }
     @media (max-width: 768px) {
       .mob-nav { display: grid; }
       .app-shell { padding-bottom: 56px; }
@@ -13625,13 +13631,25 @@ console.log("call opened:", tx.hash);`;
     nav.className = "mob-nav";
     nav.id = "mobileBottomNav";
     nav.innerHTML = `
-      <div class="mob-nav-item on" data-mob="overview"><div class="mn-icon">📊</div>Overview</div>
-      <div class="mob-nav-item" data-mob="providers"><div class="mn-icon">🖥️</div>Providers</div>
-      <div class="mob-nav-item" data-mob="calls"><div class="mn-icon">📞</div>My Calls</div>
-      <div class="mob-nav-item" data-mob="marketplace"><div class="mn-icon">🛒</div>Market</div>
-      <div class="mob-nav-item" data-mob="register"><div class="mn-icon">⚙️</div>Account</div>
-      <div class="mob-nav-item" id="mobileModToggle" onclick="window._toggleMode&&window._toggleMode()" style="font-size:10px;opacity:0.7;">
-        <div class="mn-icon" style="font-size:14px;">⚡</div><span id="mobileModLabel">Simple</span>
+      <div class="mob-nav-item on" data-mob="overview">
+        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Overview
+      </div>
+      <div class="mob-nav-item" data-mob="providers">
+        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Providers
+      </div>
+      <div class="mob-nav-item" data-mob="x402">
+        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.22 2.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Call
+      </div>
+      <div class="mob-nav-item" data-mob="myCalls">
+        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        My Calls
+      </div>
+      <div class="mob-nav-item" data-mob="register">
+        <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Account
       </div>
     `;
     document.body.appendChild(nav);
