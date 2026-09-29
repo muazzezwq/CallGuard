@@ -4227,10 +4227,48 @@
 
 
     /* ── MOBILE BOTTOM NAV ── */
-    .mob-nav {
+    .mob-nav-wrapper {
       display: none;
       position: fixed;
       bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      flex-direction: column;
+    }
+    @media (max-width: 768px) {
+      .mob-nav-wrapper { display: flex; }
+    }
+    .mob-mode-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      background: var(--bg-1);
+      border-top: 1px solid var(--border);
+      padding: 4px 16px;
+    }
+    .mob-mode-bar button {
+      flex: 1;
+      max-width: 90px;
+      padding: 4px 0;
+      font-size: 11px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.03em;
+    }
+    .mob-mode-bar button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .mob-mode-bar button:not(.active) {
+      background: transparent;
+      color: var(--text-faint);
+    }
+    .mob-nav {
+      display: flex;
+      position: static;
       height: 60px;
       background: var(--bg-0);
       border-top: 1px solid var(--border);
@@ -4270,7 +4308,7 @@
     }
     @media (max-width: 768px) {
       .mob-nav { display: grid; }
-      .app-shell { padding-bottom: 56px; }
+      .app-shell { padding-bottom: 92px; }
       .sidebar { display: none !important; }
       #cgTicker { font-size: 9px; }
     }
@@ -13658,14 +13696,35 @@ console.log("call opened:", tx.hash);`;
         <span>Account</span>
       </div>
     `;
-    document.body.appendChild(nav);
-    // Expose toggle
-    window._toggleMode = function() {
-      const cur = localStorage.getItem('cg_mode') || 'simple';
-      const next = cur === 'simple' ? 'pro' : 'simple';
-      if (typeof window.setAppMode === 'function') window.setAppMode(next);
-      const lbl = document.getElementById('mobileModLabel');
-      if (lbl) lbl.textContent = next === 'simple' ? 'Simple' : 'Pro';
+    // Wrapper oluştur: mode bar + nav
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mob-nav-wrapper';
+    wrapper.id = 'mobileNavWrapper';
+
+    // Mode bar
+    const modeBar = document.createElement('div');
+    modeBar.className = 'mob-mode-bar';
+    modeBar.id = 'mobModeBar';
+    const savedMode = localStorage.getItem('cg_mode') || 'pro';
+    modeBar.innerHTML = `
+      <button id="mobBtnSimple" onclick="window.setAppMode('simple')"
+        class="${savedMode==='simple'?'active':''}">Simple</button>
+      <button id="mobBtnPro" onclick="window.setAppMode('pro')"
+        class="${savedMode==='pro'?'active':''}">Pro</button>
+    `;
+
+    wrapper.appendChild(modeBar);
+    wrapper.appendChild(nav);
+    document.body.appendChild(wrapper);
+
+    // setAppMode ile mode bar'ı senkronize et
+    const _origSet = window.setAppMode;
+    window.setAppMode = function(mode) {
+      if (typeof _origSet === 'function') _origSet(mode);
+      const s = document.getElementById('mobBtnSimple');
+      const p = document.getElementById('mobBtnPro');
+      if (s) s.className = mode === 'simple' ? 'active' : '';
+      if (p) p.className = mode === 'pro' ? 'active' : '';
     };
     // Sync label on load
     const _initModLabel = () => {
