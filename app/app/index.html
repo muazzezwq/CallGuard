@@ -7883,25 +7883,125 @@ npm install</pre>
             <span class="mono" style="font-size:11px;color:var(--text-faint)">5-line setup</span>
           </div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px">Integrate CallGuard into any JavaScript app or AI agent. Copy the snippet below and replace the provider ID and payload.</p>
-            <div class="sdk-panel" id="sdkSnippet">
-              <button class="sdk-copy-btn" id="btnCopySdk">Copy</button>
+            <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px">Integrate CallGuard into any app or AI agent. Pick your language and replace the provider ID and payload.</p>
+            <!-- Tab bar -->
+            <div style="display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:0">
+              <button class="sdk-lang-btn active" data-lang="js"   onclick="window.switchSdkLang('js')"   style="padding:6px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-1px">Browser JS</button>
+              <button class="sdk-lang-btn"        data-lang="node" onclick="window.switchSdkLang('node')" style="padding:6px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px">Node.js</button>
+              <button class="sdk-lang-btn"        data-lang="py"   onclick="window.switchSdkLang('py')"   style="padding:6px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px">Python</button>
+              <button class="sdk-lang-btn"        data-lang="curl" onclick="window.switchSdkLang('curl')" style="padding:6px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px">curl</button>
+            </div>
+            <!-- JS (browser) -->
+            <div class="sdk-panel sdk-snippet" id="sdkSnippetJs" style="display:block;position:relative">
+              <button class="sdk-copy-btn" id="btnCopySdk" onclick="navigator.clipboard.writeText(document.getElementById('sdkSnippetJs').innerText.replace('Copy','').trim());toast&&toast({kind:'ok',title:'Copied!',timeout:2000})">Copy</button>
 <span class="cm">// npm install ethers   (ethers v6)</span>
 <span class="kw">import</span> { ethers } <span class="kw">from</span> <span class="str">"ethers"</span>;
+<span class="kw">const</span> RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>;
+<span class="kw">const</span> USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>;
+<span class="kw">const</span> PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>;
 
 <span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">BrowserProvider</span>(window.ethereum);
 <span class="kw">const</span> wallet   = <span class="kw">await</span> provider.<span class="fn">getSigner</span>();
-<span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x3600000000000000000000000000000000000000"</span>, [<span class="str">"function approve(address,uint256) returns(bool)"</span>], wallet);
-<span class="kw">const</span> arc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(<span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>, [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
+<span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(USDC, [<span class="str">"function approve(address,uint256) returns(bool)"</span>, <span class="str">"function allowance(address,address) view returns(uint256)"</span>], wallet);
+<span class="kw">const</span> ppc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(PPC,  [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
 
-<span class="cm">// 1. Approve USDC</span>
-<span class="kw">await</span> usdc.<span class="fn">approve</span>(arc.target, ethers.<span class="fn">parseUnits</span>(<span class="str">"1"</span>, <span class="str">6</span>));
+<span class="cm">// 1. Approve once (MaxUint256 — never approve again)</span>
+<span class="kw">const</span> allowance = <span class="kw">await</span> usdc.<span class="fn">allowance</span>(wallet.address, PPC);
+<span class="kw">if</span> (allowance === 0n) <span class="kw">await</span> (await usdc.<span class="fn">approve</span>(PPC, ethers.MaxUint256)).<span class="fn">wait</span>();
 
 <span class="cm">// 2. Open call to provider #1</span>
-<span class="kw">const</span> requestHash = ethers.<span class="fn">keccak256</span>(ethers.<span class="fn">toUtf8Bytes</span>(<span class="str">"summarize this document"</span>));
-<span class="kw">const</span> tx = <span class="kw">await</span> arc.<span class="fn">callService</span>(<span class="str">1</span>, requestHash);
+<span class="kw">const</span> tx = <span class="kw">await</span> ppc.<span class="fn">callService</span>(1n, ethers.<span class="fn">keccak256</span>(ethers.<span class="fn">toUtf8Bytes</span>(<span class="str">"ping"</span>)));
 console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.hash);
             </div>
+            <!-- Node.js -->
+            <div class="sdk-panel sdk-snippet" id="sdkSnippetNode" style="display:none;position:relative">
+              <button class="sdk-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('sdkSnippetNode').innerText.replace('Copy','').trim());toast&&toast({kind:'ok',title:'Copied!',timeout:2000})">Copy</button>
+<span class="cm">// npm install ethers   (ethers v6)  — Node.js / server-side agent</span>
+<span class="kw">import</span> { ethers } <span class="kw">from</span> <span class="str">"ethers"</span>;
+
+<span class="kw">const</span> RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>;
+<span class="kw">const</span> USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>;
+<span class="kw">const</span> PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>;
+<span class="kw">const</span> PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY; <span class="cm">// never hard-code</span>
+
+<span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">JsonRpcProvider</span>(RPC, { chainId: 5042002, name: <span class="str">"arc-testnet"</span> });
+<span class="kw">const</span> wallet   = <span class="kw">new</span> ethers.<span class="fn">Wallet</span>(PRIVATE_KEY, provider);
+<span class="kw">const</span> usdc     = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(USDC, [<span class="str">"function approve(address,uint256) returns(bool)"</span>, <span class="str">"function allowance(address,address) view returns(uint256)"</span>], wallet);
+<span class="kw">const</span> ppc      = <span class="kw">new</span> ethers.<span class="fn">Contract</span>(PPC,  [<span class="str">"function callService(uint256,bytes32) returns(bytes32)"</span>], wallet);
+
+<span class="cm">// 1. Approve once</span>
+<span class="kw">const</span> allowance = <span class="kw">await</span> usdc.<span class="fn">allowance</span>(wallet.address, PPC);
+<span class="kw">if</span> (allowance === 0n) <span class="kw">await</span> (await usdc.<span class="fn">approve</span>(PPC, ethers.MaxUint256)).<span class="fn">wait</span>();
+
+<span class="cm">// 2. Call provider #1 — replace with your payload</span>
+<span class="kw">const</span> tx = <span class="kw">await</span> ppc.<span class="fn">callService</span>(1n, ethers.<span class="fn">keccak256</span>(ethers.<span class="fn">toUtf8Bytes</span>(<span class="str">"ping"</span>)));
+<span class="kw">const</span> rc = <span class="kw">await</span> tx.<span class="fn">wait</span>();
+console.<span class="fn">log</span>(<span class="str">"callId:"</span>, rc.logs[0]?.topics[1]);
+            </div>
+            <!-- Python -->
+            <div class="sdk-panel sdk-snippet" id="sdkSnippetPy" style="display:none;position:relative">
+              <button class="sdk-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('sdkSnippetPy').innerText.replace('Copy','').trim());toast&&toast({kind:'ok',title:'Copied!',timeout:2000})">Copy</button>
+<span class="cm"># pip install web3</span>
+<span class="kw">from</span> web3 <span class="kw">import</span> Web3
+<span class="kw">import</span> os, json
+
+RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>
+USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>
+PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>
+KEY  = os.environ[<span class="str">"AGENT_PRIVATE_KEY"</span>]
+
+w3      = Web3(Web3.HTTPProvider(RPC))
+account = w3.eth.account.from_key(KEY)
+w3.eth.default_account = account.address
+
+USDC_ABI = json.loads(<span class="str">'[{"name":"approve","type":"function","inputs":[{"type":"address"},{"type":"uint256"}],"outputs":[{"type":"bool"}]},{"name":"allowance","type":"function","inputs":[{"type":"address"},{"type":"address"}],"outputs":[{"type":"uint256"}],"stateMutability":"view"}]'</span>)
+PPC_ABI  = json.loads(<span class="str">'[{"name":"callService","type":"function","inputs":[{"name":"providerId","type":"uint256"},{"name":"requestHash","type":"bytes32"}],"outputs":[{"type":"bytes32"}]}]'</span>)
+
+usdc = w3.eth.contract(address=Web3.to_checksum_address(USDC), abi=USDC_ABI)
+ppc  = w3.eth.contract(address=Web3.to_checksum_address(PPC),  abi=PPC_ABI)
+
+<span class="cm"># 1. Approve once</span>
+allowance = usdc.functions.allowance(account.address, PPC).call()
+<span class="kw">if</span> allowance == 0:
+    tx = usdc.functions.approve(PPC, 2**256-1).build_transaction({<span class="str">"from"</span>: account.address, <span class="str">"nonce"</span>: w3.eth.get_transaction_count(account.address)})
+    signed = account.sign_transaction(tx)
+    w3.eth.send_raw_transaction(signed.raw_transaction)
+
+<span class="cm"># 2. Call provider #1</span>
+payload_hash = w3.keccak(text=<span class="str">"ping"</span>)
+tx = ppc.functions.callService(1, payload_hash).build_transaction({<span class="str">"from"</span>: account.address, <span class="str">"nonce"</span>: w3.eth.get_transaction_count(account.address)})
+signed = account.sign_transaction(tx)
+receipt = w3.eth.wait_for_transaction_receipt(w3.eth.send_raw_transaction(signed.raw_transaction))
+print(<span class="str">"callId:"</span>, receipt.logs[0][<span class="str">"topics"</span>][1].hex())
+            </div>
+            <!-- curl (via /api/call-service) -->
+            <div class="sdk-panel sdk-snippet" id="sdkSnippetCurl" style="display:none;position:relative">
+              <button class="sdk-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('sdkSnippetCurl').innerText.replace('Copy','').trim());toast&&toast({kind:'ok',title:'Copied!',timeout:2000})">Copy</button>
+<span class="cm"># No wallet needed — uses the hosted facilitator</span>
+<span class="cm"># POST to /api/call-service with ERC-3009 Authorization Transfer signature</span>
+curl -X POST https://arcsla.vercel.app/api/service \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"providerId": 1, "payload": "ping"}'</span>
+
+<span class="cm"># Response (HTTP 402 — Payment Required)</span>
+<span class="cm"># {</span>
+<span class="cm">#   "price": "1000000",          // 1 USDC in 6 decimals</span>
+<span class="cm">#   "payTo": "0xFACILITATOR...",</span>
+<span class="cm">#   "accepts": [{"network": "arc-testnet", "token": "USDC"}]</span>
+<span class="cm"># }</span>
+<span class="cm"># Include X-Payment header with signed ERC-3009 receipt to proceed</span>
+            </div>
+            <script>
+            window.switchSdkLang = function(lang) {
+              document.querySelectorAll('.sdk-snippet').forEach(el => el.style.display = 'none');
+              document.getElementById('sdkSnippet' + lang.charAt(0).toUpperCase() + lang.slice(1)).style.display = 'block';
+              document.querySelectorAll('.sdk-lang-btn').forEach(btn => {
+                const active = btn.dataset.lang === lang;
+                btn.style.color = active ? 'var(--accent)' : 'var(--text-faint)';
+                btn.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+              });
+            };
+            </script>
           </div>
         </section>
 
@@ -13776,9 +13876,33 @@ console.log("call opened:", tx.hash);`;
     if (document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = "";
     document.getElementById("webhookTestResult").textContent = "Cleared";
   });
-  document.getElementById("btnTestWebhook")?.addEventListener("click", () => {
-    window.notifyWebhook("test", { message: "CallGuard webhook test" });
-    document.getElementById("webhookTestResult").textContent = "Test sent!";
+  document.getElementById("btnTestWebhook")?.addEventListener("click", async () => {
+    const url = document.getElementById("webhookUrl")?.value?.trim();
+    const resultEl = document.getElementById("webhookTestResult");
+    if (!url) { resultEl.textContent = "Enter a webhook URL first."; resultEl.style.color = "var(--danger)"; return; }
+    resultEl.textContent = "Sending…"; resultEl.style.color = "var(--text-faint)";
+    const fakeCallId = "0x" + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join("");
+    const testPayload = {
+      event: "call.opened",
+      callId: fakeCallId,
+      providerId: window.state?.providerInfo?.id || 1,
+      caller: window.state?.address || "0x0000000000000000000000000000000000000001",
+      amount: "1000000",
+      deadline: Math.floor(Date.now()/1000) + 120,
+      payload: "ping",
+      network: "arc-testnet",
+      timestamp: Date.now(),
+      _test: true
+    };
+    const t0 = Date.now();
+    try {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(testPayload) });
+      const latency = Date.now() - t0;
+      const body = await res.text().catch(() => "");
+      resultEl.innerHTML = `<span style="color:var(--accent)">✓ ${res.status} ${res.statusText}</span> · ${latency}ms${body ? ` · <code style="font-size:11px">${body.slice(0,80)}</code>` : ""}`;
+    } catch(e) {
+      resultEl.innerHTML = `<span style="color:var(--danger)">✗ ${e.message}</span> (CORS? Use webhook.site for testing)`;
+    }
   });
   const savedUrl = localStorage.getItem("webhookUrl");
   if (savedUrl && document.getElementById("webhookUrl")) document.getElementById("webhookUrl").value = savedUrl;
@@ -16871,7 +16995,8 @@ console.log("call opened:", tx.hash);`;
               <input type="file" id="bulkFileInput" accept=".csv" style="display:none" onchange="window.parseBulkCSV(this)">
             </div>
             <div id="bulkPreview" style="margin-top:12px"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
+            <div id="bulkSummary" style="font-size:12px;color:var(--text-faint);min-height:16px;margin-top:8px"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
               <button id="btnRunBulk" onclick="window.runBulkCalls()" style="display:none;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
                 Run All Calls
               </button>
@@ -16907,33 +17032,48 @@ console.log("call opened:", tx.hash);`;
     window.runBulkCalls = async function() {
       const rows = window._bulkRows;
       if (!rows.length) return;
+      if (!window.state?.signer) { window.toast?.({kind:'err', title:'Connect wallet first'}); return; }
       const btn = document.getElementById('btnRunBulk');
-      if (btn) btn.disabled = true;
+      if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
       let success = 0, failed = 0;
+      const results = [];
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const st = document.getElementById(`bulk-st-${i}`);
-        const res = document.getElementById(`bulk-res-${i}`);
+        const resEl = document.getElementById(`bulk-res-${i}`);
         if (st) st.style.background = '#eab308';
+        if (resEl) resEl.textContent = 'sending…';
         try {
           if (!window.state || !window.state.signer) throw new Error('Wallet not connected');
-          const pId = parseInt(r.provider_id);
-          // Use doCall if available
-          if (window.doCall) {
-            await window.doCall(pId, r.payload);
-          }
+          // Set inputs so doCall() reads correct values
+          const pidEl = document.getElementById('callProviderId');
+          const payEl = document.getElementById('callPayload');
+          if (pidEl) pidEl.value = r.provider_id;
+          if (payEl) payEl.value = r.payload || 'ping';
+          if (window.doCall) await window.doCall();
           if (st) st.style.background = '#16a34a';
-          if (res) res.textContent = 'sent';
+          if (resEl) resEl.textContent = '✓ sent';
+          results.push({ provider: r.provider_id, payload: r.payload, status: 'ok' });
           success++;
         } catch(e) {
           if (st) st.style.background = '#ef4444';
-          if (res) res.textContent = 'failed';
+          if (resEl) resEl.textContent = '✗ ' + (e.message||'failed').slice(0,20);
+          results.push({ provider: r.provider_id, payload: r.payload, status: 'failed', error: e.message });
           failed++;
         }
-        await new Promise(r => setTimeout(r, 500));
+        // Sonuç tablosunu güncelle
+        const summary = document.getElementById('bulkSummary');
+        if (summary) summary.textContent = `${success} sent · ${failed} failed · ${rows.length - i - 1} remaining`;
+        await new Promise(res => setTimeout(res, 800));
       }
-      window.toast({msg: `Bulk: ${success} sent, ${failed} failed`, type: success > 0 ? 'success' : 'error', duration: 4000});
-      if (btn) { btn.disabled = false; btn.textContent = 'Done'; }
+      // Sonuç tablosu
+      const preview = document.getElementById('bulkPreview');
+      if (preview) {
+        const tableRows = results.map(r => `<tr><td style="padding:4px 8px">#${r.provider}</td><td style="padding:4px 8px;font-size:11px;color:var(--text-faint)">${r.payload.slice(0,20)}</td><td style="padding:4px 8px;color:${r.status==='ok'?'var(--accent)':'var(--danger)'}">${r.status==='ok'?'✓ sent':'✗ '+r.error?.slice(0,30)}</td></tr>`).join('');
+        preview.innerHTML += `<div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--text)">Results</div><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px"><thead><tr style="color:var(--text-faint);font-size:11px"><th style="text-align:left;padding:4px 8px">Provider</th><th style="text-align:left;padding:4px 8px">Payload</th><th style="text-align:left;padding:4px 8px">Status</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+      }
+      window.toast?.({kind: success > 0 ? 'ok' : 'err', title: `Bulk complete: ${success} sent, ${failed} failed`, timeout: 6000});
+      if (btn) { btn.disabled = false; btn.textContent = `Done (${success}/${rows.length})`; }
     };
 
     /* ── 8. PROVIDER REVENUE DASHBOARD ────────────────────── */
