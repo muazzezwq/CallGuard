@@ -12689,8 +12689,9 @@ console.log("call opened:", tx.hash);`;
             const fbody = await fres.json();
             if (fres.status === 402 && fbody.accepts && fbody.accepts[0]) {
               x402Terms = fbody.accepts[0];
+              const netLabel = x402Terms.network || (x402Terms.extra && x402Terms.extra.chainId ? `chainId ${x402Terms.extra.chainId}` : "Arc Testnet");
               toast({ kind: "info", title: "⚡ x402: GET /api/service",
-                detail: `→ HTTP 402 · ${x402Terms.network} · facilitator live`, timeout: 3500 });
+                detail: `→ HTTP 402 · ${netLabel} · facilitator live`, timeout: 3500 });
             } else {
               toast({ kind: "info", title: "⚡ x402: facilitator responded",
                 detail: `status ${fres.status} — proceeding with on-chain SLA call`, timeout: 3000 });
