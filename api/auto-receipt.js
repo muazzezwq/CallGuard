@@ -28,7 +28,24 @@ const RECEIPT_TYPES = {
   ],
 };
 
-async function autoSubmitReceipt({ callId, payload }) {
+// Vercel max function duration: 25s (Hobby) / 60s (Pro)
+// Arc Testnet block time ~2s, tx.wait() typically 3-8s, occasionally up to 15s
+const TX_WAIT_TIMEOUT_MS = 22000; // 22s — safe margin under 25s limit
+const MAX_RETRIES = 2;
+
+async function waitWithTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timeout after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function autoSubmitReceipt({ callId, payload }, attempt = 1) {
   if (!SELLER_PRIVATE_KEY || !RPC_URL || !PAY_PER_CALL_ADDR) {
     return { ok: false, error: "missing env vars" };
   }
@@ -47,16 +64,25 @@ async function autoSubmitReceipt({ callId, payload }) {
     { callId, responseHash, respondedAt }
   );
 
-  console.log(`[auto-receipt] submitting for callId=${callId}`);
+  console.log(`[auto-receipt] attempt ${attempt} submitting for callId=${callId}`);
 
   try {
     const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig, { gasLimit: 200000 });
-    await tx.wait();
-    console.log(`[auto-receipt] tx=${tx.hash}`);
-    return { ok: true, txHash: tx.hash };
+    // Wait with timeout — prevents Vercel from killing before confirmation
+    const receipt = await waitWithTimeout(tx.wait(), TX_WAIT_TIMEOUT_MS);
+    console.log(`[auto-receipt] confirmed tx=${tx.hash} block=${receipt?.blockNumber}`);
+    return { ok: true, txHash: tx.hash, block: receipt?.blockNumber };
   } catch (err) {
-    console.error("[auto-receipt] failed:", err.message);
-    return { ok: false, error: err.message };
+    const msg = err.message || "";
+    // Retry on timeout or transient RPC errors, not on contract reverts
+    const isRetryable = msg.includes("timeout") || msg.includes("network") || msg.includes("ECONNRESET");
+    if (isRetryable && attempt < MAX_RETRIES) {
+      console.warn(`[auto-receipt] retrying (${attempt}/${MAX_RETRIES}): ${msg}`);
+      await new Promise(r => setTimeout(r, 1500 * attempt)); // backoff
+      return autoSubmitReceipt({ callId, payload }, attempt + 1);
+    }
+    console.error(`[auto-receipt] failed after ${attempt} attempt(s):`, msg);
+    return { ok: false, error: msg, attempts: attempt };
   }
 }
 
@@ -71,11 +97,12 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
   const { event, callId, payload } = req.body || {};
-  res.json({ received: true, callId, event });
 
   if (event === "call.opened" && callId) {
-    autoSubmitReceipt({ callId, payload }).then(r =>
-      console.log("[auto-receipt] result:", JSON.stringify(r))
-    );
+    // Await the receipt submission BEFORE responding so Vercel keeps function alive
+    const result = await autoSubmitReceipt({ callId, payload });
+    return res.json({ received: true, callId, event, result });
   }
+
+  return res.json({ received: true, callId, event });
 }

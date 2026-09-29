@@ -1,6 +1,11 @@
 {
   "outputDirectory": "app",
   "cleanUrls": true,
+  "functions": {
+    "api/auto-receipt.js": { "maxDuration": 25 },
+    "api/call-service.js": { "maxDuration": 25 },
+    "api/notify-provider.js": { "maxDuration": 15 }
+  },
 
   "rewrites": [
     { "source": "/callService",    "destination": "/api/call-service" },

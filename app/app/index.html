@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CallGuard · Arc Testnet</title>
+    <title>CallGuard · Programmable API Guarantees on Arc</title>
+    <meta name="description" content="Pay-per-call API marketplace with on-chain SLA enforcement. Providers stake USDC and guarantee response times — miss the deadline, get slashed automatically." />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://arcsla.vercel.app/app/" />
+    <meta property="og:title" content="CallGuard · Programmable API Guarantees" />
+    <meta property="og:description" content="On-chain SLA enforcement for API calls. Providers stake USDC, callers get a refund + slash bonus if the deadline is missed." />
+    <meta property="og:image" content="https://arcsla.vercel.app/og-image.png" />
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CallGuard · Programmable API Guarantees" />
+    <meta name="twitter:description" content="On-chain SLA enforcement for API calls on Arc Testnet. Stake USDC, earn per call, auto-slash on timeout." />
+    <meta name="twitter:image" content="https://arcsla.vercel.app/og-image.png" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316a34a'/><text y='22' x='6' font-size='18' fill='white'>🛡</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -8746,13 +8760,17 @@ async function refreshBalance() {
               ? ` <span style="color:var(--warn);font-size:11px">— cannot unstake until these resolve</span>`
               : ``
             }</dd>
-            <dt>Unstake</dt>
-            <dd>${data.active
-              ? `<span style="color:var(--text-faint);font-size:11px">Deactivate first, then wait for pending calls to clear</span>`
-              : Number(pending) > 0
-                ? `<span style="color:var(--warn);font-size:11px">Waiting for ${pending} pending call(s) to resolve</span>`
-                : `<span style="color:var(--accent);font-size:11px">✓ Ready to unstake</span>`
-            }</dd>
+            <dt>Manage Stake</dt>
+            <dd style="display:flex;flex-direction:column;gap:6px">
+              ${data.active
+                ? `<button id="btnDeactivate" style="padding:5px 14px;font-size:12px;background:var(--warn-bg);border:1px solid var(--warn);color:var(--warn);border-radius:var(--radius);cursor:pointer;width:fit-content" onclick="window.doDeactivate()">Deactivate provider</button>
+                   <span style="font-size:11px;color:var(--text-faint)">Stops new calls. Wait for pending calls to clear, then unstake.</span>`
+                : Number(pending) > 0
+                  ? `<span style="color:var(--warn);font-size:11px">⏳ Waiting for ${pending} pending call(s) to resolve before unstake</span>`
+                  : `<button id="btnUnstake" style="padding:5px 14px;font-size:12px;background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);border-radius:var(--radius);cursor:pointer;width:fit-content" onclick="window.doUnstake()">Withdraw stake</button>
+                     <span style="font-size:11px;color:var(--accent)">✓ Ready — ${ethers.formatUnits(data.stake, d)} USDC will be returned to your wallet</span>`
+              }
+            </dd>
             <dt>Endpoint</dt>
             <dd style="word-break: break-all">${endpoint || "—"}</dd>
           </dl>
@@ -9887,6 +9905,49 @@ async function refreshBalance() {
           btn.textContent = origText;
         }
       }
+
+      // -------- Actions: deactivate provider --------
+      async function doDeactivate() {
+        if (!state.signer || !state.address) { toast({ kind: "err", title: "Connect wallet first" }); return; }
+        if (!window.confirm("Deactivate your provider?\n\nThis stops new calls. Your stake stays locked until all pending calls resolve. You can unstake after.")) return;
+        try {
+          const btn = document.getElementById("btnDeactivate");
+          if (btn) { btn.disabled = true; btn.textContent = "Processing…"; }
+          const tx = await state.registry.deactivate();
+          const { finalityMs } = await waitWithFinality(tx);
+          toast({ kind: "ok", title: "Provider deactivated", detail: "No new calls will be accepted. Unstake when pending calls clear.", txHash: tx.hash, finalityMs });
+          pushActivity({ type: "deactivate", icon: "⏸️", label: "Provider deactivated", txHash: tx.hash });
+          await refreshAll();
+        } catch (e) {
+          toast({ kind: "err", title: "Deactivate failed", detail: friendlyError(e) });
+          const btn = document.getElementById("btnDeactivate");
+          if (btn) { btn.disabled = false; btn.textContent = "Deactivate provider"; }
+        }
+      }
+      window.doDeactivate = doDeactivate;
+
+      // -------- Actions: unstake --------
+      async function doUnstake() {
+        if (!state.signer || !state.address) { toast({ kind: "err", title: "Connect wallet first" }); return; }
+        const stakeAmt = state.providerInfo?.data?.stake
+          ? ethers.formatUnits(state.providerInfo.data.stake, state.usdcDecimals)
+          : "your";
+        if (!window.confirm(`Withdraw ${stakeAmt} USDC stake?\n\nThis permanently removes your provider registration. You can re-register later.`)) return;
+        try {
+          const btn = document.getElementById("btnUnstake");
+          if (btn) { btn.disabled = true; btn.textContent = "Processing…"; }
+          const tx = await state.registry.unstake();
+          const { finalityMs } = await waitWithFinality(tx);
+          toast({ kind: "ok", title: `Stake withdrawn — ${stakeAmt} USDC returned`, txHash: tx.hash, finalityMs });
+          pushActivity({ type: "unstake", icon: "💸", label: `Stake withdrawn: ${stakeAmt} USDC`, txHash: tx.hash });
+          await refreshAll();
+        } catch (e) {
+          toast({ kind: "err", title: "Unstake failed", detail: friendlyError(e) });
+          const btn = document.getElementById("btnUnstake");
+          if (btn) { btn.disabled = false; btn.textContent = "Withdraw stake"; }
+        }
+      }
+      window.doUnstake = doUnstake;
 
       // Map known contract error selectors to human messages.
       // The signatures are keccak256(errorName()) and these are the first 4 bytes.
@@ -11392,6 +11453,13 @@ async function refreshBalance() {
       document.querySelectorAll(".sb-item").forEach(el => {
         el.addEventListener("click", () => {
           showCategory(el.dataset.nav);
+          // Mobilde sidebar'ı kapat
+          const _sb = document.getElementById("appSidebar");
+          const _ov = document.getElementById("sidebarOverlay");
+          if (_sb && _sb.classList.contains("open")) {
+            _sb.classList.remove("open");
+            if (_ov) _ov.classList.remove("open");
+          }
         });
       });
 
@@ -17158,12 +17226,21 @@ console.log("call opened:", tx.hash);`;
       #firstCallModal .modal,
       #confirmTxModal .modal,
       #roleModal .modal,
-      .onboard-modal {
+      .onboard-modal,
+      #roleChoiceModal > div,
+      #confirmTxOverlay > div,
+      .ctm-box {
         max-width: calc(100vw - 16px) !important;
+        width: calc(100vw - 16px) !important;
         margin: 8px !important;
         padding: 20px 16px !important;
         border-radius: 12px !important;
       }
+      /* Form rows: 2-column → 1-column on mobile */
+      .field-row { grid-template-columns: 1fr !important; }
+      .calc-box { font-size: 12px !important; }
+      /* Call action area */
+      .source-chain-row { flex-direction: column !important; gap: 6px !important; }
 
       /* Topbar on mobile */
       .topbar { height: 44px !important; }
