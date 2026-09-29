@@ -6977,7 +6977,7 @@
                   </div>
                   <div style="display:flex;gap:8px">
                     <button class="btn" style="flex:1" onclick="builderReceipt()">Submit receipt</button>
-                    <button class="btn btn-danger" style="flex:1" onclick="syncBuilderInputs();document.getElementById('btnTimeout').click()">Claim timeout</button>
+                    <button class="btn btn-danger" style="flex:1" onclick="window.syncBuilderInputs&&window.syncBuilderInputs();document.getElementById('btnTimeout')?.click()">Claim timeout</button>
                   </div>
                 </div>
               </div>
@@ -10679,7 +10679,7 @@ async function refreshBalance() {
               } else if (a === "fill-receipt") {
                 // Fill receipt form, open Overview panel and scroll to it
                 $("rcpCallId").value = id;
-                showCategory("overview");
+                window.showCategory && window.showCategory("overview");
                 setTimeout(() => {
                   const card = $("actionReceipt");
                   if (card) {
@@ -10691,7 +10691,7 @@ async function refreshBalance() {
                 }, 300);
               } else if (a === "fill-timeout") {
                 $("toCallId").value = id;
-                doTimeout();
+                window.doTimeout && window.doTimeout();
               }
             });
           });
@@ -14887,7 +14887,7 @@ console.log("call opened:", tx.hash);`;
     if (!panel || panel.querySelector(".next-step-box")) return;
     const box = document.createElement("div");
     box.className = "next-step-box";
-    box.innerHTML = `<div class="ns-text"><span style="font-size:16px;margin-right:6px">${cfg.icon}</span><strong>Next:</strong> ${cfg.text}</div><button class="btn ns-btn" onclick="showCategory('${cfg.nav}')">${cfg.btn}</button>`;
+    box.innerHTML = `<div class="ns-text"><span style="font-size:16px;margin-right:6px">${cfg.icon}</span><strong>Next:</strong> ${cfg.text}</div><button class="btn ns-btn" onclick="window.showCategory&&window.showCategory('${cfg.nav}')">${cfg.btn}</button>`;
     panel.querySelector(".panel-body")?.appendChild(box);
   }
 
@@ -17329,10 +17329,20 @@ console.log("call opened:", tx.hash);`;
 
   // DOMContentLoaded bekleme — fonksiyonlar zaten global scope'ta tanımlı
   // Hem inline hem de DOMContentLoaded sonrası çağrılabilir
-  window.doCall     = doCall;
-  window.doX402Call = doX402Call;
-  window.doReceipt  = doReceipt;
-  window.doTimeout  = doTimeout;
+  window.doCall        = doCall;
+  window.doX402Call    = doX402Call;
+  window.doReceipt     = doReceipt;
+  window.doTimeout     = doTimeout;
+  window.doRegister    = doRegister;
+  window.doRegisterV2  = typeof doRegisterV2 === 'function' ? doRegisterV2 : doRegister;
+  window.doDispute     = typeof doDispute    === 'function' ? doDispute    : null;
+  window.doSubscribe   = typeof doSubscribe  === 'function' ? doSubscribe  : null;
+  window.doAutoRoute   = typeof doAutoRoute  === 'function' ? doAutoRoute  : null;
+  window.builderCall     = builderCall;
+  window.builderX402     = builderX402;
+  window.builderReceipt  = builderReceipt;
+  window.builderTimeout  = builderTimeout;
+  window.syncBuilderInputs = syncBuilderInputs;
 
   // ── Builder butonları: sync + direkt window fonksiyon çağrısı
   //    (.click() accordion kapalıysa çalışmaz)
