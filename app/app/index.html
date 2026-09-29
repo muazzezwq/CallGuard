@@ -1355,7 +1355,8 @@
         border-left: 3px solid var(--accent);
       }
 
-      .toast.err {
+      .toast.err,
+      .toast.error {
         border-left: 3px solid var(--danger);
       }
 
@@ -8042,10 +8043,6 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
         memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
         multicall3From: "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
-        usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
-        memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
-        usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
-        memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
         dispute: "0xa47162d8e4785d867f05800f35a334fd78575e56",
         subscription: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
@@ -8203,8 +8200,9 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
         const t0 = Date.now();
         const rc = await tx.wait();
         const finalityMs = Date.now() - t0;
-        return { rc, finalityMs };
+        return { t0, rc, finalityMs };
       };
+      window.waitWithFinality = waitWithFinality;
 
       // WALLET CONNECTION
       // Single entry point — cleans up old listeners, validates chain,
@@ -14833,13 +14831,12 @@ console.log("call opened:", tx.hash);`;
   }
 
   // 4. Balance warning before call
-  const _origDoCall = window.doCall;
   window.doCallWithBalanceCheck = async function(providerId) {
     const price = parseFloat(window.state?.allProviders?.find(p => p.id === providerId)?.pricePerCall || "1");
     const balance = parseFloat(window.state?.balanceFormatted || "0");
     if (balance < price) {
       if (typeof toast === "function") {
-        toast({ kind: "error", title: "Insufficient balance", detail: `You need ${price} USDC but have ${balance.toFixed(2)} USDC. Get testnet USDC from the faucet.`, timeout: 8000 });
+        toast({ kind: "err", title: "Insufficient balance", detail: `You need ${price} USDC but have ${balance.toFixed(2)} USDC. Get testnet USDC from the faucet.`, timeout: 8000 });
       }
       return;
     }
@@ -14858,6 +14855,7 @@ console.log("call opened:", tx.hash);`;
 
   document.getElementById("btnFirstCallConfirm")?.addEventListener("click", () => {
     document.getElementById("firstCallOverlay").classList.remove("open");
+    setProgress("called"); // ilk çağrı onaylandı — bir daha sorma
     if (typeof doCall === "function" && window._pendingCallProviderId) {
       doCall(window._pendingCallProviderId);
       window._pendingCallProviderId = null;
@@ -16407,12 +16405,15 @@ console.log("call opened:", tx.hash);`;
     // Hook into existing toast system to auto-add notifications
     const _origToast = window.toast;
     if (_origToast) {
-      window.toast = function(msg, type, txHash) {
-        _origToast(msg, type, txHash);
-        if (type === "success" || type === "error") {
-          window.addNotification(type === "success" ? "success" : "error",
-            type === "success" ? "Transaction confirmed" : "Transaction failed",
-            typeof msg === "string" ? msg : msg?.message || "", txHash);
+      window.toast = function(opts) {
+        // opts her zaman {kind, title, detail, txHash, ...} obje olarak gelir
+        _origToast(opts);
+        const kind = opts && opts.kind;
+        const txHash = opts && opts.txHash;
+        if (kind === "ok" || kind === "err" || kind === "error") {
+          window.addNotification(kind === "ok" ? "success" : "error",
+            kind === "ok" ? "Transaction confirmed" : "Transaction failed",
+            (opts && opts.detail) || "", txHash);
         }
       };
     }
@@ -17348,7 +17349,11 @@ console.log("call opened:", tx.hash);`;
     const chain = document.getElementById('callChain2')?.value || 'arc';
     const chainDst = document.getElementById('sourceChainSelect');
     if (chainDst) chainDst.value = chain;
-    _waitForFn('doCall', function(){ window.doCall(); });
+    _waitForFn('doCall', function(){
+      const pid = document.getElementById('callProviderId');
+      if (pid && !pid.value.trim()) { pid.focus(); pid.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      window.doCall();
+    });
   }
 
   function builderX402() {
