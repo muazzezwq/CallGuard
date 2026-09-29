@@ -41,6 +41,7 @@
         --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
         --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       * {
@@ -8554,7 +8555,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
                   }
                 }
 
-                console.log("[GOLDSKY CALLS]", calls.length);
+                // console.log("[GOLDSKY CALLS]", calls.length);
                 goldskyLoaded = true;
               } else {
                 console.warn("[Goldsky calls] invalid response");
@@ -8798,7 +8799,7 @@ async function refreshBalance() {
                 }` })
               });
               const gdata = await gql.json();
-              console.log("[GOLDSKY DEBUG]", JSON.stringify(gdata.data?.providers?.slice(0,3)));
+              // console.log("[GOLDSKY DEBUG]", JSON.stringify(gdata.data?.providers?.slice(0,3)));
 
               if (gdata.data && gdata.data.providers && gdata.data.providers.length > 0) {
                 state.allProviders = gdata.data.providers.map(p => {
@@ -8827,12 +8828,7 @@ async function refreshBalance() {
 
                 subgraphLoaded = true;
                 console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
-                console.log("[REP DEBUG]", state.allProviders.slice(0,5).map(p => ({
-                  id: p.id,
-                  completed: p.completedCalls,
-                  slashed: p.slashedCalls,
-                  reputation: p.reputation
-                })));
+                // console.log("[REP DEBUG]", state.allProviders.slice(0,5).map(...));
               }
             } catch (e) {
               console.warn("[subgraph] Failed, falling back to RPC:", e.message);
@@ -10073,20 +10069,8 @@ async function refreshBalance() {
             detail: `<span class="spinner"></span> Waiting for MetaMask signature`,
             timeout: 60000,
           });
-          console.log("CALL DEBUG", {
-            providerId: providerId.toString(),
-            requestHash,
-            contract: CONFIG.payPerCall,
-            account: state.address
-          });
-
           const balance = await state.usdc.balanceOf(state.address);
           const allowance = await state.usdc.allowance(state.address, CONFIG.payPerCall);
-
-          console.log("USDC DEBUG", {
-            balance: ethers.formatUnits(balance, 6),
-            allowance: ethers.formatUnits(allowance, 6)
-          });
 
           let tx;
           try {
@@ -17335,9 +17319,9 @@ console.log("call opened:", tx.hash);`;
   window.doTimeout     = doTimeout;
   window.doRegister    = doRegister;
   window.doRegisterV2  = typeof doRegisterV2 === 'function' ? doRegisterV2 : doRegister;
-  window.doDispute     = typeof doDispute    === 'function' ? doDispute    : null;
-  window.doSubscribe   = typeof doSubscribe  === 'function' ? doSubscribe  : null;
-  window.doAutoRoute   = typeof doAutoRoute  === 'function' ? doAutoRoute  : null;
+  window.doDispute     = typeof doDispute    === 'function' ? doDispute    : function() { document.getElementById('disputeOverlay')?.classList.add('open'); };
+  window.doSubscribe   = typeof doSubscribe  === 'function' ? doSubscribe  : function(p) { window.openSubscriptionModal?.(p || window.state?.selectedProvider); };
+  window.doAutoRoute   = typeof doAutoRoute  === 'function' ? doAutoRoute  : function() { document.getElementById('btnAutoRoute')?.click(); };
   window.builderCall     = builderCall;
   window.builderX402     = builderX402;
   window.builderReceipt  = builderReceipt;
@@ -17469,12 +17453,7 @@ console.log("call opened:", tx.hash);`;
     });
   }
 
-  function connectMetaMaskMobile() {
-    hideWalletModal();
-    const host = window.location.host;
-    const path = window.location.pathname;
-    window.location.href = 'https://metamask.app.link/dapp/' + host + path;
-  }
+  // connectMetaMaskMobile kaldırıldı — connectWithMetaMask zaten isMobile kontrolü içeriyor.
 
   // ── 3. WalletConnect v2 QR ────────────────────────────────────────
   let wcProvider = null;
@@ -17506,12 +17485,15 @@ console.log("call opened:", tx.hash);`;
       });
 
       // QR URI gelince çiz
-      wcProvider.on('display_uri', async function(uri) {
+      wcProvider.on('display_uri', function(uri) {
         status.textContent = 'Cüzdanınla tara →';
-        if (window.QRCode) {
-          await QRCode.toCanvas(document.getElementById('wcQrCanvas'), uri, {
+        const canvas = document.getElementById('wcQrCanvas');
+        if (window.QRCode && canvas) {
+          QRCode.toCanvas(canvas, uri, {
             width: 200, margin: 2,
             color: { dark: '#000000', light: '#ffffff' }
+          }, function(err) {
+            if (err) status.innerHTML = '<small style="word-break:break-all">' + uri + '</small>';
           });
         } else {
           // QRCode kütüphanesi yoksa URI göster
