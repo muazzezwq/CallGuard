@@ -3,7 +3,7 @@ export default function ProblemSection() {
   const callguard = ["Provider stake as commitment", "Per-call USDC payment", "On-chain SLA enforcement", "Signed cryptographic receipt", "Automatic settlement or slash"];
 
   return (
-    <section id="product" style={{ padding: "80px 32px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
+    <section id="product" style={{ padding: "80px 48px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
       <div style={{ maxWidth: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#0a1628", margin: "0 0 6px", lineHeight: 1.1 }}>

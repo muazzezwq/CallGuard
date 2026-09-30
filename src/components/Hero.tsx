@@ -86,7 +86,7 @@ function HeroWidget() {
 
 export default function Hero() {
   return (
-    <section style={{ padding: "96px 32px 72px", background: "var(--bg)", position: "relative", overflow: "hidden" }}>
+    <section style={{ padding: "96px 48px 72px", background: "var(--bg)", position: "relative", overflow: "hidden" }}>
       {/* subtle grid */}
       <div style={{ position: "absolute", inset: 0, opacity: 0.4, backgroundImage: "linear-gradient(#dde8e1 1px, transparent 1px), linear-gradient(90deg, #dde8e1 1px, transparent 1px)", backgroundSize: "64px 64px", pointerEvents: "none" }} />
 

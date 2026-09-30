@@ -1,6 +1,6 @@
 export default function FinalCTA() {
   return (
-    <section style={{ padding: "96px 32px", background: "#0a1628", position: "relative", overflow: "hidden" }}>
+    <section style={{ padding: "96px 48px", background: "#0a1628", position: "relative", overflow: "hidden" }}>
       {/* grid */}
       <div style={{ position: "absolute", inset: 0, opacity: 0.06, backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "48px 48px", pointerEvents: "none" }} />
       {/* green glow */}

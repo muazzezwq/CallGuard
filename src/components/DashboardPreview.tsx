@@ -151,7 +151,7 @@ export default function DashboardPreview() {
   };
 
   return (
-    <section style={{ padding: "80px 32px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
+    <section style={{ padding: "80px 48px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
       <div style={{ maxWidth: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>PRODUCT PREVIEW</div>

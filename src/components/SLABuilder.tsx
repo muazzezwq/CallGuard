@@ -8,7 +8,7 @@ export default function SLABuilder() {
   const labelStyle: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: "#6b8a7a", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 5 };
 
   return (
-    <section id="interactive" style={{ padding: "80px 32px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
+    <section id="interactive" style={{ padding: "80px 48px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
       <div style={{ maxWidth: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>INTERACTIVE</div>

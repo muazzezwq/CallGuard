@@ -7,7 +7,7 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" style={{ padding: "80px 32px", background: "#f7faf8", borderTop: "1px solid #dde8e1" }}>
+    <section id="how-it-works" style={{ padding: "80px 48px", background: "#f7faf8", borderTop: "1px solid #dde8e1" }}>
       <div style={{ maxWidth: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>HOW IT WORKS</div>

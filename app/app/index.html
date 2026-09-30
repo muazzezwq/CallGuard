@@ -460,17 +460,17 @@
       /* ---- Layout ---- */
       .grid {
         max-width: 100%;
+        width: 100%;
         margin: 0;
         padding: 24px 28px 60px;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
         gap: 24px;
+        box-sizing: border-box;
       }
 
       @media (max-width: 1100px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
+        .grid { grid-template-columns: 1fr; }
       }
 
       /* ---- Panel (card) ---- */

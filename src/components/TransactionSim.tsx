@@ -39,7 +39,7 @@ export default function TransactionSim() {
   const isMiss = mode === "missed";
 
   return (
-    <section style={{ padding: "80px 32px", background: "#f7faf8", borderTop: "1px solid #dde8e1" }}>
+    <section style={{ padding: "80px 48px", background: "#f7faf8", borderTop: "1px solid #dde8e1" }}>
       <div style={{ maxWidth: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>LIVE SIMULATION</div>
