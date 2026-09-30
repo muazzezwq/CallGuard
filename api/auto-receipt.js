@@ -5,9 +5,18 @@
 import { ethers } from "ethers";
 
 const RPC_URL = process.env.ARC_RPC_URL;
-const SELLER_PRIVATE_KEY = process.env.SELLER_PRIVATE_KEY;
 const PAY_PER_CALL_ADDR = process.env.VITE_PAY_PER_CALL;
 const CHAIN_ID = parseInt(process.env.VITE_CHAIN_ID || "5042002");
+
+// Per-provider keys: PROVIDER_1_KEY, PROVIDER_2_KEY, ...
+// Fallback: SELLER_PRIVATE_KEY (legacy, used when no per-provider key set)
+function getProviderKey(providerId) {
+  if (providerId) {
+    const k = process.env[`PROVIDER_${providerId}_KEY`];
+    if (k) return k;
+  }
+  return process.env.SELLER_PRIVATE_KEY || null;
+}
 
 if (!RPC_URL) console.warn("[auto-receipt] ARC_RPC_URL not set");
 if (!PAY_PER_CALL_ADDR) console.warn("[auto-receipt] VITE_PAY_PER_CALL not set");
@@ -45,13 +54,14 @@ async function waitWithTimeout(promise, ms) {
   }
 }
 
-async function autoSubmitReceipt({ callId, payload }, attempt = 1) {
-  if (!SELLER_PRIVATE_KEY || !RPC_URL || !PAY_PER_CALL_ADDR) {
-    return { ok: false, error: "missing env vars" };
+async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
+  const privateKey = getProviderKey(providerId);
+  if (!privateKey || !RPC_URL || !PAY_PER_CALL_ADDR) {
+    return { ok: false, error: `missing env vars (key for provider ${providerId || "?"}: ${!!privateKey}, rpc: ${!!RPC_URL}, contract: ${!!PAY_PER_CALL_ADDR})` };
   }
 
   const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const wallet = new ethers.Wallet(SELLER_PRIVATE_KEY, provider);
+  const wallet = new ethers.Wallet(privateKey, provider);
   const contract = new ethers.Contract(PAY_PER_CALL_ADDR, ABI, wallet);
 
   const response = `pong:${payload || "ok"}:${Date.now()}`;
@@ -79,7 +89,7 @@ async function autoSubmitReceipt({ callId, payload }, attempt = 1) {
     if (isRetryable && attempt < MAX_RETRIES) {
       console.warn(`[auto-receipt] retrying (${attempt}/${MAX_RETRIES}): ${msg}`);
       await new Promise(r => setTimeout(r, 1500 * attempt)); // backoff
-      return autoSubmitReceipt({ callId, payload }, attempt + 1);
+      return autoSubmitReceipt({ callId, payload, providerId }, attempt + 1);
     }
     console.error(`[auto-receipt] failed after ${attempt} attempt(s):`, msg);
     return { ok: false, error: msg, attempts: attempt };
@@ -96,12 +106,12 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
-  const { event, callId, payload } = req.body || {};
+  const { event, callId, payload, providerId } = req.body || {};
 
   if (event === "call.opened" && callId) {
     // Await the receipt submission BEFORE responding so Vercel keeps function alive
-    const result = await autoSubmitReceipt({ callId, payload });
-    return res.json({ received: true, callId, event, result });
+    const result = await autoSubmitReceipt({ callId, payload, providerId });
+    return res.json({ received: true, callId, event, providerId, result });
   }
 
   return res.json({ received: true, callId, event });

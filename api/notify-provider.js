@@ -71,13 +71,33 @@ export default async function handler(req, res) {
     const webhookUrl = process.env[webhookEnvKey];
 
     if (!webhookUrl) {
-      return res.status(200).json({
-        notified: false,
-        reason: "No webhook URL configured for this provider",
-        providerId,
-        callId,
-        hint: `Add env var ${webhookEnvKey}=https://your-provider.com/callguard-hook in Vercel`,
-      });
+      // Fallback: auto-receipt endpoint — kendi signer varsa direkt submit et
+      const selfBase = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "https://arcsla.vercel.app";
+      const autoReceiptUrl = `${selfBase}/api/auto-receipt`;
+      try {
+        const r = await fetch(autoReceiptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event: "call.opened", callId, payload: payload || "", providerId }),
+        });
+        const d = await r.json().catch(() => ({}));
+        return res.status(200).json({
+          notified: true,
+          via: "auto-receipt-fallback",
+          callId,
+          providerId,
+          result: d,
+        });
+      } catch (e) {
+        return res.status(200).json({
+          notified: false,
+          reason: `No webhook + auto-receipt failed: ${e.message}`,
+          callId,
+          hint: `Add env var ${webhookEnvKey} or PROVIDER_${providerId}_KEY in Vercel`,
+        });
+      }
     }
 
     // Build notification payload

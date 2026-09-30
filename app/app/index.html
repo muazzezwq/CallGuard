@@ -8955,9 +8955,64 @@ async function refreshBalance() {
             </dd>
             <dt>Endpoint</dt>
             <dd style="word-break: break-all">${endpoint || "—"}</dd>
+            <dt>Auto-receipt</dt>
+            <dd id="autoReceiptStatus" style="font-size:12px;color:var(--text-faint)">checking...</dd>
           </dl>
+          <div id="stuckCallsBox" style="display:none;margin-top:12px;padding:10px 14px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--radius)">
+            <div style="font-size:13px;font-weight:600;color:var(--warn);margin-bottom:6px">⚠️ <span id="stuckCallsCount">0</span> call(s) stuck in STARTED</div>
+            <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">These calls passed their deadline and can be claimed for a refund + slash bonus.</div>
+            <button onclick="window.claimAllTimeouts()" style="font-size:12px;padding:5px 14px;background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);border-radius:var(--radius);cursor:pointer">Claim all timeouts</button>
+          </div>
         `;
+        // Auto-receipt status check
+        fetch('/api/auto-receipt').then(r=>r.json()).then(d=>{
+          const el = document.getElementById('autoReceiptStatus');
+          if (!el) return;
+          if (d.ok && d.seller && d.seller !== 'not configured') {
+            el.innerHTML = `<span style="color:var(--accent)">✓ Active</span> — signer: <code style="font-size:10px">${d.seller.slice(0,6)}…${d.seller.slice(-4)}</code>`;
+          } else {
+            el.innerHTML = `<span style="color:var(--danger)">✗ Not configured</span> — add <code>SELLER_PRIVATE_KEY</code> or <code>PROVIDER_${id}_KEY</code> in Vercel`;
+          }
+        }).catch(()=>{
+          const el = document.getElementById('autoReceiptStatus');
+          if (el) el.textContent = 'Could not reach /api/auto-receipt';
+        });
+        // Check for stuck calls (STARTED past deadline)
+        fetch(CONFIG.subgraphUrl, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ query: `{ calls(first:50, where:{provider:"${id.toString()}", status:"STARTED"}, orderBy:createdAt, orderDirection:asc) { id createdAt } }` })
+        }).then(r=>r.json()).then(d=>{
+          const calls = d?.data?.calls || [];
+          const now = Math.floor(Date.now()/1000);
+          const stuck = calls.filter(c => now - parseInt(c.createdAt) > 120);
+          if (stuck.length > 0) {
+            const box = document.getElementById('stuckCallsBox');
+            const cnt = document.getElementById('stuckCallsCount');
+            if (box) box.style.display = 'block';
+            if (cnt) cnt.textContent = stuck.length;
+            window._stuckCallIds = stuck.map(c => c.id);
+          }
+        }).catch(()=>{});
       }
+
+      window.claimAllTimeouts = async function() {
+        if (!window._stuckCallIds?.length) return;
+        const ids = window._stuckCallIds.slice(0, 5); // max 5 aynı anda
+        toast({ kind: 'info', title: `Claiming ${ids.length} timeout(s)...` });
+        let ok = 0, fail = 0;
+        for (const callId of ids) {
+          try {
+            const tx = await state.payPerCall.claimTimeout(callId, { gasLimit: 150000 });
+            await tx.wait();
+            ok++;
+          } catch(e) {
+            fail++;
+            console.error('[claimTimeout]', callId, e.message);
+          }
+        }
+        toast({ kind: ok > 0 ? 'ok' : 'err', title: `Timeouts claimed: ${ok} ok, ${fail} failed` });
+        if (ok > 0) setTimeout(() => window.refreshProviderDash?.(), 2000);
+      };
 
       async function refreshHero() {
         try {
@@ -11769,7 +11824,12 @@ async function refreshBalance() {
             $("ovHonor").textContent = honorPct + "%";
             $("ovHonor").style.color = honorPct >= 80 ? "var(--accent)" : honorPct >= 50 ? "var(--warn)" : "var(--danger)";
           }
-          if ($("ovHonorSub")) $("ovHonorSub").textContent = `${totalComp} honored / ${totalClosed} closed`;
+          if ($("ovHonorSub")) {
+            const note = totalClosed > 0 && totalComp < 5
+              ? `${totalComp} honored / ${totalClosed} closed · <span style="color:var(--text-faint);font-size:10px">testnet data</span>`
+              : `${totalComp} honored / ${totalClosed} closed`;
+            $("ovHonorSub").innerHTML = note;
+          }
 
           // Live feed
           const nowTs = Math.floor(Date.now() / 1000);
@@ -12010,7 +12070,7 @@ console.log("call opened:", tx.hash);`;
             continue;
           }
           try {
-            const res = await fetch(CONFIG.facilitatorUrl + "/ping?url=" + encodeURIComponent(endpoint));
+            const res = await fetch('/api/ping-provider?url=' + encodeURIComponent(endpoint));
             const data = await res.json();
             if (data.ok) {
               cell.innerHTML = '<span style="color:var(--accent)">🟢 ' + (data.ms || "?") + 'ms</span>';
