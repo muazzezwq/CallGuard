@@ -3638,7 +3638,7 @@
         pointer-events: none;
         opacity: 0.55;
       }
-      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal) { position: relative; z-index: 1; }
+      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal):not(#callProgressOverlay):not(#roleModal):not(#nextStepModal):not(#roleChoiceModal):not(#modalRoot):not(#providerChecklistModal) { position: relative; z-index: 1; }
       #walletConnectModal, #confirmTxOverlay { position: fixed !important; z-index: 99999 !important; }
       #spendLimitBanner { position: fixed !important; }
       /* Mobil overflow fix */
@@ -8097,7 +8097,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
         <!-- NOTIFICATIONS PANEL -->
         <section class="panel page-screen" data-category="notifications">
           <div class="page-header"><h1 class="page-title">Notifications</h1><p class="page-desc">Your on-chain activity feed — SLA events, settlements, slashes.</p></div>
-          <div id="notifPanel" style="max-width:680px">
+          <div id="notifPanel" style="max-width:680px;position:static !important;bottom:auto !important;right:auto !important;width:100% !important;max-height:none !important;box-shadow:none !important;border:none !important;border-radius:0 !important;background:transparent !important;z-index:1 !important">
             <div id="notifList" style="display:flex;flex-direction:column;gap:8px"></div>
             <div id="notifEmpty" style="text-align:center;padding:48px 0;color:var(--text-faint);font-size:13px">No notifications yet. Activity will appear here after your first call.</div>
           </div>
@@ -15437,7 +15437,7 @@ console.log("call opened:", tx.hash);`;
   </script>
 
   <!-- ── Role selection modal ── -->
-  <div id="roleModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,22,40,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center">
+  <div id="roleModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,22,40,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center">
     <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:40px 36px;max-width:480px;width:90%;box-shadow:var(--shadow-lg)">
       <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Welcome to CallGuard</div>
       <h2 style="font-size:22px;font-weight:700;color:var(--text);margin:0 0 8px">How will you use CallGuard?</h2>
@@ -15552,7 +15552,7 @@ console.log("call opened:", tx.hash);`;
   </script>
 
   <!-- ── What Happens Next modal ── -->
-  <div id="nextStepModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px">
+  <div id="nextStepModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:16px">
     <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.12)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div style="font-size:15px;font-weight:700;color:var(--text)">Call opened — what happens next?</div>
