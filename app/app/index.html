@@ -2261,7 +2261,7 @@
 
       /* ---- Footer (resources) ---- */
       .site-footer {
-        margin-top: 60px;
+        margin-top: auto;
         padding: 40px 28px 48px;
         border-top: 1px solid var(--border);
         background: var(--bg-0);
@@ -14219,6 +14219,13 @@ console.log("call opened:", tx.hash);`;
     });
 
     window.openProviderModal = function(p) {
+      // Sayısal ID veya string gelirse allProviders'dan objeye çevir
+      if (typeof p === "number" || typeof p === "string") {
+        const pid = Number(p);
+        const found = (window.state?.allProviders || []).find(x => Number(x.id) === pid);
+        p = found || { id: pid, owner: "", reputation: 0, completedCalls: 0, slashedCalls: 0, pricePerCall: 0, stake: 0 };
+      }
+      if (!p || p.id === undefined) return;
       document.getElementById("pmTitle").textContent = "Provider #" + p.id;
       document.getElementById("pmAddr").textContent = p.owner || p.id;
       document.getElementById("pmRep").textContent = p.reputation ?? "—";
@@ -17497,6 +17504,11 @@ console.log("call opened:", tx.hash);`;
     }
     .app-content {
       min-height: calc(100vh - 48px) !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    .app-content .grid {
+      flex: 1 !important;
     }
 
     /* Desktop (≥769px): sidebar always visible */
