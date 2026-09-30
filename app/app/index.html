@@ -3638,7 +3638,7 @@
         pointer-events: none;
         opacity: 0.55;
       }
-      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal):not(#callProgressOverlay):not(#roleModal):not(#nextStepModal):not(#roleChoiceModal):not(#modalRoot):not(#providerChecklistModal) { position: relative; z-index: 1; }
+      body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal):not(#callProgressOverlay):not(#roleModal):not(#nextStepModal):not(#roleChoiceModal):not(#modalRoot):not(#providerChecklistModal):not(#autoReceiptSetupModal) { position: relative; z-index: 1; }
       /* ── Z-INDEX HİYERARŞİSİ ──
          10     sticky banners (wrongNetBanner)
          100    topbar
@@ -8964,19 +8964,31 @@ async function refreshBalance() {
             <button onclick="window.claimAllTimeouts()" style="font-size:12px;padding:5px 14px;background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);border-radius:var(--radius);cursor:pointer">Claim all timeouts</button>
           </div>
         `;
-        // Auto-receipt status check
-        fetch('/api/auto-receipt').then(r=>r.json()).then(d=>{
+        // Auto-receipt status check — client-side key takes priority
+        (function checkAutoReceiptStatus() {
           const el = document.getElementById('autoReceiptStatus');
           if (!el) return;
-          if (d.ok && d.seller && d.seller !== 'not configured') {
-            el.innerHTML = `<span style="color:var(--accent)">✓ Active</span> — signer: <code style="font-size:10px">${d.seller.slice(0,6)}…${d.seller.slice(-4)}</code>`;
-          } else {
-            el.innerHTML = `<span style="color:var(--danger)">✗ Not configured</span> — add <code>SELLER_PRIVATE_KEY</code> or <code>PROVIDER_${id}_KEY</code> in Vercel`;
+          const clientKey = sessionStorage.getItem('cg_ar_key_' + id);
+          if (clientKey) {
+            try {
+              const wallet = new ethers.Wallet(clientKey);
+              el.innerHTML = `<span style="color:var(--accent)">✓ Active (browser)</span> — signer: <code style="font-size:10px">${wallet.address.slice(0,6)}…${wallet.address.slice(-4)}</code>
+                <button onclick="window.disableClientAutoReceipt(${id})" style="margin-left:8px;font-size:10px;padding:2px 8px;background:transparent;border:1px solid var(--danger);color:var(--danger);border-radius:4px;cursor:pointer">Disable</button>`;
+              return;
+            } catch { sessionStorage.removeItem('cg_ar_key_' + id); }
           }
-        }).catch(()=>{
-          const el = document.getElementById('autoReceiptStatus');
-          if (el) el.textContent = 'Could not reach /api/auto-receipt';
-        });
+          fetch('/api/auto-receipt').then(r=>r.json()).then(d=>{
+            if (d.ok && d.seller && d.seller !== 'not configured') {
+              el.innerHTML = `<span style="color:var(--accent)">✓ Active (server)</span> — signer: <code style="font-size:10px">${d.seller.slice(0,6)}…${d.seller.slice(-4)}</code>`;
+            } else {
+              el.innerHTML = `<span style="color:var(--warn)">Not configured</span>
+                <button onclick="window.openAutoReceiptSetup(${id})" style="margin-left:8px;font-size:11px;padding:3px 10px;background:var(--accent);border:none;color:#fff;border-radius:4px;cursor:pointer">⚡ Enable Auto-Receipt</button>`;
+            }
+          }).catch(()=>{
+            el.innerHTML = `<span style="color:var(--warn)">Server unreachable</span>
+              <button onclick="window.openAutoReceiptSetup(${id})" style="margin-left:8px;font-size:11px;padding:3px 10px;background:var(--accent);border:none;color:#fff;border-radius:4px;cursor:pointer">⚡ Enable in browser</button>`;
+          });
+        })();
         // Check for stuck calls (STARTED past deadline)
         fetch(CONFIG.subgraphUrl, {
           method:'POST', headers:{'Content-Type':'application/json'},
@@ -10186,6 +10198,84 @@ async function refreshBalance() {
       }
       window.doUnstake = doUnstake;
 
+      // ── CLIENT-SIDE AUTO-RECEIPT ──────────────────────────────────────────
+      let _arProviderId = null;
+
+      window.openAutoReceiptSetup = function(providerId) {
+        _arProviderId = providerId;
+        const modal = document.getElementById('autoReceiptSetupModal');
+        if (modal) { modal.style.display = 'flex'; }
+        // Live key validation
+        const inp = document.getElementById('arKeyInput');
+        const val = document.getElementById('arKeyValidation');
+        if (inp && val) {
+          inp.oninput = function() {
+            const k = inp.value.trim();
+            if (!k) { val.textContent = ''; return; }
+            try {
+              const w = new ethers.Wallet(k);
+              val.innerHTML = `<span style="color:var(--accent)">✓ Valid key — address: ${w.address.slice(0,8)}…${w.address.slice(-6)}</span>`;
+            } catch {
+              val.innerHTML = `<span style="color:var(--danger)">✗ Invalid private key</span>`;
+            }
+          };
+        }
+      };
+
+      window.saveAutoReceiptKey = function() {
+        const inp = document.getElementById('arKeyInput');
+        const payloadInp = document.getElementById('arPayloadInput');
+        if (!inp) return;
+        const k = inp.value.trim();
+        try {
+          const w = new ethers.Wallet(k);
+          sessionStorage.setItem('cg_ar_key_' + _arProviderId, k);
+          sessionStorage.setItem('cg_ar_payload_' + _arProviderId, payloadInp?.value || '{"status":"ok"}');
+          document.getElementById('autoReceiptSetupModal').style.display = 'none';
+          inp.value = '';
+          toast({ kind: 'ok', title: '⚡ Auto-Receipt enabled', detail: `Signer: ${w.address.slice(0,8)}…${w.address.slice(-6)} · receipts will be auto-submitted`, timeout: 5000 });
+          // Refresh provider dashboard
+          if (typeof showProviderDashboard === 'function') showProviderDashboard();
+          else setTimeout(() => { document.getElementById('autoReceiptStatus') && checkAutoReceiptStatus?.(); }, 200);
+        } catch {
+          toast({ kind: 'err', title: 'Invalid private key', detail: 'Please check the key and try again' });
+        }
+      };
+
+      window.disableClientAutoReceipt = function(providerId) {
+        sessionStorage.removeItem('cg_ar_key_' + providerId);
+        sessionStorage.removeItem('cg_ar_payload_' + providerId);
+        toast({ kind: 'ok', title: 'Auto-Receipt disabled', timeout: 3000 });
+        // Refresh status
+        const el = document.getElementById('autoReceiptStatus');
+        if (el) el.innerHTML = `<span style="color:var(--warn)">Not configured</span>
+          <button onclick="window.openAutoReceiptSetup(${providerId})" style="margin-left:8px;font-size:11px;padding:3px 10px;background:var(--accent);border:none;color:#fff;border-radius:4px;cursor:pointer">⚡ Enable Auto-Receipt</button>`;
+      };
+
+      // Called after every successful callService TX — check if client-side auto-receipt is enabled
+      window.tryClientAutoReceipt = async function(callId, providerId, payload) {
+        const key = sessionStorage.getItem('cg_ar_key_' + providerId);
+        if (!key) return; // not configured for this provider
+        const autoPayload = payload || sessionStorage.getItem('cg_ar_payload_' + providerId) || '{"status":"ok","auto":true}';
+        try {
+          const wallet = new ethers.Wallet(key, state.provider);
+          const responseHash = ethers.keccak256(ethers.toUtf8Bytes(autoPayload));
+          const domain = { name: "CallGuard", version: "1", chainId: CONFIG.chainId, verifyingContract: CONFIG.payPerCall };
+          const types = { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }] };
+          const sig = await wallet.signTypedData(domain, types, { callId, responseHash });
+          const contract = new ethers.Contract(CONFIG.payPerCall, [
+            "function submitReceipt(bytes32 callId, bytes32 responseHash, bytes signature) external"
+          ], wallet);
+          const tAR = toast({ kind: 'info', title: '⚡ Auto-submitting receipt…', detail: '<span class="spinner"></span>', timeout: 30000 });
+          const tx = await contract.submitReceipt(callId, responseHash, sig);
+          await tx.wait();
+          tAR.remove();
+          toast({ kind: 'ok', title: '⚡ Receipt auto-submitted', detail: `call ${callId.slice(0,10)}… · escrow released`, link: txLink(tx.hash), timeout: 6000 });
+        } catch(e) {
+          toast({ kind: 'err', title: 'Auto-receipt failed', detail: e.reason || e.message?.slice(0,80), timeout: 8000 });
+        }
+      };
+
       // Map known contract error selectors to human messages.
       // The signatures are keccak256(errorName()) and these are the first 4 bytes.
       const ERROR_SELECTORS = {
@@ -10453,6 +10543,10 @@ async function refreshBalance() {
             }).then(r => r.json()).then(d => {
               if (d.notified) toast({ kind: 'ok', title: 'Provider notified', detail: 'Webhook delivered' });
             }).catch(() => {});
+            // Client-side auto-receipt: if THIS provider has a key in sessionStorage, auto-submit
+            if (window.tryClientAutoReceipt) {
+              setTimeout(() => window.tryClientAutoReceipt(callId, providerId, $('callPayload')?.value || ''), 1500);
+            }
             // Show "what happens next" flow
             showNextStepFlow(providerId, callId, priceNum);
             pushActivity({
@@ -14513,6 +14607,39 @@ console.log("call opened:", tx.hash);`;
 
   <!-- ── DISPUTE MODAL ── -->
   <!-- ── ROLE CHOICE MODAL ─────────────────────────────────────────────── -->
+  <!-- Auto-receipt setup modal -->
+  <div id="autoReceiptSetupModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:28px 32px;width:100%;max-width:460px;box-shadow:0 8px 40px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div style="font-size:16px;font-weight:700">⚡ Enable Auto-Receipt</div>
+          <div style="font-size:12px;color:var(--text-faint);margin-top:2px">Your key stays in the browser — never sent to any server</div>
+        </div>
+        <button onclick="document.getElementById('autoReceiptSetupModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-faint)">✕</button>
+      </div>
+      <div style="background:var(--warn-bg);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--warn);margin-bottom:18px">
+        ⚠️ Only paste the private key of your <strong>provider's signer wallet</strong>. Use a dedicated hot wallet with only enough USDC for gas — never your main wallet.
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Provider Signer Private Key</label>
+        <input id="arKeyInput" type="password" placeholder="0x..." autocomplete="off" spellcheck="false"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-family:monospace;font-size:12px;box-sizing:border-box"/>
+        <div id="arKeyValidation" style="font-size:11px;margin-top:4px;min-height:16px"></div>
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Response payload for auto-reply</label>
+        <input id="arPayloadInput" type="text" value='{"status":"ok","data":"auto-response"}' 
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:12px;box-sizing:border-box"/>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:3px">This payload is hashed and included in the receipt signature</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button id="arEnableBtn" onclick="window.saveAutoReceiptKey()" style="flex:1;padding:10px;background:var(--accent);border:none;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Enable Auto-Receipt</button>
+        <button onclick="document.getElementById('autoReceiptSetupModal').style.display='none'" style="padding:10px 16px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);border-radius:8px;cursor:pointer">Cancel</button>
+      </div>
+      <div style="font-size:10px;color:var(--text-faint);margin-top:12px;text-align:center">Key stored in <code>sessionStorage</code> — cleared when you close this tab</div>
+    </div>
+  </div>
+
   <div id="roleChoiceModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
     <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:32px 28px;max-width:420px;width:calc(100% - 32px);box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative;">
       <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.02em">What would you like to do?</div>
