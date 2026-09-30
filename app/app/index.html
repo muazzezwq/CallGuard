@@ -6536,6 +6536,15 @@
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
             Payments
           </div>
+          <div class="sb-item" data-nav="disputes">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+            Disputes
+            <span id="disputeBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
+          </div>
+          <div class="sb-item" data-nav="subscriptions">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
+            Subscriptions
+          </div>
           <div class="sb-item" data-nav="jobs">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z"/></svg></span>
             Claims
@@ -7712,6 +7721,28 @@ npm install</pre>
           </div>
         </section>
 
+        <!-- ===== DISPUTES PANEL ===== -->
+        <section class="panel full-width" id="disputesPanel" data-category="disputes" style="display:none">
+          <div class="panel-head">
+            <h2>Disputes</h2>
+            <button class="btn btn-sm" onclick="window.loadMyDisputes && window.loadMyDisputes()">Refresh</button>
+          </div>
+          <div class="panel-body" id="disputeListBox">
+            <div class="empty-state" style="padding:24px;text-align:center;color:var(--text-dim);font-size:12px">Connect wallet to view disputes.</div>
+          </div>
+        </section>
+
+        <!-- ===== SUBSCRIPTIONS PANEL ===== -->
+        <section class="panel full-width" id="subscriptionsPanel" data-category="subscriptions" style="display:none">
+          <div class="panel-head">
+            <h2>Subscriptions</h2>
+            <button class="btn btn-sm" onclick="window.loadMySubscriptions && window.loadMySubscriptions()">Refresh</button>
+          </div>
+          <div class="panel-body" id="subscriptionListBox">
+            <div class="empty-state" style="padding:24px;text-align:center;color:var(--text-dim);font-size:12px">Connect wallet to view subscriptions.</div>
+          </div>
+        </section>
+
         <section class="panel full-width" id="jobsPanel" data-category="jobs">
           <div class="panel-head">
             <h2>⚙️ ERC-8183 Jobs</h2>
@@ -8169,7 +8200,8 @@ curl -X POST https://arcsla.vercel.app/api/service \
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: window.location.origin,
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn",
+        subgraphUrlFallback: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
@@ -8590,6 +8622,21 @@ curl -X POST https://arcsla.vercel.app/api/service \
         if (refreshRunning) return;
         refreshRunning = true;
 
+        // Probe v2.0.0 subgraph once; fall back to v1.4.2 if not yet deployed
+        if (!CONFIG._subgraphProbed) {
+          CONFIG._subgraphProbed = true;
+          try {
+            const probe = await fetch(CONFIG.subgraphUrl, {
+              method: "POST",
+              headers: {"Content-Type":"application/json"},
+              body: JSON.stringify({ query: "{ _meta { block { number } } }" }),
+              signal: AbortSignal.timeout(4000),
+            });
+            const pd = await probe.json();
+            CONFIG._subgraphReady = !!(pd?.data?._meta?.block?.number);
+          } catch { CONFIG._subgraphReady = false; }
+        }
+
         try {
           // First wave: sequential RPC reads to avoid Arc rate limits
           await refreshBalance();
@@ -8638,10 +8685,11 @@ curl -X POST https://arcsla.vercel.app/api/service \
         try {
           let goldskyLoaded = false;
 
-          // Fast path: load caller calls from Goldsky first
+          // Fast path: load caller calls from Goldsky first (v2 with fallback to v1)
           if (CONFIG.subgraphUrl) {
             try {
-              const res = await fetch(CONFIG.subgraphUrl, {
+              const sgUrl = CONFIG._subgraphReady ? CONFIG.subgraphUrl : CONFIG.subgraphUrlFallback || CONFIG.subgraphUrl;
+              const res = await fetch(sgUrl, {
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({
@@ -11556,6 +11604,8 @@ async function refreshBalance() {
         if (cat === "calls") loadMyCalls().catch(()=>{});
         if (cat === "nano") fetchNanoBalance().catch(()=>{});
         if (cat === "jobs") loadMyJobs().catch(()=>{});
+        if (cat === "disputes") window.loadMyDisputes?.().catch(()=>{});
+        if (cat === "subscriptions") window.loadMySubscriptions?.().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -12732,6 +12782,110 @@ console.log("call opened:", tx.hash);`;
           setJobRailStep(6);
         } catch(e) { jobOut("Error: "+e.message); toast({ kind:"err", title:"Complete failed", detail: friendlyError(e) }); }
       }
+
+      // ── DISPUTES ──────────────────────────────────────────────────────────
+      window.loadMyDisputes = async function() {
+        if (!state.address) return;
+        const box = document.getElementById("disputeListBox");
+        if (!box) return;
+        box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px">Loading disputes…</div>';
+        const addr = state.address.toLowerCase();
+        const sgUrl = CONFIG._subgraphReady ? CONFIG.subgraphUrl : (CONFIG.subgraphUrlFallback || CONFIG.subgraphUrl);
+        try {
+          const res = await fetch(sgUrl, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ query: `{
+              disputeRecords(first:50, orderBy:openedAt, orderDirection:desc, where:{caller:"${addr}"}) {
+                id disputeId callId caller providerId status slashAmount openedAt resolvedAt txHash
+              }
+            }`})
+          });
+          const data = await res.json();
+          const rows = data?.data?.disputeRecords || [];
+          // Update badge
+          const pending = rows.filter(d => d.status === "Pending").length;
+          const badge = document.getElementById("disputeBadge");
+          if (badge) { badge.textContent = pending; badge.style.display = pending > 0 ? "inline-block" : "none"; }
+          if (!rows.length) {
+            box.innerHTML = '<div class="empty-state" style="padding:24px;text-align:center;color:var(--text-dim);font-size:12px">No disputes found.</div>';
+            return;
+          }
+          const statusColor = s => s === "Upheld" ? "var(--accent)" : s === "Rejected" ? "var(--danger)" : "var(--warn)";
+          box.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--text-faint);font-size:11px;border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:8px">ID</th>
+              <th style="text-align:left;padding:8px">Provider</th>
+              <th style="text-align:left;padding:8px">Status</th>
+              <th style="text-align:left;padding:8px">Slash</th>
+              <th style="text-align:left;padding:8px">Opened</th>
+              <th style="text-align:left;padding:8px">TX</th>
+            </tr></thead>
+            <tbody>${rows.map(d => `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px;font-family:monospace">#${d.disputeId}</td>
+              <td style="padding:8px">#${d.providerId}</td>
+              <td style="padding:8px"><span style="color:${statusColor(d.status)};font-weight:600">${d.status}</span></td>
+              <td style="padding:8px;font-family:monospace">${d.slashAmount !== "0" ? (Number(d.slashAmount)/1e6).toFixed(4)+" USDC" : "—"}</td>
+              <td style="padding:8px;color:var(--text-faint)">${new Date(d.openedAt*1000).toLocaleDateString()}</td>
+              <td style="padding:8px"><a href="https://explorer.arc-testnet.usdc.com/tx/${d.txHash}" target="_blank" style="color:var(--accent);font-family:monospace;font-size:10px">${d.txHash.slice(0,10)}…</a></td>
+            </tr>`).join("")}</tbody>
+          </table>`;
+        } catch(e) {
+          box.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--danger)">Failed to load disputes: ${e.message}</div>`;
+        }
+      };
+
+      // ── SUBSCRIPTIONS ──────────────────────────────────────────────────────
+      window.loadMySubscriptions = async function() {
+        if (!state.address) return;
+        const box = document.getElementById("subscriptionListBox");
+        if (!box) return;
+        box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px">Loading subscriptions…</div>';
+        const addr = state.address.toLowerCase();
+        const sgUrl = CONFIG._subgraphReady ? CONFIG.subgraphUrl : (CONFIG.subgraphUrlFallback || CONFIG.subgraphUrl);
+        try {
+          const res = await fetch(sgUrl, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ query: `{
+              subscriptions(first:50, orderBy:createdAt, orderDirection:desc, where:{subscriber:"${addr}"}) {
+                id subId subscriber providerId totalCalls remainingCalls expiresAt status refund createdAt
+              }
+            }`})
+          });
+          const data = await res.json();
+          const rows = data?.data?.subscriptions || [];
+          if (!rows.length) {
+            box.innerHTML = '<div class="empty-state" style="padding:24px;text-align:center;color:var(--text-dim);font-size:12px">No subscriptions found.</div>';
+            return;
+          }
+          const now = Math.floor(Date.now()/1000);
+          const statusColor = s => s === "Active" ? "var(--accent)" : s === "Exhausted" ? "var(--warn)" : "var(--text-faint)";
+          box.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--text-faint);font-size:11px;border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:8px">ID</th>
+              <th style="text-align:left;padding:8px">Provider</th>
+              <th style="text-align:left;padding:8px">Calls</th>
+              <th style="text-align:left;padding:8px">Status</th>
+              <th style="text-align:left;padding:8px">Expires</th>
+            </tr></thead>
+            <tbody>${rows.map(s => {
+              const expired = Number(s.expiresAt) < now && s.status === "Active";
+              const displayStatus = expired ? "Expired" : s.status;
+              const expDate = new Date(s.expiresAt*1000).toLocaleDateString();
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px;font-family:monospace">#${s.subId}</td>
+                <td style="padding:8px">#${s.providerId}</td>
+                <td style="padding:8px;font-family:monospace">${s.remainingCalls}/${s.totalCalls}</td>
+                <td style="padding:8px"><span style="color:${statusColor(displayStatus)};font-weight:600">${displayStatus}</span></td>
+                <td style="padding:8px;color:var(--text-faint)">${expDate}</td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table>`;
+        } catch(e) {
+          box.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--danger)">Failed to load subscriptions: ${e.message}</div>`;
+        }
+      };
 
       async function loadMyJobs() {
         if (!state.signer || !state.address) return toast({ kind:"err", title:"Connect wallet first" });

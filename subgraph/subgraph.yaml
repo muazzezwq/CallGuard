@@ -127,3 +127,53 @@ dataSources:
         - event: JobCreated(indexed uint256,indexed address,indexed address,address,uint256,address)
           handler: handleJobCreated
       file: ./src/agenticCommerce.ts
+
+  - kind: ethereum
+    name: Dispute
+    network: arc-testnet
+    source:
+      address: "0xa47162d8e4785d867f05800f35a334fd78575e56"
+      abi: Dispute
+      startBlock: 50334164
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - DisputeRecord
+      abis:
+        - name: Dispute
+          file: ./abis/Dispute.json
+      eventHandlers:
+        - event: DisputeOpened(indexed uint256,indexed bytes32,indexed address,uint256)
+          handler: handleDisputeOpened
+        - event: DisputeResolved(indexed uint256,uint8,uint256)
+          handler: handleDisputeResolved
+      file: ./src/dispute.ts
+
+  - kind: ethereum
+    name: Subscription
+    network: arc-testnet
+    source:
+      address: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6"
+      abi: Subscription
+      startBlock: 50334164
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Subscription
+      abis:
+        - name: Subscription
+          file: ./abis/Subscription.json
+      eventHandlers:
+        - event: Subscribed(indexed uint256,indexed address,indexed uint256,uint32,uint64)
+          handler: handleSubscribed
+        - event: CallUsed(indexed uint256,uint32)
+          handler: handleCallUsed
+        - event: Cancelled(indexed uint256,uint256)
+          handler: handleCancelled
+        - event: ExpiredReleased(indexed uint256,uint256)
+          handler: handleExpiredReleased
+      file: ./src/subscription.ts

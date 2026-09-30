@@ -81,3 +81,30 @@ type JobCreated @entity(immutable: true) {
   timestamp: BigInt!
   txHash: Bytes!
 }
+
+type DisputeRecord @entity {
+  id: ID!
+  disputeId: BigInt!
+  callId: Bytes!
+  caller: Bytes!
+  providerId: BigInt!
+  status: String!
+  slashAmount: BigInt!
+  openedAt: BigInt!
+  resolvedAt: BigInt
+  txHash: Bytes!
+}
+
+type Subscription @entity {
+  id: ID!
+  subId: BigInt!
+  subscriber: Bytes!
+  providerId: BigInt!
+  totalCalls: Int!
+  remainingCalls: Int!
+  expiresAt: BigInt!
+  status: String!
+  refund: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}

@@ -1,0 +1,4 @@
+[
+  {"type":"event","name":"DisputeOpened","inputs":[{"name":"disputeId","type":"uint256","indexed":true},{"name":"callId","type":"bytes32","indexed":true},{"name":"caller","type":"address","indexed":true},{"name":"providerId","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"DisputeResolved","inputs":[{"name":"disputeId","type":"uint256","indexed":true},{"name":"status","type":"uint8","indexed":false},{"name":"slashAmount","type":"uint256","indexed":false}],"anonymous":false}
+]

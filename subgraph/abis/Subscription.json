@@ -1,0 +1,6 @@
+[
+  {"type":"event","name":"Subscribed","inputs":[{"name":"subId","type":"uint256","indexed":true},{"name":"subscriber","type":"address","indexed":true},{"name":"providerId","type":"uint256","indexed":true},{"name":"calls","type":"uint32","indexed":false},{"name":"expiresAt","type":"uint64","indexed":false}],"anonymous":false},
+  {"type":"event","name":"CallUsed","inputs":[{"name":"subId","type":"uint256","indexed":true},{"name":"remaining","type":"uint32","indexed":false}],"anonymous":false},
+  {"type":"event","name":"Cancelled","inputs":[{"name":"subId","type":"uint256","indexed":true},{"name":"refund","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"ExpiredReleased","inputs":[{"name":"subId","type":"uint256","indexed":true},{"name":"refund","type":"uint256","indexed":false}],"anonymous":false}
+]
