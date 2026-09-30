@@ -8,7 +8,7 @@ export default function SecuritySection() {
 
   return (
     <section style={{ padding: "80px 32px", background: "#f7faf8", borderTop: "1px solid #dde8e1" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%" }}>
         <div style={{ marginBottom: 48 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>SECURITY</div>
           <h2 style={{ fontSize: "clamp(24px, 3vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#0a1628", margin: "0 0 4px", lineHeight: 1.1 }}>Verifiable commitments.</h2>

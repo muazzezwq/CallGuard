@@ -20,7 +20,7 @@ export default function Navbar() {
       borderBottom: scrolled ? "1px solid #dde8e1" : "1px solid transparent",
       transition: "all 0.2s ease",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ maxWidth: "100%", padding: "0 48px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {/* Left */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

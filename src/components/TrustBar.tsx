@@ -2,7 +2,7 @@ export default function TrustBar() {
   const items = ["USDC", "x402", "EIP-712", "ERC-8004", "CCTP", "MCP"];
   return (
     <div style={{ borderTop: "1px solid #dde8e1", borderBottom: "1px solid #dde8e1", background: "#fff", padding: "16px 32px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap", justifyContent: "center" }}>
+      <div style={{ maxWidth: "100%", padding: "0 48px", display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap", justifyContent: "center" }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: "#6b8a7a", letterSpacing: "0.1em", textTransform: "uppercase" }}>BUILT ON ARC</span>
         <div style={{ width: 1, height: 20, background: "#dde8e1" }} />
         {items.map(item => (

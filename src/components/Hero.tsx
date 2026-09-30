@@ -90,7 +90,7 @@ export default function Hero() {
       {/* subtle grid */}
       <div style={{ position: "absolute", inset: 0, opacity: 0.4, backgroundImage: "linear-gradient(#dde8e1 1px, transparent 1px), linear-gradient(90deg, #dde8e1 1px, transparent 1px)", backgroundSize: "64px 64px", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", gap: 64, position: "relative" }} className="hero-inner">
+      <div style={{ maxWidth: "100%", width: "100%", display: "flex", alignItems: "center", gap: 64, position: "relative", padding: "0 48px" }} className="hero-inner">
         {/* left */}
         <div style={{ flex: "1 1 480px", minWidth: 0 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20, fontSize: 11, fontWeight: 600, color: "#16a34a", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 20, padding: "3px 10px", letterSpacing: "0.06em" }}>

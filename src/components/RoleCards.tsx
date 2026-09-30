@@ -1,7 +1,7 @@
 export default function RoleCards() {
   return (
     <section style={{ padding: "80px 32px", background: "#fff", borderTop: "1px solid #dde8e1" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="role-grid">
           {/* Providers */}
           <div style={{ background: "#0a1628", borderRadius: 20, padding: "36px", color: "#fff" }}>

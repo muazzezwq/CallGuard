@@ -6,7 +6,7 @@ export default function Footer() {
   ];
   return (
     <footer style={{ background: "#fff", borderTop: "1px solid #dde8e1", padding: "48px 32px 24px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%" }}>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 32, marginBottom: 40 }} className="footer-grid">
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0a1628", marginBottom: 8, letterSpacing: "-0.02em" }}>CallGuard</div>
