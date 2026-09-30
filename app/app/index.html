@@ -3639,8 +3639,28 @@
         opacity: 0.55;
       }
       body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal):not(#callProgressOverlay):not(#roleModal):not(#nextStepModal):not(#roleChoiceModal):not(#modalRoot):not(#providerChecklistModal) { position: relative; z-index: 1; }
+      /* ── Z-INDEX HİYERARŞİSİ ──
+         10     sticky banners (wrongNetBanner)
+         100    topbar
+         200    sidebar
+         1000   floating buttons (help-fab)
+         5000   callProgressOverlay
+         8000   helpPanel
+         9000   spendLimitBanner
+         9500   disputeOverlay
+         9600   subOverlay
+         9800   prov-modal-overlay, providerChecklistModal
+         9900   confirmTxOverlay
+         99999  walletConnectModal, roleModal, roleChoiceModal, nextStepModal (tam ekran)
+      ── */
       #walletConnectModal, #confirmTxOverlay { position: fixed !important; z-index: 99999 !important; }
-      #spendLimitBanner { position: fixed !important; }
+      #spendLimitBanner { position: fixed !important; z-index: 9000 !important; }
+      #callProgressOverlay { position: fixed !important; z-index: 5000 !important; }
+      .help-panel { z-index: 8000 !important; }
+      .dispute-overlay { z-index: 9500 !important; }
+      .sub-overlay { z-index: 9600 !important; }
+      .prov-modal-overlay, #providerChecklistModal { z-index: 9800 !important; }
+      #roleChoiceModal, #roleModal, #nextStepModal { z-index: 99999 !important; }
       /* Mobil overflow fix */
       html, body { overflow-x: hidden; max-width: 100vw; }
       .app-content, .panel-page, .page-content { overflow-x: hidden; }
@@ -4351,7 +4371,7 @@
       inset: 0;
       background: rgba(0,0,0,0.7);
       backdrop-filter: blur(4px);
-      z-index: 300;
+      z-index: 9800;
       align-items: flex-end;
       justify-content: center;
     }
@@ -4804,12 +4824,13 @@
     .glossary:hover::after { opacity: 1; }
 
     /* ── Wrong Network Banner ── */
-    #wrongNetworkBanner { display: none; position: sticky; top: 0; z-index: 500; background: rgba(234,179,8,0.15); border-bottom: 1px solid rgba(234,179,8,0.4); padding: 8px 16px; text-align: center; font-size: 12px; color: #fbbf24; }
+    #wrongNetworkBanner, #wrongNetBanner { display: none; position: sticky; top: 0; z-index: 10; background: rgba(234,179,8,0.15); border-bottom: 1px solid rgba(234,179,8,0.4); padding: 8px 16px; text-align: center; font-size: 12px; color: #fbbf24; }
     #wrongNetworkBanner button { margin-left: 10px; padding: 3px 10px; font-size: 11px; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); border-radius: 4px; color: #fbbf24; cursor: pointer; }
     #wrongNetworkBanner button:hover { background: rgba(234,179,8,0.35); }
 
     /* ── First-call Confirmation Modal ── */
-    #firstCallOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9900; align-items: center; justify-content: center; }
+    #firstCallOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9900; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }
+    #firstCallOverlay.visible { opacity: 1; }
     #firstCallOverlay.open { display: flex; }
     #firstCallBox { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; padding: 24px; max-width: 360px; width: 90%; }
     #firstCallBox h3 { font-size: 16px; margin-bottom: 8px; }
@@ -7257,7 +7278,7 @@
           </div>
 
           <!-- Not-a-provider banner -->
-          <div id="notProviderBanner" style="display:none;background:var(--accent-bg);border:1px solid rgba(22,163,74,0.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div id="notProviderBanner" style="display:none;background:var(--accent-bg);border:1px solid rgba(22,163,74,0.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Earn USDC as a provider</div>
               <div style="font-size:12px;color:var(--text-faint)">Stake USDC, commit to an SLA, earn per request. Automatically slashed only if you miss your deadline.</div>
@@ -14177,7 +14198,7 @@ console.log("call opened:", tx.hash);`;
   (function() {
     const overlay = document.createElement("div");
     overlay.className = "prov-modal-overlay";
-    overlay.id = "provModal";
+    overlay.id = "provProfileOverlay";
     overlay.innerHTML = `
       <div class="prov-modal">
         <div class="prov-modal-head">
@@ -15333,7 +15354,9 @@ console.log("call opened:", tx.hash);`;
     // First-call confirmation
     const p = getProgress();
     if (!p.called) {
-      document.getElementById("firstCallOverlay").classList.add("open");
+      const _fco = document.getElementById("firstCallOverlay");
+      _fco.classList.add("open");
+      requestAnimationFrame(() => _fco.classList.add("visible"));
       document.getElementById("firstCallAmount").textContent = price + " USDC";
       const prov = window.state?.allProviders?.find(pr => pr.id === providerId);
       if (prov) document.getElementById("firstCallWindow").textContent = (prov.maxResponseTime || 120) + "s";
@@ -15344,7 +15367,9 @@ console.log("call opened:", tx.hash);`;
   };
 
   document.getElementById("btnFirstCallConfirm")?.addEventListener("click", () => {
-    document.getElementById("firstCallOverlay").classList.remove("open");
+    const _fco2 = document.getElementById("firstCallOverlay");
+    _fco2.classList.remove("visible");
+    setTimeout(() => _fco2.classList.remove("open"), 200);
     setProgress("called"); // ilk çağrı onaylandı — bir daha sorma
     if (typeof doCall === "function" && window._pendingCallProviderId) {
       doCall(window._pendingCallProviderId);
