@@ -58,7 +58,7 @@ Arc provides infrastructure designed around these requirements: USDC-native gas,
 
 The demo shows programmable USDC payments, service verification, and settlement flows running on Arc Testnet.
 
-### Current deployment (July 2026)
+### Current deployment (September 2026)
 
 | Contract | Address |
 | --- | --- |
@@ -73,26 +73,7 @@ The demo shows programmable USDC payments, service verification, and settlement 
 | Memo | [`0x5294E9927c3306DcBaDb03fe70b92e01cCede505`](https://testnet.arcscan.app/address/0x5294E9927c3306DcBaDb03fe70b92e01cCede505) |
 | Multicall3From | [`0x522fAf9A91c41c443c66765030741e4AaCe147D0`](https://testnet.arcscan.app/address/0x522fAf9A91c41c443c66765030741e4AaCe147D0) |
 
-Deployed July 2026. Frontend points here.
-
-| Contract | Address |
-| --- | --- |
-| ServiceRegistry | [`0x0FbC2841d0d56a57C3967472DDCaef825a38de02`](https://testnet.arcscan.app/address/0x0FbC2841d0d56a57C3967472DDCaef825a38de02) |
-| PayPerCall | [`0x1A64e531Dc7498931A658F14AD6801108F372ed8`](https://testnet.arcscan.app/address/0x1A64e531Dc7498931A658F14AD6801108F372ed8) |
-| CrossChainReceiver | [`0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04`](https://testnet.arcscan.app/address/0x9dA167e0d99de5aE8651449eaebB44ceDFE96F04) |
-| RegisterWithNFT | [`0x8910495C2a876c7b59a175CAc09F823B688b0eEb`](https://testnet.arcscan.app/address/0x8910495C2a876c7b59a175CAc09F823B688b0eEb) |
-| USDC (native gas) | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
-
-Deployed May 2026. Frontend points here.
-
-### Previous deployment (legacy EIP-191 signing)
-
-| Contract | Address |
-| --- | --- |
-| ServiceRegistry | [`0x74635245CfF23a7F261CD5ECF72693cbc75481e4`](https://testnet.arcscan.app/address/0x74635245CfF23a7F261CD5ECF72693cbc75481e4) |
-| PayPerCall | [`0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE`](https://testnet.arcscan.app/address/0x28aa00Af89483218E6Bc036a72C4bAe8A1514BFE) |
-
-Live since April 2026 with 9 active providers. Remains operational; new registrations are routed to v3.
+Active deployment. Frontend points here.
 
 ---
 
@@ -126,9 +107,14 @@ The demo at [arcsla.vercel.app](https://arcsla.vercel.app) is a single-file dapp
 - **Provider modal analytics** — honor rate, call volume, activity bar inline in every provider modal
 - **EURC + USYC balances** — header shows EURC and USYC balances alongside USDC
 - **Arc Privacy Sector (APS)** — vision panel for private SLA calls; integration ready when APS precompile API is public
-- **Goldsky subgraph v1.3.0** — Provider, Call, Job events indexed; real-time GraphQL queries
+- **Goldsky subgraph v2.0.0** — Provider, Call, Dispute, Subscription events indexed; real-time GraphQL queries
 - **Submit receipt** — EIP-712 typed signing (structured fields in wallet)
 - **Claim timeout** — auto-slash when provider misses deadline
+- **Disputes panel** — open disputes, track status, slash history from subgraph
+- **Subscriptions panel** — active subscriptions, renewal tracking, subgraph-sourced history
+- **Unstake flow** — deactivate provider, withdraw stake; full UI in provider dashboard
+- **ERC-8004 NFT badge** — provider dashboard shows AgentIdentity NFT; persists across sessions
+- **Auto-router v3** — 6-factor scoring (honor rate 35%, reputation 25%, price 15%, stake 15%, speed 10%, slash penalty)
 - **Session budget cap** — spending limit for agent flows
 - **Live activity feed** — real-time contract events including SLA calls, nanopayments, and job lifecycle events
 - **Leaderboard** — top 10 providers by Bayesian reputation score with honor rate
@@ -276,7 +262,7 @@ forge build
 forge test -vv
 ```
 
-Expected: **66 tests passed, 0 failed.**
+Expected: **67 tests passed, 0 failed.**
 
 ### Try the demo
 
@@ -285,8 +271,9 @@ Open [callguard.vercel.app](https://callguard.vercel.app) with MetaMask — Arc 
 Or run locally:
 
 ```bash
-cd demo
-python3 -m http.server 8080
+bun install
+bun run dev
+# → http://localhost:5173
 ```
 
 ### Deploy your own copy
@@ -339,6 +326,8 @@ callguard/
 ├── src/
 │   ├── ServiceRegistry.sol          # provider registry, stake, ERC-8004 NFT binding, Bayesian reputation
 │   ├── PayPerCall.sol               # call escrow, EIP-712 receipt verification, timeout enforcement
+│   ├── Subscription.sol             # recurring payment model
+│   ├── Dispute.sol                  # dispute resolution with stake slashing
 │   ├── CrossChainReceiver.sol       # CCTP V2 receiver — bridges multi-chain USDC to callService()
 │   ├── RegisterWithNFT.sol          # helper: mint ERC-8004 NFT + registerV2() in one tx
 │   ├── X402Middleware.sol           # x402 payment middleware — bridges HTTP 402 payments to callService()
@@ -346,8 +335,8 @@ callguard/
 │       ├── IServiceRegistry.sol
 │       └── IPayPerCall.sol
 ├── test/
-│   ├── ServiceRegistry.t.sol        # 57 unit tests (v1 + v2 + ERC-8004 NFT)
-│   ├── PayPerCall.t.sol             # 9 unit tests
+│   ├── ServiceRegistry.t.sol        # 45 unit tests (v1 + v2 + ERC-8004 NFT)
+│   ├── PayPerCall.t.sol             # 22 unit tests
 │   └── helpers/
 │       └── MockUSDC.sol
 ├── script/
@@ -355,8 +344,11 @@ callguard/
 ├── scripts/
 │   ├── x402-provider.js             # Node.js x402 provider server (Express + ethers v6)
 │   └── bridge-and-call.ts           # CCTP bridge helper script
-├── demo/
-│   └── index.html                   # single-file dapp (ethers.js v6, no build step)
+├── app/
+│   └── app/index.html               # single-file dapp (ethers.js v6, no build step)
+├── api/                             # Vercel serverless functions (auto-receipt, x402, nano)
+├── subgraph/                        # Goldsky subgraph v2.0.0 (Provider, Call, Dispute, Subscription)
+├── x402-facilitator/                # x402 facilitator server
 ├── docs/
 │   └── v2-design.md
 ├── SPEC.md
@@ -394,24 +386,28 @@ callguard/
 - **Post-quantum receipt signing** — SLH-DSA-SHA2-128s (NIST FIPS 205), Arc PQ precompile compatible
 - **Band Protocol oracle** — live USDC/USD price feed; provider prices shown in USD
 - **MCP server** — 6 tools for AI agents; local stdio + remote SSE; arc_docs_search tool
-- **Goldsky subgraph v1.3.0** — Provider, Call, Job events indexed; real-time GraphQL
+- **Goldsky subgraph v2.0.0** — Provider, Call, Dispute, Subscription events indexed; real-time GraphQL
 - **Analytics panel** — provider activity bars, honor rate, call volume from Goldsky
 - **EURC + USYC balances** — header shows all Arc ecosystem token balances
 - **Arc Privacy Sector (APS) panel** — vision for private SLA calls
 - **Activity feed** — SLA calls, nanopayments, and job events all in one stream
 - **Bayesian onchain reputation** — `(completed + 2) / (total + 3) × 100`
-- **Auto-router** — picks appropriate provider by reputation + price filters
+- **Auto-router v3** — 6-factor scoring (honor rate, reputation, price, stake, speed, slash penalty)
+- **Disputes panel** — dispute history and status from subgraph
+- **Subscriptions panel** — recurring payment history from subgraph
+- **Unstake flow** — deactivate + withdraw stake UI in provider dashboard
+- **ERC-8004 NFT badge** — provider identity NFT displayed in dashboard
 - **Session budget cap** — spending limit for agent flows
-- **66/66 Foundry tests**
+- **67/67 Foundry tests**
 
 ### Planned
 
 - APS private SLA calls — when Arc Privacy Sector precompile API is public
 - EIP-1271 support (contract-wallet callers)
-- Optional DisputeModule for subjective-quality services
+- On-chain dispute resolution module for subjective-quality services
 - Mainnet deployment once Arc Mainnet is live
 - Reputation-weighted routing contract
-- Railway facilitator migration
+- Subgraph v3 with full Dispute + Subscription event history
 
 ---
 
