@@ -8408,10 +8408,10 @@ curl -X POST https://arcsla.vercel.app/api/service \
           state.provider._getSubscriber && state.provider.setMaxListeners?.(20);
 
           // eth_requestAccounts — standart MetaMask connect
-          console.log("[CallGuard] requesting MetaMask accounts...");
-          console.log("[CallGuard] ethereum provider:", window.ethereum);
+          // console.log("[CallGuard] requesting MetaMask accounts...");
+          // console.log("[CallGuard] ethereum provider:", window.ethereum);
           const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-          console.log("[CallGuard] eth_requestAccounts result:", accounts);
+          // console.log("[CallGuard] eth_requestAccounts result:", accounts);
 
           state.signer  = await state.provider.getSigner();
           state.address = await state.signer.getAddress();
@@ -8639,6 +8639,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
       }
 
       async function refreshAll() {
+        if (!state.signer) return;
         if (refreshRunning) return;
         refreshRunning = true;
 
@@ -8984,7 +8985,7 @@ async function refreshBalance() {
               // Hero slash sayısını da güncelle (gerçek tüm-zaman toplamı)
               const totalSlashes = ps.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
               if(window.animCount){window.animCount($("heroSlashes"),parseInt(String(totalSlashes))||0)}else{$("heroSlashes").textContent=String(totalSlashes)};
-              console.log("[HERO] providers:", count, "slashes:", totalSlashes);
+              // console.log("[HERO] providers:", count, "slashes:", totalSlashes);
               return;
             }
           }
@@ -9048,7 +9049,7 @@ async function refreshBalance() {
                 window.__providers = state.allProviders;
 
                 subgraphLoaded = true;
-                console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
+                // console.log("[subgraph] Loaded", state.allProviders.length, "providers from Goldsky");
                 // console.log("[REP DEBUG]", state.allProviders.slice(0,5).map(...));
               }
             } catch (e) {
@@ -9057,7 +9058,7 @@ async function refreshBalance() {
           }
 
           if (false && !subgraphLoaded && total > 0) {
-          console.log("[RPC FALLBACK] loading providers from chain");
+          // console.log("[RPC FALLBACK] loading providers from chain");
           // Fetch all providers and their reputation scores in parallel
           const ids = [];
           for (let i = 1; i <= total; i++) ids.push(i);
@@ -9143,7 +9144,7 @@ async function refreshBalance() {
           $("statProviders").textContent = state.networkStats.providers.toString();
           $("statCalls").textContent = state.networkStats.calls.toString();
           $("statReceipts").textContent = state.networkStats.receipts.toString();
-          $("statSlashed").textContent = ethers.formatUnits(state.networkStats.slashedAmount, d);
+          $("statSlashed").textContent = ethers.formatUnits(BigInt(state.networkStats?.slashedAmount ?? 0), d);
 
           // Honor rate: only meaningful when we have receipts in scope.
           // If no receipts visible but calls exist, show "—" instead of misleading 0%.
@@ -9626,7 +9627,7 @@ async function refreshBalance() {
                     <span class="call-hash">${short(c.callId, 5)}</span>
                     <span class="call-time">by ${short(c.caller, 4)}</span>
                   </div>
-                  <span class="call-amount">${ethers.formatUnits(c.amount, d)} USDC</span>
+                  <span class="call-amount">${ethers.formatUnits(BigInt(c.amount||"0"), d)} USDC</span>
                 </div>
               `;
             })
@@ -10894,7 +10895,7 @@ async function refreshBalance() {
                   <div class="head-line">
                     <span class="status-dot ${statusClass[s]}"></span>
                     <span>call ${short(c.callId, 6)}</span>
-                    <span style="color: var(--text-faint)">· provider #${c.providerId} · ${ethers.formatUnits(c.amount, state.usdcDecimals)} USDC</span>
+                    <span style="color: var(--text-faint)">· provider #${c.providerId} · ${ethers.formatUnits(BigInt(c.amount||"0"), state.usdcDecimals)} USDC</span>
                   </div>
                   <div class="sub-line">
                     ${statusName[s]}${countdownHtml}
@@ -11581,7 +11582,7 @@ async function refreshBalance() {
           const [rate] = await oracle.getReferenceData("USDC", "USD");
           _usdcUsdRate = parseFloat(ethers.formatUnits(rate, 18));
           _usdcUsdRateAt = Date.now();
-          console.log("[oracle] USDC/USD:", _usdcUsdRate);
+          // console.log("[oracle] USDC/USD:", _usdcUsdRate);
           return _usdcUsdRate;
         } catch(e) {
           console.warn("[oracle] Failed:", e.message);
@@ -12246,10 +12247,10 @@ console.log("call opened:", tx.hash);`;
                 const totalClosed = totalCompleted + totalSlashes;
                 if (totalClosed > 0) {
                   const rate = Math.round(totalCompleted / totalClosed * 100);
-                  console.log("[boot] honor rate:", rate + "%");
+                  // console.log("[boot] honor rate:", rate + "%");
                 }
 
-                console.log("[boot] providers:", ps.length, "calls:", cs.length, "slashes:", totalSlashes);
+                // console.log("[boot] providers:", ps.length, "calls:", cs.length, "slashes:", totalSlashes);
               }
             } catch (e) {
               console.warn("[Goldsky hero stats failed]", e.message);
@@ -12810,7 +12811,11 @@ console.log("call opened:", tx.hash);`;
         if (!box) return;
         box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px">Loading disputes…</div>';
         const addr = state.address.toLowerCase();
-        const sgUrl = CONFIG._subgraphReady ? CONFIG.subgraphUrl : (CONFIG.subgraphUrlFallback || CONFIG.subgraphUrl);
+        if (!CONFIG._subgraphReady) {
+          box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:24px;text-align:center">⏳ Dispute indexing in progress — check back in a few minutes.</div>';
+          return;
+        }
+        const sgUrl = CONFIG.subgraphUrl;
         try {
           const res = await fetch(sgUrl, {
             method: "POST",
@@ -12862,7 +12867,11 @@ console.log("call opened:", tx.hash);`;
         if (!box) return;
         box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px">Loading subscriptions…</div>';
         const addr = state.address.toLowerCase();
-        const sgUrl = CONFIG._subgraphReady ? CONFIG.subgraphUrl : (CONFIG.subgraphUrlFallback || CONFIG.subgraphUrl);
+        if (!CONFIG._subgraphReady) {
+          box.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:24px;text-align:center">⏳ Subscription indexing in progress — check back in a few minutes.</div>';
+          return;
+        }
+        const sgUrl = CONFIG.subgraphUrl;
         try {
           const res = await fetch(sgUrl, {
             method: "POST",
@@ -15397,6 +15406,8 @@ console.log("call opened:", tx.hash);`;
   // Hook into showCategory
   const _origShowCategory = window.showCategory;
   window.showCategory = function(cat) {
+    // Help panel'i kapat
+    document.getElementById("helpPanel")?.classList.remove("open");
     if (typeof _origShowCategory === "function") _origShowCategory(cat);
     setTimeout(() => {
       applyGlossary();
@@ -17977,7 +17988,7 @@ console.log("call opened:", tx.hash);`;
     // Bu özellikle Android/Mises gibi ortamlarda önemlidir:
     // window.ethereum zaten MetaMask ise gereksiz deep-link açma.
     if (window.ethereum?.isMetaMask && typeof window.connect === 'function') {
-      console.log('[CallGuard] MetaMask provider detected — connecting...');
+      // console.log('[CallGuard] MetaMask provider detected — connecting...');
       await window.connect();
       return;
     }
@@ -17992,7 +18003,7 @@ console.log("call opened:", tx.hash);`;
       'https://metamask.app.link/dapp/' +
       host + path + search + hash;
 
-    console.log('[CallGuard] Opening CallGuard in MetaMask:', dappUrl);
+    // console.log('[CallGuard] Opening CallGuard in MetaMask:', dappUrl);
     window.location.href = dappUrl;
   };
 
