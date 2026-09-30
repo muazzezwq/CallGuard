@@ -6561,6 +6561,11 @@
             Disputes
             <span id="disputeBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
           </div>
+          <div class="sb-item" data-nav="quality">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
+            Quality Disputes
+            <span style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+          </div>
           <div class="sb-item" data-nav="subscriptions">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
             Subscriptions
@@ -7752,6 +7757,65 @@ npm install</pre>
           </div>
         </section>
 
+        <!-- ===== QUALITY DISPUTES PANEL ===== -->
+        <section class="panel full-width" id="qualityPanel" data-category="quality" style="display:none">
+          <div class="panel-head">
+            <h2>⭐ Quality Disputes</h2>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Community stake-weighted voting · 48h window</span>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadQualityDisputes && window.loadQualityDisputes()">Refresh</button>
+          </div>
+          <div class="panel-body">
+            <!-- How it works -->
+            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:12px;line-height:1.7">
+              <div style="font-weight:600;margin-bottom:6px;color:var(--text)">How Quality Disputes work</div>
+              <div style="color:var(--text-dim)">
+                1. Caller opens a dispute within <strong>24h</strong> of receipt — locks a <strong>0.5 USDC</strong> bond + submits IPFS evidence.<br>
+                2. Provider can submit their response evidence (IPFS URI) for voters to review.<br>
+                3. Any staked address votes <strong>FOR_CALLER</strong> or <strong>FOR_PROVIDER</strong> within <strong>48h</strong> — locks <strong>0.1 USDC</strong> voter bond.<br>
+                4. After 48h, anyone calls <code>finalize()</code>. Majority wins (min 3 voters required).<br>
+                5. Winners share the losers' bonds. Provider loses additional stake if caller wins.
+              </div>
+            </div>
+
+            <!-- Open new quality dispute -->
+            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:18px">
+              <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Open Quality Dispute</div>
+              <div style="display:grid;gap:10px">
+                <div>
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
+                  <input id="qdCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
+                    <input id="qdProviderId" type="number" placeholder="3" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Settled At (unix ts)</label>
+                    <input id="qdSettledAt" type="number" placeholder="1727600000" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Evidence URI (IPFS CID or URL)</label>
+                  <input id="qdEvidenceUri" type="text" placeholder="ipfs://Qm... or https://..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                </div>
+                <div style="font-size:11px;color:var(--text-faint);padding:8px 10px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:6px">
+                  ⚠️ Opening a dispute locks <strong>0.5 USDC</strong> bond. If the dispute is rejected, the bond is forfeited to winning voters.
+                </div>
+                <button onclick="window.doOpenQualityDispute()" style="padding:10px;background:var(--accent);border:none;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">Open Quality Dispute (0.5 USDC bond)</button>
+              </div>
+            </div>
+
+            <!-- Active disputes list -->
+            <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)">Active Quality Disputes</div>
+            <div id="qualityDisputeList">
+              <div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">
+                Connect wallet to view quality disputes.
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ===== SUBSCRIPTIONS PANEL ===== -->
         <section class="panel full-width" id="subscriptionsPanel" data-category="subscriptions" style="display:none">
           <div class="panel-head">
@@ -8228,6 +8292,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
         memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
         multicall3From: "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
+        qualityDispute: null, // set after deploying DisputeQuality.sol
         dispute: "0xa47162d8e4785d867f05800f35a334fd78575e56",
         subscription: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
       };
@@ -11776,6 +11841,7 @@ async function refreshBalance() {
         if (cat === "jobs") loadMyJobs().catch(()=>{});
         if (cat === "disputes") window.loadMyDisputes?.().catch(()=>{});
         if (cat === "subscriptions") window.loadMySubscriptions?.().catch(()=>{});
+        if (cat === "quality") window.loadQualityDisputes?.().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -12959,6 +13025,188 @@ console.log("call opened:", tx.hash);`;
       }
 
       // ── DISPUTES ──────────────────────────────────────────────────────────
+      // ── QUALITY DISPUTE FUNCTIONS ─────────────────────────────────────────
+
+      // DisputeQuality kontrat adresi — deploy sonrası güncellenecek
+      const QUALITY_DISPUTE_ADDRESS = CONFIG.qualityDispute || null;
+      const QUALITY_DISPUTE_ABI = [
+        "function openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri) external",
+        "function submitResponseEvidence(uint256 disputeId, string responseUri) external",
+        "function vote(uint256 disputeId, uint8 choice) external",
+        "function finalize(uint256 disputeId) external",
+        "function disputes(uint256) external view returns (bytes32 callId, address caller, uint256 providerId, uint64 openedAt, uint64 votingEndsAt, uint256 bond, string evidenceUri, string responseUri, uint256 votesForCaller, uint256 votesForProvider, uint8 outcome, bool finalized)",
+        "function disputeCount() external view returns (uint256)",
+        "function votes(uint256, address) external view returns (uint8)",
+        "function disputeIdByCallId(bytes32) external view returns (uint256)",
+      ];
+
+      function getQualityContract() {
+        if (!QUALITY_DISPUTE_ADDRESS || !state.signer) return null;
+        return new ethers.Contract(QUALITY_DISPUTE_ADDRESS, QUALITY_DISPUTE_ABI, state.signer);
+      }
+
+      window.doOpenQualityDispute = async function() {
+        if (!state.address) { toast({ kind: "err", title: "Connect wallet first" }); return; }
+        if (!QUALITY_DISPUTE_ADDRESS) {
+          toast({ kind: "warn", title: "Quality Dispute contract not deployed yet", detail: "Deploy DisputeQuality.sol first", timeout: 6000 });
+          return;
+        }
+        const callId = document.getElementById("qdCallId")?.value.trim();
+        const providerId = document.getElementById("qdProviderId")?.value.trim();
+        const settledAt = document.getElementById("qdSettledAt")?.value.trim();
+        const evidenceUri = document.getElementById("qdEvidenceUri")?.value.trim();
+
+        if (!callId || callId.length !== 66) { toast({ kind: "err", title: "Enter a valid call ID (0x + 64 hex chars)" }); return; }
+        if (!providerId) { toast({ kind: "err", title: "Enter provider ID" }); return; }
+        if (!settledAt) { toast({ kind: "err", title: "Enter settled timestamp" }); return; }
+        if (!evidenceUri) { toast({ kind: "err", title: "Enter evidence URI (IPFS CID or URL)" }); return; }
+
+        const contract = getQualityContract();
+        if (!contract) return;
+
+        // USDC approval check
+        const bondAmount = ethers.parseUnits("0.5", state.usdcDecimals);
+        try {
+          const allowance = await state.usdc.allowance(state.address, QUALITY_DISPUTE_ADDRESS);
+          if (allowance < bondAmount) {
+            const tApprove = toast({ kind: "info", title: "Approving 0.5 USDC bond…", timeout: 60000 });
+            const approveTx = await state.usdc.approve(QUALITY_DISPUTE_ADDRESS, bondAmount);
+            await approveTx.wait();
+            tApprove.remove();
+          }
+        } catch(e) {
+          toast({ kind: "err", title: "Approval failed", detail: e.reason || e.message?.slice(0,80) });
+          return;
+        }
+
+        try {
+          const tOpen = toast({ kind: "info", title: "Opening quality dispute…", timeout: 60000 });
+          const tx = await contract.openDispute(callId, BigInt(providerId), BigInt(settledAt), evidenceUri);
+          const { finalityMs } = await waitWithFinality(tx);
+          tOpen.remove();
+          toast({ kind: "ok", title: "Quality dispute opened", detail: "Community voting starts now · 48h window", link: txLink(tx.hash), finalityMs });
+          window.loadQualityDisputes?.();
+        } catch(e) {
+          toast({ kind: "err", title: "Dispute failed", detail: e.reason || e.message?.slice(0,120), timeout: 8000 });
+        }
+      };
+
+      window.doVoteQuality = async function(disputeId, choice) {
+        const contract = getQualityContract();
+        if (!contract) { toast({ kind: "err", title: "Contract not available" }); return; }
+
+        const bondAmount = ethers.parseUnits("0.1", state.usdcDecimals);
+        try {
+          const allowance = await state.usdc.allowance(state.address, QUALITY_DISPUTE_ADDRESS);
+          if (allowance < bondAmount) {
+            const tA = toast({ kind: "info", title: "Approving 0.1 USDC voter bond…", timeout: 60000 });
+            const approveTx = await state.usdc.approve(QUALITY_DISPUTE_ADDRESS, bondAmount);
+            await approveTx.wait();
+            tA.remove();
+          }
+        } catch(e) {
+          toast({ kind: "err", title: "Approval failed", detail: e.reason || e.message?.slice(0,80) });
+          return;
+        }
+        try {
+          const tV = toast({ kind: "info", title: "Submitting vote…", timeout: 60000 });
+          const tx = await contract.vote(BigInt(disputeId), choice);
+          const { finalityMs } = await waitWithFinality(tx);
+          tV.remove();
+          toast({ kind: "ok", title: choice === 1 ? "Voted FOR CALLER" : "Voted FOR PROVIDER", link: txLink(tx.hash), finalityMs });
+          window.loadQualityDisputes?.();
+        } catch(e) {
+          toast({ kind: "err", title: "Vote failed", detail: e.reason || e.message?.slice(0,120), timeout: 8000 });
+        }
+      };
+
+      window.doFinalizeQuality = async function(disputeId) {
+        const contract = getQualityContract();
+        if (!contract) { toast({ kind: "err", title: "Contract not available" }); return; }
+        try {
+          const tF = toast({ kind: "info", title: "Finalizing dispute…", timeout: 60000 });
+          const tx = await contract.finalize(BigInt(disputeId));
+          const { finalityMs } = await waitWithFinality(tx);
+          tF.remove();
+          toast({ kind: "ok", title: "Dispute finalized", link: txLink(tx.hash), finalityMs });
+          window.loadQualityDisputes?.();
+        } catch(e) {
+          toast({ kind: "err", title: "Finalize failed", detail: e.reason || e.message?.slice(0,120), timeout: 8000 });
+        }
+      };
+
+      window.loadQualityDisputes = async function() {
+        const box = document.getElementById("qualityDisputeList");
+        if (!box) return;
+        if (!state.address) {
+          box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">Connect wallet to view quality disputes.</div>';
+          return;
+        }
+        if (!QUALITY_DISPUTE_ADDRESS) {
+          box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">DisputeQuality contract not deployed yet.<br><span style="font-size:10px">Deploy DisputeQuality.sol to activate community voting.</span></div>';
+          return;
+        }
+        try {
+          const contract = new ethers.Contract(QUALITY_DISPUTE_ADDRESS, QUALITY_DISPUTE_ABI, state.provider);
+          const count = Number(await contract.disputeCount());
+          if (count === 0) {
+            box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">No quality disputes yet.</div>';
+            return;
+          }
+          const items = [];
+          for (let i = count; i >= Math.max(1, count - 19); i--) {
+            try {
+              const d = await contract.disputes(i);
+              const myVote = state.address ? Number(await contract.votes(i, state.address)) : 0;
+              items.push({ id: i, ...d, myVote });
+            } catch {}
+          }
+          const outcomeLabel = ["⏳ Voting", "✅ Caller Wins", "🛡️ Provider Wins", "🤝 Tied"];
+          const outcomeColor = ["var(--text-faint)", "var(--accent)", "var(--warn)", "var(--text-dim)"];
+          const now = Math.floor(Date.now() / 1000);
+          box.innerHTML = items.map(d => {
+            const ended = now > Number(d.votingEndsAt);
+            const outcome = Number(d.outcome);
+            const totalVotes = Number(d.votesForCaller) + Number(d.votesForProvider);
+            const callerPct = totalVotes > 0 ? Math.round(Number(d.votesForCaller) * 100 / totalVotes) : 50;
+            const timeLeft = Number(d.votingEndsAt) - now;
+            const timeStr = timeLeft > 0 ? (timeLeft > 3600 ? `${Math.round(timeLeft/3600)}h left` : `${Math.round(timeLeft/60)}m left`) : "Ended";
+            return `
+              <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;background:var(--bg-1)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <div style="font-size:12px;font-weight:600">Dispute #${d.id} — Provider #${Number(d.providerId)}</div>
+                  <span style="font-size:11px;color:${outcomeColor[outcome]};font-weight:600">${outcomeLabel[outcome]}</span>
+                </div>
+                <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">
+                  Call: <code style="font-size:10px">${String(d.callId).slice(0,10)}…</code>
+                  · By: <code style="font-size:10px">${d.caller.slice(0,8)}…</code>
+                  · ${timeStr}
+                </div>
+                ${d.evidenceUri ? `<div style="font-size:11px;margin-bottom:8px"><a href="${d.evidenceUri}" target="_blank" style="color:var(--accent)">📎 Evidence</a>${d.responseUri ? ` · <a href="${d.responseUri}" target="_blank" style="color:var(--text-dim)">📄 Provider Response</a>` : ''}</div>` : ''}
+                <!-- Vote bar -->
+                <div style="margin-bottom:8px">
+                  <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-bottom:3px">
+                    <span>FOR CALLER ${callerPct}%</span><span>FOR PROVIDER ${100-callerPct}%</span>
+                  </div>
+                  <div style="height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden">
+                    <div style="height:100%;width:${callerPct}%;background:var(--accent);border-radius:3px;transition:width .3s"></div>
+                  </div>
+                </div>
+                <!-- Actions -->
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  ${!ended && !d.finalized && d.myVote === 0 ? `
+                    <button onclick="window.doVoteQuality(${d.id},1)" style="font-size:11px;padding:4px 10px;background:var(--accent);border:none;color:#fff;border-radius:4px;cursor:pointer">👍 FOR CALLER (0.1 USDC)</button>
+                    <button onclick="window.doVoteQuality(${d.id},2)" style="font-size:11px;padding:4px 10px;background:var(--bg-3);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">👎 FOR PROVIDER (0.1 USDC)</button>
+                  ` : d.myVote !== 0 ? `<span style="font-size:11px;color:var(--text-faint)">You voted: ${d.myVote === 1 ? "FOR CALLER" : "FOR PROVIDER"}</span>` : ''}
+                  ${ended && !d.finalized ? `<button onclick="window.doFinalizeQuality(${d.id})" style="font-size:11px;padding:4px 12px;background:var(--warn);border:none;color:#fff;border-radius:4px;cursor:pointer">⚡ Finalize</button>` : ''}
+                </div>
+              </div>`;
+          }).join("");
+        } catch(e) {
+          box.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:12px">Error loading disputes: ${e.message?.slice(0,100)}</div>`;
+        }
+      };
+
       window.loadMyDisputes = async function() {
         if (!state.address) return;
         const box = document.getElementById("disputeListBox");
