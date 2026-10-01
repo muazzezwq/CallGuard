@@ -6566,6 +6566,11 @@
             Quality Disputes
             <span style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
+          <div class="sb-item" data-nav="futures">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></span>
+            SLA Futures
+            <span style="margin-left:auto;background:#8b5cf6;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+          </div>
           <div class="sb-item" data-nav="subscriptions">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
             Subscriptions
@@ -7757,6 +7762,68 @@ npm install</pre>
           </div>
         </section>
 
+        <!-- ===== SLA FUTURES PANEL ===== -->
+        <section class="panel full-width" id="futuresPanel" data-category="futures" style="display:none">
+          <div class="panel-head">
+            <h2>🎟 SLA Futures</h2>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Pre-buy API call capacity · ERC-1155 transferable slots</span>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadFutures && window.loadFutures()">Refresh</button>
+          </div>
+          <div class="panel-body">
+            <!-- How it works -->
+            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:12px;line-height:1.8;color:var(--text-2)">
+              <b style="color:var(--text)">How SLA Futures work</b><br>
+              Providers mint capacity batches (ERC-1155 tokens). Callers buy slots upfront at a locked price.
+              When ready to call, burn one slot — payment was already made, no escrow needed.
+              Unused slots from cancelled batches are fully refundable.
+              Slots are transferable — trade them on any ERC-1155 marketplace.
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button id="futTabBrowse" class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="window.showFuturesTab('browse')">Browse Batches</button>
+              <button id="futTabMy" class="btn btn-sm" onclick="window.showFuturesTab('my')">My Slots</button>
+              <button id="futTabMint" class="btn btn-sm" onclick="window.showFuturesTab('mint')">Mint Capacity</button>
+            </div>
+
+            <!-- Browse tab -->
+            <div id="futBrowseTab">
+              <div id="futuresBatchList" style="display:grid;gap:12px"></div>
+            </div>
+
+            <!-- My Slots tab -->
+            <div id="futMyTab" style="display:none">
+              <div id="futuresMySlots" style="display:grid;gap:12px">
+                <div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">Connect wallet to see your slots.</div>
+              </div>
+            </div>
+
+            <!-- Mint Capacity tab (providers only) -->
+            <div id="futMintTab" style="display:none">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:18px;max-width:480px">
+                <div style="font-weight:600;margin-bottom:14px;color:var(--text)">Mint a new capacity batch</div>
+                <div class="field-row" style="margin-bottom:10px">
+                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Provider ID</label>
+                  <input id="futProvId" type="number" class="input" placeholder="Your provider ID" min="1">
+                </div>
+                <div class="field-row" style="margin-bottom:10px">
+                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Price per slot (USDC)</label>
+                  <input id="futPrice" type="number" class="input" placeholder="e.g. 1.00" step="0.001" min="0.001">
+                </div>
+                <div class="field-row" style="margin-bottom:10px">
+                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Total slots</label>
+                  <input id="futSlots" type="number" class="input" placeholder="e.g. 100" min="1">
+                </div>
+                <div class="field-row" style="margin-bottom:16px">
+                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Deadline</label>
+                  <input id="futDeadline" type="datetime-local" class="input">
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="window.doMintCapacity()">🎟 Mint Capacity Batch</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ===== QUALITY DISPUTES PANEL ===== -->
         <section class="panel full-width" id="qualityPanel" data-category="quality" style="display:none">
           <div class="panel-head">
@@ -8293,6 +8360,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
         multicall3From: "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
         qualityDispute: "0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725",
+        slaFutures: null, // set after deploying SLAFutures.sol
         dispute: "0xa47162d8e4785d867f05800f35a334fd78575e56",
         subscription: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
       };
@@ -11842,6 +11910,7 @@ async function refreshBalance() {
         if (cat === "disputes") window.loadMyDisputes?.().catch(()=>{});
         if (cat === "subscriptions") window.loadMySubscriptions?.().catch(()=>{});
         if (cat === "quality") window.loadQualityDisputes?.().catch(()=>{});
+        if (cat === "futures") window.loadFutures?.().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -13025,6 +13094,154 @@ console.log("call opened:", tx.hash);`;
       }
 
       // ── DISPUTES ──────────────────────────────────────────────────────────
+      // ── SLA FUTURES FUNCTIONS ─────────────────────────────────────────────
+      const SLA_FUTURES_ABI = [
+        "function mintCapacity(uint256 providerId, uint256 pricePerCall, uint256 totalSlots, uint64 deadline) returns (uint256)",
+        "function buySlots(uint256 batchId, uint256 amount) external",
+        "function burnSlot(uint256 batchId) external",
+        "function cancelBatch(uint256 batchId) external",
+        "function claimRefund(uint256 batchId) external",
+        "function batches(uint256) external view returns (uint256 providerId, uint256 pricePerCall, uint256 totalSlots, uint256 soldSlots, uint256 usedSlots, uint64 deadline, bool active, address provider)",
+        "function batchCount() external view returns (uint256)",
+        "function balanceOf(address account, uint256 id) external view returns (uint256)",
+        "function purchased(uint256,address) external view returns (uint256)"
+      ];
+
+      window.showFuturesTab = function(tab) {
+        document.getElementById("futBrowseTab").style.display  = tab === "browse" ? "" : "none";
+        document.getElementById("futMyTab").style.display      = tab === "my"     ? "" : "none";
+        document.getElementById("futMintTab").style.display    = tab === "mint"   ? "" : "none";
+        ["Browse","My","Mint"].forEach(t => {
+          const btn = document.getElementById("futTab" + t);
+          if (btn) btn.style.background = tab === t.toLowerCase() ? "var(--accent)" : "";
+          if (btn) btn.style.color = tab === t.toLowerCase() ? "#fff" : "";
+        });
+      };
+
+      window.loadFutures = async function() {
+        const addr = CONFIG.slaFutures;
+        const list = document.getElementById("futuresBatchList");
+        if (!list) return;
+        if (!addr) {
+          list.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">SLA Futures contract not yet deployed. Coming soon.</div>`;
+          return;
+        }
+        list.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">Loading batches...</div>`;
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, provider);
+          const count = (await contract.batchCount()).toNumber();
+          if (count === 0) { list.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">No capacity batches available yet. Providers can mint new batches.</div>`; return; }
+          const cards = [];
+          for (let i = 1; i <= count; i++) {
+            const b = await contract.batches(i);
+            const deadline = new Date(b.deadline * 1000);
+            const expired = Date.now() > b.deadline * 1000;
+            const available = b.totalSlots.sub(b.soldSlots).toNumber();
+            const price = (b.pricePerCall.toNumber() / 1e6).toFixed(4);
+            cards.push(`
+              <div style="background:var(--bg-2);border:1px solid ${b.active && !expired ? "var(--accent)" : "var(--border)"};border-radius:10px;padding:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                  <div style="font-weight:700;font-size:14px;color:var(--text)">Batch #${i} · Provider #${b.providerId}</div>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${!b.active ? "var(--danger)" : expired ? "#f59e0b" : "var(--accent)"};color:#fff">
+                    ${!b.active ? "Cancelled" : expired ? "Expired" : "Active"}
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px">
+                  <div><div style="color:var(--text-faint)">Price/slot</div><div style="font-weight:600;color:var(--accent)">${price} USDC</div></div>
+                  <div><div style="color:var(--text-faint)">Available</div><div style="font-weight:600">${available} / ${b.totalSlots}</div></div>
+                  <div><div style="color:var(--text-faint)">Deadline</div><div style="font-weight:600">${deadline.toLocaleDateString()}</div></div>
+                </div>
+                <div style="display:flex;gap:8px">
+                  ${b.active && !expired && available > 0 ? `<button onclick="window.doBuySlots(${i},${b.pricePerCall})" class="btn btn-sm btn-primary">Buy slot (${price} USDC)</button>` : ""}
+                  <button onclick="window.doBurnSlot(${i})" class="btn btn-sm" style="background:var(--bg-3)">Burn slot (use call)</button>
+                  ${!b.active ? `<button onclick="window.doClaimRefund(${i})" class="btn btn-sm" style="background:var(--danger);color:#fff">Claim refund</button>` : ""}
+                </div>
+              </div>`);
+          }
+          list.innerHTML = cards.join("");
+        } catch(e) {
+          list.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:12px">Error: ${e.message?.slice(0,120)}</div>`;
+        }
+      };
+
+      window.doMintCapacity = async function() {
+        if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
+        const addr = CONFIG.slaFutures;
+        if (!addr) return window.toast({kind:"warn",title:"SLA Futures not deployed yet"});
+        const providerId = document.getElementById("futProvId")?.value;
+        const price = document.getElementById("futPrice")?.value;
+        const slots = document.getElementById("futSlots")?.value;
+        const deadline = document.getElementById("futDeadline")?.value;
+        if (!providerId || !price || !slots || !deadline) return window.toast({kind:"warn",title:"Fill all fields"});
+        const deadlineTs = Math.floor(new Date(deadline).getTime() / 1000);
+        const priceUnits = Math.round(parseFloat(price) * 1e6);
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
+          const tx = await contract.mintCapacity(Number(providerId), priceUnits, Number(slots), deadlineTs);
+          window.toast({kind:"info",title:"Minting capacity batch...",msg:"Waiting for confirmation"});
+          const rc = await tx.wait();
+          window.toast({kind:"ok",title:"Capacity batch minted!",msg:`TX: ${rc.transactionHash.slice(0,18)}...`});
+          window.loadFutures();
+        } catch(e) {
+          window.toast({kind:"err",title:"Mint failed",msg:e.reason||e.message?.slice(0,80)});
+        }
+      };
+
+      window.doBuySlots = async function(batchId, pricePerCall) {
+        if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
+        const addr = CONFIG.slaFutures;
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const usdc = new ethers.Contract(CONFIG.usdc, ["function approve(address,uint256) returns (bool)"], signer);
+          await (await usdc.approve(addr, pricePerCall)).wait();
+          const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
+          const tx = await contract.buySlots(batchId, 1);
+          window.toast({kind:"info",title:"Buying slot...",msg:"Waiting for confirmation"});
+          await tx.wait();
+          window.toast({kind:"ok",title:"Slot purchased!",msg:`Batch #${batchId} · 1 slot`});
+          window.loadFutures();
+        } catch(e) {
+          window.toast({kind:"err",title:"Buy failed",msg:e.reason||e.message?.slice(0,80)});
+        }
+      };
+
+      window.doBurnSlot = async function(batchId) {
+        if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
+        const addr = CONFIG.slaFutures;
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
+          const tx = await contract.burnSlot(batchId);
+          window.toast({kind:"info",title:"Burning slot...",msg:"Marks one pre-paid call as used"});
+          await tx.wait();
+          window.toast({kind:"ok",title:"Slot burned — call authorized!",msg:`Batch #${batchId}`});
+        } catch(e) {
+          window.toast({kind:"err",title:"Burn failed",msg:e.reason||e.message?.slice(0,80)});
+        }
+      };
+
+      window.doClaimRefund = async function(batchId) {
+        if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
+        const addr = CONFIG.slaFutures;
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
+          const tx = await contract.claimRefund(batchId);
+          window.toast({kind:"info",title:"Claiming refund...",msg:"Burning your remaining slots"});
+          await tx.wait();
+          window.toast({kind:"ok",title:"Refund claimed!",msg:`USDC returned for batch #${batchId}`});
+          window.loadFutures();
+        } catch(e) {
+          window.toast({kind:"err",title:"Refund failed",msg:e.reason||e.message?.slice(0,80)});
+        }
+      };
+
       // ── QUALITY DISPUTE FUNCTIONS ─────────────────────────────────────────
 
       // DisputeQuality kontrat adresi — deploy sonrası güncellenecek
