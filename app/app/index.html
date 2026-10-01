@@ -6566,6 +6566,11 @@
             Quality Disputes
             <span style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
+          <div class="sb-item" data-nav="agent">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="6" r="2" fill="currentColor"/></svg></span>
+            Agent Loop
+            <span style="margin-left:auto;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+          </div>
           <div class="sb-item" data-nav="lending">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg></span>
             RepFi Lending
@@ -7764,6 +7769,120 @@ npm install</pre>
           </div>
           <div class="panel-body" id="disputeListBox">
             <div class="empty-state" style="padding:24px;text-align:center;color:var(--text-dim);font-size:12px">Connect wallet to view disputes.</div>
+          </div>
+        </section>
+
+        <!-- ===== AGENT LOOP PANEL ===== -->
+        <section class="panel full-width" id="agentPanel" data-category="agent" style="display:none">
+          <div class="panel-head">
+            <h2>🤖 Agent Loop</h2>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Autonomous AI wallet · Daily spend limits · Zero human approval</span>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadAgentPanel && window.loadAgentPanel()">Refresh</button>
+          </div>
+          <div class="panel-body">
+            <!-- Status card -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="agentStats">
+              <div class="stat-card"><div class="stat-val" id="agentBalance">—</div><div class="stat-lbl">Wallet Balance</div></div>
+              <div class="stat-card"><div class="stat-val" id="agentSpentToday">—</div><div class="stat-lbl">Spent Today</div></div>
+              <div class="stat-card"><div class="stat-val" id="agentRemaining">—</div><div class="stat-lbl">Remaining Today</div></div>
+              <div class="stat-card"><div class="stat-val" id="agentTotalCalls">—</div><div class="stat-lbl">Total Calls</div></div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border-color);padding-bottom:8px">
+              <button class="btn btn-sm agent-tab active-tab" data-tab="setup" onclick="window.switchAgentTab('setup')">Setup Wallet</button>
+              <button class="btn btn-sm agent-tab" data-tab="autoroute" onclick="window.switchAgentTab('autoroute')">Auto Route</button>
+              <button class="btn btn-sm agent-tab" data-tab="settings" onclick="window.switchAgentTab('settings')">Settings</button>
+              <button class="btn btn-sm agent-tab" data-tab="mcp" onclick="window.switchAgentTab('mcp')">MCP Guide</button>
+            </div>
+
+            <!-- Setup tab -->
+            <div id="agentTabSetup">
+              <div class="info-box" style="margin-bottom:16px">
+                <b>🤖 What is Agent Loop?</b><br>
+                Deploy an AgentWallet smart contract — an onchain wallet your AI controls autonomously. Set a daily USDC limit, whitelist providers, and the AI makes service calls 24/7 without any human approval.<br><br>
+                <b>How it works:</b> You deposit USDC → AI agent calls providers → Daily limit enforced onchain → You control the wallet, AI controls the calls.
+              </div>
+              <div id="agentWalletStatus">
+                <div style="text-align:center;padding:32px;color:var(--text-faint)">
+                  <div style="font-size:32px;margin-bottom:8px">🤖</div>
+                  <div style="font-size:14px;font-weight:600;margin-bottom:4px">No Agent Wallet deployed</div>
+                  <div style="font-size:12px;margin-bottom:16px">Deploy an AgentWallet contract to enable autonomous AI calls</div>
+                  <button class="btn btn-primary" onclick="window.showDeployAgentModal()">Deploy Agent Wallet</button>
+                  <div style="margin-top:12px;font-size:11px;color:var(--text-faint)">or paste existing address: <input id="agentWalletAddrInput" placeholder="0x..." style="width:300px;padding:4px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:11px;background:var(--bg-input);color:var(--text-main)"> <button class="btn btn-sm" onclick="window.connectAgentWallet()">Connect</button></div>
+                </div>
+              </div>
+              <div id="agentWalletConnected" style="display:none">
+                <div style="display:flex;gap:12px;margin-bottom:12px">
+                  <button class="btn btn-primary" onclick="window.showAgentDeposit()">+ Deposit USDC</button>
+                  <button class="btn btn-sm" onclick="window.showAgentWithdraw()">Withdraw</button>
+                  <button class="btn btn-sm" style="color:#ef4444" onclick="window.pauseAgentWallet()">Pause</button>
+                </div>
+                <div style="font-size:11px;color:var(--text-faint)">Agent Wallet: <span id="agentWalletAddr" style="font-family:monospace;color:var(--text-main)">—</span></div>
+              </div>
+            </div>
+
+            <!-- Auto route tab -->
+            <div id="agentTabAutoroute" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">PAYLOAD (what to request)</label>
+                  <textarea id="agentPayload" rows="4" placeholder='{"task":"analyze","data":"..."}' style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;font-family:monospace;resize:vertical;margin-top:4px"></textarea>
+                  <label style="font-size:11px;font-weight:600;color:var(--text-faint);margin-top:8px;display:block">MAX PRICE (USDC)</label>
+                  <input id="agentMaxPrice" type="number" value="1" step="0.1" min="0.001" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
+                  <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="window.doAgentAutoRoute()">⚡ Auto Route & Call</button>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">RESULT</label>
+                  <div id="agentRouteResult" style="margin-top:4px;padding:12px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);min-height:120px;font-family:monospace;font-size:11px;color:var(--text-faint)">Run auto route to see result...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Settings tab -->
+            <div id="agentTabSettings" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">DAILY LIMIT (USDC)</label>
+                  <input id="agentDailyLimitInput" type="number" placeholder="10" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
+                  <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentDailyLimit()">Update</button>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">MAX PER CALL (USDC)</label>
+                  <input id="agentMaxPerCallInput" type="number" placeholder="2" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
+                  <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentMaxPerCall()">Update</button>
+                </div>
+              </div>
+              <div style="margin-top:16px">
+                <label style="font-size:11px;font-weight:600;color:var(--text-faint)">WHITELIST PROVIDERS (optional — comma separated IDs)</label>
+                <input id="agentWhitelistInput" placeholder="1,3,7" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
+                <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentWhitelist()">Update Whitelist</button>
+              </div>
+            </div>
+
+            <!-- MCP guide tab -->
+            <div id="agentTabMcp" style="display:none">
+              <div class="info-box" style="margin-bottom:12px">
+                <b>Connect your AI to CallGuard via MCP</b><br>
+                Add this to your Claude/GPT/Cursor MCP config to enable autonomous service calls:
+              </div>
+              <pre style="background:var(--bg-input);padding:12px;border-radius:6px;font-size:11px;overflow-x:auto">{
+  "mcpServers": {
+    "callguard": {
+      "command": "node",
+      "args": ["/path/to/callguard/x402-facilitator/mcp-server.js"],
+      "env": {
+        "AGENT_WALLET_ADDRESS": "<your-agent-wallet-address>",
+        "AGENT_PRIVATE_KEY": "<agent-hot-wallet-key>",
+        "RPC_URL": "https://rpc.testnet.arc.network"
+      }
+    }
+  }
+}</pre>
+              <div style="margin-top:12px;font-size:11px;color:var(--text-faint)">
+                Available MCP tools: <code>list_providers</code>, <code>auto_route</code>, <code>call_service</code>, <code>agent_wallet_stats</code>, <code>get_provider_health</code>, <code>nanopay</code>, <code>get_network_stats</code>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -11996,6 +12115,7 @@ async function refreshBalance() {
         if (cat === "quality") window.loadQualityDisputes?.().catch(()=>{});
         if (cat === "futures") window.loadFutures?.().catch(()=>{});
         if (cat === "lending") window.loadLending?.().catch(()=>{});
+        if (cat === "agent")   window.loadAgentPanel?.().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -13179,6 +13299,173 @@ console.log("call opened:", tx.hash);`;
       }
 
       // ── DISPUTES ──────────────────────────────────────────────────────────
+      // ── AGENT LOOP FUNCTIONS ──────────────────────────────────────────────
+      const AGENT_WALLET_ABI = [
+        "function deposit(uint256 amount) external",
+        "function withdraw(uint256 amount) external",
+        "function agentCall(uint256 providerId, bytes32 requestHash, uint256 amount, bytes calldata extraData) returns (bytes32)",
+        "function setDailyLimit(uint256 limit) external",
+        "function setMaxPerCall(uint256 max) external",
+        "function addToWhitelist(uint256 providerId) external",
+        "function removeFromWhitelist(uint256 providerId) external",
+        "function pause() external",
+        "function unpause() external",
+        "function getStats() view returns (uint256 balance, uint256 spentToday, uint256 remainingToday, uint256 totalSpent, uint256 totalCalls)",
+        "function dailyLimit() view returns (uint256)",
+        "function maxPerCall() view returns (uint256)",
+        "function paused() view returns (bool)",
+        "function agent() view returns (address)",
+      ];
+
+      let _agentWalletAddr = localStorage.getItem("cg_agent_wallet") || null;
+
+      window.switchAgentTab = function(tab) {
+        document.querySelectorAll('.agent-tab').forEach(b => b.classList.remove('active-tab'));
+        document.querySelector(`.agent-tab[data-tab="${tab}"]`)?.classList.add('active-tab');
+        ['setup','autoroute','settings','mcp'].forEach(t => {
+          const el = document.getElementById(`agentTab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+          if (el) el.style.display = t === tab ? '' : 'none';
+        });
+      };
+
+      window.connectAgentWallet = function() {
+        const addr = document.getElementById('agentWalletAddrInput')?.value?.trim();
+        if (!addr || !addr.startsWith('0x')) { window.toast({kind:'err',title:'Invalid address'}); return; }
+        _agentWalletAddr = addr;
+        localStorage.setItem('cg_agent_wallet', addr);
+        window.loadAgentPanel();
+      };
+
+      window.loadAgentPanel = async function() {
+        if (!_agentWalletAddr || !state.provider) {
+          document.getElementById('agentWalletStatus').style.display = '';
+          document.getElementById('agentWalletConnected').style.display = 'none';
+          return;
+        }
+        try {
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, state.provider);
+          const stats = await aw.getStats();
+          document.getElementById('agentBalance').textContent     = (Number(stats.balance)/1e6).toFixed(4)+' USDC';
+          document.getElementById('agentSpentToday').textContent  = (Number(stats.spentToday)/1e6).toFixed(4)+' USDC';
+          document.getElementById('agentRemaining').textContent   = (Number(stats.remainingToday)/1e6).toFixed(4)+' USDC';
+          document.getElementById('agentTotalCalls').textContent  = Number(stats.totalCalls).toString();
+          document.getElementById('agentWalletAddr').textContent  = _agentWalletAddr.slice(0,10)+'...'+_agentWalletAddr.slice(-6);
+          document.getElementById('agentWalletStatus').style.display    = 'none';
+          document.getElementById('agentWalletConnected').style.display = '';
+        } catch(e) {
+          window.toast({kind:'err',title:'Agent wallet load failed',msg:e.message?.slice(0,80)});
+        }
+      };
+
+      window.showAgentDeposit = async function() {
+        const amt = prompt('Deposit amount (USDC):');
+        if (!amt || isNaN(amt) || Number(amt)<=0) return;
+        try {
+          const signer = state.provider.getSigner();
+          const usdc = new ethers.Contract(CONFIG.usdc, ["function approve(address,uint256) returns (bool)"], signer);
+          const aw   = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          const amtWei = BigInt(Math.round(Number(amt)*1e6));
+          await (await usdc.approve(_agentWalletAddr, amtWei)).wait();
+          await (await aw.deposit(amtWei)).wait();
+          window.toast({kind:'ok',title:'Deposited!',msg:`${amt} USDC deposited to Agent Wallet`});
+          window.loadAgentPanel();
+        } catch(e) { window.toast({kind:'err',title:'Deposit failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.showAgentWithdraw = async function() {
+        const amt = prompt('Withdraw amount (USDC):');
+        if (!amt || isNaN(amt) || Number(amt)<=0) return;
+        try {
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          await (await aw.withdraw(BigInt(Math.round(Number(amt)*1e6)))).wait();
+          window.toast({kind:'ok',title:'Withdrawn!',msg:`${amt} USDC withdrawn`});
+          window.loadAgentPanel();
+        } catch(e) { window.toast({kind:'err',title:'Withdraw failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.pauseAgentWallet = async function() {
+        if (!confirm('Pause agent wallet? Agent will not be able to make calls.')) return;
+        try {
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          const paused = await aw.paused();
+          if (paused) { await (await aw.unpause()).wait(); window.toast({kind:'ok',title:'Unpaused'}); }
+          else        { await (await aw.pause()).wait();   window.toast({kind:'ok',title:'Paused'}); }
+          window.loadAgentPanel();
+        } catch(e) { window.toast({kind:'err',title:'Failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.doAgentAutoRoute = async function() {
+        const payload  = document.getElementById('agentPayload')?.value?.trim();
+        const maxPrice = Number(document.getElementById('agentMaxPrice')?.value || '1');
+        if (!payload) { window.toast({kind:'err',title:'Enter a payload'}); return; }
+        if (!_agentWalletAddr) { window.toast({kind:'err',title:'Connect Agent Wallet first'}); return; }
+        const result = document.getElementById('agentRouteResult');
+        result.textContent = 'Routing...';
+        try {
+          // Auto-select best provider
+          const res = await fetch(CONFIG.subgraphUrl, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ query:`{ providers(first:50, where:{active:true}){ id pricePerCall completedCalls slashedCalls stake } }` })
+          });
+          const data = await res.json();
+          const providers = (data.data?.providers||[])
+            .filter(p => Number(p.pricePerCall)/1e6 <= maxPrice)
+            .map(p => {
+              const c=Number(p.completedCalls||0), s=Number(p.slashedCalls||0), t=c+s;
+              const honor = t>0?c/t:0.66;
+              const price = Number(p.pricePerCall)/1e6;
+              const stake = Number(p.stake)/1e6;
+              return {...p, score: honor*0.5+(1/(price+0.001))*0.2+Math.min(stake/1000,1)*0.3, price, honor};
+            }).sort((a,b)=>b.score-a.score);
+          if (!providers.length) { result.textContent='No providers found under '+maxPrice+' USDC/call'; return; }
+          const best = providers[0];
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          const requestHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
+          const amount = BigInt(Math.round(best.price*1e6));
+          const tx = await aw.agentCall(Number(best.id), requestHash, amount, '0x');
+          const rc = await tx.wait();
+          result.textContent = `✅ Autonomous call complete!\nProvider: #${best.id} (score: ${best.score.toFixed(2)})\nPaid: ${best.price.toFixed(4)} USDC\nHonor: ${(best.honor*100).toFixed(1)}%\nTX: ${tx.hash}\nBlock: ${rc.blockNumber}`;
+          window.loadAgentPanel();
+        } catch(e) { result.textContent = '❌ '+((e.reason||e.message)||'Unknown error'); }
+      };
+
+      window.updateAgentDailyLimit = async function() {
+        const val = document.getElementById('agentDailyLimitInput')?.value;
+        if (!val || isNaN(val)) return;
+        try {
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          await (await aw.setDailyLimit(BigInt(Math.round(Number(val)*1e6)))).wait();
+          window.toast({kind:'ok',title:'Daily limit updated',msg:val+' USDC/day'});
+        } catch(e) { window.toast({kind:'err',title:'Failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.updateAgentMaxPerCall = async function() {
+        const val = document.getElementById('agentMaxPerCallInput')?.value;
+        if (!val || isNaN(val)) return;
+        try {
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          await (await aw.setMaxPerCall(BigInt(Math.round(Number(val)*1e6)))).wait();
+          window.toast({kind:'ok',title:'Max per call updated',msg:val+' USDC'});
+        } catch(e) { window.toast({kind:'err',title:'Failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.updateAgentWhitelist = async function() {
+        const raw = document.getElementById('agentWhitelistInput')?.value;
+        if (!raw) return;
+        try {
+          const ids = raw.split(',').map(s => Number(s.trim())).filter(n => n>0);
+          const signer = state.provider.getSigner();
+          const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
+          for (const id of ids) { await (await aw.addToWhitelist(id)).wait(); }
+          window.toast({kind:'ok',title:'Whitelist updated',msg:ids.length+' providers whitelisted'});
+        } catch(e) { window.toast({kind:'err',title:'Failed',msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
       // ── REPFI LENDING FUNCTIONS ───────────────────────────────────────────
       const REPFI_ABI = [
         "function deposit(uint256 amount) external",

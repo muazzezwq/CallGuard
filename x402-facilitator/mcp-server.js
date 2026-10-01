@@ -133,6 +133,158 @@ server.tool(
   }
 );
 
+// Tool 6: auto_route — best provider seç + otonom call yap
+server.tool(
+  "auto_route",
+  "Automatically select the best CallGuard provider by reputation+price score and make a service call. Fully autonomous — no human approval needed. Requires AGENT_WALLET_ADDRESS and AGENT_PRIVATE_KEY env vars.",
+  {
+    payload: z.string().describe("Request payload to send to the provider (JSON string or plain text)"),
+    maxPrice: z.number().optional().default(1).describe("Maximum price per call in USDC (default: 1)"),
+  },
+  async ({ payload, maxPrice }) => {
+    try {
+      const agentWalletAddr = process.env.AGENT_WALLET_ADDRESS;
+      const agentPrivKey    = process.env.AGENT_PRIVATE_KEY;
+      if (!agentWalletAddr || !agentPrivKey) {
+        return { content: [{ type: "text", text: "❌ AGENT_WALLET_ADDRESS and AGENT_PRIVATE_KEY env vars required for autonomous calls." }] };
+      }
+
+      // 1. Fetch providers
+      const res = await fetch(SUBGRAPH_URL, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ providers(first: 50, where: { active: true }) { id owner pricePerCall completedCalls slashedCalls stake } }` })
+      });
+      const data = await res.json();
+      const providers = (data.data?.providers || []).filter(p => {
+        const price = Number(p.pricePerCall) / 1e6;
+        return price <= maxPrice;
+      }).map(p => {
+        const completed = Number(p.completedCalls || 0);
+        const slashed   = Number(p.slashedCalls || 0);
+        const total     = completed + slashed;
+        const honor     = total > 0 ? completed / total : 0.66;
+        const price     = Number(p.pricePerCall) / 1e6;
+        const stake     = Number(p.stake) / 1e6;
+        const score     = honor * 0.5 + (1 / (price + 0.001)) * 0.2 + Math.min(stake / 1000, 1) * 0.3;
+        return { ...p, score, price, honor };
+      }).sort((a, b) => b.score - a.score);
+
+      if (!providers.length) {
+        return { content: [{ type: "text", text: `❌ No providers found under ${maxPrice} USDC/call.` }] };
+      }
+
+      const best = providers[0];
+
+      // 2. Call via AgentWallet
+      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const agentSigner = new ethers.Wallet(agentPrivKey, provider);
+      const AGENT_WALLET_ABI = [
+        "function agentCall(uint256 providerId, bytes32 requestHash, uint256 amount, bytes calldata extraData) returns (bytes32 callId)",
+        "function getStats() view returns (uint256 balance, uint256 spentToday, uint256 remainingToday, uint256 totalSpent, uint256 totalCalls)",
+      ];
+      const agentWallet = new ethers.Contract(agentWalletAddr, AGENT_WALLET_ABI, agentSigner);
+      const requestHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
+      const amount = BigInt(Math.round(best.price * 1e6));
+
+      const stats = await agentWallet.getStats();
+      if (stats.remainingToday < amount) {
+        return { content: [{ type: "text", text: `❌ Daily limit reached. Remaining today: ${Number(stats.remainingToday) / 1e6} USDC` }] };
+      }
+
+      const tx = await agentWallet.agentCall(Number(best.id), requestHash, amount, "0x");
+      const rc = await tx.wait();
+      return {
+        content: [{
+          type: "text",
+          text: `✅ Autonomous call completed!\n• Provider: #${best.id} (score: ${best.score.toFixed(2)})\n• Paid: ${best.price.toFixed(4)} USDC\n• Honor rate: ${(best.honor * 100).toFixed(1)}%\n• TX: ${tx.hash}\n• Block: ${rc.blockNumber}\n• Request hash: ${requestHash}`
+        }]
+      };
+    } catch (e) {
+      return { content: [{ type: "text", text: `❌ Auto-route failed: ${e.message}` }] };
+    }
+  }
+);
+
+// Tool 7: agent_wallet_stats
+server.tool(
+  "agent_wallet_stats",
+  "Get AgentWallet stats: balance, daily spend, remaining limit, lifetime totals.",
+  {},
+  async () => {
+    try {
+      const agentWalletAddr = process.env.AGENT_WALLET_ADDRESS;
+      if (!agentWalletAddr) return { content: [{ type: "text", text: "❌ AGENT_WALLET_ADDRESS env var not set." }] };
+      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const aw = new ethers.Contract(agentWalletAddr, [
+        "function getStats() view returns (uint256 balance, uint256 spentToday, uint256 remainingToday, uint256 totalSpent, uint256 totalCalls)",
+        "function dailyLimit() view returns (uint256)",
+        "function maxPerCall() view returns (uint256)",
+        "function paused() view returns (bool)",
+        "function agent() view returns (address)",
+      ], rpcProvider);
+      const [stats, dailyLimit, maxPerCall, paused, agent] = await Promise.all([
+        aw.getStats(), aw.dailyLimit(), aw.maxPerCall(), aw.paused(), aw.agent()
+      ]);
+      return {
+        content: [{
+          type: "text",
+          text: `🤖 AgentWallet Stats\n• Balance: ${Number(stats.balance)/1e6} USDC\n• Spent today: ${Number(stats.spentToday)/1e6} USDC\n• Remaining today: ${Number(stats.remainingToday)/1e6} USDC\n• Daily limit: ${Number(dailyLimit)/1e6} USDC\n• Max per call: ${Number(maxPerCall)/1e6} USDC\n• Total spent (lifetime): ${Number(stats.totalSpent)/1e6} USDC\n• Total calls: ${Number(stats.totalCalls)}\n• Agent address: ${agent}\n• Paused: ${paused}`
+        }]
+      };
+    } catch (e) {
+      return { content: [{ type: "text", text: `❌ Error: ${e.message}` }] };
+    }
+  }
+);
+
+// Tool 8: call_service_direct (full EIP-712 autonomous call)
+server.tool(
+  "call_service",
+  "Make a direct CallGuard service call to a specific provider. Signs EIP-712 authorization and submits on-chain. Requires AGENT_WALLET_ADDRESS and AGENT_PRIVATE_KEY.",
+  {
+    providerId: z.number().describe("Provider ID to call"),
+    payload: z.string().describe("Request payload"),
+  },
+  async ({ providerId, payload }) => {
+    try {
+      const agentWalletAddr = process.env.AGENT_WALLET_ADDRESS;
+      const agentPrivKey    = process.env.AGENT_PRIVATE_KEY;
+      if (!agentWalletAddr || !agentPrivKey) {
+        return { content: [{ type: "text", text: "❌ AGENT_WALLET_ADDRESS and AGENT_PRIVATE_KEY env vars required." }] };
+      }
+
+      // Get provider price
+      const res = await fetch(SUBGRAPH_URL, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ provider(id: "${providerId}") { pricePerCall active } }` })
+      });
+      const data = await res.json();
+      const p = data.data?.provider;
+      if (!p?.active) return { content: [{ type: "text", text: `❌ Provider #${providerId} not found or inactive.` }] };
+
+      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const agentSigner = new ethers.Wallet(agentPrivKey, rpcProvider);
+      const aw = new ethers.Contract(agentWalletAddr, [
+        "function agentCall(uint256 providerId, bytes32 requestHash, uint256 amount, bytes calldata extraData) returns (bytes32 callId)",
+      ], agentSigner);
+
+      const requestHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
+      const amount = BigInt(p.pricePerCall);
+      const tx = await aw.agentCall(providerId, requestHash, amount, "0x");
+      const rc = await tx.wait();
+
+      return {
+        content: [{
+          type: "text",
+          text: `✅ Service call made!\n• Provider: #${providerId}\n• Paid: ${Number(amount)/1e6} USDC\n• TX: ${tx.hash}\n• Block: ${rc.blockNumber}`
+        }]
+      };
+    } catch (e) {
+      return { content: [{ type: "text", text: `❌ Call failed: ${e.message}` }] };
+    }
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("CallGuard MCP Server running...");
