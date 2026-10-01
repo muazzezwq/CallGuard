@@ -7,6 +7,7 @@
 | `ServiceRegistry` | `0xea00f898C0eA249de7226b283e93C13eFa7BbcFF` | ✅ Verified |
 | `Dispute` | `0xa47162d8e4785d867f05800f35a334fd78575e56` | ✅ Verified |
 | `Subscription` | `0xef7d56390f86a5cecc05f75e265859a1c79cefe6` | ✅ Verified |
+| `DisputeQuality` | `0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725` | ✅ Deployed (1 Oct 2026) |
 
 ## Dependent Addresses
 - `FACILITATOR_ADDRESS`: `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`
