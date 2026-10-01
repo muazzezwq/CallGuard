@@ -7,7 +7,7 @@ import "../src/DisputeQuality.sol";
 contract DeployQuality is Script {
     function run() external {
         address usdc     = 0x3600000000000000000000000000000000000000;
-        address registry = 0xea0046DE5dBF2Da3DB5D41b9A2Df3Cf9CecaeB4; // ServiceRegistry
+        address registry = 0xea00f898C0eA249de7226b283e93C13eFa7BbcFF; // ServiceRegistry
         address owner    = vm.envAddress("DEPLOYER");
 
         uint256 disputeBond    = 500_000;  // 0.5 USDC (6 decimals)
