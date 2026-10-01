@@ -27,6 +27,17 @@
 - Grace period: `SUBMIT_GRACE = 5` seconds
 - Receipt EIP-712: includes `respondedAt` timestamp
 
+## AgentWallet (1 Oct 2026)
+| Field | Value |
+|---|---|
+| Contract | `0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6` |
+| Owner | `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` |
+| Agent (hot wallet) | `0x22099051bbe59117Ebc5219bdDA90D7790758C03` |
+| Daily limit | 10 USDC |
+| Max per call | 2 USDC |
+| Balance | 0 USDC (needs deposit) |
+| Paused | false |
+
 ## Vercel Environment Variables Required
 | Key | Description |
 |---|---|
@@ -38,6 +49,8 @@
 | `VITE_CHAIN_ID` | `5042002` |
 | `ARC_RPC_URL` | `https://rpc.testnet.arc.io` |
 | `PROVIDER_1_WEBHOOK` | `https://arcsla.vercel.app/api/auto-receipt` |
+| `AGENT_WALLET_ADDRESS` | `0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6` |
+| `AGENT_PRIVATE_KEY` | Private key of `0x22099051bbe59117Ebc5219bdDA90D7790758C03` |
 
 ## Deployment URLs
 - App: `https://arcsla.vercel.app/app/`
