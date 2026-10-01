@@ -8,6 +8,7 @@
 | `Dispute` | `0xa47162d8e4785d867f05800f35a334fd78575e56` | ✅ Verified |
 | `Subscription` | `0xef7d56390f86a5cecc05f75e265859a1c79cefe6` | ✅ Verified |
 | `DisputeQuality` | `0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725` | ✅ Deployed (1 Oct 2026) |
+| `SLAFutures` | `0xa6f194c621eE67559aDcA883824e01F1828e887c` | ✅ Deployed (1 Oct 2026) |
 
 ## Dependent Addresses
 - `FACILITATOR_ADDRESS`: `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`
