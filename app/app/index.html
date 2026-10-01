@@ -6566,6 +6566,11 @@
             Quality Disputes
             <span style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
+          <div class="sb-item" data-nav="lending">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg></span>
+            RepFi Lending
+            <span style="margin-left:auto;background:#10b981;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+          </div>
           <div class="sb-item" data-nav="futures">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></span>
             SLA Futures
@@ -7762,6 +7767,84 @@ npm install</pre>
           </div>
         </section>
 
+        <!-- ===== REPFI LENDING PANEL ===== -->
+        <section class="panel full-width" id="lendingPanel" data-category="lending" style="display:none">
+          <div class="panel-head">
+            <h2>💰 RepFi Lending</h2>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Reputation-backed USDC loans · Earn yield as LP</span>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadLending && window.loadLending()">Refresh</button>
+          </div>
+          <div class="panel-body">
+            <!-- Pool stats -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="lendingStats">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--text)" id="lendTotalAssets">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Total Pool</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--warn)" id="lendTotalLoaned">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Active Loans</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)" id="lendAvailable">—</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Available</div>
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:#10b981">5% APY</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">LP Yield</div>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:18px" id="lendingTabs">
+              <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="window.switchLendTab('pool')" id="lendTabPool">💧 Liquidity Pool</button>
+              <button class="btn btn-sm" onclick="window.switchLendTab('borrow')" id="lendTabBorrow">🏦 Borrow Stake</button>
+              <button class="btn btn-sm" onclick="window.switchLendTab('loans')" id="lendTabLoans">📋 My Loans</button>
+            </div>
+
+            <!-- Pool tab -->
+            <div id="lendTabContentPool">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                  <div style="font-weight:600;margin-bottom:12px">Deposit USDC</div>
+                  <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.6">Earn 5% APY + share of slash revenue. Your position is represented as pool shares.</div>
+                  <input id="lendDepositAmt" type="number" class="input" placeholder="Amount (USDC)" style="margin-bottom:10px">
+                  <button class="btn btn-primary" style="width:100%" onclick="window.doLendDeposit()">💧 Deposit</button>
+                  <div style="font-size:11px;color:var(--text-faint);margin-top:8px">Your shares: <span id="myLpShares">—</span></div>
+                </div>
+                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
+                  <div style="font-weight:600;margin-bottom:12px">Withdraw USDC</div>
+                  <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.6">Burn your LP shares to receive USDC + accrued yield back.</div>
+                  <input id="lendWithdrawShares" type="number" class="input" placeholder="Shares to burn" style="margin-bottom:10px">
+                  <button class="btn" style="width:100%;border:1px solid var(--border)" onclick="window.doLendWithdraw()">↩ Withdraw</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Borrow tab -->
+            <div id="lendTabContentBorrow" style="display:none">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px;max-width:480px">
+                <div style="font-weight:600;margin-bottom:12px">Borrow USDC as Stake</div>
+                <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:14px;line-height:1.7">
+                  <b>Requirements:</b> Honor rate ≥ 80%, completed calls ≥ 10, no active loan.<br>
+                  Borrowed USDC goes directly to your wallet — stake it via Register panel.<br>
+                  Repay within 90 days with 5% annual interest.
+                </div>
+                <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Provider ID</label>
+                <input id="lendBorrowProviderId" type="number" class="input" placeholder="Your provider ID" style="margin-bottom:10px">
+                <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Amount (USDC)</label>
+                <input id="lendBorrowAmt" type="number" class="input" placeholder="e.g. 100" style="margin-bottom:10px">
+                <button class="btn btn-primary" style="width:100%" onclick="window.doLendBorrow()">🏦 Borrow</button>
+              </div>
+            </div>
+
+            <!-- Loans tab -->
+            <div id="lendTabContentLoans" style="display:none">
+              <div id="lendingLoanList"><div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">Connect wallet to view loans.</div></div>
+            </div>
+          </div>
+        </section>
+
         <!-- ===== SLA FUTURES PANEL ===== -->
         <section class="panel full-width" id="futuresPanel" data-category="futures" style="display:none">
           <div class="panel-head">
@@ -8361,6 +8444,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
         agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
         qualityDispute: "0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725",
         slaFutures: "0xa6f194c621eE67559aDcA883824e01F1828e887c",
+        reputationLoan: null, // set after deploying ReputationLoan.sol
         dispute: "0xa47162d8e4785d867f05800f35a334fd78575e56",
         subscription: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
       };
@@ -11911,6 +11995,7 @@ async function refreshBalance() {
         if (cat === "subscriptions") window.loadMySubscriptions?.().catch(()=>{});
         if (cat === "quality") window.loadQualityDisputes?.().catch(()=>{});
         if (cat === "futures") window.loadFutures?.().catch(()=>{});
+        if (cat === "lending") window.loadLending?.().catch(()=>{});
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -13094,6 +13179,135 @@ console.log("call opened:", tx.hash);`;
       }
 
       // ── DISPUTES ──────────────────────────────────────────────────────────
+      // ── REPFI LENDING FUNCTIONS ───────────────────────────────────────────
+      const REPFI_ABI = [
+        "function deposit(uint256 amount) external",
+        "function withdraw(uint256 shares) external",
+        "function borrow(uint256 providerId, uint256 amount) external",
+        "function repay(uint256 loanId) external",
+        "function liquidate(uint256 loanId) external",
+        "function accrueInterest(uint256 loanId) external view returns (uint256)",
+        "function getPoolStats() external view returns (uint256,uint256,uint256,uint256)",
+        "function loans(uint256) external view returns (uint256 providerId, address borrower, uint256 principal, uint256 startTime, uint256 duration, uint256 repaid, bool active)",
+        "function lpPositions(address) external view returns (uint256 shares, uint256 depositTime)",
+        "function activeLoan(uint256) external view returns (uint256)",
+        "function loanCount() external view returns (uint256)"
+      ];
+
+      function getRepFi() {
+        if (!CONFIG.reputationLoan) return null;
+        if (!state.provider) return null;
+        return new ethers.Contract(CONFIG.reputationLoan, REPFI_ABI, state.provider.getSigner());
+      }
+
+      window.switchLendTab = function(tab) {
+        ["pool","borrow","loans"].forEach(t => {
+          document.getElementById("lendTabContent" + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? "" : "none";
+          const btn = document.getElementById("lendTab" + t.charAt(0).toUpperCase() + t.slice(1));
+          if (btn) { btn.style.background = t === tab ? "var(--accent)" : ""; btn.style.color = t === tab ? "#fff" : ""; }
+        });
+        if (tab === "loans") window.loadLendingLoans?.();
+      };
+
+      window.loadLending = async function() {
+        if (!state.address) return;
+        const rl = getRepFi();
+        if (!rl) {
+          document.getElementById("lendTotalAssets").textContent = "Not deployed";
+          return;
+        }
+        try {
+          const [totalAssets, totalLoaned, available] = await rl.getPoolStats();
+          document.getElementById("lendTotalAssets").textContent = (Number(totalAssets) / 1e6).toFixed(2) + " USDC";
+          document.getElementById("lendTotalLoaned").textContent = (Number(totalLoaned) / 1e6).toFixed(2) + " USDC";
+          document.getElementById("lendAvailable").textContent = (Number(available) / 1e6).toFixed(2) + " USDC";
+          const pos = await rl.lpPositions(state.address);
+          document.getElementById("myLpShares").textContent = pos.shares.toString();
+        } catch(e) { console.error("loadLending", e); }
+      };
+
+      window.loadLendingLoans = async function() {
+        if (!state.address) return;
+        const rl = getRepFi();
+        const box = document.getElementById("lendingLoanList");
+        if (!rl) { box.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">Contract not deployed yet.</div>`; return; }
+        try {
+          const count = Number(await rl.loanCount());
+          const items = [];
+          for (let i = 1; i <= count; i++) {
+            const loan = await rl.loans(i);
+            if (loan.borrower.toLowerCase() !== state.address.toLowerCase()) continue;
+            const interest = await rl.accrueInterest(i);
+            const total = BigInt(loan.principal) + BigInt(interest);
+            const deadline = new Date((Number(loan.startTime) + Number(loan.duration)) * 1000).toLocaleDateString();
+            items.push(`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-weight:600">Loan #${i} — Provider #${loan.providerId}</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${loan.active ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)"};color:${loan.active ? "var(--warn)" : "#10b981"}">${loan.active ? "Active" : "Repaid"}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px">
+                <div>Principal: <b>${(Number(loan.principal)/1e6).toFixed(2)} USDC</b></div>
+                <div>Interest: <b>${(Number(interest)/1e6).toFixed(4)} USDC</b></div>
+                <div>Due: <b>${deadline}</b></div>
+              </div>
+              ${loan.active ? `<button class="btn btn-sm" style="margin-top:10px;background:var(--accent);color:#fff" onclick="window.doLendRepay(${i},${total.toString()})">💵 Repay ${(Number(total)/1e6).toFixed(4)} USDC</button>` : ""}
+            </div>`);
+          }
+          box.innerHTML = items.length ? items.join("") : `<div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">No loans found.</div>`;
+        } catch(e) {
+          box.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:12px">Error: ${e.message?.slice(0,100)}</div>`;
+        }
+      };
+
+      window.doLendDeposit = async function() {
+        const rl = getRepFi(); if (!rl) return window.toast({kind:"err",title:"Not deployed",msg:"ReputationLoan contract not deployed yet"});
+        const amt = Math.round(parseFloat(document.getElementById("lendDepositAmt").value || "0") * 1e6);
+        if (!amt) return window.toast({kind:"err",title:"Invalid amount",msg:"Enter a USDC amount"});
+        try {
+          const usdc = new ethers.Contract(CONFIG.usdc, ["function approve(address,uint256) returns (bool)"], state.provider.getSigner());
+          await (await usdc.approve(CONFIG.reputationLoan, amt)).wait();
+          await (await rl.deposit(amt)).wait();
+          window.toast({kind:"ok",title:"Deposited!",msg:`${(amt/1e6).toFixed(2)} USDC added to pool`});
+          window.loadLending();
+        } catch(e) { window.toast({kind:"err",title:"Deposit failed",msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.doLendWithdraw = async function() {
+        const rl = getRepFi(); if (!rl) return window.toast({kind:"err",title:"Not deployed",msg:"ReputationLoan contract not deployed yet"});
+        const shares = document.getElementById("lendWithdrawShares").value || "0";
+        if (!Number(shares)) return window.toast({kind:"err",title:"Invalid shares",msg:"Enter share amount"});
+        try {
+          await (await rl.withdraw(shares)).wait();
+          window.toast({kind:"ok",title:"Withdrawn!",msg:`Shares redeemed for USDC`});
+          window.loadLending();
+        } catch(e) { window.toast({kind:"err",title:"Withdraw failed",msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.doLendBorrow = async function() {
+        const rl = getRepFi(); if (!rl) return window.toast({kind:"err",title:"Not deployed",msg:"ReputationLoan contract not deployed yet"});
+        const pid = document.getElementById("lendBorrowProviderId").value;
+        const amt = Math.round(parseFloat(document.getElementById("lendBorrowAmt").value || "0") * 1e6);
+        if (!pid || !amt) return window.toast({kind:"err",title:"Missing fields",msg:"Enter provider ID and amount"});
+        try {
+          await (await rl.borrow(pid, amt)).wait();
+          window.toast({kind:"ok",title:"Loan opened!",msg:`${(amt/1e6).toFixed(2)} USDC sent to your wallet. Stake it via Register panel.`});
+          window.loadLending();
+          window.switchLendTab("loans");
+        } catch(e) { window.toast({kind:"err",title:"Borrow failed",msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
+      window.doLendRepay = async function(loanId, totalWei) {
+        const rl = getRepFi(); if (!rl) return;
+        try {
+          const usdc = new ethers.Contract(CONFIG.usdc, ["function approve(address,uint256) returns (bool)"], state.provider.getSigner());
+          await (await usdc.approve(CONFIG.reputationLoan, totalWei)).wait();
+          await (await rl.repay(loanId)).wait();
+          window.toast({kind:"ok",title:"Repaid!",msg:`Loan #${loanId} closed`});
+          window.loadLendingLoans();
+          window.loadLending();
+        } catch(e) { window.toast({kind:"err",title:"Repay failed",msg:e.reason||e.message?.slice(0,80)}); }
+      };
+
       // ── SLA FUTURES FUNCTIONS ─────────────────────────────────────────────
       const SLA_FUTURES_ABI = [
         "function mintCapacity(uint256 providerId, uint256 pricePerCall, uint256 totalSlots, uint64 deadline) returns (uint256)",
