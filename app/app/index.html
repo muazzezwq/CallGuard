@@ -7814,10 +7814,10 @@ npm install</pre>
               </div>
               <div id="agentWalletConnected" style="display:none">
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-                  <input id="agentDepositAmt" type="number" min="0.01" step="0.01" placeholder="Amount (USDC)" style="width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg-1);color:var(--text)">
-                  <button class="btn btn-primary" onclick="window.showAgentDeposit()">+ Deposit USDC</button>
+                  <input id="agentDepositAmt" type="number" min="0.01" step="0.01" placeholder="Amount (USDC)" style="width:130px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg-1);color:var(--text)">
+                  <button class="btn btn-primary" onclick="window.showAgentDeposit()">+ Deposit</button>
                   <button class="btn btn-sm" onclick="window.showAgentWithdraw()">Withdraw</button>
-                  <button class="btn btn-sm" style="color:#ef4444" onclick="window.pauseAgentWallet()">Pause</button>
+                  <button class="btn btn-sm" style="color:#ef4444" onclick="window.pauseAgentWallet()" id="agentPauseBtn">Pause</button>
                 </div>
                 <div style="font-size:11px;color:var(--text-faint)">Agent Wallet: <span id="agentWalletAddr" style="font-family:monospace;color:var(--text-main)">—</span></div>
               </div>
@@ -13385,21 +13385,33 @@ console.log("call opened:", tx.hash);`;
       };
 
       window.showAgentWithdraw = async function() {
-        const amt = prompt('Withdraw amount (USDC):');
-        if (!amt || isNaN(amt) || Number(amt)<=0) return;
+        const inputEl = document.getElementById('agentDepositAmt');
+        const amt = inputEl ? inputEl.value : null;
+        if (!amt || isNaN(amt) || Number(amt)<=0) {
+          window.toast({kind:'err',title:'Enter amount',msg:'Type a USDC amount in the input field first'});
+          return;
+        }
+        if (!state.provider) {
+          window.toast({kind:'err',title:'Wallet not connected',msg:'Connect MetaMask first'});
+          return;
+        }
         try {
-          const signer = state.provider.getSigner();
+          const signer = await state.provider.getSigner();
           const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
           await (await aw.withdraw(BigInt(Math.round(Number(amt)*1e6)))).wait();
+          if (inputEl) inputEl.value = '';
           window.toast({kind:'ok',title:'Withdrawn!',msg:`${amt} USDC withdrawn`});
           window.loadAgentPanel();
-        } catch(e) { window.toast({kind:'err',title:'Withdraw failed',msg:e.reason||e.message?.slice(0,80)}); }
+        } catch(e) { window.toast({kind:'err',title:'Withdraw failed',msg:e.reason||e.shortMessage||e.message?.slice(0,120)}); }
       };
 
       window.pauseAgentWallet = async function() {
-        if (!confirm('Pause agent wallet? Agent will not be able to make calls.')) return;
+        if (!state.provider) {
+          window.toast({kind:'err',title:'Wallet not connected',msg:'Connect MetaMask first'});
+          return;
+        }
         try {
-          const signer = state.provider.getSigner();
+          const signer = await state.provider.getSigner();
           const aw = new ethers.Contract(_agentWalletAddr, AGENT_WALLET_ABI, signer);
           const paused = await aw.paused();
           if (paused) { await (await aw.unpause()).wait(); window.toast({kind:'ok',title:'Unpaused'}); }
