@@ -13245,6 +13245,48 @@ async function refreshBalance() {
           $("crRep").textContent = `${rep}/100`;
           $("crRep").style.color = repColor;
           $("callerRiskBox").style.display = "block";
+
+          // --- 1. CALLER PROTECTION: Low honor rate warning ---
+          let riskBanner = $("callerRiskBanner");
+          if (!riskBanner) {
+            riskBanner = document.createElement("div");
+            riskBanner.id = "callerRiskBanner";
+            $("callerRiskBox").after(riskBanner);
+          }
+          // --- 2. UNDERFUNDED PROVIDER: stake < expected slash ---
+          const minSlashAmt = priceNum * slashPct / 100;
+          const isUnderfunded = stakeNum < minSlashAmt;
+          let bannerHtml = "";
+          if (rep <= 10) {
+            bannerHtml += `<div style="margin-top:10px;padding:12px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:8px;font-size:12px;line-height:1.5">
+              <div style="font-weight:700;color:#ef4444;margin-bottom:4px">⚠ Extreme Risk — Honor Rate ${rep}%</div>
+              <div style="color:var(--text-dim)">This provider has missed <strong>the vast majority</strong> of calls. You will almost certainly need to claim a timeout. Only proceed if you intend to test the slash mechanism.</div>
+              <button class="btn btn-sm" style="margin-top:8px;background:rgba(239,68,68,.2);color:#ef4444;border-color:rgba(239,68,68,.4)" onclick="document.getElementById('callProviderId').value='';$('callerRiskBanner').innerHTML='';$('callerRiskBox').style.display='none'">Choose a different provider</button>
+            </div>`;
+          } else if (rep <= 30) {
+            bannerHtml += `<div style="margin-top:10px;padding:12px 14px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:8px;font-size:12px;line-height:1.5">
+              <div style="font-weight:700;color:var(--warn);margin-bottom:4px">⚠ Low Reliability — Honor Rate ${rep}%</div>
+              <div style="color:var(--text-dim)">This provider misses most calls. Your USDC will be locked in escrow. You can reclaim it via <em>Claim timeout</em> after the SLA window expires — but it is an extra step.</div>
+            </div>`;
+          }
+          if (isUnderfunded) {
+            bannerHtml += `<div style="margin-top:8px;padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:12px;line-height:1.5">
+              <div style="font-weight:700;color:#ef4444;margin-bottom:3px">⚠ Underfunded Provider</div>
+              <div style="color:var(--text-dim)">Provider stake (${stakeNum.toFixed(4)} USDC) is less than the minimum slash amount (${minSlashAmt.toFixed(4)} USDC). On timeout you may receive a <em>partial</em> slash bonus instead of the full amount.</div>
+            </div>`;
+          }
+          // Warn in call button if high risk
+          const btnCall = $("btnCall");
+          if (btnCall) {
+            if (rep <= 10) {
+              btnCall.textContent = "⚠ Call anyway (high risk)";
+              btnCall.style.background = "rgba(239,68,68,.8)";
+            } else {
+              btnCall.textContent = "Approve & call";
+              btnCall.style.background = "";
+            }
+          }
+          riskBanner.innerHTML = bannerHtml;
           // Plain-language preview
           const preview = $("callPreview");
           const previewText = $("callPreviewText");
@@ -15415,7 +15457,28 @@ console.log("call opened:", tx.hash);`;
           const provider = new ethers.providers.Web3Provider(window.ethereum);
           const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, provider);
           const count = (await contract.batchCount()).toNumber();
-          if (count === 0) { list.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">No capacity batches available yet. Providers can mint new batches.</div>`; return; }
+          if (count === 0) {
+            list.innerHTML = `
+            <div style="padding:20px;border:1.5px dashed var(--border);border-radius:12px;text-align:center;max-width:480px;margin:0 auto">
+              <div style="font-size:28px;margin-bottom:8px">🎟</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">No capacity batches yet</div>
+              <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:16px">
+                SLA Futures let providers tokenize future capacity as ERC-1155 NFTs.<br>
+                Callers buy guaranteed slots. NFTs trade on secondary markets.
+              </div>
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:left;font-size:12px;margin-bottom:16px">
+                <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em">How to mint your first batch:</div>
+                <div style="display:flex;flex-direction:column;gap:6px;color:var(--text-dim)">
+                  <div><span style="color:var(--accent);font-weight:600">1.</span> Go to the <strong>SLA Futures</strong> panel</div>
+                  <div><span style="color:var(--accent);font-weight:600">2.</span> Set capacity (e.g. 100 calls), price per call, deadline</div>
+                  <div><span style="color:var(--accent);font-weight:600">3.</span> Click <strong>Mint Batch</strong> — deploys ERC-1155 tokens</div>
+                  <div><span style="color:var(--accent);font-weight:600">4.</span> Callers buy your tokens to reserve priority slots</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%" onclick="document.querySelector('[data-nav=\\"futures\\"]')?.click()">Mint first capacity batch →</button>
+            </div>`;
+            return;
+          }
           const cards = [];
           for (let i = 1; i <= count; i++) {
             const b = await contract.batches(i);
@@ -21957,6 +22020,264 @@ console.log("call opened:", tx.hash);`;
         }
       })();
     })();
+
+  })();
+  </script>
+
+  <script>
+  // ============================================================
+  // FEATURE PACK 2: MCP Tester, x402 Live, Provider Recruit,
+  //                 Cross-chain Selector, Slash Leaderboard
+  // ============================================================
+  (function() {
+
+    // ---- 4. MCP "Test with AI" button ----
+    window.testMcpCall = async function() {
+      const out = document.getElementById('mcpTestOutput');
+      if (!out) return;
+      out.innerHTML = '<div style="color:var(--text-faint);font-size:12px">Sending MCP call to callguard.list_providers...</div>';
+      try {
+        const r = await fetch('/api/service', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool: 'list_providers', params: {} })
+        });
+        let data;
+        try { data = await r.json(); } catch { data = { raw: await r.text() }; }
+        out.innerHTML = `<pre style="font-size:11px;overflow-x:auto;color:var(--accent)">${JSON.stringify(data, null, 2)}</pre>`;
+      } catch(e) {
+        // Fallback: query subgraph directly
+        try {
+          const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+          const r2 = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:'{ providers(first:5) { id owner stake completedCalls slashedCalls active } }'}) });
+          const d2 = await r2.json();
+          out.innerHTML = `<div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">MCP /api/service unavailable — showing live subgraph data:</div><pre style="font-size:11px;overflow-x:auto;color:var(--accent)">${JSON.stringify(d2?.data?.providers, null, 2)}</pre>`;
+        } catch(e2) {
+          out.innerHTML = `<div style="font-size:12px;color:var(--danger)">${e.message}</div>`;
+        }
+      }
+    };
+
+    // ---- 6. x402 Live Tester ----
+    window.x402LiveTest = async function(endpoint) {
+      const out = document.getElementById('x402TestOutput');
+      if (!out) return;
+      out.innerHTML = '<div style="color:var(--text-faint);font-size:12px">Requesting...</div>';
+      try {
+        // Step 1: GET endpoint → should return 402
+        const r402 = await fetch(endpoint);
+        const j402 = await r402.json();
+        if (r402.status !== 402) {
+          out.innerHTML = `<pre style="font-size:11px;color:var(--accent)">${JSON.stringify(j402,null,2)}</pre>`;
+          return;
+        }
+        const terms = j402.accepts?.[0];
+        out.innerHTML = `
+          <div style="font-size:12px;color:var(--warn);margin-bottom:8px">402 Payment Required — terms received:</div>
+          <div style="display:grid;gap:4px;font-size:11px;margin-bottom:10px">
+            <div><span style="color:var(--text-faint)">Pay to:</span> <code style="color:var(--accent)">${terms?.payTo?.slice(0,10)}…</code></div>
+            <div><span style="color:var(--text-faint)">Amount:</span> <code style="color:var(--accent)">${((terms?.maxAmountRequired||0)/1e6).toFixed(4)} USDC</code></div>
+            <div><span style="color:var(--text-faint)">Network:</span> <code>${terms?.network}</code></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);padding:8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--border)">
+            To complete: sign an EIP-3009 <code>transferWithAuthorization</code> and send it as <code>X-Payment</code> header (base64). Connect your wallet and use the <strong>x402 facilitator</strong> to auto-sign — see the MCP server.
+          </div>`;
+      } catch(e) {
+        out.innerHTML = `<div style="font-size:12px;color:var(--danger)">${e.message}</div>`;
+      }
+    };
+
+    // ---- 7. Provider Recruitment — show earnings ----
+    async function injectProviderEarnings() {
+      const registerPanel = document.querySelector('[data-category="settings"]');
+      if (!registerPanel) return;
+      const registerCard = document.getElementById('registerCard') || document.querySelector('.action-card#actionRegister');
+      if (!registerCard) return;
+      // Fetch top earner from subgraph
+      try {
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const r = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ query: '{ providers(first:3, orderBy:completedCalls, orderDirection:desc) { id completedCalls pricePerCall stake } }' })
+        });
+        const d = await r.json();
+        const top = d?.data?.providers?.[0];
+        if (!top || !top.completedCalls) return;
+        const earned = (Number(top.completedCalls) * Number(top.pricePerCall) / 1e6).toFixed(2);
+        let earningsEl = document.getElementById('cgProviderEarningsBanner');
+        if (!earningsEl) {
+          earningsEl = document.createElement('div');
+          earningsEl.id = 'cgProviderEarningsBanner';
+          earningsEl.style.cssText = 'margin:0 0 12px;padding:10px 14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;font-size:12px;line-height:1.5';
+          earningsEl.innerHTML = `<span style="color:var(--accent);font-weight:700">Provider #${top.id}</span> earned <span style="color:var(--accent);font-weight:700">${earned} USDC</span> from ${top.completedCalls} completed calls. <button class="btn btn-sm" style="margin-left:8px" onclick="document.querySelector('[data-nav=\\"register\\"]')?.click()">Start earning →</button>`;
+          const regActionCard = document.querySelector('#actionRegister .action-body') || registerCard.querySelector('.action-body');
+          if (regActionCard) regActionCard.prepend(earningsEl);
+        }
+      } catch {}
+    }
+
+    // ---- 8. Cross-chain selector visibility ----
+    function enhanceCrossChainSelector() {
+      const chainSel = document.getElementById('chainSelector') || document.getElementById('payChain') || document.querySelector('[id*="chainSel"]');
+      if (!chainSel) return;
+      const wrapper = chainSel.closest('.field') || chainSel.parentElement;
+      if (!wrapper) return;
+      let badge = wrapper.querySelector('.cross-chain-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'cross-chain-badge';
+        badge.style.cssText = 'margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--text-faint)';
+        badge.innerHTML = `
+          <span style="color:var(--text-faint)">Pay from:</span>
+          <span style="padding:2px 8px;border-radius:99px;background:rgba(16,185,129,.15);color:var(--accent);border:1px solid rgba(16,185,129,.3);cursor:pointer" onclick="document.getElementById('chainSelector')&&(document.getElementById('chainSelector').value='arc-testnet')&&document.getElementById('chainSelector').dispatchEvent(new Event('change'))">Arc Testnet</span>
+          <span style="padding:2px 8px;border-radius:99px;background:var(--bg-2);border:1px solid var(--border);cursor:pointer" onclick="document.getElementById('chainSelector')&&(document.getElementById('chainSelector').value='base-sepolia')&&document.getElementById('chainSelector').dispatchEvent(new Event('change'))">Base</span>
+          <span style="padding:2px 8px;border-radius:99px;background:var(--bg-2);border:1px solid var(--border);cursor:pointer" onclick="document.getElementById('chainSelector')&&(document.getElementById('chainSelector').value='eth-sepolia')&&document.getElementById('chainSelector').dispatchEvent(new Event('change'))">Ethereum</span>
+          <span style="padding:2px 8px;border-radius:99px;background:var(--bg-2);border:1px solid var(--border);cursor:pointer" onclick="document.getElementById('chainSelector')&&(document.getElementById('chainSelector').value='matic-amoy')&&document.getElementById('chainSelector').dispatchEvent(new Event('change'))">Polygon</span>`;
+        wrapper.appendChild(badge);
+      }
+    }
+
+    // ---- 9. Slash Leaderboard gamification ----
+    window.loadSlashLeaderboard = async function() {
+      const el = document.getElementById('slashLeaderboardList');
+      if (!el) return;
+      el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;padding:12px">Loading...</div>';
+      try {
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const r = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ query: '{ calls(first:50, where:{status:"SLASHED"}, orderBy:createdAt, orderDirection:desc) { id caller providerId slashed createdAt } providers(first:8) { id slashedCalls completedCalls stake active } }' })
+        });
+        const d = await r.json();
+        const calls = d?.data?.calls || [];
+        const providers = d?.data?.providers || [];
+
+        // Count slashes per caller
+        const callerMap = {};
+        calls.forEach(c => {
+          if (!callerMap[c.caller]) callerMap[c.caller] = { slashes: 0, earned: 0 };
+          callerMap[c.caller].slashes++;
+          callerMap[c.caller].earned += Number(c.slashed || 0);
+        });
+        const topCallers = Object.entries(callerMap).sort((a,b) => b[1].slashes - a[1].slashes).slice(0, 5);
+
+        let html = '<div style="display:grid;gap:16px;">';
+
+        // Top slash callers
+        html += `<div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Top Timeout Claimers</div>
+          <div style="display:flex;flex-direction:column;gap:6px">`;
+        if (topCallers.length === 0) {
+          html += '<div style="font-size:12px;color:var(--text-faint)">No timeout claims yet.</div>';
+        } else {
+          topCallers.forEach(([addr, s], i) => {
+            const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+            const earned = (s.earned / 1e6).toFixed(4);
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border)">
+              <span style="font-size:16px">${medals[i]||'#'+(i+1)}</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text);flex:1">${addr.slice(0,6)}…${addr.slice(-4)}</span>
+              <span style="font-size:11px;color:var(--accent);font-weight:600">${s.slashes} claims</span>
+              <span style="font-size:11px;color:var(--text-faint)">${earned} USDC earned</span>
+            </div>`;
+          });
+        }
+        html += '</div></div>';
+
+        // Most slashed providers
+        const topSlashed = providers.sort((a,b) => Number(b.slashedCalls)-Number(a.slashedCalls)).slice(0,5);
+        html += `<div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Most Slashed Providers</div>
+          <div style="display:flex;flex-direction:column;gap:6px">`;
+        topSlashed.forEach((p, i) => {
+          const total = Number(p.completedCalls) + Number(p.slashedCalls);
+          const honPct = total > 0 ? Math.round(Number(p.completedCalls)*100/total) : 0;
+          const honColor = honPct >= 80 ? 'var(--accent)' : honPct >= 50 ? 'var(--warn)' : 'var(--danger)';
+          html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border)">
+            <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim);width:24px">#${p.id}</span>
+            <span style="flex:1;font-size:12px;color:var(--text)">${Number(p.slashedCalls)} slashes</span>
+            <span style="font-size:11px;color:${honColor};font-weight:600">${honPct}% honor</span>
+            <span style="font-size:11px;color:var(--text-faint)">${p.active?'active':'inactive'}</span>
+          </div>`;
+        });
+        html += '</div></div>';
+        html += '</div>';
+        el.innerHTML = html;
+      } catch(e) {
+        el.innerHTML = `<div style="font-size:12px;color:var(--danger)">Could not load leaderboard: ${e.message}</div>`;
+      }
+    };
+
+    // Inject MCP test button into MCP panel
+    function injectMcpTestBtn() {
+      const mcpPanel = document.querySelector('[data-category="mcp"]');
+      if (!mcpPanel || document.getElementById('mcpTestBtn')) return;
+      const existing = mcpPanel.querySelector('.panel-body');
+      if (!existing) return;
+      const testSection = document.createElement('div');
+      testSection.style.cssText = 'margin-bottom:16px;padding:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px';
+      testSection.innerHTML = `
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">Test with AI Agent</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Simulate an MCP tool call — as any Claude/GPT/Llama agent would make it.</p>
+        <button id="mcpTestBtn" class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="window.testMcpCall()">Run: list_providers →</button>
+        <div id="mcpTestOutput"></div>`;
+      existing.prepend(testSection);
+    }
+
+    // Inject x402 live tester into relevant panel
+    function injectX402Tester() {
+      const nanoPanel = document.querySelector('[data-category="nano"]');
+      if (!nanoPanel || document.getElementById('x402TestBtn')) return;
+      const existing = nanoPanel.querySelector('.panel-body');
+      if (!existing) return;
+      const testSection = document.createElement('div');
+      testSection.style.cssText = 'margin-bottom:16px;padding:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px';
+      testSection.innerHTML = `
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px">x402 Live Tester</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Send a real HTTP 402 request to a paid endpoint and inspect the payment terms.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button id="x402TestBtn" class="btn btn-sm" onclick="window.x402LiveTest('https://arcsla.vercel.app/api/energy-data')">Test energy-data</button>
+          <button class="btn btn-sm" onclick="window.x402LiveTest('https://arcsla.vercel.app/api/premium-report')">Test premium-report</button>
+        </div>
+        <div id="x402TestOutput"></div>`;
+      existing.prepend(testSection);
+    }
+
+    // Inject slash leaderboard into leaderboard panel
+    function injectSlashLeaderboard() {
+      const lbPanel = document.querySelector('[data-category="leaderboard"]');
+      if (!lbPanel || document.getElementById('slashLeaderboardList')) return;
+      const existing = lbPanel.querySelector('.panel-body');
+      if (!existing) return;
+      const lb = document.createElement('div');
+      lb.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)">Slash Leaderboard 🏆</div>
+          <button class="btn btn-sm" onclick="window.loadSlashLeaderboard()">Refresh</button>
+        </div>
+        <div id="slashLeaderboardList"><div style="color:var(--text-faint);font-size:12px">Click Refresh to load live data.</div></div>`;
+      existing.prepend(lb);
+    }
+
+    // Hook into showCategory to inject on first open
+    const _origShow = window.showCategory;
+    if (_origShow) {
+      window.showCategory = function(cat) {
+        _origShow(cat);
+        setTimeout(() => {
+          if (cat === 'mcp') injectMcpTestBtn();
+          if (cat === 'nano') injectX402Tester();
+          if (cat === 'leaderboard') { injectSlashLeaderboard(); window.loadSlashLeaderboard?.(); }
+          if (cat === 'register') injectProviderEarnings();
+          if (cat === 'x402') enhanceCrossChainSelector();
+        }, 100);
+      };
+    }
+
+    // Also run on connected
+    document.addEventListener('cgWalletConnected', () => {
+      setTimeout(() => {
+        injectProviderEarnings();
+        enhanceCrossChainSelector();
+      }, 500);
+    });
 
   })();
   </script>
