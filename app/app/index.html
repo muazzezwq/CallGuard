@@ -2714,6 +2714,154 @@
         }
       }
 
+      /* ============================================================ */
+      /* RESPONSIVE: 5 New Panels + Global inline-grid overrides     */
+      /* ============================================================ */
+
+      /* --- Utility: responsive inline grids via data-cols attr --- */
+
+      /* Stat rows: 4-col → 2-col on tablet, 2-col on phone */
+      @media (max-width: 900px) {
+        #agentStats,
+        #lendingStats {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+      }
+
+      /* All 1fr 1fr two-column content grids in 5 panels → stack on phone */
+      @media (max-width: 640px) {
+        #agentStats,
+        #lendingStats {
+          grid-template-columns: 1fr 1fr !important;
+        }
+
+        /* Remove fixed max-width constraints on narrow screens */
+        #agentTabSetup > div[style*="max-width"],
+        #agentTabSettings > div[style*="max-width"],
+        #lendTabContentPool > div[style*="max-width"],
+        #lendTabContentBorrow > div[style*="max-width"],
+        #futMintTab > div[style*="max-width"],
+        #attTab-issue > div[style*="max-width"],
+        #attTab-lookup > div[style*="max-width"],
+        .panel-body > div[style*="max-width:480"],
+        .panel-body > div[style*="max-width:540"],
+        .panel-body > div[style*="max-width:560"],
+        .panel-body > div[style*="max-width:580"],
+        .panel-body > div[style*="max-width:680"] {
+          max-width: 100% !important;
+        }
+
+        /* Tab bars: allow wrap on narrow screens */
+        .panel-body > div[style*="width:fit-content"],
+        .panel-body div[style*="width:fit-content"] {
+          width: 100% !important;
+          flex-wrap: wrap !important;
+        }
+      }
+
+      /* Phone: stack all 1fr 1fr grids in new panels */
+      @media (max-width: 560px) {
+        /* Agent Loop: auto-route split, settings split */
+        #agentTabAutoroute > div[style*="grid-template-columns"],
+        #agentTabSettings > div[style*="grid-template-columns"],
+        /* RepFi: deposit/withdraw split */
+        #lendTabContentPool > div[style*="grid-template-columns"],
+        /* Attestation: peek split */
+        #attTab-peek > div[style*="grid-template-columns"],
+        /* Quality: dispute form 2-col */
+        #qualityPanel div[style*="grid-template-columns:1fr 1fr"],
+        /* Notification panel split */
+        #notifPanel div[style*="grid-template-columns:1fr 1fr"] {
+          grid-template-columns: 1fr !important;
+        }
+
+        /* Attestation: 3-card type grid → 1 col */
+        #attTab-peek ~ * div[style*="repeat(3,1fr)"],
+        .panel-body div[style*="repeat(3,1fr)"] {
+          grid-template-columns: 1fr !important;
+        }
+
+        /* Agent Loop stat tiles: keep 2-col even on phone */
+        #agentStats,
+        #lendingStats {
+          grid-template-columns: 1fr 1fr !important;
+        }
+
+        /* Panel head icon+title: wrap gracefully */
+        .panel-head > div[style*="display:flex"] {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        /* MCP pre block: scrollable, no overflow */
+        .panel-body pre {
+          font-size: 10px !important;
+          line-height: 1.5 !important;
+        }
+
+        /* Inputs: full width, bigger tap targets */
+        .panel-body input[type="text"],
+        .panel-body input[type="number"],
+        .panel-body input[type="datetime-local"],
+        .panel-body select,
+        .panel-body textarea {
+          font-size: 16px !important; /* prevents iOS auto-zoom */
+          width: 100% !important;
+        }
+
+        /* Quality dispute quality form inner 2-col grid */
+        #qualityPanel div[style*="grid-template-columns:1fr 1fr"] {
+          grid-template-columns: 1fr !important;
+        }
+
+        /* Futures: mint form grid gap */
+        #futMintTab > div > div[style*="display:grid"] {
+          gap: 10px !important;
+        }
+      }
+
+      /* Extra small: 380px */
+      /* Attestation 3-card type grid: responsive class */
+      @media (max-width: 640px) {
+        .att-type-grid {
+          grid-template-columns: 1fr !important;
+        }
+      }
+
+      @media (max-width: 420px) {
+        #agentStats,
+        #lendingStats {
+          grid-template-columns: 1fr 1fr !important;
+        }
+
+        /* Panel head title font */
+        .panel-head h2 {
+          font-size: 14px !important;
+        }
+
+        /* Stat values slightly smaller */
+        #agentStats div[style*="font-size:22px"],
+        #lendingStats div[style*="font-size:22px"] {
+          font-size: 18px !important;
+        }
+
+        /* RepFi info box steps text */
+        #qualityPanel div[style*="display:grid;gap:5px"] > div {
+          font-size: 11px !important;
+        }
+      }
+
+      /* Desktop (≥ 1024px): give panels a little more breathing room */
+      @media (min-width: 1024px) {
+        .panel-body {
+          padding: 24px 28px;
+        }
+
+        .panel-head {
+          padding: 18px 28px;
+        }
+      }
+
       /* Very tiny screens (<= 380px) — squeeze the last drop */
       @media (max-width: 380px) {
         .stats-bar {
@@ -8102,7 +8250,7 @@ npm install</pre>
             <div style="background:linear-gradient(135deg,rgba(14,165,233,0.07),rgba(14,165,233,0.02));border:1px solid rgba(14,165,233,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:12px;line-height:1.75;color:var(--text-dim)">
               <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:8px;font-family:var(--font-display)">What is the SLA Bridge?</div>
               Any external protocol — API3, Chainlink, LayerZero, or your own contract — can query CallGuard for cryptographic, on-chain proof that a provider honored (or violated) their SLA commitment.
-              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+              <div class="att-type-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
                 <div style="background:rgba(14,165,233,0.07);border:1px solid rgba(14,165,233,0.15);border-radius:8px;padding:10px 12px">
                   <div style="font-size:10px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">CALL_RECEIPT</div>
                   <div style="font-size:11px;color:var(--text-dim)">Did provider X deliver call Y on time? Returns HONORED / VIOLATED.</div>
