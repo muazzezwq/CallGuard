@@ -6753,6 +6753,86 @@
       margin-bottom: 48px;
     }
 
+    /* ── Landing canvas ─────────────────────────── */
+    #landingCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 480px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .55;
+    }
+    #disconnectedView .disconnected { position: relative; }
+    .cg-hero { position: relative; z-index: 1; }
+
+    /* ── Count-up flash ─────────────────────────── */
+    @keyframes cg-numflash {
+      0%   { color: var(--accent); transform: scale(1.18); }
+      100% { color: var(--text);   transform: scale(1); }
+    }
+    .cg-numflash { animation: cg-numflash .4s ease-out forwards; }
+
+    /* ── Fade-in-up ─────────────────────────────── */
+    @keyframes cg-fadeinup {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cg-anim-hidden { opacity: 0; }
+    .cg-anim-visible {
+      animation: cg-fadeinup .55s cubic-bezier(.22,1,.36,1) forwards;
+    }
+
+    /* ── Role card glow on hover ────────────────── */
+    .cg-role-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 17px;
+      background: radial-gradient(circle at 50% 0%, rgba(16,185,129,.18), transparent 70%);
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    .cg-role-card { position: relative; overflow: hidden; }
+    .cg-role-card:hover::before { opacity: 1; }
+
+    /* ── Shimmer on role card ───────────────────── */
+    @keyframes cg-shimmer {
+      from { transform: translateX(-100%) skewX(-12deg); }
+      to   { transform: translateX(250%) skewX(-12deg); }
+    }
+    .cg-role-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
+      transform: translateX(-100%) skewX(-12deg);
+      pointer-events: none;
+    }
+    .cg-role-card:hover::after {
+      animation: cg-shimmer .65s ease forwards;
+    }
+
+    /* ── Feature strip icon pulse ───────────────── */
+    @keyframes cg-pulse-icon {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.18); }
+    }
+    .cg-feat:hover svg { animation: cg-pulse-icon .5s ease-in-out; }
+
+    /* ── Stat pill glow ─────────────────────────── */
+    @keyframes cg-statglow {
+      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.35); }
+      70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+    .cg-stats-row.cg-updated { animation: cg-statglow .8s ease-out; }
+
+    /* ── HIW cards stagger ──────────────────────── */
+    .cg-hiw-card { transition: transform .2s, box-shadow .2s; }
+    .cg-hiw-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+
     /* ── Responsive ──────────────────────────────── */
     @media (max-width: 700px) {
       .cg-hero { padding: 48px 0 40px; }
@@ -7003,6 +7083,9 @@
         <!-- ═══════════════════════════════════════════════════
              NEW LANDING — SaaS / product-led style
              ═══════════════════════════════════════════════════ -->
+
+        <!-- HERO CANVAS -->
+        <canvas id="landingCanvas" aria-hidden="true"></canvas>
 
         <!-- HERO -->
         <section class="cg-hero">
@@ -20409,6 +20492,245 @@ console.log("call opened:", tx.hash);`;
         setHTML('attLookupResult', `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`);
       }
     };
+
+  })();
+  </script>
+
+  <!-- ================================================================
+       LANDING ANIMATIONS
+       ================================================================ -->
+  <script>
+  (function() {
+    "use strict";
+
+    /* ── 1. PARTICLE NETWORK CANVAS ──────────────────────────────── */
+    (function initLandingCanvas() {
+      var canvas = document.getElementById("landingCanvas");
+      if (!canvas) return;
+      var ctx = canvas.getContext("2d");
+      var W, H, nodes = [], RAF;
+
+      function resize() {
+        W = canvas.width  = canvas.offsetWidth;
+        H = canvas.height = canvas.offsetHeight;
+      }
+
+      function makeNode() {
+        return {
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - .5) * .35,
+          vy: (Math.random() - .5) * .35,
+          r: Math.random() * 1.8 + 1,
+          pulse: Math.random() * Math.PI * 2
+        };
+      }
+
+      function init() {
+        resize();
+        nodes = [];
+        var count = Math.min(Math.floor(W / 28), 42);
+        for (var i = 0; i < count; i++) nodes.push(makeNode());
+      }
+
+      function draw(ts) {
+        ctx.clearRect(0, 0, W, H);
+        var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#10b981";
+
+        // Update
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          n.x += n.vx; n.y += n.vy;
+          n.pulse += .018;
+          if (n.x < 0) n.x = W;
+          if (n.x > W) n.x = 0;
+          if (n.y < 0) n.y = H;
+          if (n.y > H) n.y = 0;
+        }
+
+        // Draw edges
+        ctx.lineWidth = .6;
+        for (var i = 0; i < nodes.length; i++) {
+          for (var j = i + 1; j < nodes.length; j++) {
+            var dx = nodes[i].x - nodes[j].x;
+            var dy = nodes[i].y - nodes[j].y;
+            var dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 110) {
+              ctx.globalAlpha = (1 - dist/110) * .28;
+              ctx.strokeStyle = accent;
+              ctx.beginPath();
+              ctx.moveTo(nodes[i].x, nodes[i].y);
+              ctx.lineTo(nodes[j].x, nodes[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Draw nodes
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          var glow = (Math.sin(n.pulse) + 1) / 2;
+          ctx.globalAlpha = .35 + glow * .45;
+          ctx.fillStyle = accent;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + glow * .6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+        RAF = requestAnimationFrame(draw);
+      }
+
+      // Only run when landing is visible
+      var obs = new MutationObserver(function() {
+        var view = document.getElementById("disconnectedView");
+        var visible = view && !view.classList.contains("hidden");
+        if (visible && !RAF) { init(); RAF = requestAnimationFrame(draw); }
+        if (!visible && RAF) { cancelAnimationFrame(RAF); RAF = null; }
+      });
+      obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+
+      var view = document.getElementById("disconnectedView");
+      if (view && !view.classList.contains("hidden")) { init(); RAF = requestAnimationFrame(draw); }
+
+      window.addEventListener("resize", function() {
+        if (RAF) { cancelAnimationFrame(RAF); RAF = null; }
+        init();
+        var view = document.getElementById("disconnectedView");
+        if (view && !view.classList.contains("hidden")) RAF = requestAnimationFrame(draw);
+      });
+    })();
+
+    /* ── 2. COUNT-UP STAT NUMBERS ────────────────────────────────── */
+    window._cgCountUp = function(elId, target, duration) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      var start = 0, step = duration / 30;
+      var timer = setInterval(function() {
+        start += Math.ceil(target / 30);
+        if (start >= target) { start = target; clearInterval(timer); el.classList.add("cg-numflash"); }
+        el.textContent = start.toLocaleString();
+      }, step);
+    };
+
+    // Patch heroProviders/heroCalls/heroSlashes setters to trigger count-up
+    var _statIds = ["heroProviders","heroCalls","heroSlashes"];
+    var _lastVals = {};
+    var _statObs = new MutationObserver(function(muts) {
+      muts.forEach(function(m) {
+        var el = m.target;
+        var id = el.id;
+        if (_statIds.indexOf(id) === -1) return;
+        var raw = parseInt(el.textContent.replace(/\D/g,"")) || 0;
+        if (raw > 0 && raw !== _lastVals[id]) {
+          _lastVals[id] = raw;
+          el.textContent = "0";
+          window._cgCountUp(id, raw, 900);
+          var row = el.closest(".cg-stats-row");
+          if (row) { row.classList.remove("cg-updated"); void row.offsetWidth; row.classList.add("cg-updated"); }
+        }
+      });
+    });
+    _statIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) _statObs.observe(el, { childList: true, characterData: true, subtree: true });
+    });
+
+    /* ── 3. SCROLL-TRIGGERED FADE-IN-UP ─────────────────────────── */
+    (function initScrollAnim() {
+      var targets = [
+        ".cg-roles",
+        ".cg-hiw",
+        ".cg-features",
+        ".cg-providers-section",
+        ".cg-feed-section",
+        ".cg-contracts",
+        ".cg-bottom-cta"
+      ];
+
+      var iob = window.IntersectionObserver && new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (!e.isIntersecting) return;
+          var el = e.target;
+          var delay = el.dataset.animDelay || "0ms";
+          el.style.animationDelay = delay;
+          el.classList.remove("cg-anim-hidden");
+          el.classList.add("cg-anim-visible");
+          iob.unobserve(el);
+        });
+      }, { threshold: 0.08 });
+
+      if (!iob) return;
+
+      targets.forEach(function(sel, i) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        el.classList.add("cg-anim-hidden");
+        el.dataset.animDelay = (i * 80) + "ms";
+        iob.observe(el);
+      });
+
+      // HIW cards staggered individually
+      document.querySelectorAll(".cg-hiw-card").forEach(function(card, i) {
+        card.classList.add("cg-anim-hidden");
+        var iob2 = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (!e.isIntersecting) return;
+            e.target.style.animationDelay = (i * 100) + "ms";
+            e.target.classList.remove("cg-anim-hidden");
+            e.target.classList.add("cg-anim-visible");
+            iob2.unobserve(e.target);
+          });
+        }, { threshold: 0.1 });
+        iob2.observe(card);
+      });
+
+      // Feature items staggered
+      document.querySelectorAll(".cg-feat").forEach(function(feat, i) {
+        feat.classList.add("cg-anim-hidden");
+        var iob3 = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (!e.isIntersecting) return;
+            e.target.style.animationDelay = (i * 80) + "ms";
+            e.target.classList.remove("cg-anim-hidden");
+            e.target.classList.add("cg-anim-visible");
+            iob3.unobserve(e.target);
+          });
+        }, { threshold: 0.1 });
+        iob3.observe(feat);
+      });
+    })();
+
+    /* ── 4. HERO BADGE TYPING EFFECT ─────────────────────────────── */
+    (function heroBadge() {
+      var badge = document.querySelector(".cg-badge");
+      if (!badge) return;
+      var texts = ["Arc Testnet · Live", "5 SLA Protocols", "USDC-Native Gas", "Agent-Ready"];
+      var idx = 0;
+      setInterval(function() {
+        idx = (idx + 1) % texts.length;
+        badge.style.opacity = "0";
+        badge.style.transition = "opacity .25s";
+        setTimeout(function() {
+          badge.textContent = texts[idx];
+          badge.style.opacity = "1";
+        }, 260);
+      }, 3200);
+    })();
+
+    /* ── 5. ROLE CARD ENTRANCE ───────────────────────────────────── */
+    (function roleEntrance() {
+      var cards = document.querySelectorAll(".cg-role-card");
+      cards.forEach(function(card, i) {
+        card.style.opacity = "0";
+        card.style.transform = "translateY(20px)";
+        card.style.transition = "opacity .5s, transform .5s";
+        setTimeout(function() {
+          card.style.opacity = "1";
+          card.style.transform = "translateY(0)";
+        }, 200 + i * 140);
+      });
+    })();
 
   })();
   </script>
