@@ -6757,10 +6757,10 @@
     #landingCanvas {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 480px;
+      width: 100%; height: 520px;
       pointer-events: none;
       z-index: 0;
-      opacity: .55;
+      opacity: 1;
     }
     #disconnectedView .disconnected { position: relative; }
     .cg-hero { position: relative; z-index: 1; }
@@ -20508,56 +20508,60 @@ console.log("call opened:", tx.hash);`;
       var canvas = document.getElementById("landingCanvas");
       if (!canvas) return;
       var ctx = canvas.getContext("2d");
-      var W, H, nodes = [], RAF;
+      var W = 0, H = 0, nodes = [], RAF = null;
+      // Fixed vivid colors — works on both light and dark themes
+      var NODE_COLOR = "#10b981";
+      var LINE_COLOR = "#10b981";
+      var BG_DOTS    = "#0ea5e9";
 
       function resize() {
-        W = canvas.width  = canvas.offsetWidth;
-        H = canvas.height = canvas.offsetHeight;
+        W = canvas.width  = canvas.parentElement ? canvas.parentElement.offsetWidth : window.innerWidth;
+        H = canvas.height = 520;
       }
 
-      function makeNode() {
+      function makeNode(forceX, forceY) {
         return {
-          x: Math.random() * W,
-          y: Math.random() * H,
-          vx: (Math.random() - .5) * .35,
-          vy: (Math.random() - .5) * .35,
-          r: Math.random() * 1.8 + 1,
-          pulse: Math.random() * Math.PI * 2
+          x:     forceX !== undefined ? forceX : Math.random() * W,
+          y:     forceY !== undefined ? forceY : Math.random() * H,
+          vx:    (Math.random() - .5) * .5,
+          vy:    (Math.random() - .5) * .5,
+          r:     Math.random() * 2.2 + 1.2,
+          pulse: Math.random() * Math.PI * 2,
+          color: Math.random() > .75 ? BG_DOTS : NODE_COLOR
         };
       }
 
       function init() {
         resize();
         nodes = [];
-        var count = Math.min(Math.floor(W / 28), 42);
+        var count = Math.min(Math.max(Math.floor(W / 22), 18), 55);
         for (var i = 0; i < count; i++) nodes.push(makeNode());
       }
 
-      function draw(ts) {
+      function draw() {
         ctx.clearRect(0, 0, W, H);
-        var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#10b981";
 
-        // Update
+        // Move nodes
         for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
           n.x += n.vx; n.y += n.vy;
-          n.pulse += .018;
-          if (n.x < 0) n.x = W;
-          if (n.x > W) n.x = 0;
-          if (n.y < 0) n.y = H;
-          if (n.y > H) n.y = 0;
+          n.pulse += .022;
+          if (n.x < -10) n.x = W + 10;
+          else if (n.x > W + 10) n.x = -10;
+          if (n.y < -10) n.y = H + 10;
+          else if (n.y > H + 10) n.y = -10;
         }
 
         // Draw edges
-        ctx.lineWidth = .6;
         for (var i = 0; i < nodes.length; i++) {
           for (var j = i + 1; j < nodes.length; j++) {
             var dx = nodes[i].x - nodes[j].x;
             var dy = nodes[i].y - nodes[j].y;
-            var dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 110) {
-              ctx.globalAlpha = (1 - dist/110) * .28;
-              ctx.strokeStyle = accent;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              ctx.globalAlpha = (1 - dist / 120) * .22;
+              ctx.strokeStyle = LINE_COLOR;
+              ctx.lineWidth = .8;
               ctx.beginPath();
               ctx.moveTo(nodes[i].x, nodes[i].y);
               ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -20569,11 +20573,19 @@ console.log("call opened:", tx.hash);`;
         // Draw nodes
         for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
-          var glow = (Math.sin(n.pulse) + 1) / 2;
-          ctx.globalAlpha = .35 + glow * .45;
-          ctx.fillStyle = accent;
+          var glow = (Math.sin(n.pulse) * .5 + .5); // 0..1
+          var radius = n.r + glow * .9;
+          // Outer glow ring
+          ctx.globalAlpha = glow * .18;
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r + glow * .6, 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, radius * 3.2, 0, Math.PI * 2);
+          ctx.fillStyle = n.color;
+          ctx.fill();
+          // Core dot
+          ctx.globalAlpha = .55 + glow * .45;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = n.color;
           ctx.fill();
         }
 
@@ -20581,53 +20593,64 @@ console.log("call opened:", tx.hash);`;
         RAF = requestAnimationFrame(draw);
       }
 
-      // Only run when landing is visible
+      function start() {
+        if (!RAF) { init(); RAF = requestAnimationFrame(draw); }
+      }
+      function stop() {
+        if (RAF) { cancelAnimationFrame(RAF); RAF = null; }
+      }
+
+      // Visibility control
       var obs = new MutationObserver(function() {
         var view = document.getElementById("disconnectedView");
-        var visible = view && !view.classList.contains("hidden");
-        if (visible && !RAF) { init(); RAF = requestAnimationFrame(draw); }
-        if (!visible && RAF) { cancelAnimationFrame(RAF); RAF = null; }
+        var vis = view && !view.classList.contains("hidden");
+        vis ? start() : stop();
       });
-      obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+      obs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"] });
 
+      // Initial state
       var view = document.getElementById("disconnectedView");
-      if (view && !view.classList.contains("hidden")) { init(); RAF = requestAnimationFrame(draw); }
+      if (view && !view.classList.contains("hidden")) start();
 
       window.addEventListener("resize", function() {
-        if (RAF) { cancelAnimationFrame(RAF); RAF = null; }
-        init();
-        var view = document.getElementById("disconnectedView");
-        if (view && !view.classList.contains("hidden")) RAF = requestAnimationFrame(draw);
+        stop(); init();
+        var v = document.getElementById("disconnectedView");
+        if (v && !v.classList.contains("hidden")) RAF = requestAnimationFrame(draw);
       });
     })();
 
     /* ── 2. COUNT-UP STAT NUMBERS ────────────────────────────────── */
-    window._cgCountUp = function(elId, target, duration) {
+    function cgCountUp(elId, target, duration) {
       var el = document.getElementById(elId);
-      if (!el) return;
-      var start = 0, step = duration / 30;
+      if (!el || target <= 0) return;
+      var steps = 40, stepMs = duration / steps, current = 0;
+      el.textContent = "0";
       var timer = setInterval(function() {
-        start += Math.ceil(target / 30);
-        if (start >= target) { start = target; clearInterval(timer); el.classList.add("cg-numflash"); }
-        el.textContent = start.toLocaleString();
-      }, step);
-    };
-
-    // Patch heroProviders/heroCalls/heroSlashes setters to trigger count-up
-    var _statIds = ["heroProviders","heroCalls","heroSlashes"];
-    var _lastVals = {};
-    var _statObs = new MutationObserver(function(muts) {
-      muts.forEach(function(m) {
-        var el = m.target;
-        var id = el.id;
-        if (_statIds.indexOf(id) === -1) return;
-        var raw = parseInt(el.textContent.replace(/\D/g,"")) || 0;
-        if (raw > 0 && raw !== _lastVals[id]) {
-          _lastVals[id] = raw;
-          el.textContent = "0";
-          window._cgCountUp(id, raw, 900);
+        current = Math.min(current + Math.ceil(target / steps), target);
+        el.textContent = current.toLocaleString();
+        if (current >= target) {
+          clearInterval(timer);
+          el.classList.remove("cg-numflash");
+          void el.offsetWidth;
+          el.classList.add("cg-numflash");
           var row = el.closest(".cg-stats-row");
           if (row) { row.classList.remove("cg-updated"); void row.offsetWidth; row.classList.add("cg-updated"); }
+        }
+      }, stepMs);
+    }
+
+    // Watch for stats populated by the main app — fire count-up once
+    var _statDone = {};
+    var _statIds = ["heroProviders", "heroCalls", "heroSlashes"];
+    var _statObs = new MutationObserver(function() {
+      _statIds.forEach(function(id) {
+        if (_statDone[id]) return;
+        var el = document.getElementById(id);
+        if (!el) return;
+        var val = parseInt((el.textContent || "").replace(/\D/g, ""), 10);
+        if (!isNaN(val) && val > 0) {
+          _statDone[id] = true;
+          cgCountUp(id, val, 1200);
         }
       });
     });
@@ -20635,70 +20658,49 @@ console.log("call opened:", tx.hash);`;
       var el = document.getElementById(id);
       if (el) _statObs.observe(el, { childList: true, characterData: true, subtree: true });
     });
+    // Also poll once after 2s as fallback
+    setTimeout(function() {
+      _statIds.forEach(function(id) {
+        if (_statDone[id]) return;
+        var el = document.getElementById(id);
+        if (!el) return;
+        var val = parseInt((el.textContent || "").replace(/\D/g, ""), 10);
+        if (!isNaN(val) && val > 0) { _statDone[id] = true; cgCountUp(id, val, 1200); }
+      });
+    }, 2000);
 
     /* ── 3. SCROLL-TRIGGERED FADE-IN-UP ─────────────────────────── */
     (function initScrollAnim() {
-      var targets = [
-        ".cg-roles",
-        ".cg-hiw",
-        ".cg-features",
-        ".cg-providers-section",
-        ".cg-feed-section",
-        ".cg-contracts",
-        ".cg-bottom-cta"
-      ];
+      function reveal(el, delay) {
+        el.style.animationDelay = delay + "ms";
+        el.classList.remove("cg-anim-hidden");
+        el.classList.add("cg-anim-visible");
+      }
 
-      var iob = window.IntersectionObserver && new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) {
-          if (!e.isIntersecting) return;
-          var el = e.target;
-          var delay = el.dataset.animDelay || "0ms";
-          el.style.animationDelay = delay;
-          el.classList.remove("cg-anim-hidden");
-          el.classList.add("cg-anim-visible");
-          iob.unobserve(el);
-        });
-      }, { threshold: 0.08 });
-
-      if (!iob) return;
-
-      targets.forEach(function(sel, i) {
-        var el = document.querySelector(sel);
-        if (!el) return;
+      function watchEl(el, delay) {
         el.classList.add("cg-anim-hidden");
-        el.dataset.animDelay = (i * 80) + "ms";
-        iob.observe(el);
-      });
-
-      // HIW cards staggered individually
-      document.querySelectorAll(".cg-hiw-card").forEach(function(card, i) {
-        card.classList.add("cg-anim-hidden");
-        var iob2 = new IntersectionObserver(function(entries) {
+        if (!window.IntersectionObserver) { reveal(el, delay); return; }
+        var ob = new IntersectionObserver(function(entries) {
           entries.forEach(function(e) {
             if (!e.isIntersecting) return;
-            e.target.style.animationDelay = (i * 100) + "ms";
-            e.target.classList.remove("cg-anim-hidden");
-            e.target.classList.add("cg-anim-visible");
-            iob2.unobserve(e.target);
+            reveal(e.target, delay);
+            ob.unobserve(e.target);
           });
-        }, { threshold: 0.1 });
-        iob2.observe(card);
-      });
+        }, { threshold: 0.06, rootMargin: "0px 0px -40px 0px" });
+        ob.observe(el);
+        // Fallback: if still hidden after 3s (e.g. already in viewport on mobile), force reveal
+        setTimeout(function() {
+          if (el.classList.contains("cg-anim-hidden")) reveal(el, 0);
+        }, 3000);
+      }
 
-      // Feature items staggered
-      document.querySelectorAll(".cg-feat").forEach(function(feat, i) {
-        feat.classList.add("cg-anim-hidden");
-        var iob3 = new IntersectionObserver(function(entries) {
-          entries.forEach(function(e) {
-            if (!e.isIntersecting) return;
-            e.target.style.animationDelay = (i * 80) + "ms";
-            e.target.classList.remove("cg-anim-hidden");
-            e.target.classList.add("cg-anim-visible");
-            iob3.unobserve(e.target);
-          });
-        }, { threshold: 0.1 });
-        iob3.observe(feat);
+      var sections = [".cg-roles",".cg-hiw",".cg-features",".cg-providers-section",".cg-feed-section",".cg-contracts",".cg-bottom-cta"];
+      sections.forEach(function(sel, i) {
+        var el = document.querySelector(sel);
+        if (el) watchEl(el, i * 80);
       });
+      document.querySelectorAll(".cg-hiw-card").forEach(function(el, i) { watchEl(el, i * 100); });
+      document.querySelectorAll(".cg-feat").forEach(function(el, i) { watchEl(el, i * 80); });
     })();
 
     /* ── 4. HERO BADGE TYPING EFFECT ─────────────────────────────── */
