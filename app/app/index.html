@@ -22025,17 +22025,8 @@ console.log("call opened:", tx.hash);`;
     async function fetchHistory(address, skip = 0) {
       const addrFilter = address ? `, caller: "${address.toLowerCase()}"` : '';
       const q = `{
-        callOpeneds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc${addrFilter}) {
-          id callId caller providerId amount blockTimestamp transactionHash
-        }
-        receiptSubmitteds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
-          id callId provider respondedAt transactionHash blockTimestamp
-        }
-        slasheds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
-          id callId caller provider amount blockTimestamp transactionHash
-        }
-        timeoutClaimeds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
-          id callId caller slashAmount blockTimestamp transactionHash
+        calls(first: ${HIST_PAGE}, skip: ${skip}, orderBy: createdAt, orderDirection: desc${addrFilter}) {
+          id providerId caller amount status slashed refunded createdAt completedAt
         }
       }`;
       try {
@@ -22055,23 +22046,25 @@ console.log("call opened:", tx.hash);`;
       return d.toLocaleDateString();
     }
 
-    function buildHistItems(data, address) {
+    function buildHistItems(data) {
       const items = [];
-      const addr = address?.toLowerCase();
-
-      (data.callOpeneds || []).forEach(e => {
-        items.push({ type: 'call', ts: Number(e.blockTimestamp), callId: e.callId, from: e.caller, to: `Provider #${e.providerId}`, amount: (Number(e.amount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: !addr || e.caller?.toLowerCase() === addr });
+      (data.calls || []).forEach(e => {
+        const isSlash = e.status === 'SLASHED' || Number(e.slashed) > 0;
+        const isComplete = e.status === 'COMPLETED';
+        let type = 'call';
+        if (isSlash) type = 'slash';
+        else if (isComplete) type = 'receipt';
+        items.push({
+          type, ts: Number(e.createdAt),
+          callId: e.id.slice(0,10) + '…',
+          from: e.caller,
+          to: `Provider #${e.providerId}`,
+          amount: (Number(e.amount) / 1e6).toFixed(2) + ' USDC',
+          slashedAmt: isSlash ? (Number(e.slashed) / 1e6).toFixed(4) + ' USDC slashed' : '',
+          status: e.status,
+          tx: e.id,
+        });
       });
-      (data.receiptSubmitteds || []).forEach(e => {
-        items.push({ type: 'receipt', ts: Number(e.blockTimestamp), callId: e.callId, from: e.provider, to: 'Caller', amount: '', tx: e.transactionHash, relevant: !addr || e.provider?.toLowerCase() === addr });
-      });
-      (data.slasheds || []).forEach(e => {
-        items.push({ type: 'slash', ts: Number(e.blockTimestamp), callId: e.callId, from: 'Contract', to: e.caller, amount: (Number(e.amount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: true });
-      });
-      (data.timeoutClaimeds || []).forEach(e => {
-        items.push({ type: 'timeout', ts: Number(e.blockTimestamp), callId: e.callId, from: e.caller, to: 'Caller', amount: (Number(e.slashAmount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: true });
-      });
-
       items.sort((a, b) => b.ts - a.ts);
       return items;
     }
@@ -22122,7 +22115,7 @@ console.log("call opened:", tx.hash);`;
     window.loadHistory = async function(force = false) {
       const addr = window.state?.accounts?.[0];
       const data = await fetchHistory(addr, 0);
-      _histData = buildHistItems(data, addr);
+      _histData = buildHistItems(data);
       _histOffset = 0;
       renderHistItems(_histData);
     };
