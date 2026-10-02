@@ -20507,9 +20507,13 @@ console.log("call opened:", tx.hash);`;
         document.body.classList.add('simple-mode');
         document.body.classList.remove('pro-mode');
         injectSimpleOverview();
+        // Simple modda Advanced accordion'ı kapat
+        if (typeof window._applyAdvancedState === 'function') window._applyAdvancedState(false);
       } else {
         document.body.classList.remove('simple-mode');
         document.body.classList.add('pro-mode');
+        // Pro modda Advanced accordion'ı aç
+        if (typeof window._applyAdvancedState === 'function') window._applyAdvancedState(true);
       }
     }
 
@@ -21615,7 +21619,10 @@ console.log("call opened:", tx.hash);`;
     "use strict";
 
     /* ── 1. SIDEBAR ACCORDION ──────────────────────────────────────── */
-    var _advOpen = localStorage.getItem("cg_adv_open") === "1";
+    // Pro modda default açık; Simple modda default kapalı
+    var _savedAdv = localStorage.getItem("cg_adv_open");
+    var _currentMode = localStorage.getItem("cg_mode") || "pro";
+    var _advOpen = _savedAdv !== null ? _savedAdv === "1" : _currentMode !== "simple";
 
     function applyAdvancedState() {
       var group = document.getElementById("sbAdvancedGroup");
@@ -21624,6 +21631,8 @@ console.log("call opened:", tx.hash);`;
       group.style.display = _advOpen ? "" : "none";
       if (chevron) chevron.style.transform = _advOpen ? "rotate(0deg)" : "rotate(-90deg)";
     }
+    // Expose so applyMode (different script block) can call it
+    window._applyAdvancedState = function(open) { _advOpen = open; applyAdvancedState(); };
 
     window.toggleSbAdvanced = function() {
       _advOpen = !_advOpen;
