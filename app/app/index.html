@@ -20270,17 +20270,16 @@ console.log("call opened:", tx.hash);`;
     body.pro-mode #btnSimpleMode { background: transparent; color: var(--text-faint); }
     body.pro-mode #btnProMode { background: var(--accent); color: #fff; }
 
-    /* Simple mode: hide advanced sidebar items */
-    body.simple-mode [data-nav="nano"],
-    body.simple-mode [data-nav="analytics"],
+    /* Simple mode: hide only truly advanced items */
     body.simple-mode [data-nav="jobs"],
     body.simple-mode [data-nav="mcp"],
     body.simple-mode [data-nav="webhooks"],
     body.simple-mode [data-nav="leaderboard"],
     body.simple-mode [data-nav="register"],
-    body.simple-mode .sb-section { display: none !important; }
+    body.simple-mode #sbAdvancedGroup,
+    body.simple-mode #sbAdvancedToggle { display: none !important; }
 
-    /* Simple mode: core items visible */
+    /* Simple mode: explicitly show core items */
     body.simple-mode [data-nav="overview"],
     body.simple-mode [data-nav="marketplace"],
     body.simple-mode [data-nav="x402"],
@@ -20291,8 +20290,10 @@ console.log("call opened:", tx.hash);`;
     body.simple-mode [data-nav="disputes"],
     body.simple-mode [data-nav="notifications"],
     body.simple-mode [data-nav="settings"] { display: flex !important; }
-    /* Simple mode: show section headers for visible groups */
-    body.simple-mode .sb-section:not(.sb-advanced-toggle) { display: block !important; }
+
+    /* Simple mode: show section headers */
+    body.simple-mode .sb-section { display: block !important; }
+    body.simple-mode #sbAdvancedToggle { display: none !important; }
 
     /* Simple mode: sb-lbl-simple/pro spans handle labels — no ::after needed */
 
@@ -20504,9 +20505,11 @@ console.log("call opened:", tx.hash);`;
     function applyMode(mode) {
       if (mode === 'simple') {
         document.body.classList.add('simple-mode');
+        document.body.classList.remove('pro-mode');
         injectSimpleOverview();
       } else {
         document.body.classList.remove('simple-mode');
+        document.body.classList.add('pro-mode');
       }
     }
 
