@@ -8011,11 +8011,11 @@
           </div>
 
           <!-- ── Advanced: collapsed by default, one click to expand ── -->
-          <div class="sb-section sb-advanced-toggle" id="sbAdvancedToggle" onclick="window.toggleSbAdvanced()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
+          <div class="sb-section sb-advanced-toggle" id="sbAdvancedToggle" onclick="if(window.toggleSbAdvanced)window.toggleSbAdvanced();else{var g=document.getElementById('sbAdvancedGroup');if(g)g.style.display=g.style.display==='none'?'':'none';}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
             <span>Advanced</span>
             <svg id="sbAdvancedChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div id="sbAdvancedGroup" style="display:none">
+          <div id="sbAdvancedGroup">
           <div class="sb-item" data-nav="quality" id="sbNavQuality">
             <span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
             <span class="sb-lbl-simple">Quality</span><span class="sb-lbl-pro">Quality Disputes</span>
@@ -20269,6 +20269,10 @@ console.log("call opened:", tx.hash);`;
     body.simple-mode #btnProMode { background: transparent; color: var(--text-faint); }
     body.pro-mode #btnSimpleMode { background: transparent; color: var(--text-faint); }
     body.pro-mode #btnProMode { background: var(--accent); color: #fff; }
+
+    /* Advanced group: CSS-driven visibility — no JS needed for initial state */
+    #sbAdvancedGroup { display: block; } /* Pro mode default: open */
+    body.simple-mode #sbAdvancedGroup { display: none !important; }
 
     /* Simple mode: hide only truly advanced items */
     body.simple-mode [data-nav="jobs"],
