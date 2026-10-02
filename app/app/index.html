@@ -21,7 +21,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
@@ -53,9 +53,9 @@
         --radius: 6px;
         --radius-lg: 10px;
         --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
-        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-        --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-body: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       * {
@@ -7779,52 +7779,80 @@ npm install</pre>
 
         <!-- ===== AGENT LOOP PANEL ===== -->
         <section class="panel full-width" id="agentPanel" data-category="agent" style="display:none">
+          <!-- Agent Loop redesign -->
           <div class="panel-head">
-            <h2>🤖 Agent Loop</h2>
-            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Autonomous AI wallet · Daily spend limits · Zero human approval</span>
-            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadAgentPanel && window.loadAgentPanel()">Refresh</button>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="6" r="2" fill="#fff" stroke="none"/></svg>
+              </div>
+              <div>
+                <h2 style="font-family:var(--font-display);letter-spacing:-0.02em;margin:0">Agent Loop</h2>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:1px">Autonomous AI wallet · Daily spend limits · Zero human approval</div>
+              </div>
+            </div>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadAgentPanel && window.loadAgentPanel()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>Refresh
+            </button>
           </div>
           <div class="panel-body">
-            <!-- Status card -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="agentStats">
-              <div class="stat-card"><div class="stat-val" id="agentBalance">—</div><div class="stat-lbl">Wallet Balance</div></div>
-              <div class="stat-card"><div class="stat-val" id="agentSpentToday">—</div><div class="stat-lbl">Spent Today</div></div>
-              <div class="stat-card"><div class="stat-val" id="agentRemaining">—</div><div class="stat-lbl">Remaining Today</div></div>
-              <div class="stat-card"><div class="stat-val" id="agentTotalCalls">—</div><div class="stat-lbl">Total Calls</div></div>
+
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px" id="agentStats">
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Balance</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--text);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="agentBalance">—</div>
+              </div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Spent Today</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--warn);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="agentSpentToday">—</div>
+              </div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Remaining</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--accent);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="agentRemaining">—</div>
+              </div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Total Calls</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--text);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="agentTotalCalls">—</div>
+              </div>
             </div>
 
-            <!-- Tabs -->
-            <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border-color);padding-bottom:8px">
-              <button class="btn btn-sm agent-tab active-tab" data-tab="setup" onclick="window.switchAgentTab('setup')">Setup Wallet</button>
-              <button class="btn btn-sm agent-tab" data-tab="autoroute" onclick="window.switchAgentTab('autoroute')">Auto Route</button>
-              <button class="btn btn-sm agent-tab" data-tab="settings" onclick="window.switchAgentTab('settings')">Settings</button>
-              <button class="btn btn-sm agent-tab" data-tab="mcp" onclick="window.switchAgentTab('mcp')">MCP Guide</button>
+            <!-- Tab bar -->
+            <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--bg-2);border-radius:8px;padding:3px;width:fit-content">
+              <button class="btn btn-sm agent-tab active-tab" data-tab="setup" onclick="window.switchAgentTab('setup')" style="border-radius:6px;font-size:12px;font-family:var(--font-sans)">Setup</button>
+              <button class="btn btn-sm agent-tab" data-tab="autoroute" onclick="window.switchAgentTab('autoroute')" style="border-radius:6px;font-size:12px;font-family:var(--font-sans)">Auto Route</button>
+              <button class="btn btn-sm agent-tab" data-tab="settings" onclick="window.switchAgentTab('settings')" style="border-radius:6px;font-size:12px;font-family:var(--font-sans)">Limits</button>
+              <button class="btn btn-sm agent-tab" data-tab="mcp" onclick="window.switchAgentTab('mcp')" style="border-radius:6px;font-size:12px;font-family:var(--font-sans)">MCP Guide</button>
             </div>
 
             <!-- Setup tab -->
             <div id="agentTabSetup">
-              <div class="info-box" style="margin-bottom:16px">
-                <b>🤖 What is Agent Loop?</b><br>
-                Deploy an AgentWallet smart contract — an onchain wallet your AI controls autonomously. Set a daily USDC limit, whitelist providers, and the AI makes service calls 24/7 without any human approval.<br><br>
-                <b>How it works:</b> You deposit USDC → AI agent calls providers → Daily limit enforced onchain → You control the wallet, AI controls the calls.
+              <div style="background:linear-gradient(135deg,rgba(245,158,11,0.07),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:16px 18px;margin-bottom:20px;font-size:12px;line-height:1.75;color:var(--text-dim)">
+                <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;font-family:var(--font-display)">What is Agent Loop?</div>
+                Deploy an <strong>AgentWallet</strong> smart contract — an onchain wallet your AI controls autonomously. Set a daily USDC limit, whitelist providers, and the AI makes service calls 24/7 without any human approval.<br><br>
+                <span style="color:var(--text-faint)">Flow: Deposit USDC &rarr; AI calls providers &rarr; Daily limit enforced onchain &rarr; You own the wallet, AI controls the calls.</span>
               </div>
               <div id="agentWalletStatus">
-                <div style="text-align:center;padding:32px;color:var(--text-faint)">
-                  <div style="font-size:32px;margin-bottom:8px">🤖</div>
-                  <div style="font-size:14px;font-weight:600;margin-bottom:4px">No Agent Wallet deployed</div>
-                  <div style="font-size:12px;margin-bottom:16px">Deploy an AgentWallet contract to enable autonomous AI calls</div>
-                  <button class="btn btn-primary" onclick="window.showDeployAgentModal()">Deploy Agent Wallet</button>
-                  <div style="margin-top:12px;font-size:11px;color:var(--text-faint)">or paste existing address: <input id="agentWalletAddrInput" placeholder="0x..." style="width:300px;padding:4px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:11px;background:var(--bg-input);color:var(--text-main)"> <button class="btn btn-sm" onclick="window.connectAgentWallet()">Connect</button></div>
+                <div style="text-align:center;padding:40px 24px;border:1px dashed var(--border);border-radius:12px;background:var(--bg-1)">
+                  <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f59e0b20,#f59e0b08);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  </div>
+                  <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;font-family:var(--font-display)">No Agent Wallet deployed</div>
+                  <div style="font-size:12px;color:var(--text-faint);margin-bottom:18px">Deploy an AgentWallet to enable autonomous AI calls</div>
+                  <button class="btn btn-primary" onclick="window.showDeployAgentModal()" style="font-family:var(--font-sans)">Deploy Agent Wallet</button>
+                  <div style="margin-top:14px;font-size:11px;color:var(--text-faint)">or connect existing:
+                    <input id="agentWalletAddrInput" placeholder="0x..." style="width:260px;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--bg-2);color:var(--text);margin:0 6px;font-family:var(--font-mono)">
+                    <button class="btn btn-sm" onclick="window.connectAgentWallet()" style="font-family:var(--font-sans)">Connect</button>
+                  </div>
                 </div>
               </div>
               <div id="agentWalletConnected" style="display:none">
-                <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-                  <input id="agentDepositAmt" type="number" min="0.01" step="0.01" placeholder="Amount (USDC)" style="width:130px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg-1);color:var(--text)">
-                  <button class="btn btn-primary" onclick="window.showAgentDeposit()">+ Deposit</button>
-                  <button class="btn btn-sm" onclick="window.showAgentWithdraw()">Withdraw</button>
-                  <button class="btn btn-sm" style="color:#ef4444" onclick="window.pauseAgentWallet()" id="agentPauseBtn">Pause</button>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+                  <input id="agentDepositAmt" type="number" min="0.01" step="0.01" placeholder="USDC amount" style="width:140px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-1);color:var(--text);font-family:var(--font-sans)">
+                  <button class="btn btn-primary" onclick="window.showAgentDeposit()" style="font-family:var(--font-sans)">Add USDC</button>
+                  <button class="btn btn-sm" onclick="window.showAgentWithdraw()" style="font-family:var(--font-sans)">Withdraw</button>
+                  <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="window.pauseAgentWallet()" id="agentPauseBtn">Pause</button>
                 </div>
-                <div style="font-size:11px;color:var(--text-faint)">Agent Wallet: <span id="agentWalletAddr" style="font-family:monospace;color:var(--text-main)">—</span></div>
+                <div style="font-size:11px;color:var(--text-faint)">Agent Wallet: <code id="agentWalletAddr" style="font-family:var(--font-mono);color:var(--text-dim);font-size:11px">—</code></div>
               </div>
             </div>
 
@@ -7832,61 +7860,63 @@ npm install</pre>
             <div id="agentTabAutoroute" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">PAYLOAD (what to request)</label>
-                  <textarea id="agentPayload" rows="4" placeholder='{"task":"analyze","data":"..."}' style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;font-family:monospace;resize:vertical;margin-top:4px"></textarea>
-                  <label style="font-size:11px;font-weight:600;color:var(--text-faint);margin-top:8px;display:block">MAX PRICE (USDC)</label>
-                  <input id="agentMaxPrice" type="number" value="1" step="0.1" min="0.001" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
-                  <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="window.doAgentAutoRoute()">⚡ Auto Route & Call</button>
+                  <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Request payload</div>
+                  <textarea id="agentPayload" rows="5" placeholder='{"task":"analyze","data":"..."}' style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:12px;font-family:var(--font-mono);resize:vertical"></textarea>
+                  <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px">Max price (USDC)</div>
+                  <input id="agentMaxPrice" type="number" value="1" step="0.1" min="0.001" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;font-variant-numeric:tabular-nums">
+                  <button class="btn btn-primary" style="margin-top:12px;width:100%;font-family:var(--font-sans)" onclick="window.doAgentAutoRoute()">Auto Route &amp; Call</button>
                 </div>
                 <div>
-                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">RESULT</label>
-                  <div id="agentRouteResult" style="margin-top:4px;padding:12px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);min-height:120px;font-family:monospace;font-size:11px;color:var(--text-faint)">Run auto route to see result...</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Result</div>
+                  <div id="agentRouteResult" style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);min-height:140px;font-family:var(--font-mono);font-size:11px;color:var(--text-faint);line-height:1.6">Run auto route to see result...</div>
                 </div>
               </div>
             </div>
 
-            <!-- Settings tab -->
+            <!-- Limits (settings) tab -->
             <div id="agentTabSettings" style="display:none">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <div>
-                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">DAILY LIMIT (USDC)</label>
-                  <input id="agentDailyLimitInput" type="number" placeholder="10" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
-                  <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentDailyLimit()">Update</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:560px">
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                  <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Daily limit (USDC)</div>
+                  <input id="agentDailyLimitInput" type="number" placeholder="10" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:14px;font-variant-numeric:tabular-nums;margin-bottom:10px">
+                  <button class="btn btn-sm" onclick="window.updateAgentDailyLimit()" style="width:100%;font-family:var(--font-sans)">Update limit</button>
                 </div>
-                <div>
-                  <label style="font-size:11px;font-weight:600;color:var(--text-faint)">MAX PER CALL (USDC)</label>
-                  <input id="agentMaxPerCallInput" type="number" placeholder="2" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
-                  <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentMaxPerCall()">Update</button>
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px">
+                  <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Max per call (USDC)</div>
+                  <input id="agentMaxPerCallInput" type="number" placeholder="2" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:14px;font-variant-numeric:tabular-nums;margin-bottom:10px">
+                  <button class="btn btn-sm" onclick="window.updateAgentMaxPerCall()" style="width:100%;font-family:var(--font-sans)">Update limit</button>
                 </div>
               </div>
-              <div style="margin-top:16px">
-                <label style="font-size:11px;font-weight:600;color:var(--text-faint)">WHITELIST PROVIDERS (optional — comma separated IDs)</label>
-                <input id="agentWhitelistInput" placeholder="1,3,7" style="width:100%;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-input);color:var(--text-main);font-size:12px;margin-top:4px">
-                <button class="btn btn-sm" style="margin-top:8px" onclick="window.updateAgentWhitelist()">Update Whitelist</button>
+              <div style="margin-top:14px;max-width:560px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Whitelisted providers <span style="font-weight:400;text-transform:none;letter-spacing:0">(comma-separated IDs, leave empty for all)</span></div>
+                <div style="display:flex;gap:8px">
+                  <input id="agentWhitelistInput" placeholder="1, 3, 7" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;font-family:var(--font-sans)">
+                  <button class="btn btn-sm" onclick="window.updateAgentWhitelist()" style="font-family:var(--font-sans)">Save</button>
+                </div>
               </div>
             </div>
 
             <!-- MCP guide tab -->
             <div id="agentTabMcp" style="display:none">
-              <div class="info-box" style="margin-bottom:12px">
-                <b>Connect your AI to CallGuard via MCP</b><br>
-                Add this to your Claude/GPT/Cursor MCP config to enable autonomous service calls:
+              <div style="background:linear-gradient(135deg,rgba(37,99,235,0.07),rgba(37,99,235,0.02));border:1px solid rgba(37,99,235,0.18);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:12px;line-height:1.7;color:var(--text-dim)">
+                <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:4px;font-family:var(--font-display)">Connect any AI to CallGuard via MCP</div>
+                Add this config to Claude Desktop, Cursor, or any MCP-compatible client. The agent can then list providers, check health, and send payments without writing any integration code.
               </div>
-              <pre style="background:var(--bg-input);padding:12px;border-radius:6px;font-size:11px;overflow-x:auto">{
+              <pre style="background:#0d1117;color:#c9d1d9;font-family:var(--font-mono);font-size:11px;line-height:1.7;padding:16px;border-radius:10px;overflow-x:auto;border:1px solid #21262d">{
   "mcpServers": {
     "callguard": {
       "command": "node",
       "args": ["/path/to/callguard/x402-facilitator/mcp-server.js"],
       "env": {
-        "AGENT_WALLET_ADDRESS": "<your-agent-wallet-address>",
-        "AGENT_PRIVATE_KEY": "<agent-hot-wallet-key>",
-        "RPC_URL": "https://rpc.testnet.arc.network"
+        "AGENT_WALLET_ADDRESS": "&lt;your-agent-wallet&gt;",
+        "AGENT_PRIVATE_KEY":    "&lt;agent-hot-wallet-key&gt;",
+        "RPC_URL":              "https://rpc.testnet.arc.network"
       }
     }
   }
 }</pre>
               <div style="margin-top:12px;font-size:11px;color:var(--text-faint)">
-                Available MCP tools: <code>list_providers</code>, <code>auto_route</code>, <code>call_service</code>, <code>agent_wallet_stats</code>, <code>get_provider_health</code>, <code>nanopay</code>, <code>get_network_stats</code>
+                Available tools: <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">list_providers</code> <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">auto_route</code> <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">call_service</code> <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">agent_wallet_stats</code> <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">nanopay</code>
               </div>
             </div>
           </div>
@@ -7895,77 +7925,90 @@ npm install</pre>
         <!-- ===== REPFI LENDING PANEL ===== -->
         <section class="panel full-width" id="lendingPanel" data-category="lending" style="display:none">
           <div class="panel-head">
-            <h2>💰 RepFi Lending</h2>
-            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Reputation-backed USDC loans · Earn yield as LP</span>
-            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadLending && window.loadLending()">Refresh</button>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <div>
+                <h2 style="font-family:var(--font-display);letter-spacing:-0.02em;margin:0">RepFi Lending</h2>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:1px">Reputation-backed USDC loans · Earn yield as LP</div>
+              </div>
+            </div>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadLending && window.loadLending()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>Refresh
+            </button>
           </div>
           <div class="panel-body">
+
             <!-- Pool stats -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="lendingStats">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--text)" id="lendTotalAssets">—</div>
-                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Total Pool</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px" id="lendingStats">
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Total Pool</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--text);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="lendTotalAssets">—</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--warn)" id="lendTotalLoaned">—</div>
-                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Active Loans</div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Active Loans</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--warn);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="lendTotalLoaned">—</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)" id="lendAvailable">—</div>
-                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Available</div>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Available</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--accent);letter-spacing:-0.02em;font-variant-numeric:tabular-nums" id="lendAvailable">—</div>
               </div>
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:#10b981">5% APY</div>
-                <div style="font-size:11px;color:var(--text-faint);margin-top:2px">LP Yield</div>
+              <div style="background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.03));border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:16px 14px">
+                <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">LP Yield</div>
+                <div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:#10b981;letter-spacing:-0.02em">5% APY</div>
               </div>
             </div>
 
-            <!-- Tabs -->
-            <div style="display:flex;gap:8px;margin-bottom:18px" id="lendingTabs">
-              <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="window.switchLendTab('pool')" id="lendTabPool">💧 Liquidity Pool</button>
-              <button class="btn btn-sm" onclick="window.switchLendTab('borrow')" id="lendTabBorrow">🏦 Borrow Stake</button>
-              <button class="btn btn-sm" onclick="window.switchLendTab('loans')" id="lendTabLoans">📋 My Loans</button>
+            <!-- Tab bar -->
+            <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--bg-2);border-radius:8px;padding:3px;width:fit-content" id="lendingTabs">
+              <button class="btn btn-sm" style="background:var(--accent);color:#fff;border-radius:6px;font-family:var(--font-sans)" onclick="window.switchLendTab('pool')" id="lendTabPool">Liquidity Pool</button>
+              <button class="btn btn-sm" style="border-radius:6px;font-family:var(--font-sans)" onclick="window.switchLendTab('borrow')" id="lendTabBorrow">Borrow Stake</button>
+              <button class="btn btn-sm" style="border-radius:6px;font-family:var(--font-sans)" onclick="window.switchLendTab('loans')" id="lendTabLoans">My Loans</button>
             </div>
 
             <!-- Pool tab -->
             <div id="lendTabContentPool">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
-                  <div style="font-weight:600;margin-bottom:12px">Deposit USDC</div>
-                  <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.6">Earn 5% APY + share of slash revenue. Your position is represented as pool shares.</div>
-                  <input id="lendDepositAmt" type="number" class="input" placeholder="Amount (USDC)" style="margin-bottom:10px">
-                  <button class="btn btn-primary" style="width:100%" onclick="window.doLendDeposit()">💧 Deposit</button>
-                  <div style="font-size:11px;color:var(--text-faint);margin-top:8px">Your shares: <span id="myLpShares">—</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px">
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:20px">
+                  <div style="font-weight:600;font-size:14px;font-family:var(--font-display);margin-bottom:6px;color:var(--text)">Deposit USDC</div>
+                  <div style="font-size:12px;color:var(--text-faint);margin-bottom:14px;line-height:1.6">Earn 5% APY + share of slash revenue. Position represented as pool shares.</div>
+                  <input id="lendDepositAmt" type="number" class="input" placeholder="Amount (USDC)" style="margin-bottom:10px;font-variant-numeric:tabular-nums">
+                  <button class="btn btn-primary" style="width:100%;font-family:var(--font-sans)" onclick="window.doLendDeposit()">Deposit USDC</button>
+                  <div style="font-size:11px;color:var(--text-faint);margin-top:10px">Your shares: <span id="myLpShares" style="font-variant-numeric:tabular-nums;color:var(--text-dim)">—</span></div>
                 </div>
-                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px">
-                  <div style="font-weight:600;margin-bottom:12px">Withdraw USDC</div>
-                  <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.6">Burn your LP shares to receive USDC + accrued yield back.</div>
-                  <input id="lendWithdrawShares" type="number" class="input" placeholder="Shares to burn" style="margin-bottom:10px">
-                  <button class="btn" style="width:100%;border:1px solid var(--border)" onclick="window.doLendWithdraw()">↩ Withdraw</button>
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:20px">
+                  <div style="font-weight:600;font-size:14px;font-family:var(--font-display);margin-bottom:6px;color:var(--text)">Withdraw USDC</div>
+                  <div style="font-size:12px;color:var(--text-faint);margin-bottom:14px;line-height:1.6">Burn LP shares to receive USDC + accrued yield.</div>
+                  <input id="lendWithdrawShares" type="number" class="input" placeholder="Shares to burn" style="margin-bottom:10px;font-variant-numeric:tabular-nums">
+                  <button class="btn" style="width:100%;border:1px solid var(--border);font-family:var(--font-sans)" onclick="window.doLendWithdraw()">Withdraw</button>
                 </div>
               </div>
             </div>
 
             <!-- Borrow tab -->
             <div id="lendTabContentBorrow" style="display:none">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px;max-width:480px">
-                <div style="font-weight:600;margin-bottom:12px">Borrow USDC as Stake</div>
-                <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:14px;line-height:1.7">
-                  <b>Requirements:</b> Honor rate ≥ 80%, completed calls ≥ 10, no active loan.<br>
-                  Borrowed USDC goes directly to your wallet — stake it via Register panel.<br>
-                  Repay within 90 days with 5% annual interest.
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:480px">
+                <div style="font-weight:600;font-size:14px;font-family:var(--font-display);margin-bottom:12px;color:var(--text)">Borrow USDC as Stake</div>
+                <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:8px;padding:12px 14px;font-size:12px;margin-bottom:16px;line-height:1.75;color:var(--text-dim)">
+                  <strong style="color:var(--text)">Requirements</strong><br>
+                  Honor rate &ge; 80% &middot; Completed calls &ge; 10 &middot; No active loan<br>
+                  Borrowed USDC goes to your wallet — stake it via Register panel.<br>
+                  <span style="color:var(--text-faint)">Repay within 90 days with 5% annual interest.</span>
                 </div>
-                <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Provider ID</label>
-                <input id="lendBorrowProviderId" type="number" class="input" placeholder="Your provider ID" style="margin-bottom:10px">
-                <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Amount (USDC)</label>
-                <input id="lendBorrowAmt" type="number" class="input" placeholder="e.g. 100" style="margin-bottom:10px">
-                <button class="btn btn-primary" style="width:100%" onclick="window.doLendBorrow()">🏦 Borrow</button>
+                <label style="font-size:11px;color:var(--text-faint);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.07em">Provider ID</label>
+                <input id="lendBorrowProviderId" type="number" class="input" placeholder="Your provider ID" style="margin-bottom:12px">
+                <label style="font-size:11px;color:var(--text-faint);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.07em">Amount (USDC)</label>
+                <input id="lendBorrowAmt" type="number" class="input" placeholder="e.g. 100" style="margin-bottom:14px;font-variant-numeric:tabular-nums">
+                <button class="btn btn-primary" style="width:100%;font-family:var(--font-sans)" onclick="window.doLendBorrow()">Borrow Stake</button>
               </div>
             </div>
 
             <!-- Loans tab -->
             <div id="lendTabContentLoans" style="display:none">
-              <div id="lendingLoanList"><div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">Connect wallet to view loans.</div></div>
+              <div id="lendingLoanList">
+                <div style="text-align:center;padding:32px;color:var(--text-faint);font-size:12px;border:1px dashed var(--border);border-radius:10px">Connect wallet to view your loans.</div>
+              </div>
             </div>
           </div>
         </section>
@@ -7973,25 +8016,31 @@ npm install</pre>
         <!-- ===== SLA FUTURES PANEL ===== -->
         <section class="panel full-width" id="futuresPanel" data-category="futures" style="display:none">
           <div class="panel-head">
-            <h2>🎟 SLA Futures</h2>
-            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Pre-buy API call capacity · ERC-1155 transferable slots</span>
-            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadFutures && window.loadFutures()">Refresh</button>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+              </div>
+              <div>
+                <h2 style="font-family:var(--font-display);letter-spacing:-0.02em;margin:0">SLA Futures</h2>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:1px">Pre-buy API call capacity · ERC-1155 transferable slots</div>
+              </div>
+            </div>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadFutures && window.loadFutures()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>Refresh
+            </button>
           </div>
           <div class="panel-body">
             <!-- How it works -->
-            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:12px;line-height:1.8;color:var(--text-2)">
-              <b style="color:var(--text)">How SLA Futures work</b><br>
-              Providers mint capacity batches (ERC-1155 tokens). Callers buy slots upfront at a locked price.
-              When ready to call, burn one slot — payment was already made, no escrow needed.
-              Unused slots from cancelled batches are fully refundable.
-              Slots are transferable — trade them on any ERC-1155 marketplace.
+            <div style="background:linear-gradient(135deg,rgba(139,92,246,0.07),rgba(139,92,246,0.02));border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:12px;line-height:1.75;color:var(--text-dim)">
+              <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;font-family:var(--font-display)">How SLA Futures work</div>
+              Providers mint capacity batches (ERC-1155 tokens). Callers buy slots upfront at a locked price — when ready to call, burn one slot and payment is already settled. Unused slots from cancelled batches are fully refundable. Slots are transferable and tradeable on any ERC-1155 marketplace.
             </div>
 
-            <!-- Tabs -->
-            <div style="display:flex;gap:8px;margin-bottom:16px">
-              <button id="futTabBrowse" class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="window.showFuturesTab('browse')">Browse Batches</button>
-              <button id="futTabMy" class="btn btn-sm" onclick="window.showFuturesTab('my')">My Slots</button>
-              <button id="futTabMint" class="btn btn-sm" onclick="window.showFuturesTab('mint')">Mint Capacity</button>
+            <!-- Tab bar -->
+            <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--bg-2);border-radius:8px;padding:3px;width:fit-content">
+              <button id="futTabBrowse" class="btn btn-sm" style="background:#8b5cf6;color:#fff;border-radius:6px;font-family:var(--font-sans)" onclick="window.showFuturesTab('browse')">Browse Batches</button>
+              <button id="futTabMy" class="btn btn-sm" style="border-radius:6px;font-family:var(--font-sans)" onclick="window.showFuturesTab('my')">My Slots</button>
+              <button id="futTabMint" class="btn btn-sm" style="border-radius:6px;font-family:var(--font-sans)" onclick="window.showFuturesTab('mint')">Mint Capacity</button>
             </div>
 
             <!-- Browse tab -->
@@ -8008,25 +8057,27 @@ npm install</pre>
 
             <!-- Mint Capacity tab (providers only) -->
             <div id="futMintTab" style="display:none">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:18px;max-width:480px">
-                <div style="font-weight:600;margin-bottom:14px;color:var(--text)">Mint a new capacity batch</div>
-                <div class="field-row" style="margin-bottom:10px">
-                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Provider ID</label>
-                  <input id="futProvId" type="number" class="input" placeholder="Your provider ID" min="1">
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:480px">
+                <div style="font-weight:600;font-size:14px;font-family:var(--font-display);margin-bottom:16px;color:var(--text)">Mint a new capacity batch</div>
+                <div style="display:grid;gap:12px">
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Provider ID</label>
+                    <input id="futProvId" type="number" class="input" placeholder="Your provider ID" min="1" style="font-variant-numeric:tabular-nums">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Price per slot (USDC)</label>
+                    <input id="futPrice" type="number" class="input" placeholder="e.g. 1.00" step="0.001" min="0.001" style="font-variant-numeric:tabular-nums">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Total slots</label>
+                    <input id="futSlots" type="number" class="input" placeholder="e.g. 100" min="1" style="font-variant-numeric:tabular-nums">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Expiry deadline</label>
+                    <input id="futDeadline" type="datetime-local" class="input">
+                  </div>
+                  <button class="btn btn-primary" style="width:100%;font-family:var(--font-sans)" onclick="window.doMintCapacity()">Mint Capacity Batch</button>
                 </div>
-                <div class="field-row" style="margin-bottom:10px">
-                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Price per slot (USDC)</label>
-                  <input id="futPrice" type="number" class="input" placeholder="e.g. 1.00" step="0.001" min="0.001">
-                </div>
-                <div class="field-row" style="margin-bottom:10px">
-                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Total slots</label>
-                  <input id="futSlots" type="number" class="input" placeholder="e.g. 100" min="1">
-                </div>
-                <div class="field-row" style="margin-bottom:16px">
-                  <label style="font-size:12px;color:var(--text-2);margin-bottom:4px;display:block">Deadline</label>
-                  <input id="futDeadline" type="datetime-local" class="input">
-                </div>
-                <button class="btn btn-primary" style="width:100%" onclick="window.doMintCapacity()">🎟 Mint Capacity Batch</button>
               </div>
             </div>
           </div>
@@ -8035,48 +8086,60 @@ npm install</pre>
         <!-- ===== SLA ATTESTATION BRIDGE PANEL ===== -->
         <section class="panel full-width" id="attestationPanel" data-category="attestation" style="display:none">
           <div class="panel-head">
-            <h2>🛡 SLA Attestation Bridge</h2>
-            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Cross-protocol SLA oracle · Permissionless · On-chain proof</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
+              <div>
+                <h2 style="font-family:var(--font-display);letter-spacing:-0.02em;margin:0">SLA Attestation Bridge</h2>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:1px">Cross-protocol SLA oracle · Permissionless · On-chain proof</div>
+              </div>
+            </div>
           </div>
           <div class="panel-body">
 
             <!-- Info box -->
-            <div style="background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(14,165,233,0.03));border:1px solid rgba(14,165,233,0.25);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:12px;line-height:1.7">
-              <div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:13px">What is the SLA Bridge?</div>
-              <div style="color:var(--text-dim)">
-                Any external protocol — API3, Chainlink, LayerZero, or your own contract — can query CallGuard for cryptographic, on-chain proof that a provider honored (or violated) their SLA commitment.<br><br>
-                <strong>Three attestation types:</strong><br>
-                · <code>CALL_RECEIPT</code> — "Did provider X deliver call Y on time?" (HONORED / VIOLATED)<br>
-                · <code>PROVIDER_SCORE</code> — Point-in-time Bayesian reputation snapshot (0-100)<br>
-                · <code>BATCH_SUMMARY</code> — Lifetime aggregate for cross-chain broadcast<br><br>
-                External protocols read these via <code>getAttestation(id)</code> on-chain, or via the <code>/api/attestation</code> endpoint with JSON-LD proof.
+            <div style="background:linear-gradient(135deg,rgba(14,165,233,0.07),rgba(14,165,233,0.02));border:1px solid rgba(14,165,233,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:12px;line-height:1.75;color:var(--text-dim)">
+              <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:8px;font-family:var(--font-display)">What is the SLA Bridge?</div>
+              Any external protocol — API3, Chainlink, LayerZero, or your own contract — can query CallGuard for cryptographic, on-chain proof that a provider honored (or violated) their SLA commitment.
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+                <div style="background:rgba(14,165,233,0.07);border:1px solid rgba(14,165,233,0.15);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">CALL_RECEIPT</div>
+                  <div style="font-size:11px;color:var(--text-dim)">Did provider X deliver call Y on time? Returns HONORED / VIOLATED.</div>
+                </div>
+                <div style="background:rgba(14,165,233,0.07);border:1px solid rgba(14,165,233,0.15);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">PROVIDER_SCORE</div>
+                  <div style="font-size:11px;color:var(--text-dim)">Point-in-time Bayesian reputation snapshot (0–100 scale).</div>
+                </div>
+                <div style="background:rgba(14,165,233,0.07);border:1px solid rgba(14,165,233,0.15);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">BATCH_SUMMARY</div>
+                  <div style="font-size:11px;color:var(--text-dim)">Lifetime aggregate for cross-chain broadcast via CCIP.</div>
+                </div>
               </div>
             </div>
 
-            <!-- Tabs -->
-            <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0">
-              <button class="att-tab btn btn-sm on" data-attab="peek" style="border-bottom:2px solid var(--accent);border-radius:0;margin-bottom:-1px">Peek (free)</button>
-              <button class="att-tab btn btn-sm" data-attab="issue">Issue Attestation</button>
-              <button class="att-tab btn btn-sm" data-attab="lookup">Lookup by ID</button>
+            <!-- Tab bar -->
+            <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--bg-2);border-radius:8px;padding:3px;width:fit-content">
+              <button class="att-tab btn btn-sm on" data-attab="peek" style="background:#0ea5e9;color:#fff;border-radius:6px;font-family:var(--font-sans)">Peek (free)</button>
+              <button class="att-tab btn btn-sm" data-attab="issue" style="border-radius:6px;font-family:var(--font-sans)">Issue Attestation</button>
+              <button class="att-tab btn btn-sm" data-attab="lookup" style="border-radius:6px;font-family:var(--font-sans)">Lookup by ID</button>
             </div>
 
             <!-- Tab: Peek -->
             <div id="attTab-peek">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <!-- Peek call verdict -->
-                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px">
-                  <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Call Verdict</div>
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
-                  <input id="attPeekCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace;margin-bottom:10px">
-                  <button class="btn btn-primary" style="width:100%" onclick="window.attPeekCall()">Check Verdict</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px">
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:18px">
+                  <div style="font-weight:600;font-size:13px;font-family:var(--font-display);margin-bottom:12px;color:var(--text)">Call Verdict</div>
+                  <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Call ID (bytes32)</label>
+                  <input id="attPeekCallId" type="text" placeholder="0x..." style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font-mono);margin-bottom:10px">
+                  <button class="btn btn-primary" style="width:100%;font-family:var(--font-sans)" onclick="window.attPeekCall()">Check Verdict</button>
                   <div id="attPeekCallResult" style="margin-top:12px;display:none"></div>
                 </div>
-                <!-- Peek provider score -->
-                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px">
-                  <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Provider Score</div>
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
-                  <input id="attPeekProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:10px">
-                  <button class="btn btn-primary" style="width:100%" onclick="window.attPeekScore()">Check Score</button>
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:18px">
+                  <div style="font-weight:600;font-size:13px;font-family:var(--font-display);margin-bottom:12px;color:var(--text)">Provider Score</div>
+                  <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Provider ID</label>
+                  <input id="attPeekProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-variant-numeric:tabular-nums;margin-bottom:10px">
+                  <button class="btn btn-primary" style="width:100%;font-family:var(--font-sans)" onclick="window.attPeekScore()">Check Score</button>
                   <div id="attPeekScoreResult" style="margin-top:12px;display:none"></div>
                 </div>
               </div>
@@ -8084,54 +8147,47 @@ npm install</pre>
 
             <!-- Tab: Issue -->
             <div id="attTab-issue" style="display:none">
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:11px;color:var(--text-faint)">
-                Issues a permanent on-chain attestation via the SLAAttestationBridge contract. Requires the facilitator to submit the transaction. The attestation ID can be shared with any external protocol.
-              </div>
-              <div style="display:grid;gap:12px;max-width:520px">
-                <div>
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Attestation Type</label>
-                  <select id="attIssueType" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px" onchange="window.attTypeChanged()">
-                    <option value="call">CALL_RECEIPT — single call delivery proof</option>
-                    <option value="score">PROVIDER_SCORE — reputation snapshot</option>
-                    <option value="batch">BATCH_SUMMARY — lifetime aggregate</option>
-                  </select>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:4px;max-width:540px">
+                <div style="font-size:12px;color:var(--text-faint);margin-bottom:16px;line-height:1.7">Issues a permanent on-chain attestation via the SLAAttestationBridge contract. The attestation ID can be shared with any external protocol for verification.</div>
+                <div style="display:grid;gap:12px">
+                  <div>
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Attestation Type</label>
+                    <select id="attIssueType" style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font-sans)" onchange="window.attTypeChanged()">
+                      <option value="call">CALL_RECEIPT — single call delivery proof</option>
+                      <option value="score">PROVIDER_SCORE — reputation snapshot</option>
+                      <option value="batch">BATCH_SUMMARY — lifetime aggregate</option>
+                    </select>
+                  </div>
+                  <div id="attIssueCallRow">
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Call ID (bytes32)</label>
+                    <input id="attIssueCallId" type="text" placeholder="0x..." style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font-mono)">
+                  </div>
+                  <div id="attIssueProvRow" style="display:none">
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Provider ID</label>
+                    <input id="attIssueProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-variant-numeric:tabular-nums">
+                  </div>
+                  <button class="btn btn-primary" style="font-family:var(--font-sans)" onclick="window.attIssue()">Issue On-Chain Attestation</button>
+                  <div id="attIssueResult" style="display:none"></div>
                 </div>
-                <div id="attIssueCallRow">
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
-                  <input id="attIssueCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace">
-                </div>
-                <div id="attIssueProvRow" style="display:none">
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
-                  <input id="attIssueProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
-                </div>
-                <button class="btn btn-primary" onclick="window.attIssue()">Issue On-Chain Attestation</button>
-                <div id="attIssueResult" style="display:none"></div>
               </div>
             </div>
 
             <!-- Tab: Lookup -->
             <div id="attTab-lookup" style="display:none">
-              <div style="max-width:520px">
-                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Attestation ID (bytes32)</label>
-                <input id="attLookupId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace;margin-bottom:10px">
-                <button class="btn btn-primary" onclick="window.attLookup()">Fetch Attestation</button>
+              <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:18px;max-width:540px">
+                <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Attestation ID (bytes32)</label>
+                <input id="attLookupId" type="text" placeholder="0x..." style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font-mono);margin-bottom:10px">
+                <button class="btn btn-primary" style="font-family:var(--font-sans)" onclick="window.attLookup()">Fetch Attestation</button>
                 <div id="attLookupResult" style="margin-top:16px;display:none"></div>
               </div>
             </div>
 
-            <!-- Contract info -->
-            <div style="margin-top:28px;padding-top:18px;border-top:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Contract</div>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <code id="attBridgeAddr" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-dim)">Not deployed yet</code>
-                <span style="font-size:11px;color:var(--text-faint)">Arc Testnet · Chain ID 5042002</span>
-                <a id="attBridgeExplorer" href="#" target="_blank" style="font-size:11px;color:var(--accent);display:none">View on ArcScan ↗</a>
-              </div>
-              <div style="margin-top:10px;font-size:11px;color:var(--text-faint)">
-                API endpoint: <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">/api/attestation</code>
-                &nbsp;·&nbsp;
-                <a href="/api/attestation?providerId=1&type=score" target="_blank" style="color:var(--accent)">Test GET ↗</a>
-              </div>
+            <!-- Contract footer -->
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <code id="attBridgeAddr" style="font-size:11px;font-family:var(--font-mono);background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 9px;color:var(--text-dim)">Loading...</code>
+              <span style="font-size:11px;color:var(--text-faint)">Arc Testnet · 5042002</span>
+              <a id="attBridgeExplorer" href="#" target="_blank" style="font-size:11px;color:#0ea5e9;display:none">View on ArcScan ↗</a>
+              <a href="/api/attestation?providerId=1&amp;type=score" target="_blank" style="font-size:11px;color:var(--accent);margin-left:auto">Test API ↗</a>
             </div>
           </div>
         </section>
@@ -8139,58 +8195,66 @@ npm install</pre>
         <!-- ===== QUALITY DISPUTES PANEL ===== -->
         <section class="panel full-width" id="qualityPanel" data-category="quality" style="display:none">
           <div class="panel-head">
-            <h2>⭐ Quality Disputes</h2>
-            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Community stake-weighted voting · 48h window</span>
-            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadQualityDisputes && window.loadQualityDisputes()">Refresh</button>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#b45309);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <div>
+                <h2 style="font-family:var(--font-display);letter-spacing:-0.02em;margin:0">Quality Disputes</h2>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:1px">Community stake-weighted voting · 48h window</div>
+              </div>
+            </div>
+            <button class="btn btn-sm" style="margin-left:auto" onclick="window.loadQualityDisputes && window.loadQualityDisputes()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>Refresh
+            </button>
           </div>
           <div class="panel-body">
             <!-- How it works -->
-            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:12px;line-height:1.7">
-              <div style="font-weight:600;margin-bottom:6px;color:var(--text)">How Quality Disputes work</div>
-              <div style="color:var(--text-dim)">
-                1. Caller opens a dispute within <strong>24h</strong> of receipt — locks a <strong>0.5 USDC</strong> bond + submits IPFS evidence.<br>
-                2. Provider can submit their response evidence (IPFS URI) for voters to review.<br>
-                3. Any staked address votes <strong>FOR_CALLER</strong> or <strong>FOR_PROVIDER</strong> within <strong>48h</strong> — locks <strong>0.1 USDC</strong> voter bond.<br>
-                4. After 48h, anyone calls <code>finalize()</code>. Majority wins (min 3 voters required).<br>
-                5. Winners share the losers' bonds. Provider loses additional stake if caller wins.
+            <div style="background:linear-gradient(135deg,rgba(245,158,11,0.07),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:12px;line-height:1.75;color:var(--text-dim)">
+              <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:8px;font-family:var(--font-display)">How Quality Disputes work</div>
+              <div style="display:grid;gap:5px">
+                <div><span style="display:inline-block;width:18px;height:18px;background:var(--accent);color:#fff;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:18px;margin-right:8px">1</span>Caller opens a dispute within <strong>24h</strong> — locks <strong>0.5 USDC</strong> bond + IPFS evidence.</div>
+                <div><span style="display:inline-block;width:18px;height:18px;background:var(--accent);color:#fff;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:18px;margin-right:8px">2</span>Provider submits counter-evidence (IPFS URI).</div>
+                <div><span style="display:inline-block;width:18px;height:18px;background:var(--accent);color:#fff;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:18px;margin-right:8px">3</span>Staked addresses vote <strong>FOR_CALLER</strong> or <strong>FOR_PROVIDER</strong> within <strong>48h</strong> — locks 0.1 USDC bond.</div>
+                <div><span style="display:inline-block;width:18px;height:18px;background:var(--accent);color:#fff;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:18px;margin-right:8px">4</span>Anyone calls <code>finalize()</code> after 48h. Majority wins (min 3 voters required).</div>
+                <div><span style="display:inline-block;width:18px;height:18px;background:var(--accent);color:#fff;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:18px;margin-right:8px">5</span>Winners share losers' bonds. Provider loses additional stake if caller wins.</div>
               </div>
             </div>
 
-            <!-- Open new quality dispute -->
-            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:18px">
-              <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Open Quality Dispute</div>
-              <div style="display:grid;gap:10px">
+            <!-- Open dispute form -->
+            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;max-width:580px">
+              <div style="font-weight:600;font-size:14px;font-family:var(--font-display);margin-bottom:14px;color:var(--text)">Open Quality Dispute</div>
+              <div style="display:grid;gap:12px">
                 <div>
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
-                  <input id="qdCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace">
+                  <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Call ID (bytes32)</label>
+                  <input id="qdCallId" type="text" placeholder="0x..." style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font-mono)">
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                   <div>
-                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
-                    <input id="qdProviderId" type="number" placeholder="3" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Provider ID</label>
+                    <input id="qdProviderId" type="number" placeholder="3" style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-variant-numeric:tabular-nums">
                   </div>
                   <div>
-                    <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Settled At (unix ts)</label>
-                    <input id="qdSettledAt" type="number" placeholder="1727600000" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                    <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Settled at (unix ts)</label>
+                    <input id="qdSettledAt" type="number" placeholder="1727600000" style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-variant-numeric:tabular-nums">
                   </div>
                 </div>
                 <div>
-                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Evidence URI (IPFS CID or URL)</label>
-                  <input id="qdEvidenceUri" type="text" placeholder="ipfs://Qm... or https://..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                  <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px">Evidence URI</label>
+                  <input id="qdEvidenceUri" type="text" placeholder="ipfs://Qm... or https://..." style="width:100%;padding:9px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
                 </div>
-                <div style="font-size:11px;color:var(--text-faint);padding:8px 10px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:6px">
-                  ⚠️ Opening a dispute locks <strong>0.5 USDC</strong> bond. If the dispute is rejected, the bond is forfeited to winning voters.
+                <div style="font-size:11px;color:var(--text-dim);padding:10px 12px;background:var(--warn-bg);border:1px solid rgba(217,119,6,0.25);border-radius:8px;line-height:1.6">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-1px;color:var(--warn)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Opening a dispute locks <strong>0.5 USDC</strong> bond. If the dispute is rejected, the bond is forfeited to winning voters.
                 </div>
-                <button onclick="window.doOpenQualityDispute()" style="padding:10px;background:var(--accent);border:none;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">Open Quality Dispute (0.5 USDC bond)</button>
+                <button onclick="window.doOpenQualityDispute()" class="btn btn-primary" style="font-family:var(--font-sans);padding:11px">Open Quality Dispute — 0.5 USDC bond</button>
               </div>
             </div>
 
             <!-- Active disputes list -->
-            <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)">Active Quality Disputes</div>
+            <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text);font-family:var(--font-display)">Active Quality Disputes</div>
             <div id="qualityDisputeList">
-              <div style="text-align:center;padding:24px;color:var(--text-faint);font-size:12px">
-                Connect wallet to view quality disputes.
-              </div>
+              <div style="text-align:center;padding:32px;color:var(--text-faint);font-size:12px;border:1px dashed var(--border);border-radius:10px">Connect wallet to view quality disputes.</div>
             </div>
           </div>
         </section>
