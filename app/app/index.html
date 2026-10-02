@@ -6368,6 +6368,407 @@
 
     /* Make app-content use page-screen padding */
     .app-content > div[style] { padding: 0 !important; }
+
+    /* ═══════════════════════════════════════════════
+       CALLGUARD LANDING — SaaS redesign
+       ═══════════════════════════════════════════════ */
+
+    /* Reset disconnected wrapper */
+    #disconnectedView .disconnected {
+      max-width: 880px !important;
+      margin: 0 auto !important;
+      padding: 0 24px 80px !important;
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .cg-hero {
+      padding: 72px 0 56px;
+      text-align: center;
+    }
+    .cg-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-bg);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 99px;
+      padding: 4px 12px;
+      margin-bottom: 24px;
+    }
+    .cg-h1 {
+      font-family: var(--font-display, 'Space Grotesk', sans-serif);
+      font-size: clamp(32px, 6vw, 56px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -.03em;
+      color: var(--text);
+      margin: 0 0 20px;
+    }
+    .cg-h1-accent {
+      background: linear-gradient(135deg, #10b981, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cg-sub {
+      font-size: clamp(14px, 2vw, 17px);
+      line-height: 1.65;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .cg-hero-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .cg-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--accent, #16a34a);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      letter-spacing: -.01em;
+    }
+    .cg-btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .cg-btn-primary.cg-btn-lg { padding: 14px 32px; font-size: 15px; }
+    .cg-btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 20px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .cg-btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+    /* Stats row */
+    .cg-stats-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      margin-bottom: 28px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cg-stat-pill { text-align: center; padding: 0 24px; }
+    .cg-stat-divider { width: 1px; height: 36px; background: var(--border); }
+    .cg-stat-num {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .cg-stat-lbl {
+      display: block;
+      font-size: 11px;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* Sparkline */
+    .cg-sparkline-wrap {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ── Role cards ───────────────────────────────── */
+    .cg-roles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 72px;
+    }
+    .cg-role-card {
+      background: var(--bg-1);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      cursor: pointer;
+      transition: border-color .2s, transform .15s, box-shadow .2s;
+      text-align: left;
+    }
+    .cg-role-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    }
+    .cg-role-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    .cg-role-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .cg-role-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .cg-role-cta {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── Section labels & headings ─────────────────── */
+    .cg-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .cg-h2 {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 800;
+      letter-spacing: -.025em;
+      color: var(--text);
+      margin: 0 0 10px;
+    }
+    .cg-section-sub {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin: 0 0 32px;
+    }
+
+    /* ── How it works ─────────────────────────────── */
+    .cg-hiw { margin-bottom: 72px; }
+    .cg-hiw-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .cg-hiw-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      border-top-width: 3px;
+    }
+    .cg-hiw-good { border-top-color: #10b981; }
+    .cg-hiw-bad { border-top-color: #ef4444; }
+    .cg-hiw-neutral { border-top-color: var(--border); }
+    .cg-hiw-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-bottom: 10px;
+    }
+    .cg-hiw-badge-good { background: rgba(16,185,129,.15); color: #10b981; }
+    .cg-hiw-badge-bad { background: rgba(239,68,68,.12); color: #ef4444; }
+    .cg-hiw-badge-neutral { background: var(--bg-3); color: var(--text-faint); }
+    .cg-hiw-badge-purple { background: rgba(139,92,246,.15); color: #8b5cf6; }
+    .cg-hiw-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.015em;
+      color: var(--text);
+      margin: 0 0 8px;
+    }
+    .cg-hiw-desc { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 14px; }
+    .cg-hiw-steps {
+      padding-left: 18px;
+      margin: 0 0 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+    .cg-hiw-steps li { margin-bottom: 4px; }
+    .cg-hiw-result {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .01em;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+    }
+    .cg-hiw-result-good { background: rgba(16,185,129,.1); color: #10b981; }
+    .cg-hiw-result-bad { background: rgba(239,68,68,.1); color: #ef4444; }
+    .cg-hiw-result-neutral { background: var(--bg-2); color: var(--text-dim); }
+    .cg-rep-table { margin: 0 0 14px; }
+    .cg-rep-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .cg-rep-val { font-weight: 700; font-family: var(--font-mono); }
+    .cg-rails-list { list-style: none; padding: 0; margin: 0; }
+    .cg-rails-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .cg-rail-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      background: var(--bg-3);
+      color: var(--text-faint);
+      padding: 1px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── Feature strip ───────────────────────────── */
+    .cg-features {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 16px;
+      margin-bottom: 72px;
+      padding: 28px;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .cg-feat {
+      text-align: center;
+      padding: 8px;
+    }
+    .cg-feat svg { color: var(--accent); margin-bottom: 10px; }
+    .cg-feat-title { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 6px; }
+    .cg-feat-desc { font-size: 12px; color: var(--text-faint); line-height: 1.55; }
+
+    /* ── Providers section ───────────────────────── */
+    .cg-providers-section { margin-bottom: 72px; }
+    .cg-prov-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .cg-prov-loading {
+      grid-column: 1/-1;
+      font-size: 12px;
+      color: var(--text-faint);
+      padding: 24px;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+
+    /* ── Feed section ────────────────────────────── */
+    .cg-feed-section { margin-bottom: 72px; }
+
+    /* ── Contract addresses ─────────────────────── */
+    .cg-contracts { margin-bottom: 72px; }
+    .cg-contract-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cg-contract-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+    .cg-contract-row span { color: var(--text-dim); font-weight: 600; }
+    .cg-contract-addr {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .cg-contract-addr:hover { text-decoration: underline; }
+
+    /* ── Bottom CTA ──────────────────────────────── */
+    .cg-bottom-cta {
+      text-align: center;
+      padding: 64px 24px;
+      background: linear-gradient(135deg, rgba(16,185,129,.06), rgba(14,165,233,.06));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Responsive ──────────────────────────────── */
+    @media (max-width: 700px) {
+      .cg-hero { padding: 48px 0 40px; }
+      .cg-roles { grid-template-columns: 1fr; }
+      .cg-hiw-grid { grid-template-columns: 1fr; }
+      .cg-features { grid-template-columns: 1fr 1fr; }
+      .cg-stats-row { padding: 16px 12px; gap: 0; }
+      .cg-stat-pill { padding: 0 12px; }
+      .cg-stat-num { font-size: 20px; }
+      .cg-contract-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .cg-features { grid-template-columns: 1fr; }
+      .cg-stats-row { flex-direction: column; gap: 12px; }
+      .cg-stat-divider { width: 80px; height: 1px; }
+    }
     </style>
   <script>
     // Suppress noisy MetaMask internal logs — duplicate _cw removed
@@ -6598,279 +6999,186 @@
     <!-- Disconnected view                                            -->
     <!-- ============================================================ -->
     <main id="disconnectedView">
-      <div class="disconnected">
-        <!-- 2-column hero grid -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-bottom:40px">
-          <!-- Left: headline + CTA -->
-          <div>
-            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">On-chain SLA Infrastructure</div>
-            <h1 style="font-size:36px;font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:16px">Service guarantees,<br>enforced on-chain.</h1>
-            <p id="heroSubtitle" class="lead" style="font-size:15px;line-height:1.6;color:var(--text-dim);margin-bottom:24px;max-width:440px">
-              Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically.
-            </p>
-            <!-- Rol kartları — cüzdan bağlamadan ne yapabilirim? -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-              <div id="roleCardCaller" style="border:2px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--bg-1)" onmouseover="this.style.borderColor='var(--info)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size:20px;margin-bottom:6px">📞</div>
-                <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px">I want to call a service</div>
-                <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Pay USDC per request. Get a refund + bonus if the provider misses the SLA.</div>
-              </div>
-              <div id="roleCardProvider" style="border:2px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--bg-1)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size:20px;margin-bottom:6px">🖥️</div>
-                <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px">I want to provide a service</div>
-                <div style="font-size:11px;color:var(--text-faint);line-height:1.5">Stake USDC, set your price and SLA window. Earn per call you answer in time.</div>
-              </div>
+      <div class="disconnected" id="cgLanding">
+        <!-- ═══════════════════════════════════════════════════
+             NEW LANDING — SaaS / product-led style
+             ═══════════════════════════════════════════════════ -->
+
+        <!-- HERO -->
+        <section class="cg-hero">
+          <div class="cg-badge">Arc Testnet · Live</div>
+          <h1 class="cg-h1">Service guarantees,<br><span class="cg-h1-accent">enforced on-chain.</span></h1>
+          <p class="cg-sub">Providers stake USDC and commit to a response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline — the stake is slashed automatically. No arbitrator. No middleman.</p>
+          <div class="cg-hero-cta">
+            <button class="cg-btn-primary" id="connectBtn2" onclick="window.showWalletModal&&window.showWalletModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              Connect wallet
+            </button>
+            <button class="cg-btn-ghost" onclick="document.getElementById('cgHowItWorks').scrollIntoView({behavior:'smooth'})">
+              How it works
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <!-- Live stats -->
+          <div class="cg-stats-row">
+            <div class="cg-stat-pill">
+              <span class="cg-stat-num" id="heroProviders">—</span>
+              <span class="cg-stat-lbl">Providers</span>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary" id="connectBtn2" onclick="window.showWalletModal&&window.showWalletModal()" style="padding:10px 24px;font-size:14px">Connect wallet →</button>
+            <div class="cg-stat-divider"></div>
+            <div class="cg-stat-pill">
+              <span class="cg-stat-num" id="heroCalls">—</span>
+              <span class="cg-stat-lbl">Calls on-chain</span>
+            </div>
+            <div class="cg-stat-divider"></div>
+            <div class="cg-stat-pill">
+              <span class="cg-stat-num" id="heroSlashes">—</span>
+              <span class="cg-stat-lbl">Slashes</span>
+            </div>
+            <div class="cg-stat-divider"></div>
+            <div class="cg-stat-pill">
+              <span class="cg-stat-num" style="color:var(--accent)">Arc</span>
+              <span class="cg-stat-lbl">Network</span>
             </div>
           </div>
-          <!-- Right: stats + sparkline -->
-          <div>
-            <div class="hero-stats" style="margin-bottom:20px">
-              <div class="hero-stat">
-                <div class="hero-stat-num" id="heroProviders">—</div>
-                <div class="hero-stat-label">Providers</div>
+          <!-- Sparkline -->
+          <div class="cg-sparkline-wrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase">
+                <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+                Network call activity
               </div>
-              <div class="hero-stat">
-                <div class="hero-stat-num" id="heroCalls">—</div>
-                <div class="hero-stat-label">Calls on-chain</div>
+              <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
+            </div>
+            <svg id="heroSparklineSvg" viewBox="0 0 680 56" preserveAspectRatio="none" style="width:100%;height:56px;display:block">
+              <defs>
+                <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(34,197,94,0.18)"/>
+                  <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
+                </linearGradient>
+              </defs>
+              <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
+              <path class="sparkline-line" id="sparklinePath"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- ROLE CARDS -->
+        <section class="cg-roles">
+          <div class="cg-role-card" id="roleCardCaller" onclick="window.showWalletModal&&window.showWalletModal()">
+            <div class="cg-role-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div class="cg-role-title">I want to call a service</div>
+            <div class="cg-role-desc">Pay USDC per request. Get a full refund plus a stake bonus if the provider misses the SLA deadline.</div>
+            <div class="cg-role-cta">Get started →</div>
+          </div>
+          <div class="cg-role-card" id="roleCardProvider" onclick="window.showWalletModal&&window.showWalletModal()">
+            <div class="cg-role-icon" style="background:linear-gradient(135deg,#10b981,#059669)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="cg-role-title">I want to provide a service</div>
+            <div class="cg-role-desc">Stake USDC, set your price and SLA window. Earn per call you answer in time. Build on-chain reputation.</div>
+            <div class="cg-role-cta">Start earning →</div>
+          </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section class="cg-hiw" id="cgHowItWorks">
+          <div class="cg-section-label">How it works</div>
+          <h2 class="cg-h2">Three scenarios, one protocol.</h2>
+          <p class="cg-section-sub">Every edge case settles into the same on-chain enforcement layer.</p>
+
+          <div class="cg-hiw-grid">
+            <div class="cg-hiw-card cg-hiw-good">
+              <div class="cg-hiw-badge cg-hiw-badge-good">Happy path</div>
+              <h3 class="cg-hiw-title">Provider honors the SLA</h3>
+              <p class="cg-hiw-desc">Provider responds on time, escrow is released, reputation goes up.</p>
+              <ol class="cg-hiw-steps">
+                <li>Caller escrows <strong>1 USDC</strong> in the contract</li>
+                <li>Provider delivers off-chain within the SLA window</li>
+                <li>Provider signs receipt, calls <code>submitReceipt()</code></li>
+              </ol>
+              <div class="cg-hiw-result cg-hiw-result-good">+1 USDC earned · Reputation +1</div>
+            </div>
+
+            <div class="cg-hiw-card cg-hiw-bad">
+              <div class="cg-hiw-badge cg-hiw-badge-bad">Timeout</div>
+              <h3 class="cg-hiw-title">Provider misses the deadline</h3>
+              <p class="cg-hiw-desc">No response? Caller gets refund + bonus. Provider loses stake.</p>
+              <ol class="cg-hiw-steps">
+                <li>Caller escrows <strong>1 USDC</strong>, waits for response</li>
+                <li>Provider does not respond within the committed window</li>
+                <li>Anyone calls <code>claimTimeout()</code> after deadline</li>
+              </ol>
+              <div class="cg-hiw-result cg-hiw-result-bad">1 USDC refunded + 20% of provider stake</div>
+            </div>
+
+            <div class="cg-hiw-card cg-hiw-neutral">
+              <div class="cg-hiw-badge cg-hiw-badge-neutral">Reputation</div>
+              <h3 class="cg-hiw-title">Track record, on-chain</h3>
+              <p class="cg-hiw-desc">Every call and every slash is immutably recorded. Anyone can read it.</p>
+              <div class="cg-rep-table">
+                <div class="cg-rep-row"><span>New provider</span><span class="cg-rep-val" style="color:var(--text-dim)">66</span></div>
+                <div class="cg-rep-row"><span>After 10 calls</span><span class="cg-rep-val" style="color:#10b981">92</span></div>
+                <div class="cg-rep-row"><span>After 1 slash</span><span class="cg-rep-val" style="color:#ef4444">50</span></div>
               </div>
-              <div class="hero-stat">
-                <div class="hero-stat-num" id="heroSlashes">—</div>
-                <div class="hero-stat-label">Slashes</div>
-              </div>
+              <div class="cg-hiw-result cg-hiw-result-neutral"><code>(good+2)/(total+3)×100</code> — Bayesian</div>
             </div>
-            <!-- Hero Sparkline Chart -->
-            <div id="heroSparkline">
-              <div class="sparkline-wrap">
-                <div class="sparkline-header">
-                  <div class="sparkline-title">
-                    <span class="live-dot-pulse" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
-                    Network Call Activity
-                  </div>
-                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint)" id="sparklineLabel">last 20 blocks</span>
-                </div>
-                <svg class="sparkline-svg" id="heroSparklineSvg" viewBox="0 0 680 64" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="rgba(34,197,94,0.15)"/>
-                      <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
-                    </linearGradient>
-                  </defs>
-                  <path class="sparkline-fill" id="sparklineFill" fill="url(#spGrad)"/>
-                  <path class="sparkline-line" id="sparklinePath"/>
-                </svg>
-              </div>
+
+            <div class="cg-hiw-card cg-hiw-neutral">
+              <div class="cg-hiw-badge cg-hiw-badge-purple">v4 Rails</div>
+              <h3 class="cg-hiw-title">Composable payment rails</h3>
+              <p class="cg-hiw-desc">Five ways to pay — all settling into the same SLA enforcement.</p>
+              <ul class="cg-rails-list">
+                <li><span class="cg-rail-tag">x402</span> HTTP 402 agent payments</li>
+                <li><span class="cg-rail-tag">CCTP</span> Cross-chain via Circle bridge</li>
+                <li><span class="cg-rail-tag">Nano</span> 0.001 USDC gasless micro-pay</li>
+                <li><span class="cg-rail-tag">NFT</span> ERC-8004 agent identity</li>
+                <li><span class="cg-rail-tag">Jobs</span> ERC-8183 trustless settlement</li>
+              </ul>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="explainer">
-          <div class="explainer-head">
-            <h2>How it works</h2>
-            <p>Three scenarios that cover the full lifecycle. Read them before you touch a button — the rest of the app will make instant sense.</p>
+        <!-- FEATURE STRIP -->
+        <section class="cg-features">
+          <div class="cg-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div class="cg-feat-title">No arbitrator</div>
+            <div class="cg-feat-desc">Contract enforces every SLA automatically. No trusted third party.</div>
           </div>
-          <div class="explainer-grid">
-
-            <div class="scenario good">
-              <div class="scenario-icon">✓</div>
-              <span class="scenario-badge good">✓ Happy path</span>
-              <h3>Provider honors the SLA</h3>
-              <p class="lead">The common case. Provider responds in time, gets paid, reputation goes up.</p>
-              <div class="scenario-steps">
-                <div class="scenario-step">
-                  <span class="arrow">1.</span>
-                  <span>Caller opens a call and escrows <strong>1 USDC</strong> in the contract.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">2.</span>
-                  <span>Provider delivers the response <em>off-chain</em> within the SLA window.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">3.</span>
-                  <span>Provider signs a receipt and calls <code>submitReceipt()</code>.</span>
-                </div>
-                <div class="scenario-step highlight">
-                  <span class="arrow">→</span>
-                  <span>Escrow released to provider. <span class="amount pos">+1 USDC</span> earned. Reputation <span class="amount pos">+1</span>.</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="scenario bad">
-              <div class="scenario-icon">✕</div>
-              <span class="scenario-badge bad">✕ Timeout</span>
-              <h3>Provider misses the deadline</h3>
-              <p class="lead">What keeps the marketplace honest. No response in time? The caller gets paid back, and the provider loses stake.</p>
-              <div class="scenario-steps">
-                <div class="scenario-step">
-                  <span class="arrow">1.</span>
-                  <span>Caller opens a call, escrows <strong>1 USDC</strong>, waits.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">2.</span>
-                  <span>Provider <em>does not</em> deliver within the SLA window the provider committed to.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">3.</span>
-                  <span>Anyone calls <code>claimTimeout()</code> after the deadline.</span>
-                </div>
-                <div class="scenario-step highlight-bad">
-                  <span class="arrow">→</span>
-                  <span>Caller gets <span class="amount pos">1 USDC refund</span> + <span class="amount pos">20% of provider's stake</span>. Provider loses <span class="amount neg">slash</span> + reputation.</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="scenario neutral">
-              <div class="scenario-icon">★</div>
-              <span class="scenario-badge neutral">★ Reputation</span>
-              <h3>Track record, on-chain</h3>
-              <p class="lead">Every honored call and every slash is counted in the contract. Anyone — including other contracts — can read a provider's score.</p>
-              <div class="scenario-steps">
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span>Fresh provider: <strong>66</strong> (neither trusted nor distrusted)</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span>After 1 honored call: <span class="amount pos">75</span></span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span>After 10 honored calls: <span class="amount pos">92</span></span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span>One slash from zero history: <span class="amount neg">50</span></span>
-                </div>
-                <div class="scenario-step highlight">
-                  <span class="arrow">→</span>
-                  <span>Formula: <code>(good + 2) / (total + 3) × 100</code> — Bayesian, readable on-chain.</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="scenario neutral">
-              <div class="scenario-icon">⚡</div>
-              <span class="scenario-badge neutral">⚡ v4</span>
-              <h3>Composable payment rails</h3>
-              <p class="lead">v4 adds five ways to pay, a verifiable identity layer, and ERC-8183 job settlement — all settling into the same SLA enforcement.</p>
-              <div class="scenario-steps">
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span><strong>x402</strong> — agents pay via the HTTP 402 protocol; <code>callService()</code> fires on payment.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span><strong>CCTP</strong> — pay from Ethereum, Base or Polygon; Circle bridges USDC, Arc enforces the SLA.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span><strong>ERC-8004 NFT</strong> — providers bind an on-chain AgentIdentity NFT to their registration.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span><strong>Circle Gateway Nanopayments</strong> — gasless 0.001 USDC micro-payments; no wallet prompt, no gas, no tx confirmation.</span>
-                </div>
-                <div class="scenario-step">
-                  <span class="arrow">·</span>
-                  <span><strong>ERC-8183 Jobs</strong> — trustless job settlement; client locks USDC, provider delivers, evaluator approves, contract pays.</span>
-                </div>
-                <div class="scenario-step highlight">
-                  <span class="arrow">→</span>
-                  <span>Every path ends the same way: staked USDC, signed receipt, automatic slash on timeout.</span>
-                </div>
-              </div>
-            </div>
-
+          <div class="cg-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="cg-feat-title">Sub-second finality</div>
+            <div class="cg-feat-desc">Arc Testnet settles in under one second. USDC is the gas token.</div>
           </div>
-        </div>
-
-        <!-- ===== GUIDE TABS ===== -->
-        <div class="guide-box" id="guideBox">
-          <div class="guide-tabs">
-            <button class="guide-tab active" data-tab="start">🚀 Getting Started</button>
-            <button class="guide-tab" data-tab="caller">📞 Caller</button>
-            <button class="guide-tab" data-tab="provider">🏗️ Provider</button>
-            <button class="guide-tab" data-tab="slash">⚡ Slash</button>
-            <button class="guide-tab" data-tab="faq">❓ FAQ</button>
+          <div class="cg-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <div class="cg-feat-title">USDC-native</div>
+            <div class="cg-feat-desc">One token for gas, stake, and payment. No ETH switching required.</div>
           </div>
-
-          <div class="guide-content active" data-content="start">
-            <div class="guide-section-title">What is CallGuard?</div>
-            <p class="guide-lead">CallGuard is an <strong>on-chain marketplace</strong> where service providers stake USDC to commit to SLAs, and callers pay per request. If a provider fails to respond in time, their stake is automatically slashed — no arbitrator or intermediary required.</p>
-            <div class="guide-steps">
-              <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Get testnet USDC</strong><span><a href="https://faucet.circle.com/" target="_blank" rel="noreferrer">faucet.circle.com</a> → select Arc Testnet → paste your wallet address. On Arc, USDC is both the gas token and currency — one token is all you need.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Connect your wallet</strong><span>Click the "Connect wallet" button. MetaMask will add Arc Testnet automatically. You can also pay from Ethereum, Base, or Polygon via CCTP — see the chain selector when calling a service.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Choose your role</strong><span>Follow the <em>Caller</em> or <em>Provider</em> flow step by step using the tabs above.</span></div></div>
-            </div>
-            <div class="guide-callout info"><strong>💡 Tip:</strong> You can use the same wallet as both caller and provider. For separate testing, two different MetaMask accounts are recommended.</div>
+          <div class="cg-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <div class="cg-feat-title">Agent-ready</div>
+            <div class="cg-feat-desc">MCP server, x402, ERC-8004 NFT — fully autonomous AI agent payments.</div>
           </div>
+        </section>
 
-          <div class="guide-content" data-content="caller">
-            <div class="guide-section-title">Caller Flow</div>
-            <p class="guide-lead">You pay USDC to call a service. If the provider responds in time, the call completes. If not, your payment is refunded and the provider is penalized.</p>
-            <div class="guide-steps">
-              <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Select a provider</strong><span>Open the <em>Call a service</em> section in the left panel. Enter a Provider ID (e.g. <code>1</code>). Price and SLA duration are shown automatically.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Send a request</strong><span>Type any text in the request payload field (e.g. <code>ping</code>). Click <em>Approve &amp; call</em> — MetaMask will ask you to sign two transactions: USDC approval + call opening.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Track the countdown</strong><span>The call appears in your <em>Your Calls</em> panel and a countdown begins. If the provider responds, it becomes "completed".</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">4</div><div class="guide-step-body"><strong>Timeout → Claim slash</strong><span>Once the SLA period expires, the <code>claim slash</code> button appears. Click it → MetaMask opens → confirm. Your payment is refunded plus a bonus from the provider's stake.</span></div></div>
-            </div>
-            <div class="guide-callout warn"><strong>⏱ Note:</strong> Alerts fire automatically when the countdown turns yellow (30s left) and red (10s left). If you are a provider, submit your receipt immediately!</div>
+        <!-- LIVE PROVIDERS (read-only) -->
+        <section class="cg-providers-section" id="landingView">
+          <div class="cg-section-label">Live on Arc Testnet</div>
+          <h2 class="cg-h2">Browse providers — no wallet needed.</h2>
+          <div id="landingProvGrid" class="cg-prov-grid">
+            <div class="cg-prov-loading">Loading providers…</div>
           </div>
+        </section>
 
-          <div class="guide-content" data-content="provider">
-            <div class="guide-section-title">Provider Flow</div>
-            <p class="guide-lead">You become a service provider by staking collateral. Each successful response increases your reputation. Miss the SLA window and a portion of your stake is slashed.</p>
-            <div class="guide-steps">
-              <div class="guide-step"><div class="guide-step-icon">1</div><div class="guide-step-body"><strong>Register &amp; stake</strong><span>Open the <em>Register as provider</em> section. Set a minimum <strong>10 USDC</strong> stake, price, response time, and slash %. Leave the signer address blank to use your own wallet.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">2</div><div class="guide-step-body"><strong>Respond when called</strong><span>When a CallStarted event arrives, the SLA clock starts. Open the <em>Submit receipt</em> section — the Call ID is pre-filled, just enter your response payload.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">3</div><div class="guide-step-body"><strong>Sign &amp; submit the receipt</strong><span>Click <em>Sign &amp; submit</em>. MetaMask will first ask for an EIP-712 typed-data signature (readable Receipt fields), then an on-chain transaction.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">4</div><div class="guide-step-body"><strong>Collect payment &amp; earn reputation</strong><span>Once the receipt is accepted, the escrowed USDC is transferred to you. Each successful response increases your on-chain reputation score.</span></div></div>
-            </div>
-            <div class="guide-callout danger"><strong>🚨 Critical:</strong> You must be connected with the <strong>signer address</strong> to submit a receipt. If your provider panel shows <em>"✓ matches your wallet"</em>, you are ready.</div>
-            <div class="guide-kv">
-              <div class="guide-kv-row"><span>Minimum stake</span><span>10 USDC</span></div>
-              <div class="guide-kv-row"><span>Minimum response time</span><span>10 seconds</span></div>
-              <div class="guide-kv-row"><span>Slash range</span><span>0% – 100%</span></div>
-              <div class="guide-kv-row"><span>Reputation formula</span><span>(successful + 2) / (total + 3) × 100</span></div>
-            </div>
-          </div>
-
-          <div class="guide-content" data-content="slash">
-            <div class="guide-section-title">Slash System</div>
-            <p class="guide-lead">The slash system is the <strong>economic enforcement mechanism</strong> that holds providers accountable to their SLA commitments. No arbitrator or trusted party required.</p>
-            <div class="guide-steps">
-              <div class="guide-step"><div class="guide-step-icon">⚡</div><div class="guide-step-body"><strong>When does a slash occur?</strong><span>If the provider does not call <code>submitReceipt()</code> within <code>maxResponseTime</code>, the deadline expires. The caller can trigger a slash via <code>claimTimeout()</code>.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">💰</div><div class="guide-step-body"><strong>Calculation</strong><span><code>slash = stake × slashBps / 10000</code><br>E.g. 10 USDC stake + 20% slash → 2 USDC is deducted and sent to the caller.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">🔄</div><div class="guide-step-body"><strong>Fund flow</strong><span>The escrowed call fee is refunded to the caller. The slashed stake is also sent to the caller. The remaining stake stays with the provider.</span></div></div>
-              <div class="guide-step"><div class="guide-step-icon">📉</div><div class="guide-step-body"><strong>Reputation impact</strong><span>Each slash lowers the provider's on-chain reputation counter, making them less likely to be chosen.</span></div></div>
-            </div>
-            <div class="guide-callout info"><strong>Example:</strong> 10 USDC stake · 20% slash · 120s SLA. Caller pays 1 USDC. Provider does not respond within 120s. Caller clicks claim slash → <strong>1 USDC refunded + 2 USDC bonus</strong>. Provider stake drops to 8 USDC.</div>
-          </div>
-
-          <div class="guide-content" data-content="faq">
-            <div class="guide-section-title">Frequently Asked Questions</div>
-            <div class="faq-list">
-              <div class="faq-item"><div class="faq-q">How does receipt signing work?</div><div class="faq-a">Receipts use EIP-712 typed-data signing. When you sign, MetaMask shows the structured Receipt fields (callId, responseHash) in a readable format — not raw hex.</div></div>
-              <div class="faq-item"><div class="faq-q">What is the Call ID and where does it come from?</div><div class="faq-a">It is the unique 32-byte identifier generated on-chain when <code>callService()</code> is invoked. It is auto-filled after you click <em>Approve &amp; call</em>.</div></div>
-              <div class="faq-item"><div class="faq-q">Can I submit a receipt after the SLA deadline?</div><div class="faq-a">No. The contract rejects <code>submitReceipt()</code> once the deadline has passed. Keep an eye on the countdown timer!</div></div>
-              <div class="faq-item"><div class="faq-q">Can I be both a provider and a caller with the same wallet?</div><div class="faq-a">Technically yes, but two separate accounts are recommended for testing.</div></div>
-              <div class="faq-item"><div class="faq-q">Can I withdraw my stake?</div><div class="faq-a">Yes. First call <code>deactivate()</code> to stop accepting new calls. Once all pending calls resolve (completed or slashed), you can call <code>unstake()</code>. Your Provider Dashboard shows real-time unstake eligibility.</div></div>
-              <div class="faq-item"><div class="faq-q">How is the reputation score calculated?</div><div class="faq-a">Bayesian formula: <code>(successful + 2) / (total + 3) × 100</code>. A new provider starts at 66. Each successful call increases the score; each slash decreases it.</div></div>
-            </div>
-          </div>
-        </div>
-        <!-- ===== /GUIDE TABS ===== -->
-
-        <!-- READ-ONLY MODE: public provider directory -->
-
-        <div class="landing-feed-box">
-          <div class="lfb-head">
-            <h3>Live activity</h3>
-            <div class="pulse">
+        <!-- LIVE FEED -->
+        <section class="cg-feed-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div class="cg-section-label" style="margin-bottom:0">Live activity</div>
+            <div class="pulse" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint)">
               <span class="pulse-dot"></span>
               <span>streaming from arc testnet</span>
             </div>
@@ -6878,34 +7186,30 @@
           <div class="feed" id="landingFeed">
             <div class="empty-state" style="padding:24px;text-align:center;font-size:12px;color:var(--text-dim)">Connecting to Arc Testnet…</div>
           </div>
-        </div>
+        </section>
 
-        <div class="contract-addresses">
-          <div>
-            <span class="label">ServiceRegistry</span>
-            <a id="registryLink" target="_blank" rel="noreferrer"></a>
+        <!-- CONTRACT ADDRESSES (compact) -->
+        <section class="cg-contracts">
+          <div class="cg-section-label">Deployed contracts</div>
+          <div class="cg-contract-grid">
+            <div class="cg-contract-row"><span>ServiceRegistry</span><a id="registryLink" target="_blank" rel="noreferrer" class="cg-contract-addr"></a></div>
+            <div class="cg-contract-row"><span>PayPerCall</span><a id="payPerCallLink" target="_blank" rel="noreferrer" class="cg-contract-addr"></a></div>
+            <div class="cg-contract-row"><span>USDC</span><a id="usdcLink" target="_blank" rel="noreferrer" class="cg-contract-addr"></a></div>
+            <div class="cg-contract-row"><span>CrossChainReceiver</span><a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer" class="cg-contract-addr">0x28a6…e5c</a></div>
+            <div class="cg-contract-row"><span>RegisterWithNFT</span><a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0aBC…169</a></div>
+            <div class="cg-contract-row"><span>AgenticCommerce</span><a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0747…583</a></div>
           </div>
-          <div>
-            <span class="label">PayPerCall</span>
-            <a id="payPerCallLink" target="_blank" rel="noreferrer"></a>
-          </div>
-          <div>
-            <span class="label">USDC</span>
-            <a id="usdcLink" target="_blank" rel="noreferrer"></a>
-          </div>
-          <div>
-            <span class="label">CrossChainReceiver</span>
-            <a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer">0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c</a>
-          </div>
-          <div>
-            <span class="label">RegisterWithNFT</span>
-            <a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer">0x0aBC433356754Cd269bEF9A46273d7a152a0F169</a>
-          </div>
-          <div>
-            <span class="label">AgenticCommerce</span>
-            <a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer">0x0747EEf0706327138c69792bF28Cd525089e4583</a>
-          </div>
-        </div>
+        </section>
+
+        <!-- BOTTOM CTA -->
+        <section class="cg-bottom-cta">
+          <h2 class="cg-h2" style="margin-bottom:12px">Ready to get started?</h2>
+          <p class="cg-section-sub" style="margin-bottom:28px">Connect your wallet and make your first on-chain SLA call in under 60 seconds.</p>
+          <button class="cg-btn-primary cg-btn-lg" onclick="window.showWalletModal&&window.showWalletModal()">
+            Connect wallet →
+          </button>
+        </section>
+
       </div>
     </main>
 
