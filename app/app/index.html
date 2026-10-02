@@ -10186,6 +10186,8 @@ curl -X POST https://arcsla.vercel.app/api/service \
         $("netDot").classList.add("ok");
         $("btnResetMM").classList.remove("hidden");
         document.body.classList.add("wallet-connected");
+        const _mn = document.getElementById("mobileNavWrapper");
+        if (_mn) _mn.style.display = "";
         startLiveClock();
         // İlk bağlanmada rol seçim ekranı göster
         if (!localStorage.getItem("cg_role_chosen")) {
@@ -10241,6 +10243,8 @@ curl -X POST https://arcsla.vercel.app/api/service \
         $("addrPill").classList.add("hidden");
         $("balanceBox").classList.add("hidden");
         document.body.classList.remove("wallet-connected");
+        const _mn2 = document.getElementById("mobileNavWrapper");
+        if (_mn2) _mn2.style.display = "none";
       }
 
       // -------- Refresh data --------
@@ -16602,6 +16606,8 @@ console.log("call opened:", tx.hash);`;
     wrapper.className = 'mob-nav-wrapper';
     wrapper.id = 'mobileNavWrapper';
     wrapper.appendChild(nav);
+    // Cüzdan bağlı değilken gizle
+    wrapper.style.display = 'none';
     document.body.appendChild(wrapper);
 
     // setAppMode gelince mode bar'ı senkronize et — lazy patch
