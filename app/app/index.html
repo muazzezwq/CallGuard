@@ -22670,6 +22670,116 @@ console.log("call opened:", tx.hash);`;
     `;
     document.head.appendChild(style);
 
+    // ---- 5. AGENT WALLET DEPLOY + FUND FLOW ----
+    window.showDeployAgentModal = function() {
+      if (!window.state?.accounts?.[0]) {
+        window.toast({ kind:'err', title:'Connect wallet first' }); return;
+      }
+      let modal = document.getElementById('cgDeployAgentModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'cgDeployAgentModal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+        modal.innerHTML = `
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+              <div style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--font-display)">Deploy Agent Wallet</div>
+              <button onclick="document.getElementById('cgDeployAgentModal').remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;line-height:1">✕</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:20px">
+              An <strong>AgentWallet</strong> is a smart contract you own. Your AI agent controls it within a daily USDC spend limit — fully onchain, zero human approval required.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+              <div>
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);display:block;margin-bottom:5px">Daily spend limit (USDC)</label>
+                <input id="agentDeployDailyLimit" type="number" value="10" min="0.1" step="0.1" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);display:block;margin-bottom:5px">Initial fund amount (USDC, optional)</label>
+                <input id="agentDeployFundAmt" type="number" value="5" min="0" step="0.1" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px">
+                <div style="font-size:11px;color:var(--text-faint);margin-top:3px">0 = deploy only, fund later</div>
+              </div>
+            </div>
+            <div id="agentDeployStatus" style="margin-bottom:14px;min-height:20px"></div>
+            <button id="btnDeployAgentWallet" class="btn btn-primary" style="width:100%;font-size:14px;padding:12px" onclick="window._doDeployAgentWallet()">Deploy &amp; Fund →</button>
+            <div style="margin-top:10px;font-size:11px;color:var(--text-faint);text-align:center">
+              Uses the deployed <a href="https://explorer.testnet.arc.io/address/0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6" target="_blank" style="color:var(--accent)">AgentWallet factory</a> on Arc Testnet
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+      }
+      modal.style.display = 'flex';
+    };
+
+    window._doDeployAgentWallet = async function() {
+      const statusEl = document.getElementById('agentDeployStatus');
+      const btn = document.getElementById('btnDeployAgentWallet');
+      const dailyLimit = parseFloat(document.getElementById('agentDeployDailyLimit')?.value || '10');
+      const fundAmt = parseFloat(document.getElementById('agentDeployFundAmt')?.value || '0');
+
+      if (!window.state?.accounts?.[0]) { window.toast({kind:'err',title:'Wallet not connected'}); return; }
+      if (isNaN(dailyLimit) || dailyLimit <= 0) { window.toast({kind:'err',title:'Enter a valid daily limit'}); return; }
+
+      btn.disabled = true;
+      try {
+        const signer = window.state.provider?.getSigner?.() || window.state.signer;
+        if (!signer) throw new Error('No signer');
+        const owner = window.state.accounts[0];
+        const decimals = window.state.usdcDecimals || 6;
+        const dailyLimitWei = ethers.parseUnits(dailyLimit.toFixed(6), decimals);
+        const fundAmtWei = fundAmt > 0 ? ethers.parseUnits(fundAmt.toFixed(6), decimals) : 0n;
+
+        // AgentWallet factory on Arc Testnet
+        const FACTORY_ADDR = '0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6';
+        const FACTORY_ABI = [
+          'function deploy(address owner, address signer, uint256 dailyLimit) returns (address)',
+          'function predictAddress(address owner) view returns (address)'
+        ];
+
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px">Step 1/3: Predicting wallet address...</span>';
+        let predictedAddr;
+        try {
+          const factory = new ethers.Contract(FACTORY_ADDR, FACTORY_ABI, signer);
+          predictedAddr = await factory.predictAddress(owner);
+        } catch { predictedAddr = null; }
+
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px">Step 2/3: Deploying AgentWallet...</span>';
+        const factory2 = new ethers.Contract(FACTORY_ADDR, FACTORY_ABI, signer);
+        const deployTx = await factory2.deploy(owner, owner, dailyLimitWei);
+        const rc = await deployTx.wait();
+
+        // Find deployed address from event or logs
+        const agentAddr = predictedAddr || rc.contractAddress || FACTORY_ADDR;
+
+        if (fundAmtWei > 0n) {
+          if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px">Step 3/3: Approving & funding...</span>';
+          const USDC_ADDR = CONFIG?.usdc || '0x3600000000000000000000000000000000000000';
+          const usdc = new ethers.Contract(USDC_ADDR, ['function approve(address,uint256) returns (bool)', 'function transfer(address,uint256) returns (bool)'], signer);
+          await (await usdc.approve(agentAddr, fundAmtWei)).wait();
+          const agentContract = new ethers.Contract(agentAddr, ['function deposit(uint256) external'], signer);
+          try {
+            await (await agentContract.deposit(fundAmtWei)).wait();
+          } catch {
+            await (await usdc.transfer(agentAddr, fundAmtWei)).wait();
+          }
+        }
+
+        // Save and connect
+        localStorage.setItem('cg_agent_wallet', agentAddr);
+        if (window.connectAgentWallet) {
+          document.getElementById('agentWalletAddrInput') && (document.getElementById('agentWalletAddrInput').value = agentAddr);
+          window.connectAgentWallet();
+        }
+        document.getElementById('cgDeployAgentModal')?.remove();
+        window.toast({ kind:'ok', title:'Agent Wallet deployed!', detail: `${agentAddr.slice(0,10)}… · daily limit: ${dailyLimit} USDC`, txHash: deployTx.hash, timeout: 10000 });
+      } catch(e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--danger);font-size:12px">${e.reason || e.shortMessage || e.message?.slice(0,120)}</span>`;
+        window.toast({ kind:'err', title:'Deploy failed', detail: e.reason || e.message?.slice(0,80) });
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    };
+
     console.log('[CallGuard Feature Pack] loaded: history, real-time, swipe, wallet-picker, provider-dash, rep-badge, api-docs');
   })();
   </script>
