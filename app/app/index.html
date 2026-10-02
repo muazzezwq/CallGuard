@@ -6851,6 +6851,135 @@
     }
 
     /* ══════════════════════════════════════════
+       TERMINAL MOCKUP
+       ══════════════════════════════════════════ */
+    .cgt-section {
+      max-width: 960px;
+      margin: 0 auto 72px;
+      padding: 0 8px;
+    }
+    .cgt-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .cgt-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .cgt-h2 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      margin: 0 0 16px;
+      color: var(--text);
+    }
+    .cgt-p {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin: 0 0 20px;
+    }
+    .cgt-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cgt-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .cgt-check {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(16,185,129,.15);
+      border: 1px solid rgba(16,185,129,.3);
+      color: #10b981;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    /* Terminal window */
+    .cgt-terminal {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .cgt-term-bar {
+      background: #161b22;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #21262d;
+    }
+    .cgt-term-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .cgt-term-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: block;
+    }
+    .cgt-term-title {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      color: #8b949e;
+    }
+    .cgt-term-body {
+      padding: 16px 20px 20px;
+      font-family: var(--font-mono, monospace);
+      font-size: 12px;
+      line-height: 1.7;
+      min-height: 280px;
+    }
+    .cgt-line { display: flex; align-items: flex-start; gap: 8px; }
+    .cgt-prompt { color: #10b981; user-select: none; }
+    .cgt-cmd    { color: #c9d1d9; }
+    .cgt-out-green  { color: #10b981; }
+    .cgt-out-blue   { color: #58a6ff; }
+    .cgt-out-yellow { color: #e3b341; }
+    .cgt-out-red    { color: #f85149; }
+    .cgt-out-dim    { color: #8b949e; }
+    .cgt-cursor {
+      display: inline-block;
+      width: 7px;
+      height: 14px;
+      background: #10b981;
+      vertical-align: middle;
+      animation: cgt-blink .9s step-end infinite;
+      margin-left: 2px;
+    }
+    @keyframes cgt-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    /* Responsive */
+    @media (max-width: 760px) {
+      .cgt-inner { grid-template-columns: 1fr; gap: 28px; }
+      .cgt-h2 { font-size: 22px; }
+    }
+
+    /* ══════════════════════════════════════════
        PROTOCOL FEATURES GRID
        ══════════════════════════════════════════ */
     .cgf-section {
@@ -7385,6 +7514,34 @@
             <div class="cg-contract-row"><span>CrossChainReceiver</span><a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer" class="cg-contract-addr">0x28a6…e5c</a></div>
             <div class="cg-contract-row"><span>RegisterWithNFT</span><a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0aBC…169</a></div>
             <div class="cg-contract-row"><span>AgenticCommerce</span><a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0747…583</a></div>
+          </div>
+        </section>
+
+        <!-- ═══ TERMINAL MOCKUP ═══ -->
+        <section class="cgt-section">
+          <div class="cgt-inner">
+            <div class="cgt-copy">
+              <div class="cgt-label">How it works</div>
+              <h2 class="cgt-h2">One contract.<br>Zero intermediaries.</h2>
+              <p class="cgt-p">A provider stakes USDC and sets a response window. The caller locks funds in escrow. Provider delivers off-chain, signs a receipt on-chain. Funds release automatically. Miss the window — stake is slashed, caller gets paid.</p>
+              <ul class="cgt-list">
+                <li><span class="cgt-check">✓</span>Fully permissionless — anyone can register</li>
+                <li><span class="cgt-check">✓</span>EIP-712 typed receipts — readable in MetaMask</li>
+                <li><span class="cgt-check">✓</span>Bayesian reputation score — on-chain, readable by contracts</li>
+                <li><span class="cgt-check">✓</span>Pay from any chain via CCTP</li>
+              </ul>
+            </div>
+            <div class="cgt-terminal" id="cgtTerminal">
+              <div class="cgt-term-bar">
+                <div class="cgt-term-dots">
+                  <span style="background:#ff5f57"></span>
+                  <span style="background:#ffbd2e"></span>
+                  <span style="background:#28ca41"></span>
+                </div>
+                <span class="cgt-term-title">callguard — arc testnet</span>
+              </div>
+              <div class="cgt-term-body" id="cgtBody"></div>
+            </div>
           </div>
         </section>
 
@@ -20663,6 +20820,100 @@ console.log("call opened:", tx.hash);`;
       }
     };
 
+  })();
+  </script>
+
+  <!-- ================================================================
+       TERMINAL MOCKUP ANIMATION
+       ================================================================ -->
+  <script>
+  (function() {
+    "use strict";
+
+    var LINES = [
+      { delay: 0,    type: "cmd",   text: "callguard call --provider 1 --payload \"ping\"" },
+      { delay: 600,  type: "blue",  text: "▶ Fetching provider #1 from ServiceRegistry..." },
+      { delay: 1200, type: "green", text: "✓ Provider active · stake: 50.00 USDC" },
+      { delay: 1600, type: "green", text: "✓ SLA window: 120s · price: 1.00 USDC/call" },
+      { delay: 2100, type: "dim",   text: "  Reputation score: 82 / 100" },
+      { delay: 2700, type: "yellow",text: "▶ Approving USDC spend (1.00 USDC)..." },
+      { delay: 3400, type: "green", text: "✓ Approved · tx: 0x3a8f…c21e" },
+      { delay: 3900, type: "yellow",text: "▶ Opening call on-chain..." },
+      { delay: 4600, type: "green", text: "✓ Call opened · callId: 0xa3f8…7b2d" },
+      { delay: 5100, type: "blue",  text: "▶ Waiting for provider receipt (max 120s)..." },
+      { delay: 6200, type: "green", text: "✓ Receipt received — response: \"pong\"" },
+      { delay: 6700, type: "green", text: "✓ EIP-712 signature verified on-chain" },
+      { delay: 7200, type: "green", text: "✓ Escrow released to provider · +1 USDC" },
+      { delay: 7700, type: "green", text: "✓ Reputation updated: 82 → 86" },
+      { delay: 8300, type: "dim",   text: "  Total time: 8.3s  ·  Network: Arc Testnet" },
+      { delay: 8900, type: "cursor", text: "" }
+    ];
+
+    var RESTART_DELAY = 5000; // ms after last line before looping
+
+    function makeEl(type, text) {
+      var div = document.createElement("div");
+      if (type === "cmd") {
+        div.className = "cgt-line";
+        div.innerHTML = '<span class="cgt-prompt">$</span><span class="cgt-cmd"> ' + text + '</span>';
+      } else if (type === "cursor") {
+        div.className = "cgt-line";
+        div.innerHTML = '<span class="cgt-prompt">$</span><span class="cgt-cursor"></span>';
+      } else {
+        var cls = { blue:"cgt-out-blue", green:"cgt-out-green", yellow:"cgt-out-yellow", red:"cgt-out-red", dim:"cgt-out-dim" }[type] || "cgt-out-dim";
+        div.innerHTML = '<span class="' + cls + '">' + text + '</span>';
+      }
+      return div;
+    }
+
+    function runTerminal(body) {
+      body.innerHTML = "";
+      var timers = [];
+      LINES.forEach(function(line) {
+        var t = setTimeout(function() {
+          body.appendChild(makeEl(line.type, line.text));
+          body.scrollTop = body.scrollHeight;
+        }, line.delay);
+        timers.push(t);
+      });
+      // Loop
+      var restartT = setTimeout(function() {
+        timers.forEach(clearTimeout);
+        runTerminal(body);
+      }, LINES[LINES.length - 1].delay + RESTART_DELAY);
+      timers.push(restartT);
+      return timers;
+    }
+
+    function init() {
+      var body = document.getElementById("cgtBody");
+      if (!body) return;
+
+      var started = false;
+      function start() {
+        if (started) return;
+        started = true;
+        runTerminal(body);
+      }
+
+      // Start when scrolled into view
+      if (window.IntersectionObserver) {
+        var ob = new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) { start(); ob.disconnect(); }
+        }, { threshold: 0.15 });
+        ob.observe(body);
+      } else {
+        start();
+      }
+      // Fallback: start after 2s regardless
+      setTimeout(start, 2000);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
   })();
   </script>
 
