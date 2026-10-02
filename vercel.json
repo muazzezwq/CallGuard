@@ -4,7 +4,8 @@
   "functions": {
     "api/auto-receipt.js": { "maxDuration": 25 },
     "api/call-service.js": { "maxDuration": 25 },
-    "api/notify-provider.js": { "maxDuration": 15 }
+    "api/notify-provider.js": { "maxDuration": 15 },
+    "api/attestation.js": { "maxDuration": 30 }
   },
 
   "rewrites": [

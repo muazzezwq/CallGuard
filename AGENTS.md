@@ -10,6 +10,7 @@
 | `DisputeQuality` | `0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725` | ✅ Deployed (1 Oct 2026) |
 | `SLAFutures` | `0xa6f194c621eE67559aDcA883824e01F1828e887c` | ✅ Deployed (1 Oct 2026) |
 | `ReputationLoan` | `0xE656dF6512e9d10e555518b7342fd8c81c42B8c0` | ✅ Deployed (1 Oct 2026) |
+| `SLAAttestationBridge` | `0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7` | ✅ Deployed (2 Oct 2026) |
 
 ## Dependent Addresses
 - `FACILITATOR_ADDRESS`: `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`

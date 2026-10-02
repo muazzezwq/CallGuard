@@ -6581,6 +6581,11 @@
             SLA Futures
             <span style="margin-left:auto;background:#8b5cf6;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
+          <div class="sb-item" data-nav="attestation">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+            SLA Bridge
+            <span style="margin-left:auto;background:#0ea5e9;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+          </div>
           <div class="sb-item" data-nav="subscriptions">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
             Subscriptions
@@ -8022,6 +8027,110 @@ npm install</pre>
                   <input id="futDeadline" type="datetime-local" class="input">
                 </div>
                 <button class="btn btn-primary" style="width:100%" onclick="window.doMintCapacity()">🎟 Mint Capacity Batch</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SLA ATTESTATION BRIDGE PANEL ===== -->
+        <section class="panel full-width" id="attestationPanel" data-category="attestation" style="display:none">
+          <div class="panel-head">
+            <h2>🛡 SLA Attestation Bridge</h2>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px">Cross-protocol SLA oracle · Permissionless · On-chain proof</span>
+          </div>
+          <div class="panel-body">
+
+            <!-- Info box -->
+            <div style="background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(14,165,233,0.03));border:1px solid rgba(14,165,233,0.25);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:12px;line-height:1.7">
+              <div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:13px">What is the SLA Bridge?</div>
+              <div style="color:var(--text-dim)">
+                Any external protocol — API3, Chainlink, LayerZero, or your own contract — can query CallGuard for cryptographic, on-chain proof that a provider honored (or violated) their SLA commitment.<br><br>
+                <strong>Three attestation types:</strong><br>
+                · <code>CALL_RECEIPT</code> — "Did provider X deliver call Y on time?" (HONORED / VIOLATED)<br>
+                · <code>PROVIDER_SCORE</code> — Point-in-time Bayesian reputation snapshot (0-100)<br>
+                · <code>BATCH_SUMMARY</code> — Lifetime aggregate for cross-chain broadcast<br><br>
+                External protocols read these via <code>getAttestation(id)</code> on-chain, or via the <code>/api/attestation</code> endpoint with JSON-LD proof.
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0">
+              <button class="att-tab btn btn-sm on" data-attab="peek" style="border-bottom:2px solid var(--accent);border-radius:0;margin-bottom:-1px">Peek (free)</button>
+              <button class="att-tab btn btn-sm" data-attab="issue">Issue Attestation</button>
+              <button class="att-tab btn btn-sm" data-attab="lookup">Lookup by ID</button>
+            </div>
+
+            <!-- Tab: Peek -->
+            <div id="attTab-peek">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <!-- Peek call verdict -->
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px">
+                  <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Call Verdict</div>
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
+                  <input id="attPeekCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace;margin-bottom:10px">
+                  <button class="btn btn-primary" style="width:100%" onclick="window.attPeekCall()">Check Verdict</button>
+                  <div id="attPeekCallResult" style="margin-top:12px;display:none"></div>
+                </div>
+                <!-- Peek provider score -->
+                <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:16px">
+                  <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--text)">Provider Score</div>
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
+                  <input id="attPeekProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:10px">
+                  <button class="btn btn-primary" style="width:100%" onclick="window.attPeekScore()">Check Score</button>
+                  <div id="attPeekScoreResult" style="margin-top:12px;display:none"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Issue -->
+            <div id="attTab-issue" style="display:none">
+              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:11px;color:var(--text-faint)">
+                Issues a permanent on-chain attestation via the SLAAttestationBridge contract. Requires the facilitator to submit the transaction. The attestation ID can be shared with any external protocol.
+              </div>
+              <div style="display:grid;gap:12px;max-width:520px">
+                <div>
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Attestation Type</label>
+                  <select id="attIssueType" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px" onchange="window.attTypeChanged()">
+                    <option value="call">CALL_RECEIPT — single call delivery proof</option>
+                    <option value="score">PROVIDER_SCORE — reputation snapshot</option>
+                    <option value="batch">BATCH_SUMMARY — lifetime aggregate</option>
+                  </select>
+                </div>
+                <div id="attIssueCallRow">
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Call ID (bytes32)</label>
+                  <input id="attIssueCallId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace">
+                </div>
+                <div id="attIssueProvRow" style="display:none">
+                  <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Provider ID</label>
+                  <input id="attIssueProviderId" type="number" placeholder="e.g. 1" min="1" style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                </div>
+                <button class="btn btn-primary" onclick="window.attIssue()">Issue On-Chain Attestation</button>
+                <div id="attIssueResult" style="display:none"></div>
+              </div>
+            </div>
+
+            <!-- Tab: Lookup -->
+            <div id="attTab-lookup" style="display:none">
+              <div style="max-width:520px">
+                <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Attestation ID (bytes32)</label>
+                <input id="attLookupId" type="text" placeholder="0x..." style="width:100%;padding:8px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:monospace;margin-bottom:10px">
+                <button class="btn btn-primary" onclick="window.attLookup()">Fetch Attestation</button>
+                <div id="attLookupResult" style="margin-top:16px;display:none"></div>
+              </div>
+            </div>
+
+            <!-- Contract info -->
+            <div style="margin-top:28px;padding-top:18px;border-top:1px solid var(--border)">
+              <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Contract</div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <code id="attBridgeAddr" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-dim)">Not deployed yet</code>
+                <span style="font-size:11px;color:var(--text-faint)">Arc Testnet · Chain ID 5042002</span>
+                <a id="attBridgeExplorer" href="#" target="_blank" style="font-size:11px;color:var(--accent);display:none">View on ArcScan ↗</a>
+              </div>
+              <div style="margin-top:10px;font-size:11px;color:var(--text-faint)">
+                API endpoint: <code style="background:var(--bg-2);border-radius:3px;padding:1px 5px">/api/attestation</code>
+                &nbsp;·&nbsp;
+                <a href="/api/attestation?providerId=1&type=score" target="_blank" style="color:var(--accent)">Test GET ↗</a>
               </div>
             </div>
           </div>
@@ -12117,6 +12226,7 @@ async function refreshBalance() {
         if (cat === "futures") window.loadFutures?.().catch(()=>{});
         if (cat === "lending") window.loadLending?.().catch(()=>{});
         if (cat === "agent")   window.loadAgentPanel?.().catch(()=>{});
+        if (cat === "attestation") window.loadAttestationPanel?.();
         // categoryChanged event dispatch et (marketplace, webhooks vb.)
         document.dispatchEvent(new CustomEvent("categoryChanged", { detail: cat }));
       }
@@ -19269,6 +19379,263 @@ console.log("call opened:", tx.hash);`;
       console.warn('WalletConnect error:', e);
     }
   }
+  </script>
+
+  <!-- ================================================================
+       SLA ATTESTATION BRIDGE — Panel Logic
+       ================================================================ -->
+  <script>
+  (function() {
+    // ---------------------------------------------------------------
+    // Config — read from window or fall back to known deployed addresses
+    // ---------------------------------------------------------------
+    const PAY_PER_CALL     = window.PAY_PER_CALL_ADDRESS     || '0x10387347678d9f7106D5625bE0BD6C915158B130'; // arc-studio-allow-onchain-literal
+    const SERVICE_REGISTRY = window.SERVICE_REGISTRY_ADDRESS || '0xea00f898C0eA249de7226b283e93C13eFa7BbcFF'; // arc-studio-allow-onchain-literal
+    // SLAAttestationBridge address — deployed 2 Oct 2026
+    const BRIDGE_ADDRESS   = window.SLA_ATTESTATION_BRIDGE   || '0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7'; // arc-studio-allow-onchain-literal
+
+    const VERDICTS  = ['UNKNOWN', 'HONORED', 'VIOLATED', 'PENDING'];
+    const ATT_TYPES = ['CALL_RECEIPT', 'PROVIDER_SCORE', 'BATCH_SUMMARY'];
+    const VERDICT_COLOR = { HONORED: '#16a34a', VIOLATED: '#dc2626', PENDING: '#d97706', UNKNOWN: '#8a9ba8' };
+
+    // ---------------------------------------------------------------
+    // ABI snippets (ethers v6 human-readable)
+    // ---------------------------------------------------------------
+    const BRIDGE_ABI = [
+      'function peekCallVerdict(bytes32 callId) view returns (uint8 verdict, bytes32 responseHash, uint32 deadline)',
+      'function peekProviderScore(uint256 providerId) view returns (uint8 score, uint32 completed, uint32 slashed)',
+      'function getAttestation(bytes32 attestationId) view returns (tuple(bytes32 attestationId, uint8 attType, uint32 issuedAt, uint32 blockNumber, bytes32 callId, uint256 providerId, address caller, uint256 amount, bytes32 responseHash, uint32 deadline, uint32 respondedAt, uint8 verdict, uint8 reputationScore, uint32 completedCalls, uint32 slashedCalls))',
+    ];
+    const REGISTRY_ABI = [
+      'function getReputationScore(uint256 providerId) view returns (uint8)',
+      'function completedCalls(uint256 providerId) view returns (uint32)',
+      'function slashedCalls(uint256 providerId) view returns (uint32)',
+    ];
+    const PPC_ABI = [
+      'function getCall(bytes32 callId) view returns (tuple(uint256 providerId, address caller, uint256 amount, uint32 startedAt, uint32 deadline, bytes32 requestHash, bytes32 responseHash, uint8 status))',
+    ];
+
+    function provider() {
+      if (window.ethersProvider) return window.ethersProvider;
+      if (window.ethers && window.ethereum) return new ethers.BrowserProvider(window.ethereum);
+      throw new Error('No provider available — connect wallet first');
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+    function verdictBadge(v) {
+      const label = (typeof v === 'number') ? (VERDICTS[v] || 'UNKNOWN') : (v || 'UNKNOWN');
+      const color = VERDICT_COLOR[label] || '#8a9ba8';
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${color}20;color:${color};border:1px solid ${color}40">${label}</span>`;
+    }
+    function monoVal(v) {
+      return `<code style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--text-dim);word-break:break-all">${v}</code>`;
+    }
+    function row(label, val) {
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text-faint)">${label}</span><span>${val}</span></div>`;
+    }
+    function showEl(id, show) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = show ? '' : 'none';
+    }
+    function setHTML(id, html) {
+      const el = document.getElementById(id);
+      if (el) { el.innerHTML = html; el.style.display = ''; }
+    }
+
+    // ---------------------------------------------------------------
+    // Tab switching
+    // ---------------------------------------------------------------
+    document.querySelectorAll('.att-tab').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.att-tab').forEach(b => {
+          b.classList.remove('on');
+          b.style.borderBottom = '2px solid transparent';
+        });
+        this.classList.add('on');
+        this.style.borderBottom = '2px solid var(--accent)';
+        ['peek','issue','lookup'].forEach(t => showEl('attTab-' + t, t === this.dataset.attab));
+      });
+    });
+
+    // ---------------------------------------------------------------
+    // Type select change (issue tab)
+    // ---------------------------------------------------------------
+    window.attTypeChanged = function() {
+      const t = document.getElementById('attIssueType')?.value;
+      showEl('attIssueCallRow', t === 'call');
+      showEl('attIssueProvRow', t === 'score' || t === 'batch');
+    };
+
+    // ---------------------------------------------------------------
+    // Init panel — populate contract address bar
+    // ---------------------------------------------------------------
+    window.loadAttestationPanel = function() {
+      const addrEl = document.getElementById('attBridgeAddr');
+      const explorerEl = document.getElementById('attBridgeExplorer');
+      if (BRIDGE_ADDRESS && addrEl) {
+        addrEl.textContent = BRIDGE_ADDRESS;
+        if (explorerEl) {
+          explorerEl.href = `https://testnet.arcscan.app/address/${BRIDGE_ADDRESS}`;
+          explorerEl.style.display = '';
+        }
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Peek: call verdict
+    // ---------------------------------------------------------------
+    window.attPeekCall = async function() {
+      const callId = document.getElementById('attPeekCallId')?.value?.trim();
+      if (!callId || !callId.startsWith('0x')) {
+        return setHTML('attPeekCallResult', '<div style="color:var(--danger);font-size:12px">Enter a valid bytes32 call ID (0x…)</div>');
+      }
+      setHTML('attPeekCallResult', '<div style="color:var(--text-faint);font-size:12px">Reading on-chain…</div>');
+      try {
+        const p = provider();
+        let verdict, responseHash, deadline;
+        if (BRIDGE_ADDRESS) {
+          const bridge = new ethers.Contract(BRIDGE_ADDRESS, BRIDGE_ABI, p);
+          [verdict, responseHash, deadline] = await bridge.peekCallVerdict(callId);
+          verdict = Number(verdict);
+        } else {
+          // Fallback: read PayPerCall directly
+          const ppc = new ethers.Contract(PAY_PER_CALL, PPC_ABI, p);
+          const c = await ppc.getCall(callId);
+          const statusMap = { 0: 0, 1: 3, 2: 1, 3: 2 }; // None→UNKNOWN Pending→PENDING Completed→HONORED Slashed→VIOLATED
+          verdict = statusMap[Number(c.status)] ?? 0;
+          responseHash = c.responseHash;
+          deadline = Number(c.deadline);
+        }
+        const deadlineDate = deadline ? new Date(deadline * 1000).toLocaleString() : '—';
+        setHTML('attPeekCallResult',
+          `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:10px">`
+          + row('Verdict', verdictBadge(verdict))
+          + row('Deadline', deadlineDate)
+          + row('Response Hash', monoVal(responseHash || '0x0…'))
+          + row('Source', `<span style="font-size:10px;color:var(--text-faint)">${BRIDGE_ADDRESS ? 'SLAAttestationBridge' : 'PayPerCall (direct)'}</span>`)
+          + `</div>`
+        );
+      } catch(e) {
+        setHTML('attPeekCallResult', `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`);
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Peek: provider score
+    // ---------------------------------------------------------------
+    window.attPeekScore = async function() {
+      const pid = parseInt(document.getElementById('attPeekProviderId')?.value);
+      if (!pid || pid < 1) {
+        return setHTML('attPeekScoreResult', '<div style="color:var(--danger);font-size:12px">Enter a valid provider ID</div>');
+      }
+      setHTML('attPeekScoreResult', '<div style="color:var(--text-faint);font-size:12px">Reading on-chain…</div>');
+      try {
+        const p = provider();
+        let score, completed, slashed;
+        if (BRIDGE_ADDRESS) {
+          const bridge = new ethers.Contract(BRIDGE_ADDRESS, BRIDGE_ABI, p);
+          [score, completed, slashed] = await bridge.peekProviderScore(BigInt(pid));
+        } else {
+          const reg = new ethers.Contract(SERVICE_REGISTRY, REGISTRY_ABI, p);
+          [score, completed, slashed] = await Promise.all([
+            reg.getReputationScore(BigInt(pid)),
+            reg.completedCalls(BigInt(pid)),
+            reg.slashedCalls(BigInt(pid)),
+          ]);
+        }
+        const s = Number(score), c = Number(completed), sl = Number(slashed);
+        const barColor = s >= 80 ? '#16a34a' : s >= 50 ? '#d97706' : '#dc2626';
+        setHTML('attPeekScoreResult',
+          `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:10px">`
+          + `<div style="margin-bottom:8px"><div style="height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden"><div style="height:6px;width:${s}%;background:${barColor};border-radius:3px;transition:.4s"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-top:3px"><span>0</span><span style="color:${barColor};font-weight:700">${s}/100</span><span>100</span></div></div>`
+          + row('Reputation Score', `<strong style="color:${barColor}">${s}</strong>`)
+          + row('Completed Calls', `<span style="color:var(--accent)">${c}</span>`)
+          + row('Slashed Calls', `<span style="color:var(--danger)">${sl}</span>`)
+          + row('Honor Rate', `<span>${c + sl > 0 ? ((c / (c + sl)) * 100).toFixed(1) : '—'}%</span>`)
+          + row('Source', `<span style="font-size:10px;color:var(--text-faint)">${BRIDGE_ADDRESS ? 'SLAAttestationBridge' : 'ServiceRegistry (direct)'}</span>`)
+          + `</div>`
+        );
+      } catch(e) {
+        setHTML('attPeekScoreResult', `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`);
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Issue on-chain attestation (via /api/attestation POST)
+    // ---------------------------------------------------------------
+    window.attIssue = async function() {
+      const type = document.getElementById('attIssueType')?.value;
+      const callId = document.getElementById('attIssueCallId')?.value?.trim();
+      const pid = document.getElementById('attIssueProviderId')?.value;
+      const resEl = document.getElementById('attIssueResult');
+      if (!resEl) return;
+      resEl.style.display = '';
+      resEl.innerHTML = '<div style="color:var(--text-faint);font-size:12px">Submitting to /api/attestation…</div>';
+
+      let body;
+      if (type === 'call') {
+        if (!callId || !callId.startsWith('0x')) { resEl.innerHTML = '<div style="color:var(--danger);font-size:12px">Enter a valid call ID</div>'; return; }
+        body = { callId };
+      } else {
+        if (!pid || parseInt(pid) < 1) { resEl.innerHTML = '<div style="color:var(--danger);font-size:12px">Enter a valid provider ID</div>'; return; }
+        body = { providerId: parseInt(pid), type: type === 'score' ? 'score' : 'batch' };
+      }
+
+      try {
+        const resp = await fetch('/api/attestation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error);
+        resEl.innerHTML =
+          `<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:6px;padding:10px;margin-top:8px">`
+          + `<div style="font-weight:600;color:var(--accent);font-size:12px;margin-bottom:6px">✓ Attestation issued on-chain</div>`
+          + row('TX Hash', monoVal(data.txHash))
+          + row('Block', data.blockNumber)
+          + `<a href="https://testnet.arcscan.app/tx/${data.txHash}" target="_blank" style="font-size:11px;color:var(--accent);display:inline-block;margin-top:6px">View on ArcScan ↗</a>`
+          + `</div>`;
+      } catch(e) {
+        resEl.innerHTML = `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`;
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Lookup stored attestation
+    // ---------------------------------------------------------------
+    window.attLookup = async function() {
+      const attId = document.getElementById('attLookupId')?.value?.trim();
+      if (!attId || !attId.startsWith('0x')) {
+        return setHTML('attLookupResult', '<div style="color:var(--danger);font-size:12px">Enter a valid attestation ID (0x…)</div>');
+      }
+      if (!BRIDGE_ADDRESS) {
+        return setHTML('attLookupResult', '<div style="color:var(--warn);font-size:12px">SLAAttestationBridge not deployed yet.</div>');
+      }
+      setHTML('attLookupResult', '<div style="color:var(--text-faint);font-size:12px">Reading on-chain…</div>');
+      try {
+        const p = provider();
+        const bridge = new ethers.Contract(BRIDGE_ADDRESS, BRIDGE_ABI, p);
+        const a = await bridge.getAttestation(attId);
+        const attType = ATT_TYPES[Number(a.attType)] || 'UNKNOWN';
+        const issued = new Date(Number(a.issuedAt) * 1000).toLocaleString();
+        setHTML('attLookupResult',
+          `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:12px">`
+          + `<div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)">Attestation: ${attType}</div>`
+          + row('Attestation ID', monoVal(a.attestationId))
+          + row('Verdict', verdictBadge(Number(a.verdict)))
+          + row('Provider ID', Number(a.providerId))
+          + (a.callId && a.callId !== '0x' + '0'.repeat(64) ? row('Call ID', monoVal(a.callId)) : '')
+          + row('Issued At', issued)
+          + row('Block #', Number(a.blockNumber))
+          + row('Reputation Score', Number(a.reputationScore))
+          + row('Completed / Slashed', `${Number(a.completedCalls)} / ${Number(a.slashedCalls)}`)
+          + `</div>`
+        );
+      } catch(e) {
+        setHTML('attLookupResult', `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`);
+      }
+    };
+
+  })();
   </script>
 
   </body>
