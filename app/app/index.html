@@ -6849,6 +6849,110 @@
       .cg-stats-row { flex-direction: column; gap: 12px; }
       .cg-stat-divider { width: 80px; height: 1px; }
     }
+
+    /* ══════════════════════════════════════════
+       PROTOCOL FEATURES GRID
+       ══════════════════════════════════════════ */
+    .cgf-section {
+      margin: 0 auto 64px;
+      max-width: 860px;
+    }
+    .cgf-head {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .cgf-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .cgf-h2 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--text);
+      margin: 0 0 10px;
+    }
+    .cgf-sub {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .cgf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .cgf-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 20px 20px;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      cursor: default;
+    }
+    /* Top border accent per color */
+    .cgf-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 14px 14px 0 0;
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .cgf-green::before  { background: linear-gradient(90deg,#10b981,#34d399); }
+    .cgf-purple::before { background: linear-gradient(90deg,#8b5cf6,#a78bfa); }
+    .cgf-amber::before  { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .cgf-blue::before   { background: linear-gradient(90deg,#0ea5e9,#38bdf8); }
+    .cgf-red::before    { background: linear-gradient(90deg,#ef4444,#f87171); }
+    /* Hover states */
+    .cgf-green:hover  { border-color: rgba(16,185,129,.4);  box-shadow: 0 0 24px rgba(16,185,129,.12),  0 4px 16px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .cgf-purple:hover { border-color: rgba(139,92,246,.4);  box-shadow: 0 0 24px rgba(139,92,246,.12), 0 4px 16px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .cgf-amber:hover  { border-color: rgba(251,191,36,.4);  box-shadow: 0 0 24px rgba(251,191,36,.12),  0 4px 16px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .cgf-blue:hover   { border-color: rgba(14,165,233,.4);  box-shadow: 0 0 24px rgba(14,165,233,.12),  0 4px 16px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .cgf-red:hover    { border-color: rgba(239,68,68,.4);   box-shadow: 0 0 24px rgba(239,68,68,.12),   0 4px 16px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .cgf-card:hover::before { opacity: 1; }
+    /* Shine sweep on hover */
+    .cgf-shine {
+      position: absolute;
+      top: -40%; left: -60%;
+      width: 40%; height: 200%;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.06) 50%, transparent 60%);
+      transform: skewX(-15deg);
+      transition: left .5s ease;
+      pointer-events: none;
+    }
+    .cgf-card:hover .cgf-shine { left: 120%; }
+    /* Icon */
+    .cgf-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .cgf-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 7px;
+      letter-spacing: -.01em;
+    }
+    .cgf-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+    /* Responsive */
+    @media (max-width: 700px) { .cgf-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .cgf-grid { grid-template-columns: 1fr; } .cgf-section { margin-bottom: 40px; } }
     </style>
   <script>
     // Suppress noisy MetaMask internal logs — duplicate _cw removed
@@ -7281,6 +7385,72 @@
             <div class="cg-contract-row"><span>CrossChainReceiver</span><a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer" class="cg-contract-addr">0x28a6…e5c</a></div>
             <div class="cg-contract-row"><span>RegisterWithNFT</span><a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0aBC…169</a></div>
             <div class="cg-contract-row"><span>AgenticCommerce</span><a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0747…583</a></div>
+          </div>
+        </section>
+
+        <!-- ═══ PROTOCOL FEATURES GRID ═══ -->
+        <section class="cgf-section">
+          <div class="cgf-head">
+            <div class="cgf-label">Protocol v4</div>
+            <h2 class="cgf-h2">Built for the AI economy.</h2>
+            <p class="cgf-sub">Five advanced modules live on Arc Testnet today — each extending the core SLA primitive.</p>
+          </div>
+          <div class="cgf-grid">
+
+            <div class="cgf-card cgf-green">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="cgf-title">Verifiable AI Output</div>
+              <div class="cgf-desc">Response hash committed on-chain. Community arbiters vote on quality disputes. Stake-weighted majority wins.</div>
+            </div>
+
+            <div class="cgf-card cgf-purple">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="cgf-title">SLA Futures</div>
+              <div class="cgf-desc">Providers tokenize future capacity as ERC-1155 NFTs. Callers reserve priority slots. NFTs trade on secondary markets.</div>
+            </div>
+
+            <div class="cgf-card cgf-amber">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="cgf-title">RepFi Lending</div>
+              <div class="cgf-desc">Honor rate &gt; 90%? Borrow USDC stake from the reputation pool. DeFi meets SLA enforcement.</div>
+            </div>
+
+            <div class="cgf-card cgf-blue">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              </div>
+              <div class="cgf-title">Autonomous Agent Loop</div>
+              <div class="cgf-desc">ERC-4337 smart wallet with daily spend limit. Any AI (Claude, GPT, Llama) calls services with zero human approval.</div>
+            </div>
+
+            <div class="cgf-card cgf-red">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div class="cgf-title">SLA Attestation Bridge</div>
+              <div class="cgf-desc">Any protocol queries CallGuard: "Did this provider honor X calls?" On-chain attestation, CCIP-ready cross-chain broadcast.</div>
+            </div>
+
+            <div class="cgf-card cgf-green">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="cgf-title">USDC-Native Gas</div>
+              <div class="cgf-desc">On Arc, USDC is the gas token. One asset, zero friction. No ETH, no bridging, no separate gas wallet needed.</div>
+            </div>
+
           </div>
         </section>
 
