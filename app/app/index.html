@@ -6951,6 +6951,7 @@
             Receipts
           </div>
 
+          <!-- ── Settlement: core items always visible ── -->
           <div class="sb-section">Settlement</div>
           <div class="sb-item" data-nav="analytics">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
@@ -6961,30 +6962,37 @@
             Disputes
             <span id="disputeBadge" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center"></span>
           </div>
-          <div class="sb-item" data-nav="quality">
+
+          <!-- ── Advanced: collapsed by default, one click to expand ── -->
+          <div class="sb-section sb-advanced-toggle" id="sbAdvancedToggle" onclick="window.toggleSbAdvanced()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
+            <span>Advanced</span>
+            <svg id="sbAdvancedChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="sbAdvancedGroup" style="display:none">
+          <div class="sb-item" data-nav="quality" id="sbNavQuality">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
             Quality Disputes
-            <span style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+            <span class="sb-new-badge" data-nav-key="quality" style="margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
-          <div class="sb-item" data-nav="agent">
+          <div class="sb-item" data-nav="agent" id="sbNavAgent">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="6" r="2" fill="currentColor"/></svg></span>
             Agent Loop
-            <span style="margin-left:auto;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+            <span class="sb-new-badge" data-nav-key="agent" style="margin-left:auto;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
-          <div class="sb-item" data-nav="lending">
+          <div class="sb-item" data-nav="lending" id="sbNavLending">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg></span>
             RepFi Lending
-            <span style="margin-left:auto;background:#10b981;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+            <span class="sb-new-badge" data-nav-key="lending" style="margin-left:auto;background:#10b981;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
-          <div class="sb-item" data-nav="futures">
+          <div class="sb-item" data-nav="futures" id="sbNavFutures">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></span>
             SLA Futures
-            <span style="margin-left:auto;background:#8b5cf6;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+            <span class="sb-new-badge" data-nav-key="futures" style="margin-left:auto;background:#8b5cf6;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
-          <div class="sb-item" data-nav="attestation">
+          <div class="sb-item" data-nav="attestation" id="sbNavAttestation">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
             SLA Bridge
-            <span style="margin-left:auto;background:#0ea5e9;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
+            <span class="sb-new-badge" data-nav-key="attestation" style="margin-left:auto;background:#0ea5e9;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px">NEW</span>
           </div>
           <div class="sb-item" data-nav="subscriptions">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
@@ -6994,8 +7002,7 @@
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z"/></svg></span>
             Claims
           </div>
-
-          <div class="sb-section">Developer</div>
+          <div class="sb-section" style="margin-top:2px">Developer</div>
           <div class="sb-item" data-nav="mcp">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
             API
@@ -7004,7 +7011,6 @@
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
             Webhooks
           </div>
-
           <div class="sb-item" data-nav="notifications" id="sbNotifications">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
             Notifications
@@ -7014,6 +7020,7 @@
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
             Leaderboard
           </div>
+          </div><!-- /sbAdvancedGroup -->
 
           <div class="sb-section">System</div>
           <div class="sb-item" data-nav="register">
@@ -15732,11 +15739,11 @@ console.log("call opened:", tx.hash);`;
             <span>Rep <b style="color:var(--text)">${p.rep}</b></span>
             <span><b style="color:var(--text)">${p.calls}</b> calls</span>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">
-            <button class="btn btn-primary" style="font-size:12px" onclick="window.openCallWizard((window.state?.allProviders||[]).find(x=>String(x.id)==='${p.id}') || {id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">⚡ Call Wizard</button>
-            <button class="btn" style="font-size:12px;border-color:#8b5cf6;color:#8b5cf6" onclick="window.openSubscriptionModal({id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">🔄 Subscribe</button>
+          <button class="btn btn-primary" style="width:100%;margin-top:10px;font-size:13px;font-weight:600;letter-spacing:-.01em" onclick="window._quickCallProvider('${p.id}','${p.price}')">Call this provider →</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+            <button class="btn" style="font-size:11px" onclick="window.openCallWizard((window.state?.allProviders||[]).find(x=>String(x.id)==='${p.id}') || {id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">⚡ Wizard</button>
+            <button class="btn" style="font-size:11px;border-color:#8b5cf6;color:#8b5cf6" onclick="window.openSubscriptionModal({id:'${p.id}',pricePerCall:${p.price},reputation:${p.rep}})">🔄 Subscribe</button>
           </div>
-          <button class="btn" style="width:100%;margin-top:6px;font-size:11px;color:var(--text-faint)" onclick="window.openDisputeModal('')">⚠️ Open Dispute</button>
         </div>`).join("");
     }
     document.addEventListener("click", e => {
@@ -20098,6 +20105,216 @@ console.log("call opened:", tx.hash);`;
         setHTML('attLookupResult', `<div style="color:var(--danger);font-size:12px">${e.message || e}</div>`);
       }
     };
+
+  })();
+  </script>
+
+  <!-- ================================================================
+       UX IMPROVEMENTS: Accordion, NEW Badge, Quick Start, Provider Browse
+       ================================================================ -->
+  <script>
+  (function() {
+    "use strict";
+
+    /* ── 1. SIDEBAR ACCORDION ──────────────────────────────────────── */
+    var _advOpen = localStorage.getItem("cg_adv_open") === "1";
+
+    function applyAdvancedState() {
+      var group = document.getElementById("sbAdvancedGroup");
+      var chevron = document.getElementById("sbAdvancedChevron");
+      if (!group) return;
+      group.style.display = _advOpen ? "" : "none";
+      if (chevron) chevron.style.transform = _advOpen ? "rotate(0deg)" : "rotate(-90deg)";
+    }
+
+    window.toggleSbAdvanced = function() {
+      _advOpen = !_advOpen;
+      localStorage.setItem("cg_adv_open", _advOpen ? "1" : "0");
+      applyAdvancedState();
+    };
+
+    // Auto-open if user navigates to an advanced panel
+    var _origShowCat = window.showCategory;
+    var _advNavKeys = ["quality","agent","lending","futures","attestation","subscriptions","jobs","mcp","webhooks","notifications","leaderboard"];
+    window.showCategory = function(cat) {
+      if (_advNavKeys.indexOf(cat) !== -1 && !_advOpen) {
+        _advOpen = true;
+        localStorage.setItem("cg_adv_open", "1");
+        applyAdvancedState();
+      }
+      if (_origShowCat) _origShowCat(cat);
+      // Mark as seen → remove NEW badge
+      if (cat) {
+        try { localStorage.setItem("cg_seen_" + cat, "1"); } catch(e){}
+        updateNewBadges();
+      }
+    };
+
+    applyAdvancedState();
+
+    /* ── 2. NEW BADGE — auto-remove on first visit ─────────────────── */
+    function updateNewBadges() {
+      document.querySelectorAll(".sb-new-badge[data-nav-key]").forEach(function(el) {
+        var key = el.getAttribute("data-nav-key");
+        if (key && localStorage.getItem("cg_seen_" + key)) {
+          el.style.display = "none";
+        }
+      });
+    }
+    updateNewBadges();
+
+    /* ── 3. QUICK-CALL: Services → Call Builder pre-fill ───────────── */
+    window._quickCallProvider = function(provId, price) {
+      // Pre-fill Provider ID input in the Actions panel Call section
+      var pidInput = document.getElementById("providerIdInput") ||
+                     document.getElementById("callProviderId") ||
+                     document.querySelector('input[placeholder*="rovider ID"]') ||
+                     document.querySelector('input[placeholder*="rovider"]');
+      if (pidInput) {
+        pidInput.value = provId;
+        pidInput.dispatchEvent(new Event("input", { bubbles: true }));
+        pidInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      // Navigate to overview (Actions panel)
+      if (window.showCategory) window.showCategory("overview");
+      // Open the call action card
+      setTimeout(function() {
+        var card = document.getElementById("actionCall");
+        if (card) {
+          card.open = true;
+          card.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        // Also try to trigger price lookup
+        if (window.lookupProvider) window.lookupProvider(provId);
+        if (pidInput) pidInput.focus();
+      }, 200);
+    };
+
+    /* ── 4. FIRST-TIME QUICK START MODAL ──────────────────────────── */
+    var MODAL_KEY = "cg_quickstart_shown";
+    var CONNECTED_KEY = "cg_ever_connected";
+
+    function buildQuickStartModal() {
+      if (document.getElementById("quickStartModal")) return;
+      var m = document.createElement("div");
+      m.id = "quickStartModal";
+      m.style.cssText = "position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)";
+      m.innerHTML = [
+        '<div style="background:var(--bg-0,#0d1117);border:1px solid var(--border,#21262d);border-radius:16px;max-width:480px;width:100%;padding:32px 28px;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative">',
+        '  <button onclick="document.getElementById(\'quickStartModal\').remove();localStorage.setItem(\''+MODAL_KEY+'\',\'1\')" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-faint,#6b7280);font-size:20px;cursor:pointer;line-height:1">×</button>',
+        '  <div style="font-size:22px;font-weight:700;font-family:var(--font-display);letter-spacing:-.02em;margin-bottom:6px;color:var(--text,#f1f5f9)">Welcome to CallGuard 👋</div>',
+        '  <div style="font-size:13px;color:var(--text-dim,#94a3b8);margin-bottom:24px">Three steps to your first on-chain SLA call.</div>',
+        '  <div style="display:grid;gap:12px;margin-bottom:24px">',
+        '    <div style="display:flex;align-items:center;gap:14px;background:var(--bg-1,#161b22);border:1px solid var(--border,#21262d);border-radius:10px;padding:14px 16px">',
+        '      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:700;color:#fff">1</div>',
+        '      <div><div style="font-weight:600;font-size:13px;color:var(--text,#f1f5f9);margin-bottom:2px">Browse a provider</div><div style="font-size:12px;color:var(--text-dim,#94a3b8)">Open Services, pick one with a good reputation score.</div></div>',
+        '    </div>',
+        '    <div style="display:flex;align-items:center;gap:14px;background:var(--bg-1,#161b22);border:1px solid var(--border,#21262d);border-radius:10px;padding:14px 16px">',
+        '      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:700;color:#fff">2</div>',
+        '      <div><div style="font-weight:600;font-size:13px;color:var(--text,#f1f5f9);margin-bottom:2px">Make your first call</div><div style="font-size:12px;color:var(--text-dim,#94a3b8)">Click "Call this provider →" — USDC escrow is automatic.</div></div>',
+        '    </div>',
+        '    <div style="display:flex;align-items:center;gap:14px;background:var(--bg-1,#161b22);border:1px solid var(--border,#21262d);border-radius:10px;padding:14px 16px">',
+        '      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:700;color:#fff">3</div>',
+        '      <div><div style="font-weight:600;font-size:13px;color:var(--text,#f1f5f9);margin-bottom:2px">Check the receipt</div><div style="font-size:12px;color:var(--text-dim,#94a3b8)">Go to Requests → see the on-chain SLA proof and payout.</div></div>',
+        '    </div>',
+        '  </div>',
+        '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">',
+        '    <button onclick="document.getElementById(\'quickStartModal\').remove();localStorage.setItem(\''+MODAL_KEY+'\',\'1\');window.showCategory&&window.showCategory(\'marketplace\')" style="padding:11px 16px;background:var(--accent,#16a34a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Browse Services →</button>',
+        '    <button onclick="document.getElementById(\'quickStartModal\').remove();localStorage.setItem(\''+MODAL_KEY+'\',\'1\')" style="padding:11px 16px;background:var(--bg-2,#1e2430);color:var(--text-dim,#94a3b8);border:1px solid var(--border,#21262d);border-radius:8px;font-size:13px;cursor:pointer">Skip for now</button>',
+        '  </div>',
+        '</div>'
+      ].join("");
+      document.body.appendChild(m);
+    }
+
+    // Show on first wallet connection
+    document.addEventListener("walletConnected", function() {
+      if (!localStorage.getItem(MODAL_KEY)) {
+        setTimeout(buildQuickStartModal, 800);
+      }
+    });
+    // Also fire if already connected when page loads
+    (function checkIfConnected() {
+      var check = setInterval(function() {
+        if (window.state && window.state.address) {
+          clearInterval(check);
+          if (!localStorage.getItem(MODAL_KEY) && !localStorage.getItem(CONNECTED_KEY)) {
+            localStorage.setItem(CONNECTED_KEY, "1");
+            setTimeout(buildQuickStartModal, 1200);
+          }
+        }
+      }, 600);
+      setTimeout(function() { clearInterval(check); }, 15000);
+    })();
+
+    /* ── 5. LANDING: cüzdansız provider browse ─────────────────────── */
+    // Show a read-only provider list on the landing page before connect
+    (function initLandingProviders() {
+      var landing = document.getElementById("landingView");
+      if (!landing) return;
+
+      // Find contract-addresses block and inject provider browse above it
+      var contractsBlock = landing.querySelector(".contract-addresses");
+      if (!contractsBlock) return;
+
+      var wrap = document.createElement("div");
+      wrap.id = "landingProviderWrap";
+      wrap.style.cssText = "padding:0 0 32px;max-width:900px;margin:0 auto";
+      wrap.innerHTML = [
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px">Live Providers — no wallet needed</div>',
+        '<div id="landingProvGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">',
+        '  <div style="font-size:12px;color:var(--text-faint);padding:16px;border:1px dashed var(--border);border-radius:8px">Loading providers…</div>',
+        '</div>'
+      ].join("");
+      contractsBlock.parentNode.insertBefore(wrap, contractsBlock);
+
+      // Load providers from contract
+      (async function() {
+        try {
+          var RPC = "https://rpc.testnet.arc.io";
+          var REG = "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF"; // arc-studio-allow-onchain-literal
+          // eth_call: providerCount()
+          var res = await fetch(RPC, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:REG,data:"0x9d15d5b2"},\"latest\"]})});
+          var data = await res.json();
+          var count = parseInt(data.result, 16) || 0;
+          if (!count) { document.getElementById("landingProvGrid").innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px;border:1px dashed var(--border);border-radius:8px">No providers registered yet.</div>'; return; }
+          var provs = [];
+          for (var i = 1; i <= Math.min(count, 8); i++) {
+            try {
+              var arg = i.toString(16).padStart(64,"0");
+              // getReputationScore
+              var r1 = await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:2,method:"eth_call",params:[{to:REG,data:"0xbd5bcb0a"+arg},"latest"]})});
+              var d1 = await r1.json();
+              var score = parseInt(d1.result,16)||0;
+              // completedCalls
+              var r2 = await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:3,method:"eth_call",params:[{to:REG,data:"0x11dc8e55"+arg},"latest"]})});
+              var d2 = await r2.json();
+              var completed = parseInt(d2.result,16)||0;
+              provs.push({id:i,score:score,completed:completed});
+            } catch(e){}
+          }
+          var grid = document.getElementById("landingProvGrid");
+          if (!grid) return;
+          if (!provs.length) { grid.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px;border:1px dashed var(--border);border-radius:8px">No providers found.</div>'; return; }
+          grid.innerHTML = provs.map(function(p) {
+            var color = p.score > 80 ? "#10b981" : p.score > 50 ? "#f59e0b" : "#ef4444";
+            return [
+              '<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">',
+              '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">',
+              '    <div style="font-weight:700;font-size:14px;color:var(--text)">Provider #'+p.id+'</div>',
+              '    <span style="font-size:11px;font-weight:700;color:'+color+'">'+p.score+' rep</span>',
+              '  </div>',
+              '  <div style="height:4px;background:var(--bg-3);border-radius:2px;margin-bottom:10px"><div style="height:100%;width:'+p.score+'%;background:'+color+';border-radius:2px;transition:width .4s"></div></div>',
+              '  <div style="font-size:11px;color:var(--text-faint)">'+p.completed+' calls completed</div>',
+              '</div>'
+            ].join("");
+          }).join("");
+        } catch(e) {
+          var g = document.getElementById("landingProvGrid");
+          if (g) g.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:16px;border:1px dashed var(--border);border-radius:8px">Could not load providers.</div>';
+        }
+      })();
+    })();
 
   })();
   </script>
