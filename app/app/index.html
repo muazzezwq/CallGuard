@@ -7399,6 +7399,101 @@
           </div>
         </section>
 
+        <!-- ═══ TERMINAL MOCKUP ═══ -->
+        <section class="cgt-section">
+          <div class="cgt-inner">
+            <div class="cgt-copy">
+              <div class="cgt-label">How it works</div>
+              <h2 class="cgt-h2">One contract.<br>Zero intermediaries.</h2>
+              <p class="cgt-p">A provider stakes USDC and sets a response window. The caller locks funds in escrow. Provider delivers off-chain, signs a receipt on-chain. Funds release automatically. Miss the window — stake is slashed, caller gets paid.</p>
+              <ul class="cgt-list">
+                <li><span class="cgt-check">✓</span>Fully permissionless — anyone can register</li>
+                <li><span class="cgt-check">✓</span>EIP-712 typed receipts — readable in MetaMask</li>
+                <li><span class="cgt-check">✓</span>Bayesian reputation score — on-chain, readable by contracts</li>
+                <li><span class="cgt-check">✓</span>Pay from any chain via CCTP</li>
+              </ul>
+            </div>
+            <div class="cgt-terminal" id="cgtTerminal">
+              <div class="cgt-term-bar">
+                <div class="cgt-term-dots">
+                  <span style="background:#ff5f57"></span>
+                  <span style="background:#ffbd2e"></span>
+                  <span style="background:#28ca41"></span>
+                </div>
+                <span class="cgt-term-title">callguard — arc testnet</span>
+              </div>
+              <div class="cgt-term-body" id="cgtBody"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ PROTOCOL FEATURES GRID ═══ -->
+        <section class="cgf-section">
+          <div class="cgf-head">
+            <div class="cgf-label">Protocol v4</div>
+            <h2 class="cgf-h2">Built for the AI economy.</h2>
+            <p class="cgf-sub">Five advanced modules live on Arc Testnet today — each extending the core SLA primitive.</p>
+          </div>
+          <div class="cgf-grid">
+
+            <div class="cgf-card cgf-green">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="cgf-title">Verifiable AI Output</div>
+              <div class="cgf-desc">Response hash committed on-chain. Community arbiters vote on quality disputes. Stake-weighted majority wins.</div>
+            </div>
+
+            <div class="cgf-card cgf-purple">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="cgf-title">SLA Futures</div>
+              <div class="cgf-desc">Providers tokenize future capacity as ERC-1155 NFTs. Callers reserve priority slots. NFTs trade on secondary markets.</div>
+            </div>
+
+            <div class="cgf-card cgf-amber">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="cgf-title">RepFi Lending</div>
+              <div class="cgf-desc">Honor rate &gt; 90%? Borrow USDC stake from the reputation pool. DeFi meets SLA enforcement.</div>
+            </div>
+
+            <div class="cgf-card cgf-blue">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              </div>
+              <div class="cgf-title">Autonomous Agent Loop</div>
+              <div class="cgf-desc">ERC-4337 smart wallet with daily spend limit. Any AI (Claude, GPT, Llama) calls services with zero human approval.</div>
+            </div>
+
+            <div class="cgf-card cgf-red">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div class="cgf-title">SLA Attestation Bridge</div>
+              <div class="cgf-desc">Any protocol queries CallGuard: "Did this provider honor X calls?" On-chain attestation, CCIP-ready cross-chain broadcast.</div>
+            </div>
+
+            <div class="cgf-card cgf-green">
+              <div class="cgf-shine"></div>
+              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="cgf-title">USDC-Native Gas</div>
+              <div class="cgf-desc">On Arc, USDC is the gas token. One asset, zero friction. No ETH, no bridging, no separate gas wallet needed.</div>
+            </div>
+
+          </div>
+        </section>
+
+
         <!-- HOW IT WORKS -->
         <section class="cg-hiw" id="cgHowItWorks">
           <div class="cg-section-label">How it works</div>
@@ -7514,100 +7609,6 @@
             <div class="cg-contract-row"><span>CrossChainReceiver</span><a href="https://explorer.testnet.arc.io/address/0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" target="_blank" rel="noreferrer" class="cg-contract-addr">0x28a6…e5c</a></div>
             <div class="cg-contract-row"><span>RegisterWithNFT</span><a href="https://explorer.testnet.arc.io/address/0x0aBC433356754Cd269bEF9A46273d7a152a0F169" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0aBC…169</a></div>
             <div class="cg-contract-row"><span>AgenticCommerce</span><a href="https://explorer.testnet.arc.io/address/0x0747EEf0706327138c69792bF28Cd525089e4583" target="_blank" rel="noreferrer" class="cg-contract-addr">0x0747…583</a></div>
-          </div>
-        </section>
-
-        <!-- ═══ TERMINAL MOCKUP ═══ -->
-        <section class="cgt-section">
-          <div class="cgt-inner">
-            <div class="cgt-copy">
-              <div class="cgt-label">How it works</div>
-              <h2 class="cgt-h2">One contract.<br>Zero intermediaries.</h2>
-              <p class="cgt-p">A provider stakes USDC and sets a response window. The caller locks funds in escrow. Provider delivers off-chain, signs a receipt on-chain. Funds release automatically. Miss the window — stake is slashed, caller gets paid.</p>
-              <ul class="cgt-list">
-                <li><span class="cgt-check">✓</span>Fully permissionless — anyone can register</li>
-                <li><span class="cgt-check">✓</span>EIP-712 typed receipts — readable in MetaMask</li>
-                <li><span class="cgt-check">✓</span>Bayesian reputation score — on-chain, readable by contracts</li>
-                <li><span class="cgt-check">✓</span>Pay from any chain via CCTP</li>
-              </ul>
-            </div>
-            <div class="cgt-terminal" id="cgtTerminal">
-              <div class="cgt-term-bar">
-                <div class="cgt-term-dots">
-                  <span style="background:#ff5f57"></span>
-                  <span style="background:#ffbd2e"></span>
-                  <span style="background:#28ca41"></span>
-                </div>
-                <span class="cgt-term-title">callguard — arc testnet</span>
-              </div>
-              <div class="cgt-term-body" id="cgtBody"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ PROTOCOL FEATURES GRID ═══ -->
-        <section class="cgf-section">
-          <div class="cgf-head">
-            <div class="cgf-label">Protocol v4</div>
-            <h2 class="cgf-h2">Built for the AI economy.</h2>
-            <p class="cgf-sub">Five advanced modules live on Arc Testnet today — each extending the core SLA primitive.</p>
-          </div>
-          <div class="cgf-grid">
-
-            <div class="cgf-card cgf-green">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </div>
-              <div class="cgf-title">Verifiable AI Output</div>
-              <div class="cgf-desc">Response hash committed on-chain. Community arbiters vote on quality disputes. Stake-weighted majority wins.</div>
-            </div>
-
-            <div class="cgf-card cgf-purple">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </div>
-              <div class="cgf-title">SLA Futures</div>
-              <div class="cgf-desc">Providers tokenize future capacity as ERC-1155 NFTs. Callers reserve priority slots. NFTs trade on secondary markets.</div>
-            </div>
-
-            <div class="cgf-card cgf-amber">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </div>
-              <div class="cgf-title">RepFi Lending</div>
-              <div class="cgf-desc">Honor rate &gt; 90%? Borrow USDC stake from the reputation pool. DeFi meets SLA enforcement.</div>
-            </div>
-
-            <div class="cgf-card cgf-blue">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.25)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-              </div>
-              <div class="cgf-title">Autonomous Agent Loop</div>
-              <div class="cgf-desc">ERC-4337 smart wallet with daily spend limit. Any AI (Claude, GPT, Llama) calls services with zero human approval.</div>
-            </div>
-
-            <div class="cgf-card cgf-red">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </div>
-              <div class="cgf-title">SLA Attestation Bridge</div>
-              <div class="cgf-desc">Any protocol queries CallGuard: "Did this provider honor X calls?" On-chain attestation, CCIP-ready cross-chain broadcast.</div>
-            </div>
-
-            <div class="cgf-card cgf-green">
-              <div class="cgf-shine"></div>
-              <div class="cgf-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div class="cgf-title">USDC-Native Gas</div>
-              <div class="cgf-desc">On Arc, USDC is the gas token. One asset, zero friction. No ETH, no bridging, no separate gas wallet needed.</div>
-            </div>
-
           </div>
         </section>
 
