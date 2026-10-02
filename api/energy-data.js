@@ -81,7 +81,7 @@ function verifyPaymentHeader(req) {
   }
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, X-Machine-Id, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -130,4 +130,4 @@ module.exports = async (req, res) => {
       callguardContract: process.env.VITE_PAY_PER_CALL,
     }
   });
-};
+}
