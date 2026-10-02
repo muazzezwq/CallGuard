@@ -24,15 +24,14 @@ import { privateKeyToAccount } from "viem/accounts";
 // ---------------------------------------------------------------------------
 // Chain — built from env, no literals
 // ---------------------------------------------------------------------------
-const rpcUrl = process.env.ARC_RPC_URL;
-if (!rpcUrl) throw new Error("ARC_RPC_URL env var is required");
+const rpcUrl = process.env.ARC_RPC_URL; // Set in Vercel env vars
 
 const ARC_TESTNET = {
   id: 5_042_002,
   name: "Arc Testnet",
   network: "arc-testnet",
   nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: [rpcUrl] } },
+  rpcUrls: { default: { http: [rpcUrl || ""] } },
 };
 
 // ---------------------------------------------------------------------------
@@ -124,6 +123,10 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  if (!rpcUrl) {
+    return res.status(503).json({ ok: false, error: "ARC_RPC_URL env var is not set. Add it in Vercel Project Settings > Environment Variables." });
+  }
 
   try {
     // -----------------------------------------------------------------------
