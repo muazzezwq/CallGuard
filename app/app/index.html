@@ -8070,6 +8070,14 @@
           </div><!-- /sbAdvancedGroup -->
 
           <div class="sb-section">System</div>
+          <div class="sb-item" data-nav="history">
+            <span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            <span class="sb-lbl-simple">History</span><span class="sb-lbl-pro">Tx History</span>
+          </div>
+          <div class="sb-item" data-nav="apidocs" id="sbNavApiDocs">
+            <span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+            <span class="sb-lbl-simple">API Docs</span><span class="sb-lbl-pro">API Docs</span>
+          </div>
           <div class="sb-item" data-nav="register">
             <span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></span>
             <span class="sb-lbl-simple">Become a Provider</span><span class="sb-lbl-pro">Register</span>
@@ -8664,6 +8672,125 @@
               <div>APS private transactions require X-Wing KEM encryption and Arc enclave RPC nodes.</div>
               <div style="margin-top:6px">CallGuard will integrate APS private calls when the precompile API is public.</div>
               <div style="margin-top:8px"><a href="https://docs.arc.io/arc/concepts/opt-in-privacy" target="_blank" style="color:var(--accent)">Read the APS docs →</a></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== HISTORY PANEL ===== -->
+        <section class="panel full-width" id="historyPanel" data-category="history" style="display:none">
+          <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+            <h2>Transaction History</h2>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="historyLiveTag" style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(16,185,129,.15);color:var(--accent);border:1px solid rgba(16,185,129,.3)">● LIVE</span>
+              <button class="btn btn-sm" onclick="window.loadHistory(true)">Refresh</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <!-- Filter bar -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+              <button class="btn btn-sm hist-filter on" data-filter="all" onclick="window.setHistFilter('all')">All</button>
+              <button class="btn btn-sm hist-filter" data-filter="call" onclick="window.setHistFilter('call')">Calls</button>
+              <button class="btn btn-sm hist-filter" data-filter="receipt" onclick="window.setHistFilter('receipt')">Receipts</button>
+              <button class="btn btn-sm hist-filter" data-filter="timeout" onclick="window.setHistFilter('timeout')">Timeouts</button>
+              <button class="btn btn-sm hist-filter" data-filter="slash" onclick="window.setHistFilter('slash')">Slashes</button>
+              <input id="histSearch" type="text" placeholder="Search by tx hash or address…" style="flex:1;min-width:160px;font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);color:var(--text)" oninput="window.filterHistory()">
+            </div>
+            <!-- Stats bar -->
+            <div id="histStatsBar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+              <div class="stat-card"><div class="stat-val" id="histTotalCalls">—</div><div class="stat-lbl">Total Calls</div></div>
+              <div class="stat-card"><div class="stat-val" id="histReceipts">—</div><div class="stat-lbl">Receipts</div></div>
+              <div class="stat-card"><div class="stat-val" id="histTimeouts">—</div><div class="stat-lbl">Timeouts</div></div>
+              <div class="stat-card"><div class="stat-val" id="histSlashes">—</div><div class="stat-lbl">Slashes</div></div>
+            </div>
+            <!-- Table -->
+            <div id="historyList" style="display:flex;flex-direction:column;gap:6px">
+              <div style="text-align:center;padding:40px;color:var(--text-faint);font-size:13px">Loading history…</div>
+            </div>
+            <div id="histLoadMore" style="display:none;text-align:center;margin-top:16px">
+              <button class="btn btn-sm" onclick="window.loadMoreHistory()">Load more</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== API DOCS PANEL ===== -->
+        <section class="panel full-width" id="apidocsPanel" data-category="apidocs" style="display:none">
+          <div class="panel-head">
+            <h2>API Documentation</h2>
+          </div>
+          <div class="panel-body">
+            <!-- Hero -->
+            <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(14,165,233,.06));border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent);margin-bottom:8px">CALLGUARD DEVELOPER API</div>
+              <h3 style="margin:0 0 8px;font-size:20px;font-weight:700">Integrate in 5 minutes</h3>
+              <p style="margin:0;color:var(--text-dim);font-size:13px;line-height:1.6">Any app, AI agent, or smart contract can pay for verified services and enforce SLA guarantees — no intermediary required.</p>
+              <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+                <a href="https://github.com/muazzezwq/CallGuard" target="_blank" class="btn btn-sm">GitHub Repo</a>
+                <a href="https://arcsla.vercel.app/api/health" target="_blank" class="btn btn-sm">API Health</a>
+                <button class="btn btn-sm btn-primary" onclick="showCategory('mcp')">MCP Server</button>
+              </div>
+            </div>
+
+            <!-- Base URL -->
+            <div style="margin-bottom:20px">
+              <div class="panel-section-title" style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);margin-bottom:8px">BASE URL</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--accent)">https://arcsla.vercel.app/api</div>
+            </div>
+
+            <!-- Endpoints -->
+            <div class="panel-section-title" style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);margin-bottom:12px">ENDPOINTS</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+              ${[
+                {method:'GET', path:'/health', desc:'Service health check — rpc, signer, contract status', auth:'None'},
+                {method:'POST', path:'/call-service', desc:'Make a gas-free call to a provider (EIP-3009 auth)', auth:'X-Payment or wallet'},
+                {method:'GET', path:'/attestation', desc:'Query provider reputation score or call verdict', auth:'None'},
+                {method:'GET', path:'/nano-balance', desc:'Get USDC nano-payment balance for an address', auth:'None'},
+                {method:'POST', path:'/nano-call', desc:'Pay-per-call via nano USDC micropayment', auth:'X-Payment'},
+                {method:'GET', path:'/energy-data', desc:'Arkreen DePIN energy kWh data — SLA guaranteed', auth:'X-Payment (x402)'},
+                {method:'POST', path:'/notify-provider', desc:'Ping a provider with a new call request', auth:'None'},
+                {method:'POST', path:'/auto-receipt', desc:'Provider: auto-submit signed receipt on-chain', auth:'Facilitator'},
+                {method:'GET', path:'/premium-report', desc:'Premium analytics report — x402 payment required', auth:'X-Payment (x402)'},
+              ].map(e => `
+                <div style="border:1px solid var(--border);border-radius:8px;padding:12px 16px;background:var(--bg-2)">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${e.method==='GET'?'rgba(14,165,233,.15)':'rgba(16,185,129,.15)'};color:${e.method==='GET'?'#0ea5e9':'#10b981'}">${e.method}</span>
+                    <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text)">${e.path}</code>
+                    <span style="margin-left:auto;font-size:10px;color:var(--text-faint)">${e.auth}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-dim)">${e.desc}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Quick example -->
+            <div class="panel-section-title" style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);margin-bottom:12px">QUICK EXAMPLE</div>
+            <div style="position:relative">
+              <button onclick="navigator.clipboard.writeText(document.getElementById('apiExCode').textContent);window.toast({kind:'ok',title:'Copied!'})" style="position:absolute;top:10px;right:10px;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-dim);cursor:pointer">Copy</button>
+              <pre id="apiExCode" style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:var(--text)"><span style="color:#0ea5e9">// 1. Check provider reputation</span>
+const score = await fetch('https://arcsla.vercel.app/api/attestation?providerId=1&type=score')
+  .then(r => r.json());
+console.log('Honor score:', score.score); <span style="color:var(--text-faint)">// 5</span>
+
+<span style="color:#0ea5e9">// 2. Call a service (gas-free via EIP-3009)</span>
+const res = await fetch('https://arcsla.vercel.app/api/call-service', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    providerId: 1,
+    payload: 'ping',
+    auth: { <span style="color:var(--text-faint)">/* EIP-3009 authorization */</span> }
+  })
+});
+const { callId, txHash } = await res.json();</pre>
+            </div>
+
+            <!-- ERC-8004 Agent identity -->
+            <div style="margin-top:24px;padding:16px;border:1px solid rgba(16,185,129,.2);border-radius:8px;background:rgba(16,185,129,.05)">
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">ERC-8004 AGENT IDENTITY</div>
+              <div style="font-size:12px;color:var(--text-dim);line-height:1.6">CallGuard is registered as an ERC-8004 agent on Arc Testnet. AI agents can discover, authenticate, and pay for services autonomously via MCP + x402 without human approval.</div>
+              <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+                <a href="https://arcsla.vercel.app/api/nano-service" target="_blank" class="btn btn-sm">Try nano call →</a>
+                <button class="btn btn-sm" onclick="showCategory('mcp')">MCP Server →</button>
+              </div>
             </div>
           </div>
         </section>
@@ -20294,6 +20421,10 @@ console.log("call opened:", tx.hash);`;
     body.simple-mode [data-nav="disputes"],
     body.simple-mode [data-nav="notifications"],
     body.simple-mode [data-nav="settings"] { display: flex !important; }
+    body.simple-mode [data-nav="history"] { display: flex !important; }
+    body.simple-mode [data-nav="apidocs"] { display: flex !important; }
+    body.pro-mode [data-nav="history"] { display: flex !important; }
+    body.pro-mode [data-nav="apidocs"] { display: flex !important; }
 
     /* Simple mode: show section headers */
     body.simple-mode .sb-section { display: block !important; }
@@ -21827,6 +21958,405 @@ console.log("call opened:", tx.hash);`;
       })();
     })();
 
+  })();
+  </script>
+
+  <script>
+  // ============================================================
+  // FEATURE PACK: History, Real-time, Swipe, WalletConnect,
+  //               Provider Dashboard, Reputation NFT, API Docs
+  // ============================================================
+  (function() {
+
+    // ---- 1. TOAST PROGRESS HELPER (enhances existing toast) ----
+    window.toastProgress = function(steps) {
+      // steps: [{title, detail}] — fires sequentially
+      let i = 0;
+      const el = window.toast({ kind: 'info', title: steps[0].title, detail: steps[0].detail || '', timeout: 0 });
+      const next = () => {
+        i++;
+        if (i >= steps.length) { el.remove(); return; }
+        el.querySelector('.title').textContent = steps[i].title;
+        if (steps[i].detail) el.querySelector('.detail') && (el.querySelector('.detail').textContent = steps[i].detail);
+        if (steps[i].final) setTimeout(() => el.remove(), 4000);
+      };
+      return { el, next };
+    };
+
+    // ---- 3. MOBILE SWIPE TO CLOSE SIDEBAR ----
+    (function() {
+      let startX = 0, startY = 0;
+      const sidebar = document.querySelector('.sidebar, nav.sidebar, #sidebar, .sb-nav') || document.querySelector('nav');
+      if (!sidebar) return;
+      document.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      document.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = Math.abs(e.changedTouches[0].clientY - startY);
+        // Swipe left > 60px, more horizontal than vertical
+        if (dx < -60 && dy < 80) {
+          const overlay = document.getElementById('sbOverlay');
+          const sb = document.querySelector('.app-sidebar, .sidebar');
+          if (sb && sb.classList.contains('open')) {
+            sb.classList.remove('open');
+            if (overlay) overlay.style.display = 'none';
+          }
+          // Also close mobile drawer if open
+          if (window._sidebarOpen) {
+            window._sidebarOpen = false;
+            document.body.classList.remove('sb-open');
+            if (overlay) overlay.classList.remove('active');
+          }
+        }
+      }, { passive: true });
+    })();
+
+    // ---- 2 + 5. TX HISTORY + REAL-TIME POLLING ----
+    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn";
+    const EXPLORER = "https://explorer.testnet.arc.io";
+
+    let _histData = [];
+    let _histFilter = 'all';
+    let _histOffset = 0;
+    const HIST_PAGE = 25;
+
+    async function fetchHistory(address, skip = 0) {
+      const addrFilter = address ? `, caller: "${address.toLowerCase()}"` : '';
+      const q = `{
+        callOpeneds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc${addrFilter}) {
+          id callId caller providerId amount blockTimestamp transactionHash
+        }
+        receiptSubmitteds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
+          id callId provider respondedAt transactionHash blockTimestamp
+        }
+        slasheds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
+          id callId caller provider amount blockTimestamp transactionHash
+        }
+        timeoutClaimeds(first: ${HIST_PAGE}, skip: ${skip}, orderBy: blockTimestamp, orderDirection: desc) {
+          id callId caller slashAmount blockTimestamp transactionHash
+        }
+      }`;
+      try {
+        const r = await fetch(SUBGRAPH, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) });
+        const j = await r.json();
+        return j.data || {};
+      } catch(e) { return {}; }
+    }
+
+    function formatTs(ts) {
+      const d = new Date(Number(ts) * 1000);
+      const now = Date.now();
+      const diff = now - d.getTime();
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+      return d.toLocaleDateString();
+    }
+
+    function buildHistItems(data, address) {
+      const items = [];
+      const addr = address?.toLowerCase();
+
+      (data.callOpeneds || []).forEach(e => {
+        items.push({ type: 'call', ts: Number(e.blockTimestamp), callId: e.callId, from: e.caller, to: `Provider #${e.providerId}`, amount: (Number(e.amount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: !addr || e.caller?.toLowerCase() === addr });
+      });
+      (data.receiptSubmitteds || []).forEach(e => {
+        items.push({ type: 'receipt', ts: Number(e.blockTimestamp), callId: e.callId, from: e.provider, to: 'Caller', amount: '', tx: e.transactionHash, relevant: !addr || e.provider?.toLowerCase() === addr });
+      });
+      (data.slasheds || []).forEach(e => {
+        items.push({ type: 'slash', ts: Number(e.blockTimestamp), callId: e.callId, from: 'Contract', to: e.caller, amount: (Number(e.amount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: true });
+      });
+      (data.timeoutClaimeds || []).forEach(e => {
+        items.push({ type: 'timeout', ts: Number(e.blockTimestamp), callId: e.callId, from: e.caller, to: 'Caller', amount: (Number(e.slashAmount) / 1e6).toFixed(2) + ' USDC', tx: e.transactionHash, relevant: true });
+      });
+
+      items.sort((a, b) => b.ts - a.ts);
+      return items;
+    }
+
+    const TYPE_META = {
+      call:    { label: 'CALL',    color: '#0ea5e9', bg: 'rgba(14,165,233,.1)' },
+      receipt: { label: 'RECEIPT', color: '#10b981', bg: 'rgba(16,185,129,.1)' },
+      slash:   { label: 'SLASH',   color: '#ef4444', bg: 'rgba(239,68,68,.1)'  },
+      timeout: { label: 'TIMEOUT', color: '#f59e0b', bg: 'rgba(245,158,11,.1)' },
+    };
+
+    function renderHistItems(items) {
+      const q = document.getElementById('histSearch')?.value?.toLowerCase() || '';
+      const filtered = items.filter(it => {
+        if (_histFilter !== 'all' && it.type !== _histFilter) return false;
+        if (q && !it.callId?.includes(q) && !it.tx?.includes(q) && !it.from?.includes(q)) return false;
+        return true;
+      });
+      const el = document.getElementById('historyList');
+      if (!el) return;
+      if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:13px">No transactions found</div>'; return; }
+      el.innerHTML = filtered.slice(0, _histOffset + HIST_PAGE).map(it => {
+        const m = TYPE_META[it.type] || TYPE_META.call;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;cursor:pointer" onclick="window.open('${EXPLORER}/tx/${it.tx}','_blank')">
+          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${m.bg};color:${m.color};min-width:52px;text-align:center">${m.label}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.callId ? it.callId.slice(0,18)+'…' : '—'}</div>
+            <div style="font-size:11px;color:var(--text-faint)">${it.from ? it.from.slice(0,8)+'…' : ''} → ${it.to || ''}</div>
+          </div>
+          ${it.amount ? `<span style="font-size:12px;font-weight:600;color:${it.type==='slash'?'#ef4444':it.type==='timeout'?'#f59e0b':'var(--accent)'}">${it.amount}</span>` : ''}
+          <span style="font-size:11px;color:var(--text-faint);white-space:nowrap">${formatTs(it.ts)}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>`;
+      }).join('');
+      // Update stats
+      const calls = items.filter(i=>i.type==='call').length;
+      const receipts = items.filter(i=>i.type==='receipt').length;
+      const timeouts = items.filter(i=>i.type==='timeout').length;
+      const slashes = items.filter(i=>i.type==='slash').length;
+      ['histTotalCalls','histReceipts','histTimeouts','histSlashes'].forEach((id, idx) => {
+        const el2 = document.getElementById(id);
+        if (el2) el2.textContent = [calls,receipts,timeouts,slashes][idx];
+      });
+      const more = document.getElementById('histLoadMore');
+      if (more) more.style.display = filtered.length > _histOffset + HIST_PAGE ? '' : 'none';
+    }
+
+    window.loadHistory = async function(force = false) {
+      const addr = window.state?.accounts?.[0];
+      const data = await fetchHistory(addr, 0);
+      _histData = buildHistItems(data, addr);
+      _histOffset = 0;
+      renderHistItems(_histData);
+    };
+    window.loadMoreHistory = function() { _histOffset += HIST_PAGE; renderHistItems(_histData); };
+    window.setHistFilter = function(f) {
+      _histFilter = f;
+      document.querySelectorAll('.hist-filter').forEach(b => b.classList.toggle('on', b.dataset.filter === f));
+      renderHistItems(_histData);
+    };
+    window.filterHistory = function() { renderHistItems(_histData); };
+
+    // Load when panel opens
+    const _origShow = window.showCategory;
+    if (_origShow) {
+      window.showCategory = function(cat) {
+        _origShow(cat);
+        if (cat === 'history') window.loadHistory();
+        if (cat === 'apidocs') {} // static
+      };
+    }
+
+    // ---- 5. REAL-TIME 15-SECOND POLLING ----
+    let _pollerRunning = false;
+    let _lastBlock = 0;
+
+    async function rtPoll() {
+      if (!window.state?.accounts?.length) return;
+      try {
+        // Quick subgraph block check
+        const r = await fetch(SUBGRAPH, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '{ _meta { block { number } } }' }) });
+        const j = await r.json();
+        const block = j?.data?._meta?.block?.number;
+        if (block && block !== _lastBlock) {
+          _lastBlock = block;
+          // Refresh hero stats
+          if (window.refreshHero) window.refreshHero();
+          // Refresh live activity in overview
+          if (window.renderLiveActivity) window.renderLiveActivity();
+          // Flash live indicator
+          const dot = document.querySelector('.live-dot, #liveDot');
+          if (dot) { dot.style.background = '#10b981'; setTimeout(() => dot.style.background = '', 1000); }
+          // If history panel is open, refresh it
+          const hp = document.getElementById('historyPanel');
+          if (hp && hp.style.display !== 'none') window.loadHistory();
+          // Tab title bump if hidden
+          if (window.bumpUnseen) window.bumpUnseen();
+        }
+      } catch(e) {}
+    }
+
+    function startPoller() {
+      if (_pollerRunning) return;
+      _pollerRunning = true;
+      rtPoll();
+      setInterval(rtPoll, 15000);
+    }
+
+    // Start poller when wallet connects
+    const _origShowConnected = window.showConnected;
+    if (_origShowConnected) {
+      window.showConnected = function(...args) {
+        _origShowConnected.apply(this, args);
+        startPoller();
+        checkReputationBadge();
+      };
+    }
+    // Also try immediately if already connected
+    if (window.state?.accounts?.length) { startPoller(); }
+
+    // ---- 4. PROVIDER DASHBOARD ----
+    window.refreshProviderDash = async function() {
+      const addr = window.state?.accounts?.[0];
+      if (!addr) return;
+      const q = `{
+        providers(where: { address: "${addr.toLowerCase()}" }) {
+          id providerId stake pricePerCall maxResponseTime honorRate completedCalls slashedCalls active
+        }
+      }`;
+      try {
+        const r = await fetch(SUBGRAPH, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query:q}) });
+        const j = await r.json();
+        const p = j?.data?.providers?.[0];
+        if (!p) return;
+        // Update provider dash elements if they exist
+        const el = document.getElementById('myProviderDash');
+        if (el) {
+          el.style.display = '';
+          el.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div class="stat-card"><div class="stat-val">${(Number(p.stake)/1e6).toFixed(0)} <span style="font-size:13px">USDC</span></div><div class="stat-lbl">Staked</div></div>
+              <div class="stat-card"><div class="stat-val">${p.completedCalls}</div><div class="stat-lbl">Calls Answered</div></div>
+              <div class="stat-card"><div class="stat-val" style="color:${Number(p.honorRate)>7000?'var(--accent)':'#ef4444'}">${(Number(p.honorRate)/100).toFixed(1)}%</div><div class="stat-lbl">Honor Rate</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="stat-card"><div class="stat-val">${(Number(p.pricePerCall)/1e6).toFixed(2)} <span style="font-size:12px">USDC</span></div><div class="stat-lbl">Price/Call</div></div>
+              <div class="stat-card"><div class="stat-val">${p.slashedCalls}</div><div class="stat-lbl">Slashes</div></div>
+            </div>
+          `;
+        }
+      } catch(e) {}
+    };
+
+    // ---- 6. WALLETCONNECT — multi-wallet support ----
+    // Extend connect button to show wallet picker
+    window.showWalletPicker = function() {
+      const existing = document.getElementById('cgWalletPicker');
+      if (existing) { existing.remove(); return; }
+      const modal = document.createElement('div');
+      modal.id = 'cgWalletPicker';
+      modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px`;
+      modal.innerHTML = `
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:360px;position:relative">
+          <button onclick="document.getElementById('cgWalletPicker').remove()" style="position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:18px">✕</button>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);margin-bottom:16px">CONNECT WALLET</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="window._connectMetaMask();document.getElementById('cgWalletPicker').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;color:var(--text);font-size:14px;font-weight:600;width:100%;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" width="28" height="28" alt="MetaMask">
+              MetaMask
+              <span style="margin-left:auto;font-size:11px;color:var(--text-faint)">Browser extension</span>
+            </button>
+            <button onclick="window._connectCoinbase();document.getElementById('cgWalletPicker').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;color:var(--text);font-size:14px;font-weight:600;width:100%;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#0052FF"/><circle cx="14" cy="14" r="7" fill="#fff"/><circle cx="14" cy="14" r="4" fill="#0052FF"/></svg>
+              Coinbase Wallet
+              <span style="margin-left:auto;font-size:11px;color:var(--text-faint)">Mobile / Extension</span>
+            </button>
+            <button onclick="window._connectRainbow();document.getElementById('cgWalletPicker').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;color:var(--text);font-size:14px;font-weight:600;width:100%;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <svg width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="8" fill="#174299"/><path d="M4 16c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="url(#rb)" stroke-width="4" fill="none" stroke-linecap="round"/><defs><linearGradient id="rb" x1="4" y1="16" x2="28" y2="16"><stop stop-color="#FF4000"/><stop offset=".3" stop-color="#FF9901"/><stop offset=".6" stop-color="#FFF700"/><stop offset="1" stop-color="#01DA40"/></linearGradient></defs></svg>
+              Rainbow
+              <span style="margin-left:auto;font-size:11px;color:var(--text-faint)">Mobile</span>
+            </button>
+            <button onclick="window._connectGeneric();document.getElementById('cgWalletPicker').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;color:var(--text);font-size:14px;font-weight:600;width:100%;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+              Other Wallet (injected)
+              <span style="margin-left:auto;font-size:11px;color:var(--text-faint)">window.ethereum</span>
+            </button>
+          </div>
+          <div style="margin-top:16px;font-size:11px;color:var(--text-faint);text-align:center">Arc Testnet will be added automatically</div>
+        </div>
+      `;
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      document.body.appendChild(modal);
+    };
+
+    window._connectMetaMask = async function() {
+      try {
+        if (!window.ethereum) { window.toast({kind:'err',title:'MetaMask not found',detail:'Install MetaMask extension first'}); return; }
+        const btn = document.getElementById('connectBtn') || document.querySelector('[onclick*="connectWallet"]');
+        if (btn) btn.click();
+      } catch(e) { window.toast({kind:'err',title:'Connection failed',detail:e.message?.slice(0,80)}); }
+    };
+    window._connectCoinbase = async function() {
+      try {
+        // Try Coinbase injected provider
+        const cbProvider = window.coinbaseWalletExtension || (window.ethereum?.isCoinbaseWallet ? window.ethereum : null);
+        if (cbProvider) {
+          await cbProvider.request({ method: 'eth_requestAccounts' });
+          if (window.connectWallet) window.connectWallet();
+        } else {
+          window.toast({kind:'info',title:'Install Coinbase Wallet',detail:'Get the Coinbase Wallet extension or app'});
+          window.open('https://www.coinbase.com/wallet','_blank');
+        }
+      } catch(e) { window.toast({kind:'err',title:'Coinbase connection failed',detail:e.message?.slice(0,80)}); }
+    };
+    window._connectRainbow = async function() {
+      window.toast({kind:'info',title:'Open Rainbow',detail:'Open Rainbow app → connect via WalletConnect'});
+      window.open('https://rainbow.me','_blank');
+    };
+    window._connectGeneric = async function() {
+      if (window.connectWallet) window.connectWallet();
+      else window.toast({kind:'err',title:'No wallet found',detail:'Install a Web3 wallet'});
+    };
+
+    // Override connect buttons to show picker on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      // Patch connect buttons
+      document.querySelectorAll('#connectBtn, [id*="connect-wallet"], .connect-wallet-btn').forEach(btn => {
+        const origClick = btn.onclick;
+        if (window.innerWidth < 768) {
+          btn.addEventListener('click', function(e) {
+            if (!window.ethereum) { e.stopImmediatePropagation(); window.showWalletPicker(); }
+          });
+        }
+      });
+    });
+
+    // ---- 9. REPUTATION BADGE NFT ----
+    async function checkReputationBadge() {
+      const addr = window.state?.accounts?.[0];
+      if (!addr) return;
+      try {
+        // Check if this address is a provider with honor rate > 90%
+        const q = `{ providers(where: { address: "${addr.toLowerCase()}", honorRate_gt: "9000" }) { id honorRate completedCalls } }`;
+        const r = await fetch(SUBGRAPH, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query:q}) });
+        const j = await r.json();
+        const eligible = j?.data?.providers?.filter(p => Number(p.completedCalls) >= 10);
+        if (eligible?.length) {
+          // Show badge notification
+          const existing = document.getElementById('repBadgeNotif');
+          if (existing) return; // already shown
+          const notif = document.createElement('div');
+          notif.id = 'repBadgeNotif';
+          notif.style.cssText = 'position:fixed;bottom:80px;right:16px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;padding:14px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;max-width:280px;box-shadow:0 8px 32px rgba(16,185,129,.4);cursor:pointer';
+          notif.innerHTML = `
+            <div style="font-size:15px;margin-bottom:4px">🏅 Verified Provider Badge</div>
+            <div style="font-weight:400;font-size:12px;opacity:.9">Your honor rate qualifies for a Verified Provider NFT badge. Other protocols can read your on-chain reputation.</div>
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button onclick="showCategory('lending');document.getElementById('repBadgeNotif').remove()" style="padding:5px 12px;border-radius:6px;background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;font-size:11px">View RepFi →</button>
+              <button onclick="document.getElementById('repBadgeNotif').remove()" style="padding:5px 12px;border-radius:6px;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;font-size:11px">Dismiss</button>
+            </div>
+          `;
+          document.body.appendChild(notif);
+          setTimeout(() => notif?.remove(), 15000);
+          window.toast({ kind: 'ok', title: '🏅 Reputation Badge Eligible', detail: `Honor rate > 90% with ${eligible[0].completedCalls} calls. Check RepFi panel.`, timeout: 8000 });
+        }
+      } catch(e) {}
+    }
+
+    // Check badge when already connected
+    if (window.state?.accounts?.length) {
+      setTimeout(checkReputationBadge, 3000);
+    }
+
+    // ---- CSS for new features ----
+    const style = document.createElement('style');
+    style.textContent = `
+      .hist-filter.on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+      .stat-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+      .stat-val { font-size: 22px; font-weight: 700; color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+      .stat-lbl { font-size: 10px; font-weight: 600; letter-spacing: .06em; color: var(--text-faint); text-transform: uppercase; margin-top: 4px; }
+    `;
+    document.head.appendChild(style);
+
+    console.log('[CallGuard Feature Pack] loaded: history, real-time, swipe, wallet-picker, provider-dash, rep-badge, api-docs');
   })();
   </script>
 
