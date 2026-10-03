@@ -27,6 +27,24 @@ No governance vote. No dispute arbitration. Just contract-defined outcomes.
 
 ---
 
+## How CallGuard compares
+
+| | CallGuard | API3 dAPIs | Chainlink Functions | Gelato Web3 Functions | Lit Protocol |
+|---|---|---|---|---|---|
+| **Arbitration** | None — contract enforces | None | None | None | None |
+| **Slash mechanism** | Automatic, onchain | No | No | No | No |
+| **Payment model** | USDC per call, escrowed | Subscription | LINK per call | Gelato token | No payment layer |
+| **Native gas token** | USDC (Arc) | ETH/various | LINK | ETH/various | Various |
+| **Finality** | Sub-second (Arc) | Minutes | Minutes | Minutes | Minutes |
+| **AI agent native** | Yes (MCP, x402, ERC-8004) | No | Partial | No | No |
+| **Cross-chain** | Yes (CCTP, 5 chains) | Yes | No | Partial | No |
+| **Reputation score** | Onchain Bayesian | No | No | No | No |
+| **SLA futures market** | Yes (ERC-1155) | No | No | No | No |
+
+CallGuard's core thesis: **financial skin-in-the-game enforces reliability better than reputation systems or legal contracts**. A provider who misses an SLA loses real money — automatically, trustlessly, instantly.
+
+---
+
 ## Live on Arc Testnet
 
 ### Core Contracts

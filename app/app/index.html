@@ -15307,7 +15307,7 @@ console.log("call opened:", tx.hash);`;
         "function agent() view returns (address)",
       ];
 
-      let _agentWalletAddr = localStorage.getItem("cg_agent_wallet") || null;
+      let _agentWalletAddr = sessionStorage.getItem("cg_agent_wallet") || null;
 
       window.switchAgentTab = function(tab) {
         document.querySelectorAll('.agent-tab').forEach(b => b.classList.remove('active-tab'));
@@ -15322,7 +15322,7 @@ console.log("call opened:", tx.hash);`;
         const addr = document.getElementById('agentWalletAddrInput')?.value?.trim();
         if (!addr || !addr.startsWith('0x')) { window.toast({kind:'err',title:'Invalid address'}); return; }
         _agentWalletAddr = addr;
-        localStorage.setItem('cg_agent_wallet', addr);
+        sessionStorage.setItem('cg_agent_wallet', addr);
         window.loadAgentPanel();
       };
 
@@ -22983,7 +22983,7 @@ window._applyAdvancedState = function(open) { _advOpen = open; applyAdvancedStat
         }
 
         // Save and connect
-        localStorage.setItem('cg_agent_wallet', agentAddr);
+        sessionStorage.setItem('cg_agent_wallet', agentAddr);
         if (window.connectAgentWallet) {
           document.getElementById('agentWalletAddrInput') && (document.getElementById('agentWalletAddrInput').value = agentAddr);
           window.connectAgentWallet();
