@@ -15454,9 +15454,9 @@ console.log("call opened:", tx.hash);`;
         }
         list.innerHTML = `<div style="padding:16px;color:var(--text-faint);font-size:12px">Loading batches...</div>`;
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, provider);
-          const count = (await contract.batchCount()).toNumber();
+          const count = Number(await contract.batchCount());
           if (count === 0) {
             list.innerHTML = `
             <div style="padding:20px;border:1.5px dashed var(--border);border-radius:12px;text-align:center;max-width:480px;margin:0 auto">
@@ -15484,8 +15484,8 @@ console.log("call opened:", tx.hash);`;
             const b = await contract.batches(i);
             const deadline = new Date(b.deadline * 1000);
             const expired = Date.now() > b.deadline * 1000;
-            const available = b.totalSlots.sub(b.soldSlots).toNumber();
-            const price = (b.pricePerCall.toNumber() / 1e6).toFixed(4);
+            const available = Number(b.totalSlots - b.soldSlots);
+            const price = (Number(b.pricePerCall) / 1e6).toFixed(4);
             cards.push(`
               <div style="background:var(--bg-2);border:1px solid ${b.active && !expired ? "var(--accent)" : "var(--border)"};border-radius:10px;padding:16px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -15524,7 +15524,7 @@ console.log("call opened:", tx.hash);`;
         const deadlineTs = Math.floor(new Date(deadline).getTime() / 1000);
         const priceUnits = Math.round(parseFloat(price) * 1e6);
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = provider.getSigner();
           const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
           const tx = await contract.mintCapacity(Number(providerId), priceUnits, Number(slots), deadlineTs);
@@ -15541,7 +15541,7 @@ console.log("call opened:", tx.hash);`;
         if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
         const addr = CONFIG.slaFutures;
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = provider.getSigner();
           const usdc = new ethers.Contract(CONFIG.usdc, ["function approve(address,uint256) returns (bool)"], signer);
           await (await usdc.approve(addr, pricePerCall)).wait();
@@ -15560,7 +15560,7 @@ console.log("call opened:", tx.hash);`;
         if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
         const addr = CONFIG.slaFutures;
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = provider.getSigner();
           const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
           const tx = await contract.burnSlot(batchId);
@@ -15576,7 +15576,7 @@ console.log("call opened:", tx.hash);`;
         if (!state.address) return window.toast({kind:"warn",title:"Connect wallet first"});
         const addr = CONFIG.slaFutures;
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = provider.getSigner();
           const contract = new ethers.Contract(addr, SLA_FUTURES_ABI, signer);
           const tx = await contract.claimRefund(batchId);
@@ -22089,9 +22089,7 @@ console.log("call opened:", tx.hash);`;
 
     // ---- 7. Provider Recruitment — show earnings ----
     async function injectProviderEarnings() {
-      const registerPanel = document.querySelector('[data-category="settings"]');
-      if (!registerPanel) return;
-      const registerCard = document.getElementById('registerCard') || document.querySelector('.action-card#actionRegister');
+      const registerCard = document.getElementById('actionRegister');
       if (!registerCard) return;
       // Fetch top earner from subgraph
       try {
@@ -22265,7 +22263,7 @@ console.log("call opened:", tx.hash);`;
           if (cat === 'mcp') injectMcpTestBtn();
           if (cat === 'nano') injectX402Tester();
           if (cat === 'leaderboard') { injectSlashLeaderboard(); window.loadSlashLeaderboard?.(); }
-          if (cat === 'register') injectProviderEarnings();
+          if (cat === 'register' || cat === 'overview') injectProviderEarnings();
           if (cat === 'x402') enhanceCrossChainSelector();
         }, 100);
       };
