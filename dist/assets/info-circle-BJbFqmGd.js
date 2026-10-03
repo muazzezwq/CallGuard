@@ -1,0 +1,12 @@
+import{w as o}from"./core-l1VLBAK5.js";import"./index-BQpIqpK1.js";import"./index.es-BQZT0EhU.js";import"./useSwitchChain-DGYkxdpX.js";import"./useAccount-Dm9l18A2.js";import"./useInfiniteQuery-B2PDssCS.js";import"./index-BbP3371Q.js";import"./index.es-BxcJX_rj.js";import"./index-nibyPLVP.js";import"./fallback-Bx03om1u.js";const d=o`<svg fill="none" viewBox="0 0 14 15">
+  <path
+    fill="currentColor"
+    d="M6 10.49a1 1 0 1 0 2 0v-2a1 1 0 0 0-2 0v2ZM7 4.49a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"
+  />
+  <path
+    fill="currentColor"
+    fill-rule="evenodd"
+    d="M7 14.99a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm5-7a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z"
+    clip-rule="evenodd"
+  />
+</svg>`;export{d as infoCircleSvg};

@@ -46,14 +46,7 @@ export const PPC_ABI = [
   { name: "nextCallId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
 ] as const;
 
-export const REGISTRY_ABI = [
-  { name: "providers", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{name:"owner",type:"address"},{name:"signer",type:"address"},{name:"stake",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"active",type:"bool"},{name:"endpoint",type:"string"}] },
-  { name: "providerCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "getReputationScore", type: "function", stateMutability: "view", inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint256"}] },
-  { name: "register", type: "function", stateMutability: "nonpayable", inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"endpoint",type:"string"}], outputs: [{name:"providerId",type:"uint256"}] },
-  { name: "completedCalls", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
-  { name: "slashedCalls", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
-] as const;
+
 
 export const DISPUTE_QUALITY_ABI = [
   { name: "openDispute", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"uint256"},{name:"evidenceHash",type:"bytes32"}], outputs: [] },
@@ -73,6 +66,19 @@ export const REPUTATION_LOAN_ABI = [
   { name: "repay", type: "function", stateMutability: "nonpayable", inputs: [{name:"amount",type:"uint256"}], outputs: [] },
   { name: "deposit", type: "function", stateMutability: "nonpayable", inputs: [{name:"amount",type:"uint256"}], outputs: [] },
   { name: "totalShares", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+] as const;
+
+export const AGENT_WALLET_ABI = [
+  { name: "spentToday", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "dailyLimit", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "execute", type: "function", stateMutability: "nonpayable", inputs: [{name:"to",type:"address"},{name:"value",type:"uint256"},{name:"data",type:"bytes"}], outputs: [] },
+] as const;
+
+export const REGISTRY_ABI = [
+  { name: "register", type: "function", stateMutability: "nonpayable", inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"metadata",type:"bytes"}], outputs: [{type:"uint256"}] },
+  { name: "getProvider", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"reputationScore",type:"uint256"},{name:"active",type:"bool"}] },
+  { name: "getReputationScore", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
+  { name: "providerCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(

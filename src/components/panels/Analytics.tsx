@@ -1,10 +1,16 @@
-export default function Panel() {
+import { useProviderCount, useCallCount, useSlashCount } from "../../hooks/useOnchain";
+export default function Analytics() {
+  const providerCount = useProviderCount();
+  const callCount = useCallCount();
+  const slashCount = useSlashCount();
+  const honorRate = callCount > 0 ? ((callCount - slashCount) / callCount * 100).toFixed(1) : "0";
   return (
-    <div className="p-6">
-      <div className="text-xs uppercase tracking-widest text-accent mb-1">Panel</div>
-      <h2 className="text-2xl font-bold font-display text-text mb-4">Analytics</h2>
-      <div className="bg-bg-2 rounded-xl border border-border p-8 text-center text-text-dim text-sm">
-        This panel is being migrated to React. Full functionality coming soon.
+    <div className="panel-body">
+      <div className="panel-head"><h2>Analytics</h2><p className="panel-sub">Network-wide stats from Arc Testnet.</p></div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+        {[{l:"Providers",v:providerCount},{l:"Total Calls",v:callCount},{l:"Slashes",v:slashCount},{l:"Honor Rate",v:honorRate+"%"}].map(s=>(
+          <div key={s.l} className="stat-card"><div className="stat-label">{s.l.toUpperCase()}</div><div className="stat-val">{s.v}</div></div>
+        ))}
       </div>
     </div>
   );

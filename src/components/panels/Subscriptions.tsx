@@ -1,11 +1,8 @@
-export default function Panel() {
+export default function Subscriptions() {
   return (
-    <div className="p-6">
-      <div className="text-xs uppercase tracking-widest text-accent mb-1">Panel</div>
-      <h2 className="text-2xl font-bold font-display text-text mb-4">Subscriptions</h2>
-      <div className="bg-bg-2 rounded-xl border border-border p-8 text-center text-text-dim text-sm">
-        This panel is being migrated to React. Full functionality coming soon.
-      </div>
+    <div className="panel-body">
+      <div className="panel-head"><h2>Subscriptions</h2><p className="panel-sub">Subscribe to a provider for recurring access.</p></div>
+      <div className="info-box">Subscription management coming soon.</div>
     </div>
   );
 }
