@@ -450,6 +450,97 @@ contract PayPerCallTest is Test {
         callId = payPerCall.callService(providerId, requestHash);
     }
 
+    // =========================================================================
+    // Security Tests
+    // =========================================================================
+
+    /// @dev Double-submit: provider cannot replay the same receipt twice.
+    function test_DoubleSubmitReceiptReverts() public {
+        bytes32 reqHash = keccak256("req");
+        bytes32 resHash = keccak256("res");
+
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE);
+        vm.prank(caller);
+        bytes32 callId = payPerCall.callService(providerId, reqHash);
+
+        uint64 respondedAt = uint64(block.timestamp);
+        bytes memory sig = _signAt(signerPk, callId, resHash, respondedAt);
+
+        vm.prank(signerAddr);
+        payPerCall.submitReceipt(callId, resHash, respondedAt, sig);
+
+        // Second submit must revert — status is now COMPLETED (InvalidStatus)
+        // or ReceiptAlreadyUsed if same digest; either way double-submit is blocked.
+        vm.prank(signerAddr);
+        vm.expectRevert(); // accepts any revert — both InvalidStatus and ReceiptAlreadyUsed are valid
+        payPerCall.submitReceipt(callId, resHash, respondedAt, sig);
+    }
+
+    /// @dev Wrong signer: a receipt signed by a non-provider key must revert.
+    function test_WrongSignerReverts() public {
+        bytes32 reqHash = keccak256("req");
+        bytes32 resHash = keccak256("res");
+
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE);
+        vm.prank(caller);
+        bytes32 callId = payPerCall.callService(providerId, reqHash);
+
+        uint256 attackerPk = 0xDEAD;
+        uint64 respondedAt = uint64(block.timestamp);
+        bytes memory sig = _signAt(attackerPk, callId, resHash, respondedAt);
+
+        vm.prank(vm.addr(attackerPk));
+        vm.expectRevert(PayPerCall.InvalidSignature.selector);
+        payPerCall.submitReceipt(callId, resHash, respondedAt, sig);
+    }
+
+    /// @dev Cross-call replay: receipt signed for callId-A cannot be used for callId-B.
+    function test_CrossCallReplayReverts() public {
+        bytes32 reqHash = keccak256("req");
+        bytes32 resHash = keccak256("res");
+
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 2);
+        vm.prank(caller);
+        bytes32 callIdA = payPerCall.callService(providerId, reqHash);
+        vm.prank(caller);
+        bytes32 callIdB = payPerCall.callService(providerId, reqHash);
+
+        // Sign receipt for call A, try to use it for call B
+        uint64 respondedAt = uint64(block.timestamp);
+        bytes memory sigA = _signAt(signerPk, callIdA, resHash, respondedAt);
+
+        vm.prank(signerAddr);
+        vm.expectRevert(PayPerCall.InvalidSignature.selector);
+        payPerCall.submitReceipt(callIdB, resHash, respondedAt, sigA);
+    }
+
+    /// @dev Insufficient stake: callService reverts when provider stake < expectedSlash.
+    function test_InsufficientStakeReverts() public {
+        // Deploy a registry with very high slash bps so that stake=MIN_STAKE is insufficient
+        ServiceRegistry highSlashRegistry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE);
+        PayPerCall highSlashPPC = new PayPerCall(IERC20(address(usdc)), IServiceRegistry(address(highSlashRegistry)));
+
+        // Register provider with minimum stake (10 USDC), price=100 USDC, slash=50%
+        // expectedSlash = 100 USDC * 5000 / 10000 = 50 USDC > stake(10 USDC) → should revert
+        address pAddr = vm.addr(0xBEEF5);
+        usdc.mint(pAddr, MIN_STAKE);
+        vm.startPrank(pAddr);
+        usdc.approve(address(highSlashRegistry), MIN_STAKE);
+        uint256 pId = highSlashRegistry.register(vm.addr(0xBEEF5), MIN_STAKE, 100e6, 30, 5_000, ""); // 50% slash
+        vm.stopPrank();
+
+        usdc.mint(caller, 200e6);
+        vm.prank(caller);
+        usdc.approve(address(highSlashPPC), 200e6);
+
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.InsufficientProviderStake.selector);
+        highSlashPPC.callService(pId, keccak256("req"));
+    }
+
     /// @dev Signs a Receipt with the given private key.
     ///      Uses block.timestamp as respondedAt — in tests this is whatever
     ///      the forge clock is at the moment of signing.

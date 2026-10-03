@@ -7998,6 +7998,10 @@
           <button class="cg-btn-primary cg-btn-lg" onclick="window.showWalletModal&&window.showWalletModal()">
             Connect wallet →
           </button>
+          <a href="/docs/PARTNERSHIP-BRIEF.md" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:16px;color:var(--text-dim);font-size:13px;text-decoration:none;border:1px solid var(--border);padding:8px 18px;border-radius:99px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            For protocols → Partnership Brief
+          </a>
         </section>
 
       </div>
@@ -8396,6 +8400,10 @@
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
                   <button class="btn btn-primary" id="btnCall" style="flex:1;min-width:140px">Approve & call</button>
+                  <div id="gasTxHint" style="font-size:11px;color:var(--text-dim);margin-top:4px;display:flex;align-items:center;gap:4px">
+                    <span id="gasTxCount" style="background:rgba(16,185,129,.15);color:var(--accent);padding:1px 7px;border-radius:99px;font-weight:600">1 TX</span>
+                    <span id="gasTxDesc">EIP-3009 gasless — no approval needed</span>
+                  </div>
                   <button class="btn" id="btnX402Call" style="flex:1;min-width:120px">Call via x402</button>
                 </div>
                 <details style="margin-top:10px">
@@ -22010,7 +22018,35 @@ console.log("call opened:", tx.hash);`;
       if (chevron) chevron.style.transform = _advOpen ? "rotate(0deg)" : "rotate(-90deg)";
     }
     // Expose so applyMode (different script block) can call it
-    window._applyAdvancedState = function(open) { _advOpen = open; applyAdvancedState(); };
+
+    // Gas estimation TX count updater
+(function() {
+  function updateGasTxHint() {
+    const sel = document.getElementById('chainSelector');
+    const chain = sel ? sel.value : 'arc-testnet';
+    const countEl = document.getElementById('gasTxCount');
+    const descEl = document.getElementById('gasTxDesc');
+    if (!countEl || !descEl) return;
+    if (chain === 'arc-testnet') {
+      countEl.textContent = '1 TX';
+      countEl.style.background = 'rgba(16,185,129,.15)';
+      countEl.style.color = 'var(--accent)';
+      descEl.textContent = 'EIP-3009 gasless — no approval needed';
+    } else {
+      countEl.textContent = '2 TXs';
+      countEl.style.background = 'rgba(234,179,8,.15)';
+      countEl.style.color = '#eab308';
+      descEl.textContent = 'Approve USDC + call (cross-chain via CCTP)';
+    }
+  }
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'chainSelector') updateGasTxHint();
+  });
+  document.addEventListener('cgWalletConnected', updateGasTxHint);
+  setTimeout(updateGasTxHint, 1000);
+})();
+
+window._applyAdvancedState = function(open) { _advOpen = open; applyAdvancedState(); };
 
     window.toggleSbAdvanced = function() {
       _advOpen = !_advOpen;

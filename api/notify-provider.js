@@ -155,3 +155,29 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
+
+// ── Email helper (same endpoint, POST with type=email) ──────────────────────
+async function sendEmail(email, type, data) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) return { sent: false, reason: 'not_configured' };
+  const subjects = {
+    welcome: '🛡 Welcome to CallGuard — Your provider is live',
+    slash:   '⚠️ CallGuard — Your stake was slashed',
+    receipt: '✅ CallGuard — Receipt submitted',
+    timeout: '⏱ CallGuard — SLA deadline approaching'
+  };
+  const bodies = {
+    welcome: `<h2>Provider #${data.providerId||'?'} is now live</h2><p>Price: ${data.price||'?'} USDC/call · SLA: ${data.slaWindow||'?'}s · Stake: ${data.stake||'?'} USDC</p><p><a href="https://arcsla.vercel.app/app/">Open dashboard →</a></p>`,
+    slash:   `<h2>Slash notification</h2><p>Call <code>${data.callId||'?'}</code> — slashed ${data.amount||'?'} USDC</p><p><a href="https://arcsla.vercel.app/app/">View dashboard →</a></p>`,
+    receipt: `<h2>Receipt confirmed</h2><p>Call <code>${data.callId||'?'}</code> — ${data.amount||'?'} USDC released</p>`,
+    timeout: `<h2>SLA window closing</h2><p>Call <code>${data.callId||'?'}</code> — ${data.remaining||'?'}s remaining. <a href="https://arcsla.vercel.app/app/">Submit receipt →</a></p>`
+  };
+  const r = await fetch('https://api.resend.com/emails', {
+    method:'POST', headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify({ from:'CallGuard <noreply@arcsla.vercel.app>', to:[email], subject: subjects[type]||subjects.welcome, html: bodies[type]||bodies.welcome })
+  });
+  const result = await r.json();
+  return r.ok ? { sent:true, id:result.id } : { sent:false, error:result.message };
+}
+export { sendEmail };
+
