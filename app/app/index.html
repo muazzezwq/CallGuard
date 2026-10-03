@@ -7443,6 +7443,38 @@
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.js"></script>
   </head>
   <body>
+  <!-- ===== ONBOARDING PROGRESS BAR ===== -->
+  <div id="cgOnboardBar" style="display:none;position:sticky;top:52px;z-index:900;background:linear-gradient(90deg,#0d1a14,#0a1a2e);border-bottom:1px solid var(--border);padding:8px 16px;font-size:12px">
+    <div style="display:flex;align-items:center;gap:12px;max-width:900px;margin:0 auto">
+      <span style="color:var(--text-dim);white-space:nowrap;font-weight:600">Get started:</span>
+      <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap">
+        <div class="cg-ob-step" id="obStep1" onclick="window.showCategory&&window.showCategory('overview')" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;cursor:pointer;background:var(--bg-2);border:1px solid var(--border)">
+          <span class="cg-ob-check" id="obCheck1">○</span>
+          <span>1. Get USDC</span>
+        </div>
+        <span style="color:var(--text-faint)">→</span>
+        <div class="cg-ob-step" id="obStep2" onclick="window.showCategory&&window.showCategory('marketplace')" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;cursor:pointer;background:var(--bg-2);border:1px solid var(--border)">
+          <span class="cg-ob-check" id="obCheck2">○</span>
+          <span>2. Browse providers</span>
+        </div>
+        <span style="color:var(--text-faint)">→</span>
+        <div class="cg-ob-step" id="obStep3" onclick="window.showCategory&&window.showCategory('x402')" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;cursor:pointer;background:var(--bg-2);border:1px solid var(--border)">
+          <span class="cg-ob-check" id="obCheck3">○</span>
+          <span>3. Make first call</span>
+        </div>
+      </div>
+      <button onclick="document.getElementById('cgOnboardBar').style.display='none';localStorage.setItem('cg_onboard_dismissed','1')" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:16px;padding:0 4px" title="Dismiss">×</button>
+    </div>
+  </div>
+
+  <!-- ===== SLA COUNTDOWN BAR ===== -->
+  <div id="cgSlaCountdownBar" style="display:none;position:sticky;top:52px;z-index:899;background:linear-gradient(90deg,#1a0a0a,#1a1200);border-bottom:1px solid rgba(239,68,68,.3);padding:8px 16px">
+    <div style="display:flex;align-items:center;gap:12px;max-width:900px;margin:0 auto;flex-wrap:wrap">
+      <span style="color:#ef4444;font-weight:700;font-size:12px">⏱ ACTIVE SLA</span>
+      <div id="cgSlaCountdownItems" style="display:flex;gap:8px;flex-wrap:wrap;flex:1;font-size:12px"></div>
+    </div>
+  </div>
+
     <!-- Wallet Connect Modal -->
     <div id="walletConnectModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
       <div style="background:var(--bg-1,#fff);border-radius:16px;padding:24px;max-width:360px;width:calc(100%-32px);margin:16px;box-shadow:0 24px 64px rgba(0,0,0,0.3);position:relative;">
@@ -8081,6 +8113,11 @@
           <div class="sb-item" data-nav="register">
             <span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></span>
             <span class="sb-lbl-simple">Become a Provider</span><span class="sb-lbl-pro">Register</span>
+          </div>
+          <div class="sb-item" data-nav="verify" onclick="window.openVerifyPage&&window.openVerifyPage()">
+            <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></span>
+            <span class="sb-lbl-simple">Verify</span>
+            <span class="sb-lbl-pro">Verify Receipt</span>
           </div>
           <div class="sb-item" data-nav="settings">
             <span class="sb-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
@@ -8795,6 +8832,40 @@ const { callId, txHash } = await res.json();</pre>
           </div>
         </section>
 
+        <!-- ===== VERIFY RECEIPT PANEL ===== -->
+        <section class="panel full-width" id="verifyPanel" data-category="verify" style="display:none">
+          <div class="panel-head"><h2>Verify Receipt</h2></div>
+          <div class="panel-body">
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Enter a transaction hash or call ID to verify a receipt on-chain. No wallet needed.</p>
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+              <input type="text" id="verifyInput" placeholder="0x transaction hash or call ID" style="flex:1;min-width:200px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px"/>
+              <button class="btn btn-primary" onclick="window.verifyReceipt&&window.verifyReceipt()">Verify →</button>
+            </div>
+            <div id="verifyResult" style="min-height:80px"></div>
+            <div style="margin-top:20px;padding:12px;background:var(--bg-2);border-radius:8px;font-size:12px;color:var(--text-dim)">
+              💡 Share a verification link: <code id="verifyShareLink" style="color:var(--accent)">arcsla.vercel.app/app/?verify=0x...</code>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== PROVIDER PROFILE PANEL ===== -->
+        <section class="panel full-width" id="provProfileInlinePanel" data-category="provprofile" style="display:none">
+          <div class="panel-head">
+            <h2 id="provProfileTitle">Provider Profile</h2>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="window.shareProviderProfile&&window.shareProviderProfile()">Share link</button>
+              <button class="btn btn-sm btn-primary" onclick="window.callFromProfile&&window.callFromProfile()">Call this provider →</button>
+            </div>
+          </div>
+          <div class="panel-body" id="provProfileInlineBody">
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+              <input type="number" id="provProfileIdInput" min="1" placeholder="Provider ID" style="padding:8px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;width:120px"/>
+              <button class="btn btn-primary" onclick="window.loadProviderProfile&&window.loadProviderProfile()">Load →</button>
+            </div>
+            <div id="provProfileInlineContent"><div class="empty-state" style="padding:32px;text-align:center;color:var(--text-faint)">Enter a provider ID to view their profile</div></div>
+          </div>
+        </section>
+
         <section class="panel" id="budgetPanel" data-category="settings">
           <div class="panel-head">
             <h2>⚙️ Appearance</h2>
@@ -9266,6 +9337,23 @@ npm install</pre>
 
         <!-- AGENT MARKETPLACE -->
         <section class="panel full-width" data-category="marketplace">
+        <!-- Compare bar -->
+        <div id="cgCompareBar" style="display:none;position:sticky;bottom:60px;z-index:800;background:var(--bg-1);border:1px solid var(--accent);border-radius:12px;padding:10px 16px;margin-bottom:12px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:var(--accent)">Compare Providers</span>
+          <div id="cgCompareList" style="display:flex;gap:8px;flex:1;flex-wrap:wrap;font-size:12px"></div>
+          <button onclick="window.openProviderCompare&&window.openProviderCompare()" class="btn btn-primary" style="font-size:12px;padding:6px 14px">Compare →</button>
+          <button onclick="window.clearProviderCompare&&window.clearProviderCompare()" class="btn" style="font-size:12px;padding:6px 10px">Clear</button>
+        </div>
+        <!-- Compare Modal -->
+        <div id="cgCompareModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);align-items:center;justify-content:center">
+          <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:700px;width:94%;max-height:80vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <h3 style="font-size:16px;font-weight:700">Provider Comparison</h3>
+              <button onclick="document.getElementById('cgCompareModal').style.display='none'" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer">×</button>
+            </div>
+            <div id="cgCompareTable" style="overflow-x:auto"></div>
+          </div>
+        </div>
           <div class="panel-head">
             <h2>Agent Marketplace</h2>
             </div>
@@ -9341,6 +9429,30 @@ npm install</pre>
             <button class="btn btn-primary" id="btnSaveWebhook">💾 Save webhook</button>
             <button class="btn" id="btnClearWebhook">Clear</button>
           </div>
+          <!-- Alert subscriptions -->
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📬 Alert Subscriptions</div>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Get notified via email or Telegram when your SLA events occur — no webhook server needed.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Email</label>
+                <input type="email" id="alertEmail" placeholder="you@example.com" style="width:100%;padding:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;margin-top:4px;box-sizing:border-box"/>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Telegram Chat ID</label>
+                <input type="text" id="alertTelegram" placeholder="@username or chat ID" style="width:100%;padding:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;margin-top:4px;box-sizing:border-box"/>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin-bottom:12px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="alert_slash" checked/> Slash events</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="alert_timeout" checked/> Timeout claims</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="alert_receipt" checked/> Receipt received</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="alert_expiring"/> SLA expiring (10s warning)</label>
+            </div>
+            <button class="btn btn-primary" onclick="window.saveAlertSubscription&&window.saveAlertSubscription()" style="font-size:12px">Save alert settings</button>
+            <div id="alertSaveResult" style="margin-top:8px;font-size:12px"></div>
+          </div>
+
           <div id="webhookDeliveries" style="margin-top:16px">
             <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px">Recent deliveries</div>
             <div class="empty-state">No deliveries yet</div>
@@ -22782,5 +22894,354 @@ console.log("call opened:", tx.hash);`;
   })();
   </script>
 
-  </body>
+    <script>
+  // ============================================================
+  // FEATURE PACK v2: 9 New Features
+  // 1.Onboarding  2.Compare  3.Auto-retry  4.SLA Countdown
+  // 5.Batch Slider  6.Verify  7.ProvProfile  8.Widget  9.Alerts
+  // ============================================================
+  (function() {
+    'use strict';
+    const RPC = 'https://rpc.testnet.arc.io';
+    const PPC_ADDR = '0x1B3574678d9f7136B054e6BD08C091515880130';
+    const REG_ADDR = '0xeaa08F89C0bA249e6d972263265c72248600a2BA';
+    const SG = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+
+    // ── helpers ──────────────────────────────────────────────
+    function sgQuery(q) {
+      return fetch(SG,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})}).then(r=>r.json());
+    }
+    function el(id) { return document.getElementById(id); }
+    function toast(msg, type) { if(window.toast) window.toast(msg, type); }
+
+    // ── 1. ONBOARDING PROGRESS BAR ───────────────────────────
+    function initOnboarding() {
+      const bar = el('cgOnboardBar');
+      if (!bar) return;
+      if (localStorage.getItem('cg_onboard_dismissed') === '1') return;
+      bar.style.display = 'block';
+      function updateSteps() {
+        const usdc = window.state?.usdcBalance > 0;
+        const browsed = localStorage.getItem('cg_browsed_providers') === '1';
+        const called = localStorage.getItem('cg_first_call_done') === '1';
+        [[1,usdc],[2,browsed],[3,called]].forEach(([n,done]) => {
+          const step = el('obStep'+n); const check = el('obCheck'+n);
+          if (!step || !check) return;
+          if (done) {
+            step.style.background = 'rgba(16,185,129,.15)';
+            step.style.borderColor = 'var(--accent)';
+            check.textContent = '✓';
+            check.style.color = 'var(--accent)';
+          }
+        });
+        if (usdc && browsed && called) {
+          bar.innerHTML = '<div style="text-align:center;padding:4px;font-size:12px;color:var(--accent);font-weight:700">🎉 You\'ve completed the CallGuard quickstart!</div>';
+          setTimeout(() => { bar.style.display='none'; localStorage.setItem('cg_onboard_dismissed','1'); }, 4000);
+        }
+      }
+      updateSteps();
+      document.addEventListener('cgWalletConnected', updateSteps);
+      const _origSC = window.showCategory;
+      if (_origSC) window.showCategory = function(cat) {
+        _origSC(cat);
+        if (cat === 'marketplace') { localStorage.setItem('cg_browsed_providers','1'); updateSteps(); }
+      };
+      document.addEventListener('cgCallDone', () => { localStorage.setItem('cg_first_call_done','1'); updateSteps(); });
+    }
+
+    // ── 2. PROVIDER COMPARISON ───────────────────────────────
+    window._compareSet = new Set();
+    window.toggleProviderCompare = function(id, name) {
+      if (window._compareSet.has(id)) {
+        window._compareSet.delete(id);
+      } else {
+        if (window._compareSet.size >= 4) { toast('Max 4 providers to compare','warn'); return; }
+        window._compareSet.add(id);
+      }
+      const list = el('cgCompareList'); const bar = el('cgCompareBar');
+      if (!list || !bar) return;
+      list.innerHTML = [...window._compareSet].map(i => `<span style="background:var(--bg-3);padding:3px 10px;border-radius:12px;border:1px solid var(--border)">#${i}</span>`).join('');
+      bar.style.display = window._compareSet.size > 1 ? 'flex' : 'none';
+    };
+    window.clearProviderCompare = function() {
+      window._compareSet.clear();
+      const bar = el('cgCompareBar'); if(bar) bar.style.display='none';
+    };
+    window.openProviderCompare = async function() {
+      const modal = el('cgCompareModal'); const table = el('cgCompareTable');
+      if (!modal || !table) return;
+      modal.style.display = 'flex';
+      table.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim)">Loading...</div>';
+      try {
+        const ids = [...window._compareSet];
+        const rows = await Promise.all(ids.map(async id => {
+          const r = await sgQuery(`{ providers(where:{id:"${id}"}) { id completedCalls pricePerCall stake } }`);
+          const p = r?.data?.providers?.[0];
+          if (!p) return null;
+          const earned = (Number(p.completedCalls) * Number(p.pricePerCall) / 1e6).toFixed(2);
+          const stake = (Number(p.stake) / 1e6).toFixed(2);
+          return { id: p.id, calls: p.completedCalls, price: (Number(p.pricePerCall)/1e6).toFixed(4), stake, earned };
+        }));
+        const valid = rows.filter(Boolean);
+        table.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:8px;text-align:left">Provider</th>
+            <th style="padding:8px;text-align:right">Price/call</th>
+            <th style="padding:8px;text-align:right">Completed</th>
+            <th style="padding:8px;text-align:right">Stake</th>
+            <th style="padding:8px;text-align:right">Total earned</th>
+            <th style="padding:8px"></th>
+          </tr></thead>
+          <tbody>${valid.map(p=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px;font-weight:600">#${p.id}</td>
+            <td style="padding:8px;text-align:right;color:var(--accent)">${p.price} USDC</td>
+            <td style="padding:8px;text-align:right">${p.calls}</td>
+            <td style="padding:8px;text-align:right">${p.stake} USDC</td>
+            <td style="padding:8px;text-align:right">${p.earned} USDC</td>
+            <td style="padding:8px;text-align:right"><button class="btn btn-sm btn-primary" onclick="document.getElementById('cgCompareModal').style.display='none';window._quickCallProvider&&window._quickCallProvider(${p.id})">Call →</button></td>
+          </tr>`).join('')}</tbody></table>`;
+      } catch(e) {
+        table.innerHTML = `<div style="color:#ef4444;padding:12px">Failed to load: ${e.message}</div>`;
+      }
+    };
+
+    // ── 3. AUTO-RETRY ON TIMEOUT ─────────────────────────────
+    window.autoRetryAfterTimeout = async function(providerId, payload) {
+      const msg = `Provider missed the SLA deadline. Retry with provider #${providerId}?`;
+      if (!confirm(msg)) return;
+      if (window._quickCallProvider) window._quickCallProvider(providerId);
+    };
+    // Patch timeout claim to offer retry
+    const _origClaimTimeout = window.claimTimeout;
+    if (_origClaimTimeout) {
+      window.claimTimeout = async function(callId) {
+        await _origClaimTimeout(callId);
+        setTimeout(() => {
+          if (toast) toast('Timeout claimed! Retry the call?', 'info');
+        }, 1500);
+      };
+    }
+
+    // ── 4. SLA COUNTDOWN BAR ─────────────────────────────────
+    let _countdownTimer = null;
+    window.startSlaCountdown = function(calls) {
+      const bar = el('cgSlaCountdownBar'); const items = el('cgSlaCountdownItems');
+      if (!bar || !items || !calls.length) { if(bar) bar.style.display='none'; return; }
+      bar.style.display = 'block';
+      clearInterval(_countdownTimer);
+      _countdownTimer = setInterval(() => {
+        const now = Date.now() / 1000;
+        items.innerHTML = calls.map(c => {
+          const deadline = Number(c.deadline);
+          const remaining = deadline - now;
+          if (remaining <= 0) {
+            return `<span style="color:#ef4444;font-weight:600">#${c.callId?.slice(0,6)}... EXPIRED
+              <button onclick="window.claimTimeout&&window.claimTimeout('${c.callId}')" style="background:#ef4444;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:6px">Claim →</button>
+            </span>`;
+          }
+          const color = remaining < 30 ? '#f59e0b' : 'var(--accent)';
+          return `<span style="color:${color}">#${c.callId?.slice(0,6)}... <b>${Math.ceil(remaining)}s</b> left</span>`;
+        }).join('<span style="color:var(--text-faint);margin:0 4px">·</span>');
+      }, 1000);
+    };
+
+    // ── 5. BATCH CALL SLIDER ─────────────────────────────────
+    window.runBatchCallSlider = async function() {
+      const provId = Number(el('batchProvId')?.value || 1);
+      const payload = el('batchPayload')?.value || 'ping';
+      const count = Number(el('batchCount')?.value || 3);
+      const prog = el('batchProgress');
+      if (!window.state?.accounts?.length) { toast('Connect wallet first','warn'); return; }
+      if (!prog) return;
+      prog.innerHTML = `<div style="font-size:12px;color:var(--text-dim)">Starting ${count} calls to provider #${provId}...</div>`;
+      let done = 0, failed = 0;
+      for (let i = 0; i < count; i++) {
+        try {
+          prog.innerHTML = `<div style="font-size:12px;color:var(--text-dim)">Call ${i+1}/${count}... <span style="color:var(--accent)">${done} done, ${failed} failed</span></div>`;
+          if (window.callService) await window.callService({ providerId: provId, payload });
+          done++;
+        } catch(e) {
+          failed++;
+          console.warn('[batch]', e.message);
+        }
+        await new Promise(r => setTimeout(r, 800));
+      }
+      prog.innerHTML = `<div style="padding:10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;font-size:13px">
+        Batch complete: <b style="color:var(--accent)">${done}/${count}</b> succeeded · ${failed} failed
+      </div>`;
+      toast(`Batch complete: ${done}/${count} calls succeeded`, done === count ? 'success' : 'warn');
+    };
+
+    // ── 6. RECEIPT VERIFICATION ──────────────────────────────
+    window.verifyReceipt = async function() {
+      const input = el('verifyInput')?.value?.trim();
+      const result = el('verifyResult');
+      const shareLink = el('verifyShareLink');
+      if (!input || !result) return;
+      result.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">Verifying...</div>';
+      try {
+        const r = await fetch('/api/attestation?callId=' + encodeURIComponent(input));
+        const d = await r.json();
+        if (d.ok) {
+          result.innerHTML = `<div style="padding:14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px">
+            <div style="color:var(--accent);font-weight:700;font-size:14px;margin-bottom:8px">✓ Receipt Verified</div>
+            <div style="font-size:12px;display:grid;gap:4px">
+              <div><span style="color:var(--text-faint)">Call ID:</span> <code style="color:var(--text)">${input.slice(0,20)}...</code></div>
+              <div><span style="color:var(--text-faint)">Status:</span> <span style="color:var(--accent)">${d.status || 'Confirmed'}</span></div>
+              <div><span style="color:var(--text-faint)">Provider:</span> #${d.providerId || '?'}</div>
+              <div><span style="color:var(--text-faint)">Chain:</span> Arc Testnet</div>
+            </div>
+          </div>`;
+        } else {
+          // Fallback: check via RPC
+          result.innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;font-size:12px">
+            <div style="color:#ef4444;font-weight:700;margin-bottom:4px">Could not verify</div>
+            <div style="color:var(--text-dim)">${d.error || 'Receipt not found on-chain.'}</div>
+          </div>`;
+        }
+        if (shareLink) shareLink.textContent = `${location.origin}/app/?verify=${encodeURIComponent(input)}`;
+      } catch(e) {
+        result.innerHTML = `<div style="color:#ef4444;font-size:12px">Error: ${e.message}</div>`;
+      }
+    };
+    window.openVerifyPage = function() { if(window.showCategory) window.showCategory('verify'); };
+
+    // Auto-verify from URL param
+    const urlParams = new URLSearchParams(location.search);
+    const verifyParam = urlParams.get('verify');
+    if (verifyParam) {
+      setTimeout(() => {
+        window.showCategory && window.showCategory('verify');
+        const inp = el('verifyInput');
+        if (inp) { inp.value = verifyParam; window.verifyReceipt(); }
+      }, 1500);
+    }
+
+    // ── 7. PROVIDER PROFILE ──────────────────────────────────
+    window.loadProviderProfile = async function(idOverride) {
+      const id = idOverride || Number(el('provProfileIdInput')?.value);
+      if (!id) return;
+      const content = el('provProfileInlineContent');
+      const title = el('provProfileTitle');
+      if (content) content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim)">Loading...</div>';
+      if (title) title.textContent = `Provider #${id}`;
+      try {
+        const [sgRes] = await Promise.all([
+          sgQuery(`{ providers(where:{id:"${id}"}) { id completedCalls pricePerCall stake active } }`)
+        ]);
+        const p = sgRes?.data?.providers?.[0];
+        if (!p && content) { content.innerHTML = '<div class="empty-state" style="padding:24px">Provider not found</div>'; return; }
+        const calls = Number(p?.completedCalls || 0);
+        const price = (Number(p?.pricePerCall || 0) / 1e6).toFixed(4);
+        const stake = (Number(p?.stake || 0) / 1e6).toFixed(2);
+        const earned = (calls * Number(p?.pricePerCall || 0) / 1e6).toFixed(2);
+        if (content) content.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+            ${[['Completed Calls',calls,''],['Price/Call',price+' USDC','color:var(--accent)'],['Stake',stake+' USDC',''],['Total Earned',earned+' USDC','color:var(--accent)']].map(([l,v,s])=>`
+            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px">${l}</div>
+              <div style="font-size:20px;font-weight:700;${s}">${v}</div>
+            </div>`).join('')}
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <button class="btn btn-primary" onclick="window._quickCallProvider&&window._quickCallProvider(${id})" style="flex:1">Call this provider →</button>
+            <button class="btn" onclick="window.shareProviderProfile&&window.shareProviderProfile(${id})">Share profile</button>
+            <a href="https://explorer.testnet.arc.io/address/${p?.id||''}" target="_blank" class="btn">ArcScan ↗</a>
+          </div>`;
+        window._currentProfileId = id;
+      } catch(e) {
+        if (content) content.innerHTML = `<div style="color:#ef4444;font-size:12px">Error: ${e.message}</div>`;
+      }
+    };
+    window.shareProviderProfile = function(id) {
+      const pid = id || window._currentProfileId;
+      const url = `${location.origin}/app/?provider=${pid}`;
+      navigator.clipboard?.writeText(url).then(() => toast('Profile link copied!','success')).catch(() => toast(url,'info'));
+    };
+    window.callFromProfile = function() {
+      if (window._currentProfileId) window._quickCallProvider?.(window._currentProfileId);
+    };
+    // Auto-load from URL
+    const provParam = urlParams.get('provider');
+    if (provParam) {
+      setTimeout(() => {
+        window.showCategory && window.showCategory('provprofile');
+        window.loadProviderProfile(Number(provParam));
+      }, 1500);
+    }
+    // Inject compare buttons into marketplace cards
+    function injectCompareButtons() {
+      document.querySelectorAll('[data-provid]').forEach(card => {
+        if (card.querySelector('.cg-compare-btn')) return;
+        const id = card.dataset.provid;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm cg-compare-btn';
+        btn.style.cssText = 'font-size:11px;padding:3px 8px;margin-top:6px';
+        btn.textContent = 'Compare';
+        btn.onclick = (e) => { e.stopPropagation(); window.toggleProviderCompare(id); };
+        card.appendChild(btn);
+      });
+    }
+
+    // ── 8. EMBED WIDGET CSS (for widget.js) ──────────────────
+    // widget.js is served via /api/widget.js Vercel endpoint
+
+    // ── 9. WEBHOOK ALERT SUBSCRIPTIONS ──────────────────────
+    window.saveAlertSubscription = function() {
+      const email = el('alertEmail')?.value?.trim();
+      const telegram = el('alertTelegram')?.value?.trim();
+      const result = el('alertSaveResult');
+      if (!email && !telegram) {
+        if (result) result.innerHTML = '<span style="color:#ef4444">Please enter email or Telegram ID.</span>';
+        return;
+      }
+      const prefs = {
+        email, telegram,
+        slash: el('alert_slash')?.checked,
+        timeout: el('alert_timeout')?.checked,
+        receipt: el('alert_receipt')?.checked,
+        expiring: el('alert_expiring')?.checked,
+        wallet: window.state?.accounts?.[0]
+      };
+      localStorage.setItem('cg_alert_prefs', JSON.stringify(prefs));
+      if (result) result.innerHTML = '<span style="color:var(--accent)">✓ Alert preferences saved locally. For server-side delivery, configure your webhook URL above.</span>';
+      toast('Alert preferences saved','success');
+    };
+    // Restore saved prefs
+    try {
+      const saved = JSON.parse(localStorage.getItem('cg_alert_prefs') || '{}');
+      if (saved.email && el('alertEmail')) el('alertEmail').value = saved.email;
+      if (saved.telegram && el('alertTelegram')) el('alertTelegram').value = saved.telegram;
+      ['slash','timeout','receipt','expiring'].forEach(k => {
+        const box = el('alert_'+k); if (box && saved[k] !== undefined) box.checked = saved[k];
+      });
+    } catch {}
+
+    // ── INIT ─────────────────────────────────────────────────
+    function init() {
+      initOnboarding();
+      // Inject compare buttons when marketplace panel opens
+      const _sc = window.showCategory;
+      if (_sc) window.showCategory = function(cat) {
+        _sc(cat);
+        if (cat === 'marketplace') setTimeout(injectCompareButtons, 500);
+        if (cat === 'verify') setTimeout(() => {
+          const params = new URLSearchParams(location.search);
+          if (params.get('verify')) { el('verifyInput').value = params.get('verify'); window.verifyReceipt(); }
+        }, 200);
+      };
+      // Auto-show onboarding after connect
+      document.addEventListener('cgWalletConnected', () => {
+        setTimeout(initOnboarding, 500);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      setTimeout(init, 300);
+    }
+  })();
+  </script>
+</body>
 </html>
