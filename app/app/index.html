@@ -10470,8 +10470,8 @@ curl -X POST https://arcsla.vercel.app/api/service \
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
         facilitatorUrl: window.location.origin,
-        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn",
-        subgraphUrlFallback: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn",
+        subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn",
+        subgraphUrlFallback: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn",
         bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
         eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
         usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
@@ -17121,7 +17121,7 @@ console.log("call opened:", tx.hash);`;
   <script>
   // AGENT MARKETPLACE
   (function initMarketplace() {
-    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/1.4.2/gn";
+    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
     let _providers = [], _mktSort = "rep", _mktTag = "all";
     window._mktReload = loadMarketplace;
     async function loadMarketplace() {
@@ -22228,7 +22228,7 @@ console.log("call opened:", tx.hash);`;
       } catch(e) {
         // Fallback: query subgraph directly
         try {
-          const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+          const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
           const r2 = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:'{ providers(first:5) { id owner stake completedCalls slashedCalls active } }'}) });
           const d2 = await r2.json();
           out.innerHTML = `<div style="font-size:11px;color:var(--text-faint);margin-bottom:4px">MCP /api/service unavailable — showing live subgraph data:</div><pre style="font-size:11px;overflow-x:auto;color:var(--accent)">${JSON.stringify(d2?.data?.providers, null, 2)}</pre>`;
@@ -22273,7 +22273,7 @@ console.log("call opened:", tx.hash);`;
       if (!registerCard) return;
       // Fetch top earner from subgraph
       try {
-        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
         const r = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ query: '{ providers(first:3, orderBy:completedCalls, orderDirection:desc) { id completedCalls pricePerCall stake } }' })
         });
@@ -22320,7 +22320,7 @@ console.log("call opened:", tx.hash);`;
       if (!el) return;
       el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;padding:12px">Loading...</div>';
       try {
-        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
         const r = await fetch(sg, { method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ query: '{ calls(first:50, where:{status:"SLASHED"}, orderBy:createdAt, orderDirection:desc) { id caller providerId slashed createdAt } providers(first:8) { id slashedCalls completedCalls stake active } }' })
         });
@@ -22515,7 +22515,7 @@ console.log("call opened:", tx.hash);`;
     })();
 
     // ---- 2 + 5. TX HISTORY + REAL-TIME POLLING ----
-    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn";
+    const SUBGRAPH = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
     const EXPLORER = "https://explorer.testnet.arc.io";
 
     let _histData = [];
@@ -22977,7 +22977,7 @@ console.log("call opened:", tx.hash);`;
     const RPC = 'https://rpc.testnet.arc.io';
     const PPC_ADDR = '0x1B3574678d9f7136B054e6BD08C091515880130';
     const REG_ADDR = '0xeaa08F89C0bA249e6d972263265c72248600a2BA';
-    const SG = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+    const SG = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
 
     // ── helpers ──────────────────────────────────────────────
     function sgQuery(q) {
@@ -23319,7 +23319,7 @@ console.log("call opened:", tx.hash);`;
       const out = document.getElementById('mcpTestOutput');
       if (out) { out.textContent = 'Running ' + tool + '...'; out.style.display = 'block'; }
       try {
-        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
         if (tool === 'list_providers') {
           const r = await fetch(sg, {method:'POST',headers:{'Content-Type':'application/json'},
             body: JSON.stringify({query:'{ providers(first:5) { id pricePerCall completedCalls stake } }'})});
@@ -23356,7 +23356,7 @@ console.log("call opened:", tx.hash);`;
     window.checkSlaCountdowns = async function() {
       if (!window.state?.accounts?.length) return;
       try {
-        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
         const addr = window.state.accounts[0].toLowerCase();
         const r = await fetch(sg, {method:'POST',headers:{'Content-Type':'application/json'},
           body: JSON.stringify({query:`{ calls(where:{caller:"${addr}",status:"open"}, first:10) { id deadline } }`})});
