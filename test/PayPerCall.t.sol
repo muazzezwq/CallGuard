@@ -5,9 +5,9 @@ import { Test, Vm } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import { ServiceRegistry } from "../src/ServiceRegistry.sol";
-import { IServiceRegistry } from "../src/interfaces/IServiceRegistry.sol";
-import { PayPerCall } from "../src/PayPerCall.sol";
+import { ServiceRegistry } from "../contracts/ServiceRegistry.sol";
+import { IServiceRegistry } from "../contracts/interfaces/IServiceRegistry.sol";
+import { PayPerCall } from "../contracts/PayPerCall.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
 
 contract PayPerCallTest is Test {
