@@ -7407,6 +7407,21 @@
     /* Responsive */
     @media (max-width: 700px) { .cgf-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 480px) { .cgf-grid { grid-template-columns: 1fr; } .cgf-section { margin-bottom: 40px; } }
+
+    /* ===== NEW PANELS RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      #verifyPanel .panel-body > div[style*="flex"],
+      #provProfilePanel .panel-body > div[style*="flex"] { flex-direction: column !important; }
+      #batchProvId, #batchPayload { width: 100% !important; }
+      section[data-category="x402"] div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+      #cgOnboardBar { top: 44px !important; }
+      #cgOnboardBar > div > div { gap: 4px !important; }
+      .cg-ob-step { font-size: 11px !important; padding: 3px 8px !important; }
+      #cgCompareModal > div { padding: 16px !important; }
+    }
+    @media (max-width: 480px) {
+      #cgOnboardBar .cg-ob-step span:last-child { display: none; }
+    }
     </style>
   <script>
     // Suppress noisy MetaMask internal logs — duplicate _cw removed
@@ -8600,6 +8615,41 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+
+        <!-- ===== QUICK BATCH CALL PANEL ===== -->
+        <section class="panel" data-category="x402" style="margin-top:0">
+          <div class="panel-head"><h2>Quick Batch Call</h2></div>
+          <div class="panel-body">
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Call the same provider multiple times in one go.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Provider ID</label>
+                <input type="number" id="batchProvId" min="1" value="1" style="width:100%;padding:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;margin-top:4px;box-sizing:border-box"/>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Payload</label>
+                <input type="text" id="batchPayload" value="ping" style="width:100%;padding:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;margin-top:4px;box-sizing:border-box"/>
+              </div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <label style="font-size:12px;color:var(--text-dim)">Number of calls</label>
+                <span id="batchCountLabel" style="font-size:13px;font-weight:700;color:var(--accent)">3 calls</span>
+              </div>
+              <input type="range" id="batchCount" min="1" max="20" value="3"
+                oninput="document.getElementById('batchCountLabel').textContent=this.value+' call'+(this.value>1?'s':'');document.getElementById('batchCostLabel').textContent=(Number(this.value)*(window._batchProvPrice||1)).toFixed(2)+' USDC'"
+                style="width:100%;accent-color:var(--accent)"/>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:4px"><span>1</span><span>10</span><span>20</span></div>
+            </div>
+            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px">
+              Estimated cost: <span id="batchCostLabel" style="color:var(--accent);font-weight:700">3 USDC</span>
+              <span style="color:var(--text-faint);margin-left:8px">· Each call is independent</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="window.runBatchCallSlider&&window.runBatchCallSlider()">Run batch →</button>
+            <div id="batchProgress" style="margin-top:12px"></div>
           </div>
         </section>
 
@@ -22386,6 +22436,8 @@ console.log("call opened:", tx.hash);`;
       setTimeout(() => {
         injectProviderEarnings();
         enhanceCrossChainSelector();
+        // Also check SLA countdowns on connect
+        if (window.checkSlaCountdowns) window.checkSlaCountdowns();
       }, 500);
     });
 
@@ -22565,6 +22617,8 @@ console.log("call opened:", tx.hash);`;
         _origShow(cat);
         if (cat === 'history') window.loadHistory();
         if (cat === 'apidocs') {} // static
+        if (cat === 'verify') {} // static form
+        if (cat === 'provprofile') {} // static form
       };
     }
 
@@ -23241,6 +23295,64 @@ console.log("call opened:", tx.hash);`;
     } else {
       setTimeout(init, 300);
     }
+
+    // ---- MCP + x402 test functions (called from injectMcpTestBtn/injectX402Tester) ----
+    window.runMcpTest = async function(tool) {
+      const out = document.getElementById('mcpTestOutput');
+      if (out) { out.textContent = 'Running ' + tool + '...'; out.style.display = 'block'; }
+      try {
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        if (tool === 'list_providers') {
+          const r = await fetch(sg, {method:'POST',headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({query:'{ providers(first:5) { id pricePerCall completedCalls stake } }'})});
+          const d = await r.json();
+          if (out) out.textContent = JSON.stringify(d?.data?.providers || [], null, 2);
+        } else if (tool === 'network_stats') {
+          const r = await fetch(sg, {method:'POST',headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({query:'{ _meta { block { number } } providers { id } calls { id } }'})});
+          const d = await r.json();
+          if (out) out.textContent = JSON.stringify({
+            block: d?.data?._meta?.block?.number,
+            providers: d?.data?.providers?.length,
+            calls: d?.data?.calls?.length
+          }, null, 2);
+        } else {
+          if (out) out.textContent = '{"tool":"' + tool + '","status":"ok","ts":' + Date.now() + '}';
+        }
+      } catch(e) { if (out) out.textContent = 'Error: ' + e.message; }
+    };
+
+    window.runX402Test = async function(endpoint) {
+      const out = document.getElementById('x402TestOutput');
+      if (out) { out.textContent = 'Sending 402 request to ' + endpoint + '...'; out.style.display = 'block'; }
+      try {
+        const r = await fetch('/api/' + endpoint, {method:'GET'});
+        const status = r.status;
+        let body = {};
+        try { body = await r.json(); } catch {}
+        if (out) out.textContent = 'Status: ' + status + '\n\n' + JSON.stringify(body, null, 2);
+      } catch(e) { if (out) out.textContent = 'Error: ' + e.message; }
+    };
+
+    // ---- SLA Countdown auto-start when open calls exist ----
+    window.checkSlaCountdowns = async function() {
+      if (!window.state?.accounts?.length) return;
+      try {
+        const sg = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/2.0.0/gn';
+        const addr = window.state.accounts[0].toLowerCase();
+        const r = await fetch(sg, {method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({query:`{ calls(where:{caller:"${addr}",status:"open"}, first:10) { id deadline } }`})});
+        const d = await r.json();
+        const open = d?.data?.calls || [];
+        if (!open.length) return;
+        const now = Math.floor(Date.now()/1000);
+        const active = open.filter(c => Number(c.deadline) > now);
+        if (!active.length) return;
+        window.startSlaCountdown && window.startSlaCountdown(active.map(c => ({callId:c.id, deadline:Number(c.deadline)})));
+      } catch {}
+    };
+    setInterval(() => { if (window.state?.accounts?.length) window.checkSlaCountdowns(); }, 30000);
+
   })();
   </script>
 </body>
