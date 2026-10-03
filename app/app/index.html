@@ -13638,6 +13638,12 @@ async function refreshBalance() {
                 .find(x => x.name === "CallStarted");
               if (parsed) {
                 row.innerHTML = `#${idStr} — <span style="color:var(--accent)">✓ opened</span> · call ${short(parsed.args.callId, 6)} · <a href="${txLink(tx.hash)}" target="_blank" style="color:var(--accent)">${short(tx.hash, 6)} ↗</a>`;
+                // Start call watcher for each call
+                if (window.startCallWatcher) {
+                  const p = state.providers?.[idStr] || {};
+                  const deadlineVal = parsed.args.deadline ? Number(parsed.args.deadline) : Math.floor(Date.now()/1000) + Number(p.maxResponseTime||60);
+                  window.startCallWatcher(parsed.args.callId, deadlineVal, Number(p.pricePerCall||1e6)/1e6);
+                }
               }
             } catch(e) {
               row.innerHTML = `#${idStr} — <span style="color:var(--danger)">✗ ${friendlyError(e)}</span>`;

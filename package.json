@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint ok'",
-    "check": "bun run typecheck && bun run lint"
+    "check": "bun run typecheck && bun run lint",
+    "check-env": "node check.js",
+    "setup": "node check.js && bun install"
   },
   "dependencies": {
     "ethers": "^6.0.0",

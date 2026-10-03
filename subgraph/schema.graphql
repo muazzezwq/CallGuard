@@ -37,6 +37,7 @@ enum CallStatus {
   STARTED
   COMPLETED
   SLASHED
+  REFUNDED
 }
 
 type CrossChainCall @entity {
