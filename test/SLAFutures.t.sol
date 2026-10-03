@@ -6,8 +6,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { SLAFutures } from "../src/SLAFutures.sol";
-import { IServiceRegistry } from "../src/interfaces/IServiceRegistry.sol";
+import { SLAFutures } from "../contracts/SLAFutures.sol";
+import { IServiceRegistry } from "../contracts/interfaces/IServiceRegistry.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
 
 // ---------------------------------------------------------------------------

@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AgentWallet } from "../src/AgentWallet.sol";
-import { IPayPerCall } from "../src/interfaces/IPayPerCall.sol";
+import { AgentWallet } from "../contracts/AgentWallet.sol";
+import { IPayPerCall } from "../contracts/interfaces/IPayPerCall.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
 
 // ---------------------------------------------------------------------------
