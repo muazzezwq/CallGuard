@@ -77,6 +77,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     error AuthorizationExpired();
     error AuthorizationNotYetValid();
     error InvalidAuthorization();
+    error InsufficientProviderStake();
 
     // ---------------------------------------------------------------------
     // Types
@@ -223,6 +224,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         IServiceRegistry.ProviderView memory p = registry.getProvider(providerId);
         if (!p.active) revert ProviderNotActive();
 
+        uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
+        if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
+
         // --- Authorization amount must cover the provider price ---
         // (USDC will revert if amount < p.pricePerCall or sig invalid)
 
@@ -270,6 +274,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     function callService(uint256 providerId, bytes32 requestHash) external nonReentrant returns (bytes32 callId) {
         IServiceRegistry.ProviderView memory p = registry.getProvider(providerId);
         if (!p.active) revert ProviderNotActive();
+
+        // Ensure slash bonus can cover at least the call price — protects callers
+        // from providers whose stake has been depleted by previous slashes.
+        uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
+        if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
 
         uint256 currentNonce = nonce++;
         callId = keccak256(

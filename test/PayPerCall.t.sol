@@ -281,6 +281,9 @@ contract PayPerCallTest is Test {
         payPerCall.claimTimeout(callId);
     }
 
+    /// @dev Since the InsufficientProviderStake check was added, a provider
+    ///      with 0 slash bps cannot accept calls — expectedSlash = 0 < price.
+    ///      This test verifies the new guard rejects the call upfront.
     function test_claimTimeout_zeroSlashBps_onlyRefunds() public {
         // New provider with 0 slash bps
         address provider2 = address(0xB0B2);
@@ -294,18 +297,34 @@ contract PayPerCallTest is Test {
         vm.prank(provider2);
         uint256 pid = registry.register(signer2, STAKE, PRICE, MAX_RESP, 0, "https://api2");
 
+        // With 0 slash bps, expectedSlash = 0 < PRICE — must revert
         vm.prank(caller);
-        bytes32 callId = payPerCall.callService(pid, keccak256("r"));
+        vm.expectRevert(PayPerCall.InsufficientProviderStake.selector);
+        payPerCall.callService(pid, keccak256("r"));
+    }
 
-        skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
+    /// @dev Verify that a provider with sufficient stake AND non-zero slash bps
+    ///      correctly refunds only (no bonus) when slashBps * stake < price.
+    ///      Uses slashBps = 100 (1%) so expectedSlash = 0.01 * STAKE = 10 USDC < PRICE (1 USDC) — wait
+    ///      actually 100 bps * 1000 USDC = 10 USDC > 1 USDC — that passes. Use tiny stake instead.
+    function test_callService_insufficientStake_reverts() public {
+        address provider4 = address(0xB0B4);
+        address signer4   = vm.addr(0xDEAD4);
 
-        uint256 callerBalBefore = usdc.balanceOf(caller);
+        // Stake = 10 USDC, price = 1 USDC, slashBps = 100 (1%) → expectedSlash = 0.1 USDC < 1 USDC
+        uint256 smallStake = 10e6;  // 10 USDC
+        uint32  lowSlash   = 100;   // 1% → expectedSlash = 0.1 USDC < PRICE (1 USDC) → should revert
+
+        usdc.mint(provider4, 1_000e6);
+        vm.prank(provider4);
+        usdc.approve(address(registry), type(uint256).max);
+
+        vm.prank(provider4);
+        uint256 pid = registry.register(signer4, smallStake, PRICE, MAX_RESP, lowSlash, "https://api4");
+
         vm.prank(caller);
-        payPerCall.claimTimeout(callId);
-
-        // Only refund, no slash
-        assertEq(usdc.balanceOf(caller), callerBalBefore + PRICE);
-        assertEq(registry.getProvider(pid).stake, STAKE);
+        vm.expectRevert(PayPerCall.InsufficientProviderStake.selector);
+        payPerCall.callService(pid, keccak256("r"));
     }
 
     function test_claimTimeout_fullSlashBps_transfersAllStake() public {

@@ -10205,7 +10205,7 @@ npm install</pre>
 <span class="kw">import</span> { ethers } <span class="kw">from</span> <span class="str">"ethers"</span>;
 <span class="kw">const</span> RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>;
 <span class="kw">const</span> USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>;
-<span class="kw">const</span> PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>;
+<span class="kw">const</span> PPC  = <span class="str">"0x51bbd776d01bbb99b5425c701f00b2c516215e2e"</span>;
 
 <span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">BrowserProvider</span>(window.ethereum);
 <span class="kw">const</span> wallet   = <span class="kw">await</span> provider.<span class="fn">getSigner</span>();
@@ -10228,7 +10228,7 @@ console.<span class="fn">log</span>(<span class="str">"call opened:"</span>, tx.
 
 <span class="kw">const</span> RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>;
 <span class="kw">const</span> USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>;
-<span class="kw">const</span> PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>;
+<span class="kw">const</span> PPC  = <span class="str">"0x51bbd776d01bbb99b5425c701f00b2c516215e2e"</span>;
 <span class="kw">const</span> PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY; <span class="cm">// never hard-code</span>
 
 <span class="kw">const</span> provider = <span class="kw">new</span> ethers.<span class="fn">JsonRpcProvider</span>(RPC, { chainId: 5042002, name: <span class="str">"arc-testnet"</span> });
@@ -10254,7 +10254,7 @@ console.<span class="fn">log</span>(<span class="str">"callId:"</span>, rc.logs[
 
 RPC  = <span class="str">"https://rpc.testnet.arc.io"</span>
 USDC = <span class="str">"0x3600000000000000000000000000000000000000"</span>
-PPC  = <span class="str">"0x10387347678d9f7106D5625bE0BD6C915158B130"</span>
+PPC  = <span class="str">"0x51bbd776d01bbb99b5425c701f00b2c516215e2e"</span>
 KEY  = os.environ[<span class="str">"AGENT_PRIVATE_KEY"</span>]
 
 w3      = Web3(Web3.HTTPProvider(RPC))
@@ -10441,7 +10441,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
           <div>
             <a href="https://explorer.testnet.arc.io/address/0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" target="_blank" rel="noreferrer">Registry</a>
             &nbsp;·&nbsp;
-            <a href="https://explorer.testnet.arc.io/address/0x10387347678d9f7106D5625bE0BD6C915158B130" target="_blank" rel="noreferrer">PayPerCall</a>
+            <a href="https://explorer.testnet.arc.io/address/0x51bbd776d01bbb99b5425c701f00b2c516215e2e" target="_blank" rel="noreferrer">PayPerCall</a>
             &nbsp;·&nbsp; MIT License
           </div>
         </div>
@@ -10465,7 +10465,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
         rpcUrl: "https://rpc.testnet.arc.network",
         explorerBase: "https://explorer.testnet.arc.io",
         registry: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF",
-        payPerCall: "0x10387347678d9f7106D5625bE0BD6C915158B130",
+        payPerCall: "0x51bbd776d01bbb99b5425c701f00b2c516215e2e",
         registerWithNFT: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169",
         identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         usdc: "0x3600000000000000000000000000000000000000",
@@ -12553,6 +12553,7 @@ async function refreshBalance() {
         "0x8baa579f": "SLA deadline has passed — the provider missed the response window.",
         "0xb3b42b14": "Call ID collision — please try again.",
         "0xac4e7849": "Provider is not active.",
+        "0xaf115da8": "Provider stake is too low to cover the slash bonus. This provider cannot accept calls until they top up their stake.",
         // Dispute errors
         "0x1f6a65b6": "Dispute not found.",
         "0x3b6a8c3d": "Dispute already resolved.",
@@ -13437,15 +13438,26 @@ async function refreshBalance() {
               <div style="color:var(--text-dim)">Provider stake (${stakeNum.toFixed(4)} USDC) is less than the minimum slash amount (${minSlashAmt.toFixed(4)} USDC). On timeout you may receive a <em>partial</em> slash bonus instead of the full amount.</div>
             </div>`;
           }
-          // Warn in call button if high risk
+          // Warn in call button if high risk or underfunded
           const btnCall = $("btnCall");
           if (btnCall) {
-            if (rep <= 10) {
+            if (isUnderfunded) {
+              // Kontrat da reddedecek — butonu kapat
+              btnCall.disabled = true;
+              btnCall.textContent = "⛔ Provider underfunded — calls blocked";
+              btnCall.style.background = "rgba(100,100,100,.4)";
+              btnCall.style.cursor = "not-allowed";
+              btnCall.title = "This provider's stake is too low to cover the minimum slash amount. The contract will reject the call.";
+            } else if (rep <= 10) {
+              btnCall.disabled = false;
               btnCall.textContent = "⚠ Call anyway (high risk)";
               btnCall.style.background = "rgba(239,68,68,.8)";
+              btnCall.style.cursor = "";
             } else {
+              btnCall.disabled = false;
               btnCall.textContent = "Approve & call";
               btnCall.style.background = "";
+              btnCall.style.cursor = "";
             }
           }
           riskBanner.innerHTML = bannerHtml;
@@ -14376,7 +14388,7 @@ async function refreshBalance() {
 const provider = new ethers.BrowserProvider(window.ethereum);
 const wallet   = await provider.getSigner();
 const usdc     = new ethers.Contract("0x3600000000000000000000000000000000000000", ["function approve(address,uint256) returns(bool)"], wallet);
-const arc      = new ethers.Contract("0x10387347678d9f7106D5625bE0BD6C915158B130", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
+const arc      = new ethers.Contract("0x51bbd776d01bbb99b5425c701f00b2c516215e2e", ["function callService(uint256,bytes32) returns(bytes32)"], wallet);
 await usdc.approve(arc.target, ethers.parseUnits("1", 6));
 const requestHash = ethers.keccak256(ethers.toUtf8Bytes("summarize this document"));
 const tx = await arc.callService(1, requestHash);
@@ -19390,7 +19402,7 @@ console.log("call opened:", tx.hash);`;
       const _watchProvider = new ethers.JsonRpcProvider(ARC_RPC);
       _watchProvider.setMaxListeners(3);
       const _watchContract = new ethers.Contract(
-        window.CONFIG?.payPerCall || '0x10387347678d9f7106D5625bE0BD6C915158B130',
+        window.CONFIG?.payPerCall || '0x51bbd776d01bbb99b5425c701f00b2c516215e2e',
         CALL_ABI,
         _watchProvider
       );
@@ -21263,7 +21275,7 @@ console.log("call opened:", tx.hash);`;
     // ---------------------------------------------------------------
     // Config — read from window or fall back to known deployed addresses
     // ---------------------------------------------------------------
-    const PAY_PER_CALL     = window.PAY_PER_CALL_ADDRESS     || '0x10387347678d9f7106D5625bE0BD6C915158B130'; // arc-studio-allow-onchain-literal
+    const PAY_PER_CALL     = window.PAY_PER_CALL_ADDRESS     || '0x51bbd776d01bbb99b5425c701f00b2c516215e2e'; // arc-studio-allow-onchain-literal
     const SERVICE_REGISTRY = window.SERVICE_REGISTRY_ADDRESS || '0xea00f898C0eA249de7226b283e93C13eFa7BbcFF'; // arc-studio-allow-onchain-literal
     // SLAAttestationBridge address — deployed 2 Oct 2026
     const BRIDGE_ADDRESS   = window.SLA_ATTESTATION_BRIDGE   || '0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7'; // arc-studio-allow-onchain-literal

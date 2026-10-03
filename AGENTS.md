@@ -3,7 +3,8 @@
 ## Core Contracts (verified on ArcScan)
 | Contract | Address | Status |
 |---|---|---|
-| `PayPerCall` (v2) | `0x10387347678d9f7106D5625bE0BD6C915158B130` | ✅ Verified |
+| `PayPerCall` (v2) | `0x10387347678d9f7106D5625bE0BD6C915158B130` | ✅ Verified (old) |
+| `PayPerCall` (v3 — InsufficientProviderStake check) | `0x51bbd776d01bbb99b5425c701f00b2c516215e2e` | ✅ Deployed (3 Oct 2026) |
 | `ServiceRegistry` | `0xea00f898C0eA249de7226b283e93C13eFa7BbcFF` | ✅ Verified |
 | `Dispute` | `0xa47162d8e4785d867f05800f35a334fd78575e56` | ✅ Verified |
 | `Subscription` | `0xef7d56390f86a5cecc05f75e265859a1c79cefe6` | ✅ Verified |
