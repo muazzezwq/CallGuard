@@ -9,9 +9,12 @@
   },
 
   "rewrites": [
-    { "source": "/callService",    "destination": "/api/call-service" },
-    { "source": "/nano/call",      "destination": "/api/nano-call" },
-    { "source": "/nano/balance",   "destination": "/api/nano-balance" }
+    { "source": "/callService",      "destination": "/api/call-service" },
+    { "source": "/nano/call",        "destination": "/api/nano-call" },
+    { "source": "/nano/balance",     "destination": "/api/nano-balance" },
+    { "source": "/providers/:id",    "destination": "/api/provider-page?id=:id" },
+    { "source": "/verify/:hash",     "destination": "/app/app/index.html" },
+    { "source": "/sitemap.xml",      "destination": "/api/provider-page?sitemap=1" }
   ],
   "headers": [
     {
