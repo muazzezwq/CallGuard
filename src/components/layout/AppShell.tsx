@@ -31,6 +31,8 @@ const panels = {
   jobs:          lazy(() => import("../panels/Jobs")),
   bulkcall:      lazy(() => import("../panels/BulkCall")),
   register:      lazy(() => import("../panels/Register")),
+  nano:          lazy(() => import("../panels/Nano")),
+  privacy:       lazy(() => import("../panels/Privacy")),
 } as const;
 
 function PanelLoader() {

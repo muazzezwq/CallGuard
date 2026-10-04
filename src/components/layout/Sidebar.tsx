@@ -21,6 +21,7 @@ const SETTLEMENT: NavItem[] = [
   { id: "payments",  label: "Payments",  icon: <CreditCard size={16} />, modes: ["simple","pro"] },
   { id: "disputes",  label: "Disputes",  icon: <Shield size={16} />,     modes: ["simple","pro"] },
   { id: "history",   label: "History",   icon: <History size={16} />,    modes: ["simple","pro"] },
+  { id: "nano",      label: "Nanopayment", icon: <Zap size={16} />,      modes: ["simple","pro"] },
 ];
 
 const ADVANCED: NavItem[] = [
@@ -38,6 +39,7 @@ const ADVANCED: NavItem[] = [
 
 const SYSTEM: NavItem[] = [
   { id: "notifications", label: "Notifications", icon: <Bell size={16} />,        modes: ["simple","pro"] },
+  { id: "privacy",       label: "Privacy",       icon: <Shield size={16} />,      modes: ["simple","pro"] },
   { id: "settings",      label: "Settings",      icon: <Settings size={16} />,    modes: ["simple","pro"] },
 ];
 
