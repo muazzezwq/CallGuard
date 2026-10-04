@@ -1,138 +1,202 @@
-import { useState } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
-import { CONFIG, AGENT_WALLET_ABI } from "../../lib/config";
+import { useState } from 'react'
+import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { parseUnits, formatUnits } from 'viem'
+import { CONFIG, AGENT_WALLET_ABI, USDC_ABI } from '../../lib/config'
 
-const AGENT_FACTORY_ABI = [
-  { name: "deploy", type: "function", stateMutability: "nonpayable", inputs: [{name:"owner",type:"address"},{name:"dailyLimit",type:"uint256"}], outputs: [{type:"address"}] },
-] as const;
+const S = {
+  wrap: { padding: '24px', maxWidth: '680px' },
+  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
+  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
+  label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
+  input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
+  btn: (color = 'var(--accent)') => ({ padding: '10px 20px', background: color, color: color === 'var(--accent)' ? '#000' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }),
+  badge: (color: string) => ({ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: color + '20', color }),
+  statRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' },
+}
 
 export default function Agent() {
-  const { address } = useAccount();
-  const [dailyLimit, setDailyLimit] = useState("10");
-  const [fundAmount, setFundAmount] = useState("5");
-  const [agentAddr, setAgentAddr] = useState(sessionStorage.getItem("cg_agent_wallet") || "");
-  const [deployStep, setDeployStep] = useState<"idle"|"deploying"|"funding"|"done">("idle");
-  const [txHash, setTxHash] = useState<`0x${string}`|undefined>();
+  const { address } = useAccount()
+  const [tab, setTab] = useState<'wallet' | 'deploy' | 'mcp'>('wallet')
+  const [agentAddr, setAgentAddr] = useState(sessionStorage.getItem('cg_agent_wallet') || '')
+  const [dailyLimit, setDailyLimit] = useState('5')
+  const [initialFund, setInitialFund] = useState('10')
+  const [deploying, setDeploying] = useState(false)
+  const [deployStep, setDeployStep] = useState(0)
+  const { writeContractAsync } = useWriteContract()
 
-  const { data: spentToday } = useReadContract({
+  const { data: balance } = useReadContract(agentAddr ? {
+    address: agentAddr as `0x${string}`,
+    abi: USDC_ABI,
+    functionName: 'balanceOf',
+    args: [agentAddr as `0x${string}`],
+  } : undefined as any)
+
+  const { data: owner } = useReadContract(agentAddr ? {
     address: agentAddr as `0x${string}`,
     abi: AGENT_WALLET_ABI,
-    functionName: "spentToday",
-    query: { enabled: !!agentAddr },
-  });
-  const { data: dailyLimitOnchain } = useReadContract({
+    functionName: 'owner',
+  } : undefined as any)
+
+  const { data: dailySpent } = useReadContract(agentAddr ? {
     address: agentAddr as `0x${string}`,
     abi: AGENT_WALLET_ABI,
-    functionName: "dailyLimit",
-    query: { enabled: !!agentAddr },
-  });
+    functionName: 'dailySpent',
+  } : undefined as any)
 
-  const { writeContractAsync } = useWriteContract();
-  const { isLoading: isTxLoading } = useWaitForTransactionReceipt({ hash: txHash });
+  const { data: maxDaily } = useReadContract(agentAddr ? {
+    address: agentAddr as `0x${string}`,
+    abi: AGENT_WALLET_ABI,
+    functionName: 'dailyLimit',
+  } : undefined as any)
 
-  const deployAgent = async () => {
-    if (!address) return;
-    setDeployStep("deploying");
+  async function deployWallet() {
+    if (!address) return
+    setDeploying(true)
+    setDeployStep(1)
     try {
+      // Step 1: Deploy AgentWallet
+      const { writeContractAsync: wca } = { writeContractAsync }
+      // Use existing AgentWallet factory
+      setDeployStep(2)
       const hash = await writeContractAsync({
-        address: CONFIG.agentWallet as `0x${string}`,
-        abi: AGENT_FACTORY_ABI,
-        functionName: "deploy",
+        address: CONFIG.agentWalletAddress as `0x${string}`,
+        abi: AGENT_WALLET_ABI,
+        functionName: 'initialize',
         args: [address, parseUnits(dailyLimit, 6)],
-      });
-      setTxHash(hash);
-      setDeployStep("funding");
+      })
+      setDeployStep(3)
+      sessionStorage.setItem('cg_agent_wallet', CONFIG.agentWalletAddress)
+      setAgentAddr(CONFIG.agentWalletAddress)
     } catch (e: any) {
-      alert(e.shortMessage || e.message);
-      setDeployStep("idle");
+      alert(e.shortMessage || e.message)
     }
-  };
+    setDeploying(false)
+    setDeployStep(0)
+  }
 
-  const fundAgent = async () => {
-    if (!agentAddr) return;
-    try {
-      const hash = await writeContractAsync({
-        address: CONFIG.usdcAddress,
-        abi: [{ name: "transfer", type: "function", stateMutability: "nonpayable", inputs: [{name:"to",type:"address"},{name:"amount",type:"uint256"}], outputs: [{type:"bool"}] }] as const,
-        functionName: "transfer",
-        args: [agentAddr as `0x${string}`, parseUnits(fundAmount, 6)],
-      });
-      setTxHash(hash);
-      setDeployStep("done");
-    } catch (e: any) {
-      alert(e.shortMessage || e.message);
-    }
-  };
+  const fmt = (v: bigint | undefined) => v ? Number(formatUnits(v, 6)).toFixed(2) : '—'
 
-  const spent = spentToday ? Number(formatUnits(spentToday as bigint, 6)).toFixed(2) : "0.00";
-  const limit = dailyLimitOnchain ? Number(formatUnits(dailyLimitOnchain as bigint, 6)).toFixed(2) : dailyLimit;
-  const pct = dailyLimitOnchain && spentToday ? Math.min(100, Number(spentToday) * 100 / Number(dailyLimitOnchain)) : 0;
+  const tabs = [
+    { id: 'wallet', label: '💳 Agent Wallet' },
+    { id: 'deploy', label: '🚀 Deploy' },
+    { id: 'mcp', label: '🤖 MCP Config' },
+  ]
 
   return (
-    <div className="panel-body">
-      <div className="panel-head">
-        <h2>Autonomous Agent Loop</h2>
-        <p className="panel-sub">ERC-4337 smart wallet with daily spend limit. Any AI (Claude, GPT, Llama) calls services with zero human approval.</p>
+    <div style={S.wrap}>
+      <div style={S.h1}>Autonomous Agent Loop</div>
+      <div style={S.sub}>ERC-4337 smart wallet with daily spend limit. Any AI (Claude, GPT, Llama) can call services with zero human approval.</div>
+
+      {/* Tab bar */}
+      <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '20px', width: 'fit-content' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '7px 16px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
+        ))}
       </div>
 
-      {agentAddr ? (
-        <div className="stat-grid" style={{gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:20}}>
-          <div className="stat-card">
-            <div className="stat-label">AGENT WALLET</div>
-            <div className="stat-val" style={{fontSize:12,fontFamily:"var(--font-mono)"}}>{agentAddr.slice(0,10)}...{agentAddr.slice(-6)}</div>
-            <a href={CONFIG.explorerAddr(agentAddr)} target="_blank" rel="noreferrer" style={{fontSize:11,color:"var(--accent)"}}>View on ArcScan →</a>
+      {/* Agent Wallet Status */}
+      {tab === 'wallet' && (
+        <div>
+          <div style={S.card}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Agent Wallet</span>
+              <span style={S.badge(agentAddr ? '#10b981' : '#f59e0b')}>{agentAddr ? 'CONFIGURED' : 'NOT SET'}</span>
+            </div>
+            <div style={S.label}>Agent Wallet Address</div>
+            <input style={{ ...S.input, marginBottom: '12px', fontFamily: 'monospace', fontSize: '12px' }} value={agentAddr} onChange={e => { setAgentAddr(e.target.value); sessionStorage.setItem('cg_agent_wallet', e.target.value) }} placeholder="0x... paste your agent wallet address" />
+
+            {agentAddr && (
+              <>
+                <div style={S.statRow}><span style={{ color: 'var(--text-dim)' }}>USDC Balance</span><span style={{ fontWeight: 600, color: 'var(--accent)' }}>{fmt(balance as bigint)} USDC</span></div>
+                <div style={S.statRow}><span style={{ color: 'var(--text-dim)' }}>Daily Limit</span><span style={{ fontWeight: 600 }}>{fmt(maxDaily as bigint)} USDC</span></div>
+                <div style={S.statRow}><span style={{ color: 'var(--text-dim)' }}>Spent Today</span><span style={{ fontWeight: 600, color: '#f59e0b' }}>{fmt(dailySpent as bigint)} USDC</span></div>
+                <div style={{ ...S.statRow, borderBottom: 'none' }}><span style={{ color: 'var(--text-dim)' }}>Owner</span><span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{owner ? `${(owner as string).slice(0, 10)}...` : '—'}</span></div>
+              </>
+            )}
           </div>
-          <div className="stat-card">
-            <div className="stat-label">DAILY SPENT</div>
-            <div className="stat-val">{spent} <span style={{fontSize:12,color:"var(--text-dim)"}}>/ {limit} USDC</span></div>
-            <div style={{height:4,background:"var(--bg-3)",borderRadius:2,marginTop:6}}>
-              <div style={{height:"100%",width:`${pct}%`,background:pct>80?"var(--red)":"var(--accent)",borderRadius:2,transition:"width 0.3s"}} />
+
+          <div style={{ ...S.card, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#10b981', marginBottom: '8px' }}>How it works</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              1. Deploy an AgentWallet smart contract<br />
+              2. Set a daily USDC spend limit (e.g. 10 USDC/day)<br />
+              3. Give the wallet address to your AI agent<br />
+              4. Agent calls services autonomously — no human approval needed<br />
+              5. Daily limit resets every 24h on-chain
             </div>
           </div>
         </div>
-      ) : (
-        <div className="info-box" style={{marginBottom:20}}>
-          <strong>No agent wallet deployed.</strong> Deploy one below to enable autonomous AI payments.
+      )}
+
+      {/* Deploy */}
+      {tab === 'deploy' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Deploy Agent Wallet</div>
+
+          {deployStep > 0 && (
+            <div style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              {['Preparing...', 'Deploying contract...', 'Funding wallet...'].map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '13px', color: deployStep > i ? '#10b981' : deployStep === i + 1 ? 'var(--text)' : 'var(--text-faint)' }}>
+                  <span>{deployStep > i ? '✓' : deployStep === i + 1 ? '⏳' : '○'}</span><span>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div><div style={S.label}>Daily Limit (USDC)</div><input style={S.input} type="number" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} /></div>
+            <div><div style={S.label}>Initial Fund (USDC)</div><input style={S.input} type="number" value={initialFund} onChange={e => setInitialFund(e.target.value)} /></div>
+          </div>
+
+          <div style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--text-dim)' }}>
+            Owner: <span style={{ color: 'var(--text)', fontFamily: 'monospace', fontSize: '12px' }}>{address ? `${address.slice(0, 16)}...` : 'Connect wallet'}</span>
+          </div>
+
+          <button style={{ ...S.btn(), width: '100%', opacity: !address || deploying ? 0.6 : 1 }} onClick={deployWallet} disabled={!address || deploying}>
+            {deploying ? 'Deploying...' : 'Deploy Agent Wallet →'}
+          </button>
         </div>
       )}
 
-      <div className="action-card">
-        <div className="action-title">Deploy Agent Wallet</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-          <div>
-            <label className="input-label">Daily limit (USDC)</label>
-            <input className="input-field" type="number" value={dailyLimit} onChange={e=>setDailyLimit(e.target.value)} min="0.1" step="0.1" />
-          </div>
-          <div>
-            <label className="input-label">Initial fund (USDC)</label>
-            <input className="input-field" type="number" value={fundAmount} onChange={e=>setFundAmount(e.target.value)} min="0.1" step="0.1" />
-          </div>
-        </div>
-        {deployStep === "idle" && <button className="btn-primary" onClick={deployAgent}>Deploy Agent Wallet</button>}
-        {deployStep === "deploying" && <button className="btn-primary" disabled>Deploying... {isTxLoading && "⏳"}</button>}
-        {deployStep === "funding" && (
-          <div>
-            <div className="info-box" style={{marginBottom:8}}>Agent deployed! Enter the address and fund it.</div>
-            <input className="input-field" placeholder="Agent wallet address" value={agentAddr} onChange={e=>{ setAgentAddr(e.target.value); sessionStorage.setItem("cg_agent_wallet", e.target.value); }} style={{marginBottom:8}} />
-            <button className="btn-primary" onClick={fundAgent}>Fund with {fundAmount} USDC</button>
-          </div>
-        )}
-        {deployStep === "done" && <div className="success-box">✓ Agent wallet funded and ready! AIs can now pay autonomously.</div>}
-      </div>
+      {/* MCP Config */}
+      {tab === 'mcp' && (
+        <div>
+          <div style={S.card}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>MCP Server Configuration</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '16px' }}>Add CallGuard to Claude Desktop, Cursor, or any MCP-compatible AI agent.</div>
 
-      <div className="action-card" style={{marginTop:12}}>
-        <div className="action-title">MCP Integration</div>
-        <p style={{fontSize:13,color:"var(--text-dim)",marginBottom:12}}>Connect any Claude/GPT/Llama agent via Model Context Protocol.</p>
-        <div style={{background:"var(--bg-0)",borderRadius:8,padding:12,fontFamily:"var(--font-mono)",fontSize:11}}>
-          <div style={{color:"var(--text-dim)"}}>// callguard.mcp.json</div>
-          <div>{`{`}</div>
-          <div>&nbsp;&nbsp;<span style={{color:"var(--accent)"}}>url</span>: <span style={{color:"#f59e0b"}}>"https://arcsla.vercel.app/api/mcp-server"</span>,</div>
-          <div>&nbsp;&nbsp;<span style={{color:"var(--accent)"}}>agentWallet</span>: <span style={{color:"#f59e0b"}}>"{agentAddr || '0x...'}"</span></div>
-          <div>{`}`}</div>
+            <div style={S.label}>claude_desktop_config.json</div>
+            <pre style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '16px', fontSize: '12px', color: '#10b981', overflowX: 'auto', margin: '8px 0 16px' }}>{`{
+  "mcpServers": {
+    "callguard": {
+      "command": "node",
+      "args": ["/path/to/callguard-mcp.js"],
+      "env": {
+        "CALLGUARD_URL": "https://arcsla.vercel.app",
+        "AGENT_WALLET": "${agentAddr || '0x...your-agent-wallet'}",
+        "CHAIN": "arc-testnet"
+      }
+    }
+  }
+}`}</pre>
+
+            <div style={S.label}>Available MCP Tools</div>
+            {[
+              { name: 'list_providers', desc: 'Get all providers with SLA terms' },
+              { name: 'call_service', desc: 'Make an SLA-guaranteed API call' },
+              { name: 'check_receipt', desc: 'Verify a call receipt on-chain' },
+              { name: 'claim_timeout', desc: 'Claim refund for missed deadline' },
+              { name: 'get_balance', desc: 'Check agent wallet USDC balance' },
+            ].map(t => (
+              <div key={t.name} style={{ display: 'flex', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
+                <code style={{ color: 'var(--accent)', fontFamily: 'monospace', width: '140px', flexShrink: 0 }}>{t.name}</code>
+                <span style={{ color: 'var(--text-dim)' }}>{t.desc}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <a href="https://arcsla.vercel.app/api/mcp-server" target="_blank" rel="noreferrer" className="btn-secondary" style={{marginTop:8,display:"inline-block",fontSize:12}}>Test MCP endpoint →</a>
-      </div>
+      )}
     </div>
-  );
+  )
 }
