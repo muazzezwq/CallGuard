@@ -1,149 +1,336 @@
-import { useAccount } from "wagmi";
-import { useReadContract } from "wagmi";
-import { CONFIG, REGISTRY_ABI, PPC_ABI } from "../../lib/config";
+import { lazy, useState, useEffect } from "react";
+import { useReadContract, useWriteContract, useAccount } from "wagmi";
+import { parseUnits, formatUnits } from "viem";
+import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { ExternalLink } from "lucide-react";
+import { useAppStore } from "../../store/useAppStore";
+import { ExternalLink, Zap, Users, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const s = {
-  page: { padding: "20px 16px", maxWidth: 800, margin: "0 auto" },
-  badge: { display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 20, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "var(--accent)", fontSize: 11, fontWeight: 600, marginBottom: 12 },
-  dot: { width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", animation: "pulse 2s infinite" },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  grid4: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 },
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" },
-  cardLabel: { fontSize: 10, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 4 },
-  cardVal: { fontSize: 22, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-display)" },
-  cardSub: { fontSize: 11, color: "var(--text-dim)", marginTop: 2 },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  row: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" },
-  rowLabel: { fontSize: 12, color: "var(--text-dim)" },
-  rowVal: { fontSize: 12, color: "var(--text)", fontWeight: 500, fontFamily: "var(--font-mono)" },
-  actItem: { display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border)" },
-  statusDot: (status: string) => ({ width: 8, height: 8, borderRadius: "50%", background: status === "STARTED" ? "var(--accent)" : status === "SLASHED" ? "var(--danger)" : "#3b82f6", marginTop: 4, flexShrink: 0 }),
-  link: { color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-mono)", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 },
-  contractGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
-  contractCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px" },
-  contractName: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, marginBottom: 3 },
+  page: { padding: "20px 16px", maxWidth: 860, margin: "0 auto" },
+  badge: { display:"inline-flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:20,background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",color:"var(--accent)",fontSize:11,fontWeight:600,marginBottom:12 },
+  dot: { width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite" },
+  h1: { fontSize:22,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" },
+  sub: { fontSize:13,color:"var(--text-dim)",margin:"0 0 20px" },
+  grid4: { display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16 },
+  card: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px" },
+  cardLabel: { fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:4 },
+  cardVal: { fontSize:22,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-display)" },
+  cardSub: { fontSize:11,color:"var(--text-dim)",marginTop:2 },
+  section: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",marginBottom:12 },
+  sectionTitle: { fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:12 },
+  row: { display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)" },
+  rowLabel: { fontSize:12,color:"var(--text-dim)" },
+  rowVal: { fontSize:12,color:"var(--text)",fontWeight:500,fontFamily:"var(--font-mono)" },
+  actItem: { display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",borderBottom:"1px solid var(--border)" },
+  statusDot: (st:string) => ({ width:8,height:8,borderRadius:"50%",background:st==="STARTED"?"var(--accent)":st==="SLASHED"?"var(--danger)":"#3b82f6",marginTop:4,flexShrink:0 }),
+  link: { color:"var(--accent)",textDecoration:"none",fontFamily:"var(--font-mono)",fontSize:11,display:"inline-flex",alignItems:"center",gap:4 },
+  contractGrid: { display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 },
+  contractCard: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px" },
+  contractName: { fontSize:11,color:"var(--text-dim)",fontWeight:600,marginBottom:3 },
+  btn: (variant="primary") => ({
+    padding:"8px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:13,fontWeight:500,
+    background: variant==="primary" ? "linear-gradient(135deg,#10b981,#059669)" : "var(--bg-3)",
+    color: variant==="primary" ? "#fff" : "var(--text)",
+    display:"inline-flex",alignItems:"center",gap:6,
+  }),
+  input: { width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const },
+  accordion: { border:"1px solid var(--border)",borderRadius:10,marginBottom:12,overflow:"hidden" },
+  accordionHeader: { display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",background:"var(--bg-2)",userSelect:"none" as const },
+  accordionBody: { padding:"16px",background:"var(--bg-1)",borderTop:"1px solid var(--border)" },
 };
 
-function short(addr: string) {
-  return addr ? `${addr.slice(0, 6)}..${addr.slice(-4)}` : "—";
-}
+const CONTRACTS = [
+  { name:"ServiceRegistry", addr: CONFIG.registryAddress },
+  { name:"PayPerCall v3",   addr: CONFIG.ppcAddress },
+  { name:"DisputeQuality",  addr: "0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725" },
+  { name:"SLAFutures",      addr: "0xa6f194c621eE67559aDcA883824e01F1828e887c" },
+  { name:"ReputationLoan",  addr: "0xE656dF6512e9d10e555518b7342fd8c81c42B8c0" },
+  { name:"SLABridge",       addr: "0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7" },
+  { name:"AgentWallet",     addr: "0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6" },
+  { name:"USDC",            addr: CONFIG.usdcAddress },
+];
+
+const SUBGRAPH = `{
+  calls(first:8,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
+  providers(first:5,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
+}`;
 
 export default function Overview() {
+  const { setPanel } = useAppStore();
   const { address } = useAccount();
+  const { data: sg } = useSubgraph(SUBGRAPH);
 
-  const { data: nextId } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId", chainId: CONFIG.chainId });
-  const { data: callCount } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "callCount", chainId: CONFIG.chainId });
-  const { data: receiptCount } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "receiptCount", chainId: CONFIG.chainId });
-  const { data: slashCount } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "slashCount", chainId: CONFIG.chainId });
+  // Onchain stats
+  const { data: nextId } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
+  const { data: totalCalls } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalCalls" });
+  const { data: totalReceipts } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalReceipts" });
+  const { data: totalSlashes } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalSlashes" });
+  const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
 
-  const providerCount = nextId ? Number(nextId) - 1 : null;
-  const calls = callCount ? Number(callCount) : null;
-  const receipts = receiptCount ? Number(receiptCount) : null;
-  const slashes = slashCount ? Number(slashCount) : null;
-  const honorRate = (calls && calls > 0) ? Math.round((receipts || 0) / calls * 100) : 0;
+  const providerCount = nextId ? Number(nextId) - 1 : "—";
+  const calls = totalCalls ? Number(totalCalls).toString() : "—";
+  const receipts = totalReceipts ? Number(totalReceipts).toString() : "—";
+  const slashes = totalSlashes ? Number(totalSlashes).toString() : "—";
+  const honorRate = (totalCalls && totalReceipts && Number(totalCalls) > 0)
+    ? `${Math.round((Number(totalReceipts) / Number(totalCalls)) * 100)}%` : "—";
+  const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
-  const { data: actData } = useSubgraph(`{ calls(first:6, orderBy:createdAt, orderDirection:desc) { id providerId caller amount status createdAt } }`);
-  const activities: { id: string; providerId: string; caller: string; amount: string; status: string; createdAt: string }[] = actData?.calls || [];
+  const activities = sg?.data?.calls ?? [];
+  const topProviders = sg?.data?.providers ?? [];
 
-  const contracts = [
-    { name: "ServiceRegistry", addr: CONFIG.registryAddress },
-    { name: "PayPerCall", addr: CONFIG.ppcAddress },
-    { name: "DisputeQuality", addr: CONFIG.disputeQualityAddress },
-    { name: "SLAFutures", addr: CONFIG.slaFuturesAddress },
-    { name: "ReputationLoan", addr: CONFIG.reputationLoanAddress },
-    { name: "SLABridge", addr: CONFIG.slaBridgeAddress },
-  ];
+  // Auto-router state
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoMaxPrice, setAutoMaxPrice] = useState("2.0");
+  const [autoMinRep, setAutoMinRep] = useState("50");
+  const [autoResult, setAutoResult] = useState<string | null>(null);
+  const [autoLoading, setAutoLoading] = useState(false);
+
+  // Multi-call state
+  const [multiOpen, setMultiOpen] = useState(false);
+  const [multiProvider, setMultiProvider] = useState("1");
+  const [multiPayload, setMultiPayload] = useState("ping");
+  const [multiCount, setMultiCount] = useState(3);
+
+  // Quick call state
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [callProvider, setCallProvider] = useState("1");
+  const { writeContract, isPending } = useWriteContract();
+
+  const runAutoRouter = async () => {
+    setAutoLoading(true);
+    setAutoResult(null);
+    try {
+      const res = await fetch(`https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ providers(first:20,where:{active:true}){ id pricePerCall completedCalls slashedCalls } }` }),
+      });
+      const d = await res.json();
+      const providers = (d?.data?.providers ?? []) as Array<{id:string;pricePerCall:string;completedCalls:string;slashedCalls:string}>;
+      const maxPrice = parseFloat(autoMaxPrice);
+      const minRep = parseFloat(autoMinRep);
+      const filtered = providers.filter(p => {
+        const price = parseFloat(formatUnits(BigInt(p.pricePerCall || "0"), 6));
+        const total = parseInt(p.completedCalls || "0") + parseInt(p.slashedCalls || "0") + 3;
+        const rep = ((parseInt(p.completedCalls || "0") + 2) / total) * 100;
+        return price <= maxPrice && rep >= minRep;
+      });
+      if (filtered.length === 0) setAutoResult("No providers match your criteria.");
+      else {
+        const best = filtered.sort((a, b) => {
+          const repA = ((parseInt(a.completedCalls || "0") + 2) / (parseInt(a.completedCalls || "0") + parseInt(a.slashedCalls || "0") + 3)) * 100;
+          const repB = ((parseInt(b.completedCalls || "0") + 2) / (parseInt(b.completedCalls || "0") + parseInt(b.slashedCalls || "0") + 3)) * 100;
+          return repB - repA;
+        })[0];
+        setAutoResult(`Best match: Provider #${best.id} — price ${formatUnits(BigInt(best.pricePerCall || "0"), 6)} USDC`);
+        setCallProvider(best.id);
+      }
+    } catch { setAutoResult("Error fetching providers."); }
+    setAutoLoading(false);
+  };
+
+  const shorten = (addr: string) => `${addr.slice(0,6)}…${addr.slice(-4)}`;
 
   return (
     <div style={s.page}>
-      <div style={s.badge}>
-        <span style={s.dot} />
-        Arc Testnet · Live
-      </div>
+      {/* Header */}
+      <div style={s.badge}><span style={s.dot} />Arc Testnet · Live</div>
       <h1 style={s.h1}>Overview</h1>
       <p style={s.sub}>Monitor services, requests and settlements on Arc Testnet.</p>
 
+      {/* USDC balance */}
+      {usdcFormatted && (
+        <div style={{ ...s.section, display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",marginBottom:12 }}>
+          <span style={{ fontSize:12,color:"var(--text-dim)" }}>Your USDC Balance</span>
+          <span style={{ fontSize:18,fontWeight:700,color:"var(--accent)",fontFamily:"var(--font-display)" }}>{usdcFormatted} USDC</span>
+        </div>
+      )}
+
       {/* Stats */}
       <div style={s.grid4}>
-        <div style={s.card}>
-          <div style={s.cardLabel}>Providers</div>
-          <div style={s.cardVal}>{providerCount ?? "—"}</div>
-          <div style={s.cardSub}>registered</div>
+        {[
+          { label:"Providers",   val: providerCount, sub:"registered" },
+          { label:"Total Calls", val: calls,         sub:"all-time" },
+          { label:"Receipts",    val: receipts,      sub:"SLA honored" },
+          { label:"Honor Rate",  val: honorRate,     sub:`${slashes} slashes` },
+        ].map(c => (
+          <div key={c.label} style={s.card}>
+            <div style={s.cardLabel}>{c.label}</div>
+            <div style={{ ...s.cardVal, color: c.label==="Honor Rate" && honorRate!=="—" && parseInt(honorRate)<50 ? "var(--danger)" : "var(--text)" }}>{String(c.val)}</div>
+            <div style={s.cardSub}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ACTIONS */}
+      <div style={s.section}>
+        <div style={s.sectionTitle}>ACTIONS</div>
+
+        {/* Quick Call */}
+        <div style={{ marginBottom:12 }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
+            <div>
+              <div style={{ fontSize:13,fontWeight:500,color:"var(--text)" }}>Call a service</div>
+              <div style={{ fontSize:11,color:"var(--text-dim)" }}>Pay per request · EIP-3009 gasless</div>
+            </div>
+            <button style={s.btn()} onClick={() => setPanel("calls")}>Call Builder →</button>
+          </div>
+          <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+            <input style={{ ...s.input, width:100 }} placeholder="Provider ID" value={callProvider} onChange={e => setCallProvider(e.target.value)} />
+            <button style={s.btn()} onClick={() => { setPanel("calls"); }}>Quick Call</button>
+          </div>
         </div>
-        <div style={s.card}>
-          <div style={s.cardLabel}>Total Calls</div>
-          <div style={s.cardVal}>{calls ?? "—"}</div>
-          <div style={s.cardSub}>all-time</div>
+
+        <div style={{ height:1, background:"var(--border)", margin:"12px 0" }} />
+
+        {/* Register as provider */}
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:13,fontWeight:500,color:"var(--text)" }}>Register as provider</div>
+            <div style={{ fontSize:11,color:"var(--text-dim)" }}>Stake USDC · Define your SLA terms</div>
+          </div>
+          <button style={s.btn("secondary")} onClick={() => setPanel("register")}>Register →</button>
         </div>
-        <div style={s.card}>
-          <div style={s.cardLabel}>Receipts</div>
-          <div style={s.cardVal}>{receipts ?? "—"}</div>
-          <div style={s.cardSub}>SLA honored</div>
+
+        <div style={{ height:1, background:"var(--border)", margin:"12px 0" }} />
+
+        {/* Auto-router */}
+        <div style={s.accordion}>
+          <div style={s.accordionHeader} onClick={() => setAutoOpen(o => !o)}>
+            <div>
+              <div style={{ fontSize:13,fontWeight:500,color:"var(--text)" }}>Auto-router</div>
+              <div style={{ fontSize:11,color:"var(--text-dim)" }}>Best provider by reputation score</div>
+            </div>
+            {autoOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
+          </div>
+          {autoOpen && (
+            <div style={s.accordionBody}>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10 }}>
+                <div>
+                  <div style={{ fontSize:11,color:"var(--text-dim)",marginBottom:4 }}>Max price (USDC)</div>
+                  <input style={s.input} value={autoMaxPrice} onChange={e => setAutoMaxPrice(e.target.value)} placeholder="2.0" />
+                </div>
+                <div>
+                  <div style={{ fontSize:11,color:"var(--text-dim)",marginBottom:4 }}>Min reputation %</div>
+                  <input style={s.input} value={autoMinRep} onChange={e => setAutoMinRep(e.target.value)} placeholder="50" />
+                </div>
+              </div>
+              <button style={{ ...s.btn(), width:"100%",justifyContent:"center" }} onClick={runAutoRouter} disabled={autoLoading}>
+                {autoLoading ? <><RefreshCw size={12} />Finding best provider…</> : <><Zap size={12} />Find best provider</>}
+              </button>
+              {autoResult && (
+                <div style={{ marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",fontSize:12,color:"var(--accent)" }}>
+                  {autoResult}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div style={{ ...s.card, borderColor: honorRate > 50 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)" }}>
-          <div style={s.cardLabel}>Honor Rate</div>
-          <div style={{ ...s.cardVal, color: honorRate > 50 ? "var(--accent)" : "var(--danger)" }}>{honorRate}%</div>
-          <div style={s.cardSub}>{slashes ?? "—"} slashes</div>
+
+        {/* Multi-call */}
+        <div style={s.accordion}>
+          <div style={s.accordionHeader} onClick={() => setMultiOpen(o => !o)}>
+            <div>
+              <div style={{ fontSize:13,fontWeight:500,color:"var(--text)" }}>Multi-provider call</div>
+              <div style={{ fontSize:11,color:"var(--text-dim)" }}>Parallel calls · Fastest receipt wins</div>
+            </div>
+            {multiOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
+          </div>
+          {multiOpen && (
+            <div style={s.accordionBody}>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:11,color:"var(--text-dim)",marginBottom:4 }}>Provider IDs (comma separated)</div>
+                <input style={s.input} value={multiProvider} onChange={e => setMultiProvider(e.target.value)} placeholder="1,2,3" />
+              </div>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:11,color:"var(--text-dim)",marginBottom:4 }}>Request payload</div>
+                <input style={s.input} value={multiPayload} onChange={e => setMultiPayload(e.target.value)} placeholder="ping" />
+              </div>
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+                <span style={{ fontSize:11,color:"var(--text-dim)" }}>Calls to send per provider</span>
+                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                  <button style={{ ...s.btn("secondary"),padding:"4px 10px" }} onClick={() => setMultiCount(c => Math.max(1,c-1))}>−</button>
+                  <span style={{ fontFamily:"var(--font-mono)",fontSize:13 }}>{multiCount}</span>
+                  <button style={{ ...s.btn("secondary"),padding:"4px 10px" }} onClick={() => setMultiCount(c => Math.min(10,c+1))}>+</button>
+                </div>
+              </div>
+              <div style={{ padding:"8px 12px",borderRadius:8,background:"var(--bg-3)",fontSize:11,color:"var(--text-dim)",marginBottom:10 }}>
+                Cost: ~{multiProvider.split(",").filter(Boolean).length * multiCount} USDC total
+              </div>
+              <button style={{ ...s.btn(),width:"100%",justifyContent:"center" }} onClick={() => setPanel("bulkcall")}>
+                Open Bulk Call →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Live Activity */}
       <div style={s.section}>
-        <div style={s.sectionTitle}>Live Activity</div>
-        {activities.length === 0 && <div style={{ color: "var(--text-faint)", fontSize: 12 }}>Loading activity...</div>}
-        {activities.map((a, i) => (
-          <div key={i} style={{ ...s.actItem, borderBottom: i < activities.length - 1 ? "1px solid var(--border)" : "none" }}>
-            <span style={s.statusDot(a.status)} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 500 }}>
-                <span style={{ color: a.status === "STARTED" ? "var(--accent)" : a.status === "SLASHED" ? "var(--danger)" : "#3b82f6", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 6, fontWeight: 700 }}>{a.status}</span>
-                provider #{a.providerId}
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+          <div style={s.sectionTitle}>LIVE ACTIVITY</div>
+          <span style={{ fontSize:10,color:"var(--text-faint)" }}>streaming from arc testnet</span>
+        </div>
+        {activities.length === 0 ? (
+          <div style={{ textAlign:"center",padding:"20px 0",color:"var(--text-faint)",fontSize:12 }}>No activity yet</div>
+        ) : activities.map((a: {id:string;status:string;providerId:string;amount:string;createdAt:string}) => (
+          <div key={a.id} style={s.actItem}>
+            <div style={s.statusDot(a.status)} />
+            <div style={{ flex:1,minWidth:0 }}>
+              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:2 }}>
+                <span style={{ fontSize:11,fontWeight:600,padding:"1px 6px",borderRadius:4,background:a.status==="STARTED"?"rgba(16,185,129,0.1)":a.status==="SLASHED"?"rgba(239,68,68,0.1)":"rgba(59,130,246,0.1)",color:a.status==="STARTED"?"var(--accent)":a.status==="SLASHED"?"var(--danger)":"#60a5fa" }}>{a.status}</span>
+                <span style={{ fontSize:12,color:"var(--text)" }}>provider #{a.providerId}</span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                {a.caller ? `${a.caller.slice(0, 8)}...` : "—"} · {parseFloat(a.amount || "0") / 1e6} USDC
+              <div style={{ fontSize:11,color:"var(--text-dim)" }}>
+                {Number(formatUnits(BigInt(a.amount || "0"), 6)).toFixed(2)} USDC · {a.id && <a href={`${ARCSCAN}/tx/${a.id}`} target="_blank" rel="noreferrer" style={s.link}>{shorten(a.id)}<ExternalLink size={10} /></a>}
               </div>
             </div>
-            <a href={`${ARCSCAN}/tx/${a.id}`} target="_blank" rel="noreferrer" style={s.link}>
-              <ExternalLink size={10} />
-            </a>
           </div>
         ))}
       </div>
 
+      {/* Top Providers */}
+      {topProviders.length > 0 && (
+        <div style={s.section}>
+          <div style={s.sectionTitle}>TOP PROVIDERS</div>
+          {topProviders.map((p: {id:string;completedCalls:string;slashedCalls:string}, i:number) => {
+            const total = parseInt(p.completedCalls||"0") + parseInt(p.slashedCalls||"0") + 3;
+            const rep = Math.round(((parseInt(p.completedCalls||"0") + 2) / total) * 100);
+            return (
+              <div key={p.id} style={{ ...s.row, alignItems:"center" }}>
+                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                  <span style={{ fontSize:11,color:"var(--text-faint)",width:16,textAlign:"center" }}>{i+1}</span>
+                  <span style={{ fontSize:13,color:"var(--text)" }}>Provider #{p.id}</span>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                  <div style={{ width:60,height:4,borderRadius:2,background:"var(--bg-3)",overflow:"hidden" }}>
+                    <div style={{ height:"100%",width:`${rep}%`,background:rep>50?"var(--accent)":"var(--danger)",borderRadius:2 }} />
+                  </div>
+                  <span style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-dim)",width:36,textAlign:"right" }}>{rep}%</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Deployed Contracts */}
       <div style={s.section}>
-        <div style={s.sectionTitle}>Deployed Contracts</div>
+        <div style={s.sectionTitle}>DEPLOYED CONTRACTS</div>
         <div style={s.contractGrid}>
-          {contracts.map((c) => (
+          {CONTRACTS.map(c => (
             <div key={c.name} style={s.contractCard}>
               <div style={s.contractName}>{c.name}</div>
               <a href={`${ARCSCAN}/address/${c.addr}`} target="_blank" rel="noreferrer" style={s.link}>
-                {short(c.addr)} <ExternalLink size={9} />
+                {shorten(c.addr)}<ExternalLink size={10} />
               </a>
             </div>
           ))}
         </div>
       </div>
-
-      {address && (
-        <div style={{ ...s.section, borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.04)" }}>
-          <div style={s.sectionTitle}>Your Wallet</div>
-          <div style={s.row}>
-            <span style={s.rowLabel}>Address</span>
-            <a href={`${ARCSCAN}/address/${address}`} target="_blank" rel="noreferrer" style={s.link}>{short(address)} <ExternalLink size={10} /></a>
-          </div>
-          <div style={{ ...s.row, borderBottom: "none" }}>
-            <span style={s.rowLabel}>Network</span>
-            <span style={s.rowVal}>Arc Testnet (Chain {CONFIG.chainId})</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

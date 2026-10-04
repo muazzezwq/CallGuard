@@ -1,175 +1,205 @@
-import { useState } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { parseUnits } from 'viem'
-import { CONFIG, PPC_ABI, USDC_ABI } from '../../lib/config'
-const PPC_ADDRESS = CONFIG.ppcAddress as `0x${string}`
-const USDC_ADDRESS = CONFIG.usdcAddress as `0x${string}`
+import { useState, useEffect } from "react";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseUnits, formatUnits } from "viem";
+import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
+import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 
-const S = {
-  wrap: { padding: '24px', maxWidth: '640px' },
-  h1: { fontSize: '22px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' },
-  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '16px' },
-  label: { fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: '6px' },
-  input: { width: '100%', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '6px', padding: '9px 12px', color: 'var(--text)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const },
-  row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' },
-  btn: { padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px' },
-  btnGreen: { background: 'var(--accent)', color: '#fff' },
-  btnGhost: { background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)' },
-  info: { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', padding: '12px', fontSize: '13px', color: 'var(--text)', marginBottom: '16px' },
-  warn: { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', padding: '12px', fontSize: '13px', color: '#ef4444', marginBottom: '16px' },
-  tag: { display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'rgba(16,185,129,0.15)', color: '#10b981', marginLeft: '8px' },
-}
+const s = {
+  page: { padding:"20px 16px",maxWidth:700,margin:"0 auto" },
+  h1: { fontSize:22,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" },
+  sub: { fontSize:13,color:"var(--text-dim)",margin:"0 0 20px" },
+  section: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,padding:"16px",marginBottom:12 },
+  sectionTitle: { fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:14 },
+  label: { fontSize:12,color:"var(--text-dim)",marginBottom:4,display:"block" },
+  input: { width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const,marginBottom:12 },
+  row: { display:"flex",gap:10,marginBottom:0 },
+  calcCard: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",marginBottom:12 },
+  calcRow: { display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--border)" },
+  calcLabel: { fontSize:12,color:"var(--text-dim)" },
+  calcVal: { fontSize:12,fontWeight:600,fontFamily:"var(--font-mono)",color:"var(--text)" },
+  btn: (v="primary",disabled=false) => ({ padding:"10px 20px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontSize:13,fontWeight:500,background:disabled?"var(--bg-3)":v==="primary"?"linear-gradient(135deg,#10b981,#059669)":"var(--bg-3)",color:disabled?"var(--text-faint)":v==="primary"?"#fff":"var(--text)",display:"inline-flex",alignItems:"center",gap:6,opacity:disabled?0.6:1,width:"100%",justifyContent:"center" as const }),
+  info: { background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#93c5fd",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  warn: { background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#fbbf24",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  success: { background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--accent)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  tag: { display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,background:"rgba(16,185,129,0.1)",color:"var(--accent)",border:"1px solid rgba(16,185,129,0.2)",marginLeft:6 },
+};
 
 export default function Register() {
-  const { address, isConnected } = useAccount()
-  const { writeContract, data: hash, isPending } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+  const { address } = useAccount();
+  const [signerAddr, setSignerAddr] = useState("");
+  const [stake, setStake] = useState("5");
+  const [price, setPrice] = useState("1");
+  const [slaWindow, setSlaWindow] = useState("120");
+  const [slashPct, setSlashPct] = useState("20");
+  const [step, setStep] = useState<"idle"|"approving"|"registering"|"done">("idle");
+  const [hash, setHash] = useState<`0x${string}` | undefined>();
 
-  const [form, setForm] = useState({
-    stake: '50',
-    price: '1',
-    sla: '120',
-    slashBps: '2000',
-    signer: '',
-  })
-  const [step, setStep] = useState<'approve' | 'register'>('approve')
+  useEffect(() => { if (address) setSignerAddr(address); }, [address]);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }))
+  // Allowance
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: CONFIG.usdcAddress as `0x${string}`,
+    abi: USDC_ABI,
+    functionName: "allowance",
+    args: address ? [address, CONFIG.registryAddress as `0x${string}`] : undefined,
+    query: { enabled: !!address },
+  });
+
+  const { writeContract, isPending } = useWriteContract();
+  const { isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (txSuccess) {
+      if (step === "approving") { setStep("registering"); refetchAllowance(); }
+      else if (step === "registering") setStep("done");
+    }
+  }, [txSuccess, step]);
+
+  // Live calculator
+  const stakeNum = parseFloat(stake) || 0;
+  const priceNum = parseFloat(price) || 0;
+  const slashNum = parseFloat(slashPct) || 20;
+  const slashPerCall = (priceNum * slashNum) / 100;
+  const breakeven = slashPerCall > 0 ? Math.ceil(stakeNum / slashPerCall) : "∞";
+  const slashBps = Math.round(slashNum * 100);
+  const estimatedEarning = priceNum * 10; // 10 calls estimate
+
+  const stakeAmount = parseUnits(stake || "0", 6);
+  const priceAmount = parseUnits(price || "0", 6);
+  const needsApproval = !allowance || (allowance as bigint) < stakeAmount;
 
   const handleApprove = () => {
-    if (!address) return
+    setStep("approving");
     writeContract({
-      address: USDC_ADDRESS,
+      address: CONFIG.usdcAddress as `0x${string}`,
       abi: USDC_ABI,
-      functionName: 'approve',
-      args: [PPC_ADDRESS, parseUnits(form.stake, 6)],
-    })
-    setStep('register')
-  }
+      functionName: "approve",
+      args: [CONFIG.registryAddress as `0x${string}`, stakeAmount],
+    }, { onSuccess: h => setHash(h) });
+  };
 
   const handleRegister = () => {
-    if (!address) return
+    setStep("registering");
     writeContract({
-      address: PPC_ADDRESS,
-      abi: PPC_ABI,
-      functionName: 'register',
-      args: [
-        (form.signer || address) as `0x${string}`,
-        parseUnits(form.stake, 6),
-        parseUnits(form.price, 6),
-        Number(form.sla),
-        Number(form.slashBps),
-        '0x',
-      ],
-    })
-  }
+      address: CONFIG.registryAddress as `0x${string}`,
+      abi: REGISTRY_ABI,
+      functionName: "register",
+      args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps],
+    }, { onSuccess: h => setHash(h) });
+  };
 
-  const stakeUsdc = Number(form.stake)
-  const priceUsdc = Number(form.price)
-  const slashAmt = (stakeUsdc * Number(form.slashBps)) / 10000
-  const isUnderfunded = slashAmt < priceUsdc
-
-  return (
-    <div style={S.wrap}>
-      <div style={S.h1}>Become a Provider <span style={S.tag}>Earn USDC</span></div>
-      <div style={S.sub}>Stake USDC, set your SLA terms, earn per request. Miss the deadline — your stake is slashed.</div>
-
-      {!isConnected && (
-        <div style={S.warn}>Connect your wallet to register as a provider.</div>
-      )}
-
-      <div style={S.info}>
-        <strong>How it works:</strong> You stake USDC as collateral. Every time a caller pays for your service and you respond within the SLA window, you receive the payment. Miss the window — the caller gets a refund + slash bonus from your stake.
-      </div>
-
-      <div style={S.card}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>Registration Parameters</div>
-
-        <div style={S.row}>
-          <div>
-            <div style={S.label}>Stake Amount (USDC)</div>
-            <input style={S.input} value={form.stake} onChange={set('stake')} type="number" min="1" />
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>Min recommended: 50 USDC</div>
-          </div>
-          <div>
-            <div style={S.label}>Price per Call (USDC)</div>
-            <input style={S.input} value={form.price} onChange={set('price')} type="number" min="0.001" step="0.001" />
-          </div>
-        </div>
-
-        <div style={S.row}>
-          <div>
-            <div style={S.label}>SLA Window (seconds)</div>
-            <input style={S.input} value={form.sla} onChange={set('sla')} type="number" min="10" />
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>Time to respond per call</div>
-          </div>
-          <div>
-            <div style={S.label}>Slash % (bps)</div>
-            <input style={S.input} value={form.slashBps} onChange={set('slashBps')} type="number" min="100" max="10000" />
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>2000 = 20% of stake</div>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <div style={S.label}>Signer Address (optional)</div>
-          <input style={S.input} value={form.signer} onChange={set('signer')} placeholder={address || '0x...'} />
-          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>Address that signs receipts. Defaults to your wallet.</div>
-        </div>
-
-        {isUnderfunded && (
-          <div style={S.warn}>
-            ⚠ Underfunded: slash amount ({slashAmt.toFixed(2)} USDC) is less than price per call ({priceUsdc} USDC). Callers may not receive full refund on timeout.
-          </div>
-        )}
-
-        <div style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ color: 'var(--text-dim)' }}>Stake locked</span>
-            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{form.stake} USDC</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ color: 'var(--text-dim)' }}>Per-call slash</span>
-            <span style={{ color: '#ef4444', fontWeight: 600 }}>{slashAmt.toFixed(2)} USDC</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-dim)' }}>Earning per call</span>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>{form.price} USDC</span>
-          </div>
-        </div>
-
-        {isSuccess ? (
-          <div style={{ ...S.info, marginBottom: 0 }}>✅ Successfully registered! Your provider profile is now live on Arc Testnet.</div>
-        ) : (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              style={{ ...S.btn, ...S.btnGhost }}
-              onClick={handleApprove}
-              disabled={!isConnected || isPending || isConfirming}
-            >
-              {isPending && step === 'approve' ? 'Approving…' : '1. Approve USDC'}
-            </button>
-            <button
-              style={{ ...S.btn, ...S.btnGreen }}
-              onClick={handleRegister}
-              disabled={!isConnected || isPending || isConfirming}
-            >
-              {isPending && step === 'register' ? 'Registering…' : isConfirming ? 'Confirming…' : '2. Register'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div style={S.card}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Provider Economics</div>
-        <div style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: '1.6' }}>
-          <div>• Respond within {form.sla}s → earn {form.price} USDC per call</div>
-          <div>• Miss deadline → lose {slashAmt.toFixed(2)} USDC from stake</div>
-          <div>• Honor rate tracked onchain — Bayesian score improves over time</div>
-          <div>• High honor rate (&gt;90%) unlocks RepFi borrowing</div>
-        </div>
+  if (step === "done") return (
+    <div style={s.page}>
+      <div style={{ textAlign:"center",padding:"60px 20px" }}>
+        <CheckCircle size={48} color="var(--accent)" style={{ marginBottom:16 }} />
+        <h2 style={{ fontSize:20,fontWeight:700,color:"var(--text)",marginBottom:8 }}>Registration complete!</h2>
+        <p style={{ fontSize:13,color:"var(--text-dim)" }}>You are now a provider on Arc Testnet. Start listening for call events.</p>
+        <button style={{ ...s.btn(),marginTop:20,maxWidth:200 }} onClick={() => setStep("idle")}>Register another</button>
       </div>
     </div>
-  )
+  );
+
+  return (
+    <div style={s.page}>
+      <h1 style={s.h1}>Become a Provider</h1>
+      <p style={s.sub}>Stake USDC, define your SLA, and start earning per request.</p>
+
+      {/* Info */}
+      <div style={s.info}>
+        <Info size={14} style={{ flexShrink:0,marginTop:1 }} />
+        <span>Provider = sell API calls with a stake guarantee. Miss deadline → stake slashed. Honor it → earn USDC per call.</span>
+      </div>
+
+      {/* Form */}
+      <div style={s.section}>
+        <div style={s.sectionTitle}>REGISTRATION DETAILS</div>
+
+        <label style={s.label}>Signer address <span style={s.tag}>required</span></label>
+        <input style={s.input} value={signerAddr} onChange={e => setSignerAddr(e.target.value)} placeholder="0x…" />
+
+        <div style={s.row}>
+          <div style={{ flex:1 }}>
+            <label style={s.label}>Stake amount (USDC)</label>
+            <input style={s.input} type="number" min="0.01" step="0.1" value={stake} onChange={e => setStake(e.target.value)} />
+          </div>
+          <div style={{ flex:1 }}>
+            <label style={s.label}>Price per call (USDC)</label>
+            <input style={s.input} type="number" min="0.001" step="0.01" value={price} onChange={e => setPrice(e.target.value)} />
+          </div>
+        </div>
+
+        <div style={s.row}>
+          <div style={{ flex:1 }}>
+            <label style={s.label}>SLA window (seconds)</label>
+            <input style={s.input} type="number" min="10" step="10" value={slaWindow} onChange={e => setSlaWindow(e.target.value)} />
+          </div>
+          <div style={{ flex:1 }}>
+            <label style={s.label}>Slash % on timeout</label>
+            <input style={s.input} type="number" min="1" max="100" value={slashPct} onChange={e => setSlashPct(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Live Calculator */}
+      <div style={s.section}>
+        <div style={s.sectionTitle}>LIVE ECONOMICS CALCULATOR</div>
+        <div style={s.calcCard}>
+          {[
+            ["Stake", `${stakeNum.toFixed(2)} USDC`],
+            ["Price per call", `${priceNum.toFixed(3)} USDC`],
+            ["Slash per missed call", `${slashPerCall.toFixed(3)} USDC (${slashPct}%)`],
+            ["Break-even calls", String(breakeven)],
+            ["Estimated earnings (10 calls)", `${estimatedEarning.toFixed(2)} USDC`],
+            ["Slash BPS (on-chain value)", String(slashBps)],
+          ].map(([k,v]) => (
+            <div key={k} style={s.calcRow}>
+              <span style={s.calcLabel}>{k}</span>
+              <span style={s.calcVal}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {stakeNum < slashPerCall && slashPerCall > 0 && (
+          <div style={s.warn}>
+            <AlertTriangle size={14} style={{ flexShrink:0,marginTop:1 }} />
+            <span>Your stake is less than one slash amount. Callers may not be fully covered on timeout.</span>
+          </div>
+        )}
+
+        {stakeNum >= slashPerCall * 10 && (
+          <div style={s.success}>
+            <CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} />
+            <span>Strong stake coverage — you can miss up to {Math.floor(stakeNum / slashPerCall)} calls before stake is depleted.</span>
+          </div>
+        )}
+      </div>
+
+      {/* Action */}
+      <div style={s.section}>
+        <div style={s.sectionTitle}>REGISTER</div>
+        {!address ? (
+          <div style={{ color:"var(--text-faint)",fontSize:13,textAlign:"center",padding:"20px 0" }}>Connect wallet to continue</div>
+        ) : needsApproval ? (
+          <>
+            <p style={{ fontSize:12,color:"var(--text-dim)",marginBottom:12 }}>
+              First, approve the ServiceRegistry to spend {stake} USDC from your wallet.
+            </p>
+            <button style={s.btn("primary", isPending || step==="approving")} onClick={handleApprove} disabled={isPending || step==="approving"}>
+              {isPending || step==="approving" ? "Approving…" : `Approve ${stake} USDC`}
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={s.success}>
+              <CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} />
+              <span>USDC approved. Ready to register.</span>
+            </div>
+            <button style={s.btn("primary", isPending || step==="registering")} onClick={handleRegister} disabled={isPending || step==="registering"}>
+              {isPending || step==="registering" ? "Registering…" : "Register as Provider"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
