@@ -1,8 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
+
+const REGISTRY_UNSTAKE_ABI = [
+  { name: "unstake", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "providerIdOf", type: "function", stateMutability: "view",
+    inputs: [{ name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  { name: "getProvider", type: "function", stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ name: "", type: "tuple", components: [
+      { name: "owner", type: "address" }, { name: "signer", type: "address" },
+      { name: "stake", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
+      { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
+      { name: "active", type: "bool" }, { name: "metadataUri", type: "string" },
+      { name: "completedCalls", type: "uint256" }, { name: "slashedCalls", type: "uint256" },
+    ]}]
+  },
+] as const;
 
 const s = {
   page: { padding:"20px 16px",maxWidth:700,margin:"0 auto" },
@@ -33,8 +49,33 @@ export default function Register() {
   const [slashPct, setSlashPct] = useState("20");
   const [step, setStep] = useState<"idle"|"approving"|"registering"|"done">("idle");
   const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [unstakeStatus, setUnstakeStatus] = useState<string | null>(null);
+  const [unstakeHash, setUnstakeHash] = useState<`0x${string}` | undefined>();
 
   useEffect(() => { if (address) setSignerAddr(address); }, [address]);
+
+  // Check if already registered
+  const { data: providerId } = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_UNSTAKE_ABI,
+    functionName: "providerIdOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, refetchInterval: 30_000 },
+  });
+
+  const alreadyRegistered = providerId !== undefined && (providerId as bigint) > 0n;
+
+  // Get provider data if registered
+  const { data: providerData, refetch: refetchProvider } = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_UNSTAKE_ABI,
+    functionName: "getProvider",
+    args: alreadyRegistered ? [(providerId as bigint)] : undefined,
+    query: { enabled: alreadyRegistered },
+  });
+
+  const provInfo = providerData as any;
+  const currentStake = provInfo?.stake ? formatUnits(provInfo.stake as bigint, 6) : "0";
 
   // Allowance
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -47,6 +88,29 @@ export default function Register() {
 
   const { writeContract, isPending } = useWriteContract();
   const { isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isSuccess: unstakeTxSuccess } = useWaitForTransactionReceipt({ hash: unstakeHash });
+
+  const handleUnstake = useCallback(() => {
+    if (!address) return;
+    if (!window.confirm(`Withdraw ${currentStake} USDC stake?\n\nThis permanently removes your provider registration. You can re-register later.`)) return;
+    setUnstakeStatus("⏳ Submitting...");
+    writeContract({
+      address: CONFIG.registryAddress as `0x${string}`,
+      abi: REGISTRY_UNSTAKE_ABI,
+      functionName: "unstake",
+      args: [],
+    }, {
+      onSuccess: (h) => { setUnstakeHash(h); setUnstakeStatus("⏳ Waiting for confirmation..."); },
+      onError: (e: any) => setUnstakeStatus(`❌ ${e.shortMessage || e.message}`),
+    });
+  }, [address, currentStake, writeContract]);
+
+  useEffect(() => {
+    if (unstakeTxSuccess) {
+      setUnstakeStatus(`✅ Stake withdrawn — ${currentStake} USDC returned`);
+      refetchProvider();
+    }
+  }, [unstakeTxSuccess]);
 
   useEffect(() => {
     if (txSuccess) {
@@ -103,6 +167,37 @@ export default function Register() {
     <div style={s.page}>
       <h1 style={s.h1}>Become a Provider</h1>
       <p style={s.sub}>Stake USDC, define your SLA, and start earning per request.</p>
+
+      {/* Already registered banner */}
+      {alreadyRegistered && (
+        <div style={s.success}>
+          <CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} />
+          <div>
+            <strong>Already registered as Provider #{String(providerId)}</strong>
+            <div style={{ marginTop:4, fontSize:11, color:"var(--text-dim)" }}>
+              Stake: {currentStake} USDC ·
+              Price: {provInfo?.pricePerCall ? formatUnits(provInfo.pricePerCall as bigint, 6) : "—"} USDC/call ·
+              SLA: {provInfo?.maxResponseTime ?? "—"}s
+            </div>
+            <div style={{ marginTop:10, display:"flex", gap:8 }}>
+              <button
+                onClick={handleUnstake}
+                disabled={isPending}
+                style={{ padding:"6px 14px", background:"var(--danger,#ef4444)", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:12, fontWeight:600, opacity: isPending ? 0.6 : 1 }}
+              >
+                Withdraw Stake
+              </button>
+            </div>
+            {unstakeStatus && (
+              <div style={{ marginTop:8, fontSize:12, fontFamily:"var(--font-mono)",
+                color: unstakeStatus.startsWith("✅") ? "var(--accent)" : unstakeStatus.startsWith("❌") ? "var(--danger,#ef4444)" : "var(--text-dim)",
+                padding:"5px 8px", background:"var(--bg-3)", borderRadius:5 }}>
+                {unstakeStatus}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Info */}
       <div style={s.info}>

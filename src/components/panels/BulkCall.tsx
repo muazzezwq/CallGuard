@@ -14,6 +14,8 @@ const S = {
   btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
 }
 
+interface CsvRow { provider_id: string; payload: string; status: string; }
+
 export default function BulkCall() {
   const { address } = useAccount()
   const [providerId, setProviderId] = useState('1')
@@ -21,7 +23,41 @@ export default function BulkCall() {
   const [count, setCount] = useState(3)
   const [results, setResults] = useState<{ i: number; hash?: string; error?: string }[]>([])
   const [running, setRunning] = useState(false)
+  const [csvRows, setCsvRows] = useState<CsvRow[]>([])
+  const [csvMode, setCsvMode] = useState(false)
   const { writeContractAsync } = useWriteContract()
+
+  function parseCsvFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = (e.target?.result as string) || "";
+      const lines = text.trim().split("\n").filter(l => l.trim());
+      const rows: CsvRow[] = lines.slice(1).map(l => {
+        const parts = l.split(",");
+        return { provider_id: (parts[0] || "").trim(), payload: (parts[1] || "ping").trim(), status: "pending" };
+      }).filter(r => r.provider_id);
+      setCsvRows(rows);
+      setCsvMode(true);
+    };
+    reader.readAsText(file);
+  }
+
+  async function runCsvBatch() {
+    if (!address || running || !csvRows.length) return;
+    setRunning(true); setResults([]);
+    for (let i = 0; i < csvRows.length; i++) {
+      const r = csvRows[i];
+      try {
+        const requestHash = keccak256(stringToBytes(`${r.payload}-${i}-${Date.now()}`));
+        const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: "callService", args: [BigInt(r.provider_id), requestHash] });
+        setResults(prev => [...prev, { i: i + 1, hash }]);
+      } catch (e: any) {
+        setResults(prev => [...prev, { i: i + 1, error: e.shortMessage || e.message }]);
+      }
+      await new Promise(res => setTimeout(res, 800));
+    }
+    setRunning(false);
+  }
 
   const estimatedCost = count * 1
 
@@ -75,6 +111,44 @@ export default function BulkCall() {
         <button style={{ ...S.btn, width: '100%', opacity: running || !address ? 0.6 : 1 }} onClick={runBatch} disabled={running || !address}>
           {running ? `Running... (${results.length}/${count})` : `Send ${count} Calls →`}
         </button>
+      </div>
+
+      {/* CSV Upload */}
+      <div style={S.card}>
+        <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 }}>
+          Bulk from CSV
+        </div>
+        <div
+          style={{ border: "2px dashed var(--border)", borderRadius: 8, padding: 24, textAlign: "center" as const, cursor: "pointer" }}
+          onClick={() => document.getElementById("bulkCsvInput")?.click()}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) parseCsvFile(f); }}
+        >
+          <div style={{ fontSize: 24, marginBottom: 8 }}>📄</div>
+          <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Click to select CSV file</div>
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>or drag & drop • columns: provider_id, payload</div>
+          <input id="bulkCsvInput" type="file" accept=".csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) parseCsvFile(f); }} />
+        </div>
+        {csvRows.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>{csvRows.length} calls loaded from CSV</div>
+            {csvRows.slice(0, 5).map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
+                <span style={{ color: "var(--text-faint)", width: 20 }}>#{i + 1}</span>
+                <span>Provider #{r.provider_id}</span>
+                <span style={{ color: "var(--text-faint)", flex: 1 }}>{r.payload.slice(0, 30)}</span>
+              </div>
+            ))}
+            {csvRows.length > 5 && <div style={{ fontSize: 11, color: "var(--text-faint)", padding: "4px 0" }}>+{csvRows.length - 5} more</div>}
+            <button style={{ ...S.btn, marginTop: 12, width: "100%", opacity: running || !address ? 0.6 : 1 }} onClick={runCsvBatch} disabled={running || !address}>
+              {running ? `Running... (${results.length}/${csvRows.length})` : `Run ${csvRows.length} CSV Calls →`}
+            </button>
+          </div>
+        )}
+        <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-faint)" }}>
+          CSV format: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius: 3 }}>provider_id,payload</code><br />
+          Example: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius: 3 }}>1,ping</code>
+        </div>
       </div>
 
       {results.length > 0 && (

@@ -10,6 +10,29 @@ const STATUS_COLOR: Record<string, string> = {
   COMPLETED: "var(--accent)", STARTED: "var(--amber)", SLASHED: "var(--red)", REFUNDED: "var(--text-dim)",
 };
 
+function exportHistory(calls: any[], format: "csv" | "json") {
+  if (!calls.length) return;
+  if (format === "csv") {
+    const headers = ["Call ID", "Provider", "Amount (USDC)", "Status", "Date", "Request Hash"];
+    const rows = calls.map(c => [
+      c.id || "",
+      c.providerId || "",
+      c.amount ? (Number(c.amount) / 1e6).toFixed(4) : "",
+      c.status || "",
+      c.createdAt ? new Date(Number(c.createdAt) * 1000).toISOString() : "",
+      c.requestHash || "",
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `callguard-history-${Date.now()}.csv`; a.click();
+  } else {
+    const blob = new Blob([JSON.stringify(calls, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `callguard-history-${Date.now()}.json`; a.click();
+  }
+}
+
 export default function History() {
   const { address } = useAccount();
   const [search, setSearch] = useState("");
@@ -39,7 +62,11 @@ export default function History() {
     <div className="cg-panel">
       <div className="panel-head">
         <div><h2>Transaction History</h2><p className="text-dim">All on-chain activity</p></div>
-        <button className="btn btn-sm" onClick={refetch}>↻</button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="btn btn-sm" onClick={() => exportHistory(filtered, "csv")} title="Export CSV">↓ CSV</button>
+          <button className="btn btn-sm" onClick={() => exportHistory(filtered, "json")} title="Export JSON">↓ JSON</button>
+          <button className="btn btn-sm" onClick={refetch}>↻</button>
+        </div>
       </div>
 
       <div className="hist-stats mb-4">

@@ -1,8 +1,26 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { CONFIG, REGISTRY_ABI } from "../../lib/config";
-import { ExternalLink, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { ExternalLink, Copy, Check, ChevronDown, ChevronUp, Wifi, WifiOff, RefreshCw } from "lucide-react";
+
+type UptimeStatus = "idle" | "checking" | "online" | "offline";
+
+async function checkProviderUptime(providerId: string): Promise<{ status: "online" | "offline"; latency?: number; detail?: string }> {
+  // Try /api/ping-provider which pings the provider's endpoint
+  const t0 = Date.now();
+  try {
+    const res = await fetch(`/api/ping-provider?id=${encodeURIComponent(providerId)}`, { signal: AbortSignal.timeout(8000) });
+    const latency = Date.now() - t0;
+    if (res.ok) {
+      const d = await res.json().catch(() => ({}));
+      return { status: d.ok !== false ? "online" : "offline", latency, detail: d.message || d.error };
+    }
+    return { status: "offline", latency, detail: `HTTP ${res.status}` };
+  } catch (e: any) {
+    return { status: "offline", latency: Date.now() - t0, detail: e.message };
+  }
+}
 
 const ARCSCAN = "https://explorer.testnet.arc.io";
 const s = {
@@ -75,6 +93,20 @@ export default function Providers() {
   const [copied, setCopied] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [sdkOpen, setSdkOpen] = useState(false);
+  const [uptimeStatus, setUptimeStatus] = useState<UptimeStatus>("idle");
+  const [uptimeLatency, setUptimeLatency] = useState<number | undefined>();
+  const [uptimeDetail, setUptimeDetail] = useState<string | undefined>();
+
+  const handleUptimeCheck = useCallback(async () => {
+    if (!lookupId) return;
+    setUptimeStatus("checking");
+    setUptimeLatency(undefined);
+    setUptimeDetail(undefined);
+    const r = await checkProviderUptime(lookupId);
+    setUptimeStatus(r.status);
+    setUptimeLatency(r.latency);
+    setUptimeDetail(r.detail);
+  }, [lookupId]);
 
   const { data: provData } = useReadContract({
     address: CONFIG.registryAddress as `0x${string}`,
@@ -123,6 +155,19 @@ export default function Providers() {
                 <span style={s.val}>{String(v)}</span>
               </div>
             ))}
+            {/* Uptime check */}
+            <div style={{ marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                {uptimeStatus === "online" && <><Wifi size={12} color="var(--accent)" /><span style={{ fontSize:11,color:"var(--accent)",fontWeight:600 }}>Online{uptimeLatency ? ` · ${uptimeLatency}ms` : ""}</span></>}
+                {uptimeStatus === "offline" && <><WifiOff size={12} color="#ef4444" /><span style={{ fontSize:11,color:"#ef4444",fontWeight:600 }}>Offline{uptimeDetail ? ` — ${uptimeDetail.slice(0,30)}` : ""}</span></>}
+                {uptimeStatus === "checking" && <><RefreshCw size={12} color="var(--text-dim)" style={{ animation:"spin 1s linear infinite" }} /><span style={{ fontSize:11,color:"var(--text-dim)" }}>Checking…</span></>}
+                {uptimeStatus === "idle" && <span style={{ fontSize:11,color:"var(--text-faint)" }}>Not checked yet</span>}
+              </div>
+              <button onClick={handleUptimeCheck} disabled={uptimeStatus==="checking"} style={{ ...s.btn("secondary"),padding:"3px 8px",fontSize:11,opacity:uptimeStatus==="checking"?0.5:1 }}>
+                Ping endpoint
+              </button>
+            </div>
+
             <div style={{ marginTop:8 }}>
               <a href={`${ARCSCAN}/address/${p.signer}`} target="_blank" rel="noreferrer" style={s.link}>
                 View on ArcScan <ExternalLink size={10} />

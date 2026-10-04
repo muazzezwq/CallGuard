@@ -1,6 +1,6 @@
 import { lazy, useState, useEffect } from "react";
 import { useReadContract, useWriteContract, useAccount } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits, formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
@@ -97,7 +97,9 @@ export default function Overview() {
   // Quick call state
   const [registerOpen, setRegisterOpen] = useState(false);
   const [callProvider, setCallProvider] = useState("1");
-  const { writeContract, isPending } = useWriteContract();
+  const { writeContractAsync, isPending } = useWriteContract()
+  const [multiResults, setMultiResults] = useState<{pid:string;hash?:string;err?:string}[]>([])
+  const [multiRunning, setMultiRunning] = useState(false);
 
   const runAutoRouter = async () => {
     setAutoLoading(true);
@@ -130,6 +132,31 @@ export default function Overview() {
       }
     } catch { setAutoResult("Error fetching providers."); }
     setAutoLoading(false);
+  };
+
+  const runMultiCall = async () => {
+    const ids = multiProvider.split(",").map(s => s.trim()).filter(Boolean);
+    if (!ids.length || !address) return;
+    setMultiRunning(true);
+    setMultiResults([]);
+    for (const pid of ids) {
+      for (let i = 0; i < multiCount; i++) {
+        try {
+          const reqHash = keccak256(stringToBytes(`${multiPayload}-${pid}-${i}-${Date.now()}`)) as `0x${string}`;
+          const hash = await writeContractAsync({
+            address: CONFIG.ppcAddress as `0x${string}`,
+            abi: PPC_ABI,
+            functionName: "callService",
+            args: [BigInt(pid), reqHash],
+          });
+          setMultiResults(r => [...r, { pid, hash }]);
+        } catch (e: any) {
+          setMultiResults(r => [...r, { pid, err: e.shortMessage || e.message }]);
+        }
+        await new Promise(r => setTimeout(r, 600));
+      }
+    }
+    setMultiRunning(false);
   };
 
   const shorten = (addr: string) => `${addr.slice(0,6)}…${addr.slice(-4)}`;
@@ -260,9 +287,25 @@ export default function Overview() {
               <div style={{ padding:"8px 12px",borderRadius:8,background:"var(--bg-3)",fontSize:11,color:"var(--text-dim)",marginBottom:10 }}>
                 Cost: ~{multiProvider.split(",").filter(Boolean).length * multiCount} USDC total
               </div>
-              <button style={{ ...s.btn(),width:"100%",justifyContent:"center" }} onClick={() => setPanel("bulkcall")}>
-                Open Bulk Call →
+              <button
+                style={{ ...s.btn(),width:"100%",justifyContent:"center",opacity:multiRunning||!address?0.5:1 }}
+                onClick={runMultiCall}
+                disabled={multiRunning || !address}
+              >
+                {multiRunning ? `Running (${multiResults.length}/${multiProvider.split(",").filter(Boolean).length * multiCount})…` : "Run multi-call →"}
               </button>
+              {multiResults.length > 0 && (
+                <div style={{ marginTop:10,maxHeight:100,overflowY:"auto" as const }}>
+                  {multiResults.map((r,i) => (
+                    <div key={i} style={{ display:"flex",gap:8,fontSize:11,padding:"3px 0",borderBottom:"1px solid var(--border)" }}>
+                      <span style={{ color:"var(--text-faint)",width:40 }}>P#{r.pid}</span>
+                      {r.hash
+                        ? <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{r.hash.slice(0,14)}…</a>
+                        : <span style={{ color:"#ef4444" }}>{r.err}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
