@@ -3,7 +3,7 @@ import { formatUnits, parseUnits } from "viem";
 import { CONFIG } from "../lib/config";
 
 const REGISTRY_ABI = [
-  { name: "providerCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { name: "nextProviderId", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "getProvider", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "address" }, { type: "address" }, { type: "uint256" }, { type: "uint256" }, { type: "uint32" }, { type: "uint32" }, { type: "bool" }] },
   { name: "getReputationScore", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
   { name: "completedCalls", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
@@ -17,7 +17,7 @@ const PPC_ABI = [
 ] as const;
 
 export function useProviderCount() {
-  return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "providerCount" });
+  return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
 }
 
 export function useCallCount() {

@@ -13,8 +13,8 @@ export const arcTestnet = defineChain({
 export const CONFIG = {
   usdc: "0x3600000000000000000000000000000000000000",
   usdcAddress: "0x3600000000000000000000000000000000000000" as `0x${string}`,
-  registry: "0x10387347678d9f7106D5625bE0BD6C915158B130",
-  registryAddress: "0x10387347678d9f7106D5625bE0BD6C915158B130" as `0x${string}`,
+  registry: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF",
+  registryAddress: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" as `0x${string}`,
   payPerCall: "0x51bbd776d01bbb99b5425c701f00b2c516215e2e",
   ppcAddress: "0x51bbd776d01bbb99b5425c701f00b2c516215e2e" as `0x${string}`,
   disputeQuality: "0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725",
