@@ -13,12 +13,9 @@
     { "source": "/callService",       "destination": "/api/call-service" },
     { "source": "/nano/call",         "destination": "/api/nano-call" },
     { "source": "/nano/balance",      "destination": "/api/nano-balance" },
-    { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
     { "source": "/sitemap.xml",       "destination": "/api/provider-page?sitemap=1" },
-    { "source": "/app",               "destination": "/index.html" },
-    { "source": "/app/(.*)",          "destination": "/index.html" },
-    { "source": "/verify/:hash",      "destination": "/index.html" },
-    { "source": "/((?!api|assets|sitemap\\.xml|favicon\\.ico).*)", "destination": "/index.html" }
+    { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
+    { "source": "/(.*)",              "destination": "/index.html" }
   ],
   "headers": [
     {
