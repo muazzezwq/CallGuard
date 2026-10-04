@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from "wagmi";
+import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
+
+const IDENTITY_REGISTRY_ABI = [
+  { name: "register", type: "function", stateMutability: "nonpayable",
+    inputs: [{ name: "agentURI", type: "string" }], outputs: [{ name: "", type: "uint256" }] },
+] as const;
+
+const REGISTRY_V2_ABI = [
+  { name: "registerV2", type: "function", stateMutability: "nonpayable",
+    inputs: [
+      { name: "erc8004TokenId", type: "uint256" }, { name: "signer", type: "address" },
+      { name: "stakeAmount", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
+      { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
+      { name: "endpoint", type: "string" },
+    ], outputs: [{ name: "", type: "uint256" }] },
+] as const;
 
 const REGISTRY_UNSTAKE_ABI = [
   { name: "unstake", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
@@ -48,6 +63,11 @@ export default function Register() {
   const [slaWindow, setSlaWindow] = useState("120");
   const [slashPct, setSlashPct] = useState("20");
   const [step, setStep] = useState<"idle"|"approving"|"registering"|"done">("idle");
+  const [endpoint, setEndpoint] = useState("https://callguard.vercel.app/provider");
+  const [v2Step, setV2Step] = useState<"idle"|"minting"|"approving"|"registering"|"done">("idle");
+  const [v2Status, setV2Status] = useState<string | null>(null);
+  const [nftId, setNftId] = useState<string | null>(() => localStorage.getItem("cgAgentNftId"));
+  const { data: walletClient } = useWalletClient();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [unstakeStatus, setUnstakeStatus] = useState<string | null>(null);
   const [unstakeHash, setUnstakeHash] = useState<`0x${string}` | undefined>();
@@ -101,7 +121,7 @@ export default function Register() {
       args: [],
     }, {
       onSuccess: (h) => { setUnstakeHash(h); setUnstakeStatus("⏳ Waiting for confirmation..."); },
-      onError: (e: any) => setUnstakeStatus(`❌ ${e.shortMessage || e.message}`),
+      onError: (e: any) => setUnstakeStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
     });
   }, [address, currentStake, writeContract]);
 
@@ -151,6 +171,60 @@ export default function Register() {
       args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps],
     }, { onSuccess: h => setHash(h) });
   };
+
+  const handleRegisterV2 = useCallback(async () => {
+    if (!walletClient || !address) { setV2Status("❌ Connect wallet first"); return; }
+    if (alreadyRegistered) { setV2Status(`❌ Already registered as provider #${String(providerId)}`); return; }
+    setV2Step("minting");
+    setV2Status("⏳ Step 1/3 — Minting ERC-8004 identity NFT…");
+    try {
+      // Step 1: mint identity NFT
+      const identityAddr = (CONFIG as any).identityRegistryAddress as `0x${string}`;
+      if (!identityAddr) { setV2Status("❌ Identity registry address not configured (identityRegistryAddress in config)"); setV2Step("idle"); return; }
+      const mintHash = await walletClient.writeContract({ address: identityAddr, abi: IDENTITY_REGISTRY_ABI, functionName: "register", args: [endpoint || "https://callguard.vercel.app/provider"] });
+      setV2Status("⏳ Step 1/3 — Waiting for NFT confirmation…");
+      // Wait for receipt to get tokenId
+      let tokenId: bigint | null = null;
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const receipt = await (walletClient as any).getTransactionReceipt?.({ hash: mintHash });
+          if (receipt) {
+            // Try to find Transfer event tokenId from logs
+            for (const log of (receipt.logs || [])) {
+              if (log.topics?.length === 4 && log.topics[1] === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+                tokenId = BigInt(log.topics[3]);
+                break;
+              }
+            }
+            if (!tokenId) tokenId = BigInt(1); // fallback
+            break;
+          }
+        } catch {}
+      }
+      if (!tokenId) { setV2Status("❌ Could not read NFT tokenId from logs"); setV2Step("idle"); return; }
+      localStorage.setItem("cgAgentNftId", tokenId.toString());
+      setNftId(tokenId.toString());
+      setV2Status(`✅ NFT minted #${tokenId} — Step 2/3 Approving USDC…`);
+      setV2Step("approving");
+      // Step 2: approve USDC
+      await walletClient.writeContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "approve", args: [CONFIG.registryAddress as `0x${string}`, maxUint256] });
+      setV2Status("✅ USDC approved — Step 3/3 Registering provider with NFT…");
+      setV2Step("registering");
+      // Step 3: registerV2
+      const regHash = await walletClient.writeContract({
+        address: CONFIG.registryAddress as `0x${string}`,
+        abi: REGISTRY_V2_ABI,
+        functionName: "registerV2",
+        args: [tokenId, signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint],
+      });
+      setV2Status(`✅ Registered with NFT #${tokenId}! TX: ${regHash.slice(0, 14)}…`);
+      setV2Step("done");
+    } catch (e: unknown) {
+      setV2Status("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Failed"));
+      setV2Step("idle");
+    }
+  }, [walletClient, address, alreadyRegistered, providerId, endpoint, signerAddr, stakeAmount, priceAmount, slaWindow, slashBps]);
 
   if (step === "done") return (
     <div style={s.page}>
@@ -212,6 +286,9 @@ export default function Register() {
         <label style={s.label}>Signer address <span style={s.tag}>required</span></label>
         <input style={s.input} value={signerAddr} onChange={e => setSignerAddr(e.target.value)} placeholder="0x…" />
 
+        <label style={s.label}>Provider endpoint URL</label>
+        <input style={s.input} value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://your-server.com/provider" />
+
         <div style={s.row}>
           <div style={{ flex:1 }}>
             <label style={s.label}>Stake amount (USDC)</label>
@@ -270,8 +347,30 @@ export default function Register() {
       </div>
 
       {/* Action */}
+      {/* ERC-8004 registerV2 */}
       <div style={s.section}>
-        <div style={s.sectionTitle}>REGISTER</div>
+        <div style={s.sectionTitle}>ERC-8004 IDENTITY — RECOMMENDED</div>
+        <div style={{ ...s.info, marginBottom: 12 }}>
+          <Info size={14} style={{ flexShrink:0,marginTop:1 }} />
+          <span>Registers an AgentIdentity NFT first, then calls <code>registerV2()</code> binding your on-chain identity to the provider. Unlocks agent marketplace discovery, ERC-8004 compatible wallet, and higher trust score.</span>
+        </div>
+        {nftId && <div style={{ ...s.success, marginBottom:10 }}><CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} /><span>Identity NFT #{nftId} already minted — will be reused.</span></div>}
+        <button
+          style={s.btn("primary", v2Step !== "idle" || alreadyRegistered || !address)}
+          onClick={handleRegisterV2}
+          disabled={v2Step !== "idle" || alreadyRegistered || !address}
+        >
+          {v2Step !== "idle" && v2Step !== "done" ? `${v2Step.charAt(0).toUpperCase()}${v2Step.slice(1)}…` : "🔐 Register with NFT — Recommended"}
+        </button>
+        {v2Status && (
+          <div style={{ marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)", padding: "8px 10px", borderRadius: 6, background: v2Status.startsWith("✅") ? "rgba(16,185,129,0.08)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.08)" : "var(--bg-3)", color: v2Status.startsWith("✅") ? "var(--accent)" : v2Status.startsWith("❌") ? "#ef4444" : "var(--text-dim)", border: `1px solid ${v2Status.startsWith("✅") ? "rgba(16,185,129,0.2)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.2)" : "var(--border)"}` }}>
+            {v2Status}
+          </div>
+        )}
+      </div>
+
+      <div style={s.section}>
+        <div style={s.sectionTitle}>REGISTER (basic — no NFT)</div>
         {!address ? (
           <div style={{ color:"var(--text-faint)",fontSize:13,textAlign:"center",padding:"20px 0" }}>Connect wallet to continue</div>
         ) : needsApproval ? (

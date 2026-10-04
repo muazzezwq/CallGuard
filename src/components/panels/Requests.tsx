@@ -88,8 +88,8 @@ export default function Requests() {
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
       });
-    } catch (e: any) {
-      setTimeoutStatus(`❌ ${e.shortMessage || e.message}`);
+    } catch (e: unknown) {
+      setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
   }, [timeoutCallId, address, writeContract]);
 

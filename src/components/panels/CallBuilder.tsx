@@ -135,8 +135,8 @@ export default function CallBuilder() {
       });
       setLastCallId(hash);
       setStatus("⏳ Waiting for confirmation...");
-    } catch (e: any) {
-      setStatus(`❌ ${e.shortMessage || e.message}`);
+    } catch (e: unknown) {
+      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
       setIsLoading(false);
     }
   }, [isConnected, address, active, payload, providerIdNum, writeContractAsync]);
@@ -206,8 +206,8 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus(`✅ Cross-chain call complete! TX: ${mintHash.slice(0,12)}...`);
-    } catch (e: any) {
-      setStatus(`❌ CCTP failed: ${e.message}`);
+    } catch (e: unknown) {
+      setStatus(`❌ CCTP failed: ${(e instanceof Error ? e.message : String(e))}`);
     }
     setIsLoading(false);
   }, [isConnected, address, chain, price, writeContractAsync]);
@@ -227,8 +227,8 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("⏳ Waiting for confirmation...");
-    } catch (e: any) {
-      setStatus(`❌ ${e.shortMessage || e.message}`);
+    } catch (e: unknown) {
+      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
       setIsLoading(false);
     }
   }, [callIdInput, lastCallId, writeContractAsync]);
@@ -254,11 +254,88 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("✅ Receipt submitted — escrow released.");
-    } catch (e: any) {
-      setStatus(`❌ ${e.shortMessage || e.message}`);
+    } catch (e: unknown) {
+      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
     setIsLoading(false);
   }, [callIdInput, lastCallId, responsePayload, walletClient, address, writeContractAsync]);
+
+  // ── x402 / EIP-3009 gasless call ───────────────────────────────
+  const handleX402Call = useCallback(async () => {
+    if (!isConnected || !address) { setStatus("❌ Connect wallet first."); return; }
+    if (!walletClient) { setStatus("❌ Wallet client not ready."); return; }
+    if (!active) { setStatus("❌ Provider is not active."); return; }
+    setIsLoading(true);
+    setStatus("⏳ x402: Handshaking with facilitator…");
+    try {
+      // Step 1 — x402 handshake
+      const facilitatorUrl = "https://callguard.vercel.app";
+      let x402Terms: any = null;
+      try {
+        const fRes = await fetch(`${facilitatorUrl}/api/service`);
+        const fBody = await fRes.json();
+        if (fRes.status === 402 && fBody.accepts?.[0]) {
+          x402Terms = fBody.accepts[0];
+          setStatus("⚡ x402: Got HTTP 402 → signing EIP-3009 authorization…");
+        } else {
+          setStatus("⚡ x402: Facilitator responded → signing EIP-3009…");
+        }
+      } catch {
+        setStatus("⚡ x402: Facilitator unreachable → falling back to on-chain…");
+      }
+      await new Promise(r => setTimeout(r, 300));
+
+      // Step 2 — EIP-3009 off-chain signature (no gas, no approve tx)
+      const now = Math.floor(Date.now() / 1000);
+      const validAfter = BigInt(0);
+      const validBefore = BigInt(now + 120);
+      const authNonce = `0x${Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2,'0')).join('')}` as `0x${string}`;
+      const requestHash = keccak256(stringToBytes(payload)) as `0x${string}`;
+
+      setStatus("⚡ x402: Sign EIP-3009 (no gas — off-chain)…");
+      const eip3009Sig = await walletClient.signTypedData({
+        domain: { name: "USDC", version: "2", chainId: arcTestnet.id, verifyingContract: CONFIG.usdcAddress as `0x${string}` },
+        types: { TransferWithAuthorization: [
+          { name: "from", type: "address" }, { name: "to", type: "address" },
+          { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" },
+          { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
+        ]},
+        primaryType: "TransferWithAuthorization",
+        message: { from: address, to: CONFIG.payPerCall as `0x${string}`, value: price, validAfter, validBefore, nonce: authNonce },
+      });
+
+      // Step 3 — POST to facilitator (facilitator pays gas, settles on-chain)
+      setStatus("⚡ x402: Facilitator settling…");
+      const facRes = await fetch(`${facilitatorUrl}/api/call-service`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerId: providerIdNum.toString(), requestHash,
+          authorization: { from: address, to: CONFIG.payPerCall, value: price.toString(), validAfter: "0", validBefore: validBefore.toString(), nonce: authNonce },
+          signature: eip3009Sig,
+        }),
+      });
+      const facData = await facRes.json();
+      if (!facRes.ok || !facData.success) {
+        // Facilitator failed — fall back to direct on-chain callService
+        setStatus("⚠ Facilitator unavailable — falling back to direct call…");
+        const h = await writeContractAsync({
+          address: CONFIG.payPerCall as `0x${string}`,
+          abi: PPC_ABI, functionName: "callService",
+          args: [BigInt(providerIdNum), requestHash], chainId: arcTestnet.id,
+        });
+        setStatus(`✅ Fallback call sent: ${h.slice(0,14)}…`);
+        setLastCallId(h);
+      } else {
+        const callId = facData.callId || facData.txHash;
+        setStatus(`✅ x402 call settled! callId: ${String(callId).slice(0,14)}…`);
+        if (facData.callId) setLastCallId(facData.callId);
+      }
+    } catch (e: unknown) {
+      setStatus(`❌ x402 failed: ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    }
+    setIsLoading(false);
+  }, [isConnected, address, walletClient, active, payload, providerIdNum, price, writeContractAsync]);
 
   // ── Batch call ──────────────────────────────────────────────────
   const handleBatch = useCallback(async () => {
@@ -276,8 +353,8 @@ export default function CallBuilder() {
           chainId: arcTestnet.id,
         });
         setBatchResults(r => [...r, { i: i + 1, hash }]);
-      } catch (e: any) {
-        setBatchResults(r => [...r, { i: i + 1, error: e.shortMessage || e.message }]);
+      } catch (e: unknown) {
+        setBatchResults(r => [...r, { i: i + 1, error: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
       }
       await new Promise(r => setTimeout(r, 800));
     }
@@ -363,7 +440,7 @@ export default function CallBuilder() {
           </div>
 
           {/* CTA */}
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16 }}>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:8 }}>
             <button
               onClick={handleCall}
               disabled={isLoading || !isConnected || isCCTP}
@@ -380,6 +457,16 @@ export default function CallBuilder() {
               <span style={{ fontSize:11,fontWeight:400,opacity:0.75 }}>{isCCTP ? "5-step bridge" : "Recommended"}</span>
             </button>
           </div>
+          {/* x402 button */}
+          {!isCCTP && (
+            <button
+              onClick={handleX402Call}
+              disabled={isLoading || !isConnected}
+              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:8,border:"1px solid rgba(16,185,129,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
+            >
+              ⚡ Call via x402 (EIP-3009, no gas)
+            </button>
+          )}
 
           {/* Provider actions */}
           <div style={{ borderTop:"1px solid var(--border)",paddingTop:16 }}>

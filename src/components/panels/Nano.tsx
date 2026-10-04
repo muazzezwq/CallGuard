@@ -48,8 +48,8 @@ export default function Nano() {
       } else {
         setOutput(`❌ Failed: ${data.error || 'Unknown error'}`)
       }
-    } catch (e: any) {
-      setOutput(`❌ Network error: ${e.message}`)
+    } catch (e: unknown) {
+      setOutput(`❌ Network error: ${(e instanceof Error ? e.message : String(e))}`)
     }
     setLoading(false)
   }

@@ -26,8 +26,8 @@ export default function Mcp() {
       const res = await fetch(`https://arcsla.vercel.app/api/attestation?providerId=1&type=score`)
       const json = await res.json()
       setTestResult(JSON.stringify(json, null, 2))
-    } catch (e: any) {
-      setTestResult(`Error: ${e.message}`)
+    } catch (e: unknown) {
+      setTestResult(`Error: ${(e instanceof Error ? e.message : String(e))}`)
     }
     setTesting(false)
   }

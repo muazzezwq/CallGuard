@@ -32,7 +32,7 @@ export default function Disputes() {
       });
       setStatus("Dispute opened!");
       setCallId(""); setEvidence("");
-    } catch(e:any){ setStatus(e.shortMessage ?? e.message); }
+    } catch(e:any){ setStatus(e.shortMessage ?? (e instanceof Error ? e.message : String(e))); }
   };
 
   return (

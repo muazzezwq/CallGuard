@@ -44,7 +44,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const chainId = Number(network.chainId);
       const bal = await provider.getBalance(address);
       setState({ address, provider, signer, chainId, balance: ethers.formatUnits(bal, 18), connected: true });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("connect error", e);
     }
   }, []);
@@ -58,7 +58,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!win.ethereum) return;
     try {
       await win.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_TESTNET.chainId }] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e.code === 4902) {
         await win.ethereum.request({ method: "wallet_addEthereumChain", params: [ARC_TESTNET] });
       }

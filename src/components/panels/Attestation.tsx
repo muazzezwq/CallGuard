@@ -62,7 +62,7 @@ export default function Attestation() {
         args: [BigInt(providerId), BigInt(50)],
       })
       setTxHash(hash)
-    } catch (e: any) { alert(e.shortMessage || e.message) }
+    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
   }
 
   const tabs = [{ id: 'peek', label: 'Peek (Free)' }, { id: 'issue', label: 'Issue On-chain' }, { id: 'lookup', label: 'Lookup' }]

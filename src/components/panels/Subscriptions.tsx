@@ -36,7 +36,7 @@ export default function Subscriptions() {
       const total = parseUnits((Number(formatUnits(BigInt(pricePerCall), 6)) * callsToPreBuy).toFixed(6), 6)
       const sub: Sub = { providerId, name: `Provider #${providerId}`, callsLeft: callsToPreBuy, pricePerCall: formatUnits(BigInt(pricePerCall), 6), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 }
       setSubs(s => [...s, sub])
-    } catch (e: any) { alert(e.shortMessage || e.message) }
+    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
     setSubscribing(null)
   }
 

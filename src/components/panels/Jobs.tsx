@@ -76,8 +76,8 @@ export default function Jobs() {
       const receipt = await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job created\ntx: ${hash.slice(0, 12)}...\nBlock: ${receipt.blockNumber}\n\nNext: set a budget for this job.`);
       setStep(1);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -98,8 +98,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Budget set — ${budget} USDC for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: fund the escrow.`);
       setStep(2);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -138,8 +138,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Escrow funded for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: provider submits deliverable.`);
       setStep(3);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -161,8 +161,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Deliverable submitted for job #${jobId}\nhash: ${deliverableHash.slice(0, 12)}...\ntx: ${hash.slice(0, 12)}...\n\nNext: evaluator approves and settles.`);
       setStep(4);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -183,8 +183,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} completed and settled!\ntx: ${hash.slice(0, 12)}...\n\nUSDC released to provider.`);
       setStep(5);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -202,8 +202,8 @@ export default function Jobs() {
       });
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} cancelled\ntx: ${hash.slice(0, 12)}...`);
-    } catch (e: any) {
-      log("Error: " + (e.shortMessage || e.message));
+    } catch (e: unknown) {
+      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
   }
@@ -224,8 +224,8 @@ export default function Jobs() {
         budget: result?.budget ? (Number(result.budget) / 1e6).toFixed(4) + " USDC" : "—",
         status: statusNames[Number(result?.status)] || "UNKNOWN",
       });
-    } catch (e: any) {
-      setCheckResult({ error: e.shortMessage || e.message });
+    } catch (e: unknown) {
+      setCheckResult({ error: e.shortMessage || (e instanceof Error ? e.message : String(e)) });
     }
   }
 

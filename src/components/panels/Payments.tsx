@@ -40,7 +40,7 @@ export default function Payments() {
       });
       setStatus("Sent!");
       setSendTo(""); setSendAmt("");
-    } catch(e:any){ setStatus(e.shortMessage ?? e.message); }
+    } catch(e:any){ setStatus(e.shortMessage ?? (e instanceof Error ? e.message : String(e))); }
   };
 
   const balance = balanceData ? formatUnits(balanceData as bigint, 6) : "—";

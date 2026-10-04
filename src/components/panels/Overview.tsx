@@ -1,5 +1,5 @@
-import { lazy, useState, useEffect } from "react";
-import { useReadContract, useWriteContract, useAccount } from "wagmi";
+import { lazy, useState, useEffect, useRef } from "react";
+import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
@@ -101,6 +101,43 @@ export default function Overview() {
   const [multiResults, setMultiResults] = useState<{pid:string;hash?:string;err?:string}[]>([])
   const [multiRunning, setMultiRunning] = useState(false);
 
+  // Real-time event feed (watchContractEvent)
+  const [liveEvents, setLiveEvents] = useState<{ icon: string; label: string; detail: string; time: string }[]>([]);
+  const liveRef = useRef(liveEvents);
+  liveRef.current = liveEvents;
+  const pushEvent = (icon: string, label: string, detail: string) => {
+    const e = { icon, label, detail, time: new Date().toLocaleTimeString("en-US", { hour12: false }) };
+    setLiveEvents(prev => [e, ...prev].slice(0, 20));
+  };
+
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: [{ name: "CallStarted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }, { name: "caller", type: "address", indexed: true }, { name: "amount", type: "uint256" }] }],
+    eventName: "CallStarted",
+    onLogs: (logs) => logs.forEach(l => {
+      const a = l.args as any;
+      pushEvent("🔵", `Call → Provider #${a.providerId}`, `${Number(a.amount || 0) / 1e6} USDC · ${String(a.callId || "").slice(0, 10)}…`);
+    }),
+  });
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: [{ name: "ReceiptSubmitted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }] }],
+    eventName: "ReceiptSubmitted",
+    onLogs: (logs) => logs.forEach(l => {
+      const a = l.args as any;
+      pushEvent("✅", `Receipt · Provider #${a.providerId}`, `callId: ${String(a.callId || "").slice(0, 10)}…`);
+    }),
+  });
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: [{ name: "CallSlashed", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }, { name: "slashAmount", type: "uint256" }] }],
+    eventName: "CallSlashed",
+    onLogs: (logs) => logs.forEach(l => {
+      const a = l.args as any;
+      pushEvent("⚠", `Slashed · Provider #${a.providerId}`, `${Number(a.slashAmount || 0) / 1e6} USDC`);
+    }),
+  });
+
   const runAutoRouter = async () => {
     setAutoLoading(true);
     setAutoResult(null);
@@ -150,8 +187,8 @@ export default function Overview() {
             args: [BigInt(pid), reqHash],
           });
           setMultiResults(r => [...r, { pid, hash }]);
-        } catch (e: any) {
-          setMultiResults(r => [...r, { pid, err: e.shortMessage || e.message }]);
+        } catch (e: unknown) {
+          setMultiResults(r => [...r, { pid, err: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
         }
         await new Promise(r => setTimeout(r, 600));
       }
@@ -311,14 +348,33 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Live Activity */}
+      {/* Live Activity — real-time watchContractEvent + subgraph fallback */}
       <div style={s.section}>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
           <div style={s.sectionTitle}>LIVE ACTIVITY</div>
-          <span style={{ fontSize:10,color:"var(--text-faint)" }}>streaming from arc testnet</span>
+          <span style={{ fontSize:10,color:"var(--accent)",display:"flex",alignItems:"center",gap:4 }}>
+            <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"inline-block" }} />
+            live
+          </span>
         </div>
-        {activities.length === 0 ? (
-          <div style={{ textAlign:"center",padding:"20px 0",color:"var(--text-faint)",fontSize:12 }}>No activity yet</div>
+        {/* Real-time events from watchContractEvent */}
+        {liveEvents.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            {liveEvents.slice(0, 5).map((e, i) => (
+              <div key={i} style={{ ...s.actItem, padding:"6px 0" }}>
+                <span style={{ fontSize:14,flexShrink:0 }}>{e.icon}</span>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:12,color:"var(--text)",fontWeight:500 }}>{e.label}</div>
+                  <div style={{ fontSize:11,color:"var(--text-dim)" }}>{e.detail} · {e.time}</div>
+                </div>
+              </div>
+            ))}
+            {activities.length > 0 && <div style={{ borderTop:"1px solid var(--border)",margin:"8px 0",fontSize:10,color:"var(--text-faint)",textAlign:"center" }}>subgraph history</div>}
+          </div>
+        )}
+        {/* Subgraph fallback */}
+        {activities.length === 0 && liveEvents.length === 0 ? (
+          <div style={{ textAlign:"center",padding:"20px 0",color:"var(--text-faint)",fontSize:12 }}>Waiting for on-chain events…</div>
         ) : activities.map((a: {id:string;status:string;providerId:string;amount:string;createdAt:string}) => (
           <div key={a.id} style={s.actItem}>
             <div style={s.statusDot(a.status)} />

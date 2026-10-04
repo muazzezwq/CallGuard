@@ -96,10 +96,10 @@ export default function Verify() {
         args: [callId as `0x${string}`, responseHash, signature],
       }, {
         onSuccess: (h) => { setRcpTxHash(h); setRcpStatus("⏳ Waiting for confirmation..."); },
-        onError: (e: any) => setRcpStatus(`❌ ${e.shortMessage || e.message}`),
+        onError: (e: any) => setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
       });
-    } catch (e: any) {
-      setRcpStatus(`❌ ${e.shortMessage || e.message}`);
+    } catch (e: unknown) {
+      setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
   }, [rcpCallId, rcpPayload, address, walletClient, writeReceipt]);
 
@@ -174,8 +174,8 @@ export default function Verify() {
       }
 
       setResult({ ok: false, error: d.error || "Receipt not found on-chain." });
-    } catch (e: any) {
-      setResult({ ok: false, error: e.message });
+    } catch (e: unknown) {
+      setResult({ ok: false, error: (e instanceof Error ? e.message : String(e)) });
     }
     setLoading(false);
   }

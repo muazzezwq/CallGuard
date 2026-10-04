@@ -17,8 +17,8 @@ async function checkProviderUptime(providerId: string): Promise<{ status: "onlin
       return { status: d.ok !== false ? "online" : "offline", latency, detail: d.message || d.error };
     }
     return { status: "offline", latency, detail: `HTTP ${res.status}` };
-  } catch (e: any) {
-    return { status: "offline", latency: Date.now() - t0, detail: e.message };
+  } catch (e: unknown) {
+    return { status: "offline", latency: Date.now() - t0, detail: (e instanceof Error ? e.message : String(e)) };
   }
 }
 

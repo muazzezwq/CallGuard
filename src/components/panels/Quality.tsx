@@ -41,7 +41,7 @@ export default function Quality() {
         args: [BigInt(callId), evidence],
       })
       setTxHash(hash)
-    } catch (e: any) { alert(e.shortMessage || e.message) }
+    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
   }
 
   async function voteOnDispute() {
@@ -54,7 +54,7 @@ export default function Quality() {
         args: [BigInt(disputeId), voteSupport],
       })
       setTxHash(hash)
-    } catch (e: any) { alert(e.shortMessage || e.message) }
+    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
   }
 
   async function stakeAsArbiter() {
@@ -66,7 +66,7 @@ export default function Quality() {
         value: BigInt(Math.floor(parseFloat(stakeAmount) * 1e6)),
       })
       setTxHash(hash)
-    } catch (e: any) { alert(e.shortMessage || e.message) }
+    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
   }
 
   const tabs = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]
