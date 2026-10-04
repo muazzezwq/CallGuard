@@ -5,19 +5,28 @@ export default {
     extend: {
       colors: {
         bg: {
-          0: "#080b10",
-          1: "#0d1117",
-          2: "#111820",
-          3: "#161e28",
+          0: "var(--bg-0)",
+          1: "var(--bg-1)",
+          2: "var(--bg-2)",
+          3: "var(--bg-3)",
+        },
+        border: {
+          DEFAULT: "var(--border)",
+          hi: "var(--border-hi)",
+        },
+        text: {
+          DEFAULT: "var(--text)",
+          dim: "var(--text-dim)",
+          faint: "var(--text-faint)",
         },
         accent: {
-          DEFAULT: "#10b981",
-          dim: "#059669",
-          bg: "rgba(16,185,129,0.08)",
+          DEFAULT: "var(--accent)",
+          dim: "var(--accent-dim)",
+          bg: "var(--accent-bg)",
         },
-        danger: { DEFAULT: "#ef4444", bg: "rgba(239,68,68,0.08)" },
-        warn: { DEFAULT: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
-        info: { DEFAULT: "#3b82f6", bg: "rgba(59,130,246,0.08)" },
+        danger: { DEFAULT: "var(--danger)", bg: "var(--danger-bg)" },
+        warn: { DEFAULT: "var(--warn)", bg: "var(--warn-bg)" },
+        info: { DEFAULT: "var(--info)", bg: "var(--info-bg)" },
       },
       fontFamily: {
         sans: ["Spline Sans", "Inter", "system-ui", "sans-serif"],

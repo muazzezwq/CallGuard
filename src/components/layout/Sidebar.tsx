@@ -41,7 +41,7 @@ const SYSTEM: NavItem[] = [
   { id: "settings",      label: "Settings",      icon: <Settings size={16} />,    modes: ["simple","pro"] },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNav }: { onNav?: () => void }) {
   const { activePanel, setPanel, mode, advancedOpen, toggleAdvanced } = useAppStore();
 
   const Item = ({ item }: { item: NavItem }) => {
@@ -49,51 +49,58 @@ export default function Sidebar() {
     const active = activePanel === item.id;
     return (
       <button
-        onClick={() => setPanel(item.id)}
-        className={clsx(
-          "sb-item w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all",
-          active
-            ? "bg-accent/10 text-accent font-medium border-l-2 border-accent"
-            : "text-text-dim hover:text-text hover:bg-bg-3"
-        )}
+        onClick={() => { setPanel(item.id); onNav?.(); }}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 8,
+          padding: "7px 12px", borderRadius: 8, border: "none",
+          background: active ? "rgba(16,185,129,0.1)" : "transparent",
+          color: active ? "var(--accent)" : "var(--text-dim)",
+          fontWeight: active ? 500 : 400,
+          fontSize: 13, cursor: "pointer", textAlign: "left",
+          borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+          transition: "all 0.15s",
+        }}
       >
-        <span className="sb-icon opacity-70">{item.icon}</span>
+        <span style={{ opacity: 0.8, display: "flex" }}>{item.icon}</span>
         <span>{item.label}</span>
       </button>
     );
   };
 
+  const SectionLabel = ({ label }: { label: string }) => (
+    <div style={{ padding: "8px 12px 4px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-faint)", fontWeight: 600 }}>
+      {label}
+    </div>
+  );
+
   return (
-    <aside className="app-sidebar flex flex-col gap-1 py-3 px-2 overflow-y-auto">
+    <aside style={{ display: "flex", flexDirection: "column", gap: 1, padding: "12px 8px", overflowY: "auto", height: "100%", width: "100%" }}>
       {/* Brand */}
-      <div className="flex items-center gap-2 px-3 py-2 mb-2">
-        <div className="w-7 h-7 rounded-lg bg-gradient-brand flex items-center justify-center text-white text-xs font-bold shadow-glow-green">CG</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px 12px" }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#10b981,#0ea5e9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>CG</div>
         <div>
-          <div className="text-sm font-semibold text-text font-display">CallGuard</div>
-          <div className="text-xs text-text-faint">Arc Testnet</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>CallGuard</div>
+          <div style={{ fontSize: 11, color: "var(--text-faint)" }}>Arc Testnet</div>
         </div>
       </div>
 
-      <div className="sb-section-label px-3 py-1 text-xs uppercase tracking-widest text-text-faint">Workspace</div>
+      <SectionLabel label="Workspace" />
       {CORE.map(i => <Item key={i.id} item={i} />)}
 
-      <div className="sb-section-label px-3 py-1 mt-2 text-xs uppercase tracking-widest text-text-faint">Settlement</div>
+      <SectionLabel label="Settlement" />
       {SETTLEMENT.map(i => <Item key={i.id} item={i} />)}
 
       {mode === "pro" && (
         <>
-          <button
-            onClick={toggleAdvanced}
-            className="flex items-center justify-between w-full px-3 py-1 mt-2 text-xs uppercase tracking-widest text-text-faint hover:text-text-dim transition-colors"
-          >
+          <button onClick={toggleAdvanced} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 12px 4px", border: "none", background: "transparent", cursor: "pointer", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-faint)", fontWeight: 600 }}>
             <span>Advanced</span>
-            {advancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {advancedOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
           </button>
           {advancedOpen && ADVANCED.map(i => <Item key={i.id} item={i} />)}
         </>
       )}
 
-      <div className="sb-section-label px-3 py-1 mt-2 text-xs uppercase tracking-widest text-text-faint">System</div>
+      <SectionLabel label="System" />
       {SYSTEM.map(i => <Item key={i.id} item={i} />)}
     </aside>
   );

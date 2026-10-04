@@ -1,8 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
-import clsx from "clsx";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
@@ -30,32 +29,79 @@ const panels = {
   notifications: lazy(() => import("../panels/Notifications")),
   settings:      lazy(() => import("../panels/SettingsPanel")),
   jobs:          lazy(() => import("../panels/Jobs")),
+  bulkcall:      lazy(() => import("../panels/BulkCall")),
+  register:      lazy(() => import("../panels/Register")),
 } as const;
 
 function PanelLoader() {
   return (
-    <div className="flex items-center justify-center h-64 text-text-faint text-sm">
-      <span className="animate-pulse">Loading…</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "var(--text-faint)", fontSize: 13 }}>
+      <span>Loading…</span>
     </div>
   );
 }
 
 export default function AppShell() {
   const { activePanel, theme } = useAppStore();
-  const ActivePanel = panels[activePanel] as React.LazyExoticComponent<() => JSX.Element>;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
 
   return (
-    <div className={clsx("app-root min-h-screen flex flex-col", theme === "light" && "light-mode")}>
-      <AppTopbar />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — hidden on mobile, shown via drawer */}
-        <div className="hidden md:flex w-52 flex-shrink-0 border-r border-border bg-bg-1 overflow-y-auto">
-          <Sidebar />
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      background: "var(--bg-0)",
+      color: "var(--text)",
+      fontFamily: "var(--font-sans)",
+    }} data-theme={theme}>
+
+      {/* Topbar */}
+      <AppTopbar onMenuClick={() => setSidebarOpen(o => !o)} />
+
+      {/* Body */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
+
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
+          />
+        )}
+
+        {/* Sidebar — desktop always visible, mobile drawer */}
+        <div style={{
+          width: 220,
+          flexShrink: 0,
+          borderRight: "1px solid var(--border)",
+          background: "var(--bg-1)",
+          overflowY: "auto",
+          position: "sticky",
+          top: 0,
+          height: "calc(100vh - 48px)",
+          // Mobile: slide in/out
+          ...(typeof window !== "undefined" && window.innerWidth < 768 ? {
+            position: "fixed" as const,
+            top: 48,
+            left: sidebarOpen ? 0 : -220,
+            height: "calc(100vh - 48px)",
+            zIndex: 50,
+            transition: "left 0.25s ease",
+          } : {}),
+        }}>
+          <Sidebar onNav={() => setSidebarOpen(false)} />
         </div>
-        {/* Panel */}
-        <main className="flex-1 overflow-y-auto bg-bg-0">
+
+        {/* Main content */}
+        <main style={{
+          flex: 1,
+          overflowY: "auto",
+          background: "var(--bg-0)",
+          minWidth: 0,
+        }}>
           <Suspense fallback={<PanelLoader />}>
-            <ActivePanel />
+            {ActivePanel ? <ActivePanel /> : <PanelLoader />}
           </Suspense>
         </main>
       </div>
