@@ -1,53 +1,99 @@
-import { useState } from "react";
-import { useReadContract } from "wagmi";
-import { formatUnits } from "viem";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
-import { useAppStore } from "../../store/useAppStore";
+import { useState, useEffect } from 'react'
+import { useReadContract } from 'wagmi'
+import { formatUnits } from 'viem'
+import { CONFIG, REGISTRY_ABI } from '../../lib/config'
+
+const REGISTRY = CONFIG.registryAddress as `0x${string}`
+
+const S = {
+  wrap: { padding: '24px', maxWidth: '640px' },
+  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
+  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
+  label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
+  input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
+  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
+  stat: { background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', textAlign: 'center' as const },
+}
 
 export default function ProviderProfile() {
-  const [pid, setPid] = useState(new URLSearchParams(window.location.search).get("provider") || "1");
-  const setPanel = useAppStore(s=>s.setActivePanel);
+  const [providerId, setProviderId] = useState('1')
+  const [queried, setQueried] = useState('1')
 
-  const { data } = useReadContract({ address: CONFIG.registryAddress, abi: REGISTRY_ABI, functionName: "getProvider", args: [BigInt(pid||1)], query: { enabled: !!pid } });
-  const p = data as any;
+  const { data: provider, isLoading, error } = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI,
+    functionName: 'getProvider',
+    args: [BigInt(queried)],
+  })
 
-  const price = p?.pricePerCall ? Number(formatUnits(p.pricePerCall,6)).toFixed(4) : "—";
-  const stake = p?.stakeAmount ? Number(formatUnits(p.stakeAmount,6)).toFixed(2) : "—";
-  const rep = p?.reputationScore ? Number(p.reputationScore) : 0;
+  const p = provider as any
+  const stake = p?.stake ? formatUnits(p.stake, 6) : '0'
+  const price = p?.pricePerCall ? formatUnits(p.pricePerCall, 6) : '0'
+  const slaWindow = p?.maxResponseTime ? Number(p.maxResponseTime) : 0
+  const completed = p?.completedCalls ? Number(p.completedCalls) : 0
+  const slashed = p?.slashedCalls ? Number(p.slashedCalls) : 0
+  const total = completed + slashed
+  const honorRate = total > 0 ? Math.round((completed / total) * 100) : 0
+  const isActive = p?.active
+
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/?provider=${queried}` : ''
 
   return (
-    <div className="panel-body">
-      <div className="panel-head"><h2>Provider Profile</h2><p className="panel-sub">Public provider stats. No wallet required. Share via ?provider=ID URL.</p></div>
-      <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"flex-end"}}>
-        <div style={{flex:1}}>
-          <label className="input-label">Provider ID</label>
-          <input className="input-field" type="number" value={pid} onChange={e=>setPid(e.target.value)} min="1" />
+    <div style={S.wrap}>
+      <div style={S.h1}>Provider Profile</div>
+      <div style={S.sub}>View any provider's on-chain stats. Share the link — no wallet required.</div>
+
+      <div style={S.card}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '0' }}>
+          <input style={{ ...S.input, flex: 1 }} value={providerId} onChange={e => setProviderId(e.target.value)} placeholder="Provider ID (e.g. 1)" />
+          <button style={S.btn} onClick={() => setQueried(providerId)}>Load</button>
         </div>
-        <button className="btn-secondary" onClick={()=>{ const url=`${window.location.origin}/app/?provider=${pid}`; navigator.clipboard.writeText(url); }}>Copy Link</button>
       </div>
-      {p && (
+
+      {isLoading && (
+        <div style={{ ...S.card, textAlign: 'center', color: 'var(--text-dim)', padding: '40px' }}>Loading provider #{queried}...</div>
+      )}
+
+      {error && (
+        <div style={{ ...S.card, border: '1px solid #ef444440' }}>
+          <div style={{ color: '#ef4444', fontSize: '14px' }}>Provider #{queried} not found or inactive.</div>
+        </div>
+      )}
+
+      {p && !isLoading && (
         <>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
-            <div className="stat-card"><div className="stat-label">PRICE / CALL</div><div className="stat-val">{price} <span style={{fontSize:12}}>USDC</span></div></div>
-            <div className="stat-card"><div className="stat-label">STAKE</div><div className="stat-val">{stake} <span style={{fontSize:12}}>USDC</span></div></div>
-            <div className="stat-card"><div className="stat-label">SLA WINDOW</div><div className="stat-val">{p.maxResponseTime ? Number(p.maxResponseTime)+"s" : "—"}</div></div>
-            <div className="stat-card"><div className="stat-label">STATUS</div><div className="stat-val" style={{color:p.active?"var(--accent)":"var(--red)"}}>{p.active?"Active":"Inactive"}</div></div>
-          </div>
-          <div style={{marginBottom:20}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontSize:13,color:"var(--text-dim)"}}>Reputation Score</span>
-              <span style={{fontSize:13,fontWeight:600,color:rep>70?"var(--accent)":rep>30?"var(--amber)":"var(--red)"}}>{rep}/100</span>
+          <div style={S.card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent)20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
+              </div>
+              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '12px', background: isActive ? '#10b98120' : '#6b728020', color: isActive ? '#10b981' : '#9ca3af', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>
-            <div style={{height:8,background:"var(--bg-3)",borderRadius:4,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${rep}%`,background:rep>70?"var(--accent)":rep>30?"var(--amber)":"var(--red)",borderRadius:4,transition:"width 0.5s"}} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
+              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#10b981' : honorRate > 50 ? '#f59e0b' : '#ef4444' }}>{honorRate}%</div></div>
+              <div style={S.stat}><div style={S.label}>Completed Calls</div><div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{completed}</div></div>
+              <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
+              <div style={S.stat}><div style={S.label}>Price / Call</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(price).toFixed(3)} USDC</div></div>
+              <div style={S.stat}><div style={S.label}>SLA Window</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{slaWindow}s</div></div>
+              <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? '#ef4444' : 'var(--text)' }}>{slashed}</div></div>
             </div>
+
+            <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn-primary" onClick={()=>setPanel("callbuilder")}>Call this provider →</button>
-            <a href={CONFIG.explorerAddr(p.signer||"0x")} target="_blank" rel="noreferrer" className="btn-secondary">ArcScan</a>
+
+          <div style={S.card}>
+            <div style={S.label}>Shareable Link</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'monospace' }} value={shareUrl} readOnly />
+              <button style={{ ...S.btn, padding: '10px 14px', flexShrink: 0 }} onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy</button>
+            </div>
           </div>
         </>
       )}
     </div>
-  );
+  )
 }

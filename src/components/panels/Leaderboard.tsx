@@ -1,61 +1,89 @@
-import { useSubgraph } from "../../hooks/useSubgraph";
-import { CONFIG } from "../../lib/config";
+import { useState } from 'react'
+import { useSubgraph } from '../../hooks/useSubgraph'
 
-const Q = `{ providers(first:20,orderBy:completedCalls,orderDirection:desc){id providerId completedCalls slashedCalls reputationScore active} }`;
-const Q2 = `{ calls(first:10,where:{status:"SLASHED"},orderBy:createdAt,orderDirection:desc){id providerId caller createdAt} }`;
+const S = {
+  wrap: { padding: '24px', maxWidth: '720px' },
+  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
+  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
+  row: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '8px', marginBottom: '8px', background: 'var(--bg-3)' },
+  badge: (n: number) => ({ width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0, background: n === 1 ? '#f59e0b' : n === 2 ? '#9ca3af' : n === 3 ? '#cd7c2f' : 'var(--bg-2)', color: n <= 3 ? '#000' : 'var(--text-dim)' }),
+}
+
+const PROVIDER_QUERY = `{ providers(first: 20, orderBy: completedCalls, orderDirection: desc) { id, completedCalls, slashedCalls, pricePerCall } }`
+const SLASH_QUERY = `{ providers(first: 20, orderBy: slashedCalls, orderDirection: desc) { id, completedCalls, slashedCalls } }`
 
 export default function Leaderboard() {
-  const { data: pd } = useSubgraph<{providers:any[]}>(Q);
-  const { data: sd } = useSubgraph<{calls:any[]}>(Q2);
-  const providers = pd?.providers || [];
-  const slashes = sd?.calls || [];
+  const [tab, setTab] = useState<'top' | 'slash'>('top')
+  const { data: topData, loading: topLoading } = useSubgraph(PROVIDER_QUERY)
+  const { data: slashData, loading: slashLoading } = useSubgraph(SLASH_QUERY)
+
+  const topProviders = (topData as any)?.providers || []
+  const slashProviders = (slashData as any)?.providers || []
+
+  const tabs = [{ id: 'top', label: '🏆 Top Providers' }, { id: 'slash', label: '⚡ Top Slashers' }]
+
+  function honorRate(p: any) {
+    const total = Number(p.completedCalls) + Number(p.slashedCalls)
+    return total > 0 ? Math.round((Number(p.completedCalls) / total) * 100) : 0
+  }
 
   return (
-    <div className="panel-body">
-      <div className="panel-head"><h2>Leaderboard</h2><p className="panel-sub">Top providers by honor rate and most slashed providers.</p></div>
-      <div style={{marginBottom:24}}>
-        <div style={{fontWeight:600,marginBottom:12,color:"var(--text)"}}>Top Providers (by completed calls)</div>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead>
-              <tr style={{borderBottom:"1px solid var(--border)"}}>
-                {["Rank","Provider","Completed","Slashes","Rep Score","Status"].map(h=>(
-                  <th key={h} style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",fontWeight:500,fontSize:11,textTransform:"uppercase"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {providers.map((p,i)=>(
-                <tr key={p.id} style={{borderBottom:"1px solid var(--border)"}}>
-                  <td style={{padding:"10px 12px",color:"var(--text-dim)"}}>{i+1}</td>
-                  <td style={{padding:"10px 12px"}}><a href={CONFIG.explorerAddr(`0x${p.providerId?.toString(16)||"0"}`)} target="_blank" rel="noreferrer" style={{color:"var(--accent)"}}>{p.providerId}</a></td>
-                  <td style={{padding:"10px 12px",color:"var(--text)"}}>{p.completedCalls}</td>
-                  <td style={{padding:"10px 12px",color:Number(p.slashedCalls)>0?"var(--red)":"var(--text)"}}>{p.slashedCalls}</td>
-                  <td style={{padding:"10px 12px"}}><span style={{background:"var(--bg-2)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{p.reputationScore}/100</span></td>
-                  <td style={{padding:"10px 12px"}}><span style={{color:p.active?"var(--accent)":"var(--text-dim)",fontSize:11}}>{p.active?"Active":"Inactive"}</span></td>
-                </tr>
-              ))}
-              {providers.length===0 && <tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--text-dim)"}}>No data yet</td></tr>}
-            </tbody>
-          </table>
-        </div>
+    <div style={S.wrap}>
+      <div style={S.h1}>Leaderboard</div>
+      <div style={S.sub}>Live provider rankings from Arc Testnet via subgraph.</div>
+
+      <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', width: 'fit-content' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
+        ))}
       </div>
-      <div>
-        <div style={{fontWeight:600,marginBottom:12,color:"var(--text)"}}>Recent Slashes</div>
-        {slashes.length===0 ? <div style={{color:"var(--text-dim)",fontSize:13}}>No slashes recorded.</div> : (
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {slashes.map((s:any)=>(
-              <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:"var(--bg-2)",borderRadius:8,borderLeft:"3px solid var(--red)"}}>
-                <div>
-                  <span style={{color:"var(--text-dim)",fontSize:11,marginRight:8}}>Provider #{s.providerId}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text)"}}>{s.caller?.slice(0,10)}...</span>
-                </div>
-                <span style={{fontSize:11,color:"var(--text-dim)"}}>{new Date(Number(s.createdAt)*1000).toLocaleDateString()}</span>
+
+      {tab === 'top' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Most Completed Calls</div>
+          {topLoading ? (
+            <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: '24px' }}>Loading...</div>
+          ) : topProviders.length === 0 ? (
+            <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: '24px' }}>No data yet. Make some calls!</div>
+          ) : topProviders.map((p: any, i: number) => (
+            <div key={p.id} style={S.row}>
+              <div style={S.badge(i + 1)}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '14px' }}>Provider #{p.id}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{p.completedCalls} completed · {p.slashedCalls} slashed</div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: honorRate(p) > 80 ? '#10b981' : '#f59e0b' }}>{honorRate(p)}%</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>honor</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'slash' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Most Slashed Providers</div>
+          {slashLoading ? (
+            <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: '24px' }}>Loading...</div>
+          ) : slashProviders.length === 0 ? (
+            <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: '24px' }}>No slashes yet.</div>
+          ) : slashProviders.filter((p: any) => Number(p.slashedCalls) > 0).map((p: any, i: number) => (
+            <div key={p.id} style={S.row}>
+              <div style={S.badge(i + 1)}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '14px' }}>Provider #{p.id}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{p.completedCalls} completed · <span style={{ color: '#ef4444' }}>{p.slashedCalls} slashed</span></div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ef4444' }}>{p.slashedCalls}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>slashes</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  );
+  )
 }

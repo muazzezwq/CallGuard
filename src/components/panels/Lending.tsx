@@ -1,64 +1,137 @@
-import { useState } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
-import { CONFIG, REPUTATION_LOAN_ABI, USDC_ABI } from "../../lib/config";
+import { useState } from 'react'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from 'wagmi'
+import { parseUnits, formatUnits } from 'viem'
+import { CONFIG, REPUTATION_LOAN_ABI } from '../../lib/config'
+
+const ADDR = CONFIG.reputationLoanAddress as `0x${string}`
+
+const S = {
+  wrap: { padding: '24px', maxWidth: '720px' },
+  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
+  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
+  label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
+  input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
+  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
+  row: { display: 'flex', gap: '12px', marginBottom: '16px' },
+  col: { flex: 1 },
+  stat: { background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', textAlign: 'center' as const },
+}
 
 export default function Lending() {
-  const { address } = useAccount();
-  const [amount, setAmount] = useState("50");
-  const [tab, setTab] = useState<"borrow"|"deposit"|"repay">("borrow");
-  const [txHash, setTxHash] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { address } = useAccount()
+  const [tab, setTab] = useState<'borrow' | 'lend' | 'repay'>('borrow')
+  const [amount, setAmount] = useState('50')
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
 
-  const { data: totalShares } = useReadContract({ address: CONFIG.reputationLoan as `0x${string}`, abi: REPUTATION_LOAN_ABI, functionName: "totalShares" });
+  const { writeContractAsync, isPending } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  const { writeContractAsync } = useWriteContract();
+  const { data: totalShares } = useReadContract({ address: ADDR, abi: REPUTATION_LOAN_ABI, functionName: 'totalShares' })
+  const { data: poolBalance } = useReadContract({ address: ADDR, abi: REPUTATION_LOAN_ABI, functionName: 'poolBalance' })
 
-  const execute = async () => {
-    setBusy(true);
+  const poolUSDC = poolBalance ? formatUnits(poolBalance as bigint, 6) : '0'
+  const shares = totalShares ? formatUnits(totalShares as bigint, 6) : '0'
+
+  async function deposit() {
     try {
-      let hash: `0x${string}`;
-      const amt = parseUnits(amount, 6);
-      if (tab === "borrow") {
-        hash = await writeContractAsync({ address: CONFIG.reputationLoan as `0x${string}`, abi: REPUTATION_LOAN_ABI, functionName: "borrow", args: [amt] });
-      } else if (tab === "deposit") {
-        await writeContractAsync({ address: CONFIG.usdcAddress, abi: USDC_ABI, functionName: "approve", args: [CONFIG.reputationLoan as `0x${string}`, amt] });
-        hash = await writeContractAsync({ address: CONFIG.reputationLoan as `0x${string}`, abi: REPUTATION_LOAN_ABI, functionName: "deposit", args: [amt] });
-      } else {
-        await writeContractAsync({ address: CONFIG.usdcAddress, abi: USDC_ABI, functionName: "approve", args: [CONFIG.reputationLoan as `0x${string}`, amt] });
-        hash = await writeContractAsync({ address: CONFIG.reputationLoan as `0x${string}`, abi: REPUTATION_LOAN_ABI, functionName: "repay", args: [amt] });
-      }
-      setTxHash(hash!);
-    } catch (e: any) { alert(e.shortMessage || e.message); }
-    setBusy(false);
-  };
+      const hash = await writeContractAsync({
+        address: ADDR,
+        abi: REPUTATION_LOAN_ABI,
+        functionName: 'deposit',
+        args: [parseUnits(amount, 6)],
+      })
+      setTxHash(hash)
+    } catch (e: any) { alert(e.shortMessage || e.message) }
+  }
 
-  const pool = totalShares ? Number(formatUnits(totalShares as bigint, 6)).toFixed(2) : "0.00";
+  async function borrow() {
+    try {
+      const hash = await writeContractAsync({
+        address: ADDR,
+        abi: REPUTATION_LOAN_ABI,
+        functionName: 'borrow',
+        args: [parseUnits(amount, 6)],
+      })
+      setTxHash(hash)
+    } catch (e: any) { alert(e.shortMessage || e.message) }
+  }
+
+  async function repay() {
+    try {
+      const hash = await writeContractAsync({
+        address: ADDR,
+        abi: REPUTATION_LOAN_ABI,
+        functionName: 'repay',
+        args: [parseUnits(amount, 6)],
+      })
+      setTxHash(hash)
+    } catch (e: any) { alert(e.shortMessage || e.message) }
+  }
+
+  const tabs = [{ id: 'borrow', label: 'Borrow Stake' }, { id: 'lend', label: 'Provide Liquidity' }, { id: 'repay', label: 'Repay' }]
 
   return (
-    <div className="panel-body">
-      <div className="panel-head">
-        <h2>RepFi Lending</h2>
-        <p className="panel-sub">Honor rate &gt; 90%? Borrow USDC stake from the reputation pool. DeFi meets SLA enforcement.</p>
+    <div style={S.wrap}>
+      <div style={S.h1}>RepFi Lending</div>
+      <div style={S.sub}>Reputation-backed USDC loans. High honor rate? Borrow your stake from the pool.</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        <div style={S.stat}><div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase' }}>Pool Size</div><div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(poolUSDC).toFixed(2)}</div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>USDC</div></div>
+        <div style={S.stat}><div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase' }}>Total Shares</div><div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(shares).toFixed(2)}</div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>LP tokens</div></div>
+        <div style={S.stat}><div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase' }}>Min. Honor Rate</div><div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)' }}>90%</div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>to borrow</div></div>
       </div>
-      <div className="stat-grid" style={{gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-        <div className="stat-card"><div className="stat-label">POOL SIZE</div><div className="stat-val">{pool} <span style={{fontSize:12}}>USDC</span></div></div>
-        <div className="stat-card"><div className="stat-label">MIN HONOR RATE</div><div className="stat-val">90%</div></div>
-        <div className="stat-card"><div className="stat-label">APY (LENDERS)</div><div className="stat-val">~8%</div></div>
-      </div>
-      <div className="tab-bar" style={{marginBottom:16}}>
-        {(["borrow","deposit","repay"] as const).map(t => (
-          <button key={t} className={`tab-btn${tab===t?" active":""}`} onClick={()=>setTab(t)} style={{textTransform:"capitalize"}}>{t}</button>
+
+      <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', width: 'fit-content' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
         ))}
       </div>
-      <div className="action-card">
-        <div className="action-title">{tab === "borrow" ? "Borrow stake from pool" : tab === "deposit" ? "Deposit to pool (earn APY)" : "Repay loan"}</div>
-        {tab === "borrow" && <div className="info-box" style={{marginBottom:12}}>Requires honor rate &gt; 90% and 10+ completed calls. Slashed first if you miss SLA.</div>}
-        <label className="input-label">Amount (USDC)</label>
-        <input className="input-field" type="number" value={amount} onChange={e=>setAmount(e.target.value)} min="1" step="1" style={{marginBottom:12}} />
-        <button className="btn-primary" onClick={execute} disabled={busy || !address}>{busy ? "Processing..." : tab === "borrow" ? "Borrow" : tab === "deposit" ? "Deposit" : "Repay"}</button>
-        {txHash && <div className="success-box" style={{marginTop:8}}>✓ TX: <a href={CONFIG.explorerTx(txHash)} target="_blank" rel="noreferrer" style={{color:"var(--accent)"}}>{txHash.slice(0,16)}...</a></div>}
-      </div>
+
+      {tab === 'borrow' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Borrow Stake from Pool</div>
+          <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '16px' }}>Providers with honor rate &gt; 90% can borrow USDC stake. If slashed, debt is deducted first.</div>
+          <div style={{ background: '#10b98115', border: '1px solid #10b98140', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 600 }}>Requirements</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>Honor rate &gt; 90% · At least 10 completed calls · No outstanding loans</div>
+          </div>
+          <div style={{ marginBottom: '16px' }}><div style={S.label}>Amount (USDC)</div><input style={S.input} type="number" value={amount} onChange={e => setAmount(e.target.value)} min="1" /></div>
+          <button style={S.btn} onClick={borrow} disabled={isPending || isConfirming || !address}>
+            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Borrow Stake'}
+          </button>
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Stake borrowed successfully</div>}
+        </div>
+      )}
+
+      {tab === 'lend' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Provide Liquidity</div>
+          <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '16px' }}>Deposit USDC to the reputation pool. Earn interest from loan fees and slash redistribution.</div>
+          {parseFloat(poolUSDC) === 0 && (
+            <div style={{ background: 'var(--accent)15', border: '1px solid var(--accent)40', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '13px' }}>Pool is empty — be the first liquidity provider</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>First depositors get the highest share ratio.</div>
+            </div>
+          )}
+          <div style={{ marginBottom: '16px' }}><div style={S.label}>Deposit Amount (USDC)</div><input style={S.input} type="number" value={amount} onChange={e => setAmount(e.target.value)} min="1" /></div>
+          <button style={S.btn} onClick={deposit} disabled={isPending || isConfirming || !address}>
+            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Deposit'}
+          </button>
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Deposited successfully</div>}
+        </div>
+      )}
+
+      {tab === 'repay' && (
+        <div style={S.card}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Repay Loan</div>
+          <div style={{ marginBottom: '16px' }}><div style={S.label}>Amount (USDC)</div><input style={S.input} type="number" value={amount} onChange={e => setAmount(e.target.value)} min="1" /></div>
+          <button style={S.btn} onClick={repay} disabled={isPending || isConfirming || !address}>
+            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Repay'}
+          </button>
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Repaid successfully</div>}
+        </div>
+      )}
     </div>
-  );
+  )
 }
