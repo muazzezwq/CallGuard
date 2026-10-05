@@ -54,9 +54,24 @@ const CONTRACTS = [
 ];
 
 const SUBGRAPH = `{
-  calls(first:8,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
-  providers(first:5,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
+  calls(first:100,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
+  providers(first:10,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
 }`;
+
+// Build 24h hourly buckets from subgraph calls
+function buildActivityChart(calls: { createdAt: string }[]): { hour: number; count: number }[] {
+  const nowTs = Math.floor(Date.now() / 1000);
+  const buckets: number[] = new Array(24).fill(0);
+  calls.forEach(c => {
+    const ts = parseInt(c.createdAt || "0");
+    const ageS = nowTs - ts;
+    if (ageS >= 0 && ageS < 86400) {
+      const hourIdx = Math.floor(ageS / 3600); // 0 = most recent hour
+      buckets[hourIdx] = (buckets[hourIdx] || 0) + 1;
+    }
+  });
+  return buckets.map((count, i) => ({ hour: 23 - i, count })).reverse();
+}
 
 export default function Overview() {
   const { setPanel } = useAppStore();
@@ -78,8 +93,10 @@ export default function Overview() {
     ? `${Math.round((Number(totalReceipts) / Number(totalCalls)) * 100)}%` : "—";
   const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
-  const activities = sg?.data?.calls ?? [];
+  const allCalls = sg?.data?.calls ?? [];
+  const activities = allCalls.slice(0, 8);
   const topProviders = sg?.data?.providers ?? [];
+  const chartData = buildActivityChart(allCalls);
 
   // Auto-router state
   const [autoOpen, setAutoOpen] = useState(false);
@@ -415,6 +432,47 @@ export default function Overview() {
           })}
         </div>
       )}
+
+      {/* 24h Activity Chart */}
+      <div style={s.section}>
+        <div style={s.sectionTitle}>24H ACTIVITY CHART</div>
+        {chartData.every(b => b.count === 0) ? (
+          <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-faint)", fontSize: 12 }}>No calls in last 24h</div>
+        ) : (
+          <div>
+            {/* Bar chart */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 60, marginBottom: 4 }}>
+              {(() => {
+                const maxCount = Math.max(...chartData.map(b => b.count), 1);
+                return chartData.map((b, i) => (
+                  <div
+                    key={i}
+                    title={`${b.hour}:00 — ${b.count} call${b.count !== 1 ? "s" : ""}`}
+                    style={{
+                      flex: 1,
+                      height: `${Math.max(4, (b.count / maxCount) * 56)}px`,
+                      background: b.count > 0 ? "var(--accent)" : "var(--bg-3)",
+                      borderRadius: "2px 2px 0 0",
+                      opacity: b.count > 0 ? 0.8 : 0.3,
+                      transition: "height 0.3s",
+                      cursor: "default",
+                    }}
+                  />
+                ));
+              })()}
+            </div>
+            {/* Hour labels (every 6h) */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>
+              {[0, 6, 12, 18, 23].map(h => (
+                <span key={h}>{String(h).padStart(2, "0")}h</span>
+              ))}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-dim)", textAlign: "right" }}>
+              Total last 24h: <strong style={{ color: "var(--text)" }}>{chartData.reduce((s, b) => s + b.count, 0)}</strong> calls
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Deployed Contracts */}
       <div style={s.section}>

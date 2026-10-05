@@ -33,6 +33,7 @@ const panels = {
   register:      lazy(() => import("../panels/Register")),
   nano:          lazy(() => import("../panels/Nano")),
   privacy:       lazy(() => import("../panels/Privacy")),
+  bridge:        lazy(() => import("../panels/Bridge")),
 } as const;
 
 function PanelLoader() {

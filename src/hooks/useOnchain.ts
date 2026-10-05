@@ -44,4 +44,39 @@ export function useUsdcBalance(address?: `0x${string}`) {
   return useBalance({ address, token: CONFIG.usdc as `0x${string}` });
 }
 
+export function useEurcBalance(address?: `0x${string}`) {
+  return useBalance({ address, token: CONFIG.eurcAddress });
+}
+
+export function useUsycBalance(address?: `0x${string}`) {
+  return useBalance({ address, token: CONFIG.usycAddress });
+}
+
+// Band Protocol oracle ABI (standard reference data)
+const BAND_ABI = [
+  {
+    name: "getReferenceData",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "base", type: "string" }, { name: "quote", type: "string" }],
+    outputs: [
+      { name: "rate", type: "uint256" },
+      { name: "lastUpdatedBase", type: "uint256" },
+      { name: "lastUpdatedQuote", type: "uint256" },
+    ],
+  },
+] as const;
+
+// Returns USDC/USD rate as a number (e.g. 1.0002)
+// Only call after wallet connect — NOT on page load (rate limit rule)
+export function useBandUsdcRate(enabled = false) {
+  return useReadContract({
+    address: CONFIG.bandOracleAddress,
+    abi: BAND_ABI,
+    functionName: "getReferenceData",
+    args: ["USDC", "USD"],
+    query: { enabled },
+  });
+}
+
 export { formatUnits, parseUnits };

@@ -6,13 +6,19 @@ export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.arc-testnet.com"] } },
+  rpcUrls: { default: { http: ["https://rpc.testnet.arc.network"] } },
   blockExplorers: { default: { name: "ArcScan", url: "https://testnet.arcscan.app" } },
 });
 
 export const CONFIG = {
+  // Core tokens
   usdc: "0x3600000000000000000000000000000000000000",
   usdcAddress: "0x3600000000000000000000000000000000000000" as `0x${string}`,
+  eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+  eurcAddress: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as `0x${string}`,
+  usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
+  usycAddress: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C" as `0x${string}`,
+  // Core contracts
   registry: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF",
   registryAddress: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF" as `0x${string}`,
   payPerCall: "0x51bbd776d01bbb99b5425c701f00b2c516215e2e",
@@ -25,6 +31,15 @@ export const CONFIG = {
   reputationLoanAddress: "0xE656dF6512e9d10e555518b7342fd8c81c42B8c0" as `0x${string}`,
   slaAttestationBridge: "0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7",
   agentWallet: "0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6",
+  // Auxiliary contracts
+  crossChainReceiver: "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c",
+  crossChainReceiverAddress: "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" as `0x${string}`,
+  multicall3From: "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
+  multicall3FromAddress: "0x522fAf9A91c41c443c66765030741e4AaCe147D0" as `0x${string}`,
+  bandOracle: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68",
+  bandOracleAddress: "0x8c064bCf7C0DA3B3b090BAbFE8f3323534D84d68" as `0x${string}`,
+  memo: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
+  memoAddress: "0x5294E9927c3306DcBaDb03fe70b92e01cCede505" as `0x${string}`,
   // ERC-8004 AgentIdentity NFT registry (for registerV2)
   identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
   identityRegistryAddress: "0x8004A818BFB912233c491871b3d84c89A494BD9e" as `0x${string}`,
@@ -32,9 +47,14 @@ export const CONFIG = {
   agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
   agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
   subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn",
-  explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
-  explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
+  explorerBase: "https://testnet.arcscan.app",
+  explorerTx: (hash: string) => `https://testnet.arcscan.app/tx/${hash}`,
+  explorerAddr: (addr: string) => `https://testnet.arcscan.app/address/${addr}`,
+  rpcUrl: "https://rpc.testnet.arc.network",
+  chainId: 5042002,
+  chainName: "Arc Testnet",
   usdcDecimals: 6,
+  facilitatorUrl: typeof window !== "undefined" ? window.location.origin : "https://callguard.vercel.app",
 };
 
 export const USDC_ABI = [
@@ -90,7 +110,7 @@ export const REGISTRY_ABI = [
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     chains: [arcTestnet],
-    transports: { [arcTestnet.id]: http("https://rpc.arc-testnet.com") },
+    transports: { [arcTestnet.id]: http("https://rpc.testnet.arc.network") },
     walletConnectProjectId: "2f05ae7f1116030fde2d36508f472bfb",
     appName: "CallGuard",
     appDescription: "On-chain SLA marketplace · Arc Testnet",

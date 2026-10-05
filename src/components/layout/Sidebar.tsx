@@ -2,7 +2,7 @@ import { useAppStore, PanelId, AppMode } from "../../store/useAppStore";
 import {
   Home, Zap, Store, List, Server, FileText, CreditCard, Shield, ShieldCheck,
   Cpu, TrendingUp, Package, Link2, RefreshCw, Terminal, Bell, BarChart2,
-  History, BookOpen, CheckSquare, User, Settings, ChevronDown, ChevronRight,
+  History, BookOpen, CheckSquare, User, Settings, ChevronDown, ChevronRight, Layers,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -30,6 +30,7 @@ const ADVANCED: NavItem[] = [
   { id: "lending",     label: "RepFi Lending",      icon: <TrendingUp size={16} />,  modes: ["pro"] },
   { id: "futures",     label: "SLA Futures",        icon: <Package size={16} />,     modes: ["pro"] },
   { id: "attestation", label: "SLA Bridge",         icon: <Link2 size={16} />,       modes: ["pro"] },
+  { id: "bridge",       label: "CCTP Bridge",       icon: <Layers size={16} />,      modes: ["simple","pro"] },
   { id: "subscriptions",label:"Subscriptions",      icon: <RefreshCw size={16} />,   modes: ["pro"] },
   { id: "mcp",         label: "API / MCP",          icon: <Terminal size={16} />,    modes: ["pro"] },
   { id: "webhooks",    label: "Webhooks",           icon: <Zap size={16} />,         modes: ["pro"] },

@@ -7,7 +7,7 @@ export type PanelId =
   | "lending" | "futures" | "attestation" | "subscriptions" | "jobs"
   | "mcp" | "webhooks" | "leaderboard" | "history" | "apidocs"
   | "verify" | "provprofile" | "analytics" | "notifications" | "settings"
-  | "nano" | "privacy" | "register" | "bulkcall";
+  | "nano" | "privacy" | "register" | "bulkcall" | "bridge";
 
 export type AppMode = "simple" | "pro";
 
