@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad } from "viem";
 import { arcTestnet, CONFIG } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
@@ -75,7 +75,11 @@ export default function CallBuilder() {
   const { data: walletClient } = useWalletClient();
 
   const [chain, setChain] = useState<Chain>("arc");
-  const [providerId, setProviderId] = useState("1");
+  const [providerId, setProviderId] = useState(() => {
+    const saved = sessionStorage.getItem("callbuilder_provider");
+    if (saved) { sessionStorage.removeItem("callbuilder_provider"); return saved; }
+    return "1";
+  });
   const [payload, setPayload] = useState("ping");
   const [callIdInput, setCallIdInput] = useState("");
   const [responsePayload, setResponsePayload] = useState("pong");
@@ -110,6 +114,23 @@ export default function CallBuilder() {
 
   const { writeContractAsync, data: txHash } = useWriteContract();
   const { isSuccess: txConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
+
+  // ── Gas estimator ───────────────────────────────────────────────
+  const [gasEstimate, setGasEstimate] = useState<bigint | null>(null);
+  const [gasPrice, setGasPrice] = useState<bigint | null>(null);
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+  useEffect(() => {
+    if (chain !== "arc" || !isConnected || !address || !active || providerIdNum <= 0 || !publicClient) return;
+    const reqH = keccak256(stringToBytes(payload || "ping")) as `0x${string}`;
+    publicClient.estimateContractGas({
+      address: CONFIG.payPerCall as `0x${string}`,
+      abi: PPC_ABI,
+      functionName: "callService",
+      args: [BigInt(providerIdNum), reqH],
+      account: address as `0x${string}`,
+    }).then(g => setGasEstimate(g)).catch(() => setGasEstimate(null));
+    publicClient.getGasPrice().then(p => setGasPrice(p)).catch(() => setGasPrice(null));
+  }, [chain, isConnected, address, active, providerIdNum, payload, publicClient]);
 
   useEffect(() => {
     if (txConfirmed && txHash) {
@@ -520,6 +541,7 @@ export default function CallBuilder() {
               { label:"Price",       value: price ? `${formatUnits(price,6)} USDC` : "—" },
               { label:"SLA window",  value: slaWindow ? `${slaWindow}s` : "—" },
               { label:"Slash %",     value: slashBps ? `${slashBps/100}%` : "—" },
+              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (chain === "arc" && isConnected ? "estimating…" : "—") },
               { label:"Network",     value: isCCTP ? `${chainInfo.label}` : "Arc Testnet" },
               { label:"Settlement",  value: "Arc Testnet (on-chain)" },
               { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009" },

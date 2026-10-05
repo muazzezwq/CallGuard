@@ -14,6 +14,7 @@ const S = {
 
 export default function Nano() {
   const { address } = useAccount()
+  const [nanoPId] = useState(() => { const s = sessionStorage.getItem("nano_provider"); if (s) { sessionStorage.removeItem("nano_provider"); return Number(s) || 1; } return 1; })
   const [callCount, setCallCount] = useState(0)
   const [balance, setBalance] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export default function Nano() {
       const res = await fetch('/api/nano-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caller: address, providerId: 1, payload: 'nano-ping', amount: '0.001' })
+        body: JSON.stringify({ caller: address, providerId: nanoPId, payload: 'nano-ping', amount: '0.001' })
       })
       const data = await res.json()
       if (data.ok || data.success) {

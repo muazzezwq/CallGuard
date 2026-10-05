@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
@@ -92,6 +92,30 @@ export default function Requests() {
       setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
   }, [timeoutCallId, address, writeContract]);
+
+  // SLA countdown: tick every second for STARTED calls
+  const [nowMs, setNowMs] = useState(Date.now());
+  useEffect(() => {
+    const hasOpen = calls.some(c => c.status === "STARTED");
+    if (!hasOpen) return;
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [calls]);
+
+  function slaCountdown(call: Record<string, unknown>): string | null {
+    if (call.status !== "STARTED") return null;
+    // createdAt + maxResponseTime = deadline; we use completedAt as deadline if set
+    const maxResp = 120; // 120s fallback; real value from provider config if available
+    const createdTs = Number(call.createdAt) * 1000;
+    const deadlineMs = call.completedAt
+      ? Number(call.completedAt) * 1000
+      : createdTs + maxResp * 1000;
+    const remaining = Math.floor((deadlineMs - nowMs) / 1000);
+    if (remaining <= 0) return "⏰ Claimable now";
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    return `⏱ ${m > 0 ? `${m}m ` : ""}${s}s remaining`;
+  }
 
   // Auto-fill timeout ID when clicking a call row
   const fillTimeout = (id: string) => {
@@ -223,11 +247,17 @@ export default function Requests() {
                 <span className="status-badge" style={{color: STATUS_COLORS[call.status] ?? "var(--text-dim)"}}>
                   {call.status}
                 </span>
-                {isOpen && expired && (
-                  <span style={{ fontSize: 10, color: "var(--danger,#ef4444)", display: "block", marginTop: 2 }}>
-                    Claimable
-                  </span>
-                )}
+                {isOpen && (() => {
+                  const countdown = slaCountdown(call as Record<string, unknown>);
+                  return countdown ? (
+                    <span style={{
+                      fontSize: 10, display: "block", marginTop: 3, fontFamily: "var(--font-mono)",
+                      color: expired ? "var(--danger,#ef4444)" : "var(--warn,#f59e0b)"
+                    }}>
+                      {countdown}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           );

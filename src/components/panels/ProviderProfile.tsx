@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useReadContract } from 'wagmi'
 import { formatUnits } from 'viem'
 import { CONFIG, REGISTRY_ABI } from '../../lib/config'
+import { useAppStore } from '../../store/useAppStore'
 
 const REGISTRY = CONFIG.registryAddress as `0x${string}`
 
@@ -19,6 +20,26 @@ const S = {
 export default function ProviderProfile() {
   const [providerId, setProviderId] = useState('1')
   const [queried, setQueried] = useState('1')
+  const [copied, setCopied] = useState(false)
+  const { setPanel } = useAppStore()
+
+  // deep-link: read ?provider=X from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pId = params.get('provider')
+    if (pId && /^\d+$/.test(pId)) { setProviderId(pId); setQueried(pId) }
+  }, [])
+
+  const handleCallProvider = useCallback(() => {
+    // Navigate to CallBuilder with provider pre-filled via sessionStorage
+    sessionStorage.setItem('callbuilder_provider', queried)
+    setPanel('callbuilder')
+  }, [queried, setPanel])
+
+  const handleNanoPay = useCallback(() => {
+    sessionStorage.setItem('nano_provider', queried)
+    setPanel('nano')
+  }, [queried, setPanel])
 
   const { data: provider, isLoading, error } = useReadContract({
     address: REGISTRY,
@@ -38,6 +59,9 @@ export default function ProviderProfile() {
   const isActive = p?.active
 
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/?provider=${queried}` : ''
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(shareUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
 
   return (
     <div style={S.wrap}>
@@ -85,11 +109,34 @@ export default function ProviderProfile() {
             <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
           </div>
 
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+            <button
+              onClick={handleCallProvider}
+              disabled={!isActive}
+              style={{ flex: 1, padding: '12px', background: isActive ? 'var(--accent)' : 'var(--bg-3)', color: isActive ? '#000' : 'var(--text-faint)', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: isActive ? 'pointer' : 'not-allowed', boxShadow: isActive ? '0 0 16px rgba(16,185,129,0.25)' : 'none' }}
+            >
+              ⚡ Call this Provider
+            </button>
+            <button
+              onClick={handleNanoPay}
+              disabled={!isActive}
+              style={{ flex: 1, padding: '12px', background: 'var(--bg-2)', color: isActive ? 'var(--text)' : 'var(--text-faint)', border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: isActive ? 'pointer' : 'not-allowed' }}
+            >
+              💸 Nano Pay
+            </button>
+          </div>
+
           <div style={S.card}>
             <div style={S.label}>Shareable Link</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'monospace' }} value={shareUrl} readOnly />
-              <button style={{ ...S.btn, padding: '10px 14px', flexShrink: 0 }} onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy</button>
+              <button
+                style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? '#059669' : 'var(--accent)' }}
+                onClick={handleCopy}
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
             </div>
           </div>
         </>

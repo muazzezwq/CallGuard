@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
+import OnboardingWizard from "./OnboardingWizard";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
@@ -108,6 +109,9 @@ export default function AppShell() {
           </Suspense>
         </main>
       </div>
+
+      {/* Onboarding wizard — fixed bottom-right, localStorage dismissed */}
+      <OnboardingWizard />
     </div>
   );
 }
