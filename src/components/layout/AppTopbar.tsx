@@ -1,179 +1,167 @@
 import { useState, useCallback } from "react";
-import { ConnectKitButton } from "connectkit";
 import { useAccount, useDisconnect } from "wagmi";
+import { useModal } from "connectkit";
+import { formatUnits } from "viem";
 import { useAppStore } from "../../store/useAppStore";
-import { Sun, Moon, Menu, Copy, Check, LogOut } from "lucide-react";
-import { useUsdcBalance, useEurcBalance, useUsycBalance, useBandUsdcRate, formatUnits } from "../../hooks/useOnchain";
+import { useUsdcBalance, useEurcBalance, useUsycBalance } from "../../hooks/useOnchain";
 
-interface Props { onMenuClick?: () => void; }
-
-function BalancePill({ symbol, value, decimals, color }: { symbol: string; value: bigint; decimals: number; color: string }) {
-  const formatted = parseFloat(formatUnits(value, decimals)).toFixed(2);
-  return (
-    <span style={{
-      display: "flex", alignItems: "center", gap: 4,
-      padding: "3px 8px", borderRadius: 6,
-      background: "var(--bg-3)", border: "1px solid var(--border)",
-      fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-dim)",
-      whiteSpace: "nowrap",
-    }}>
-      <span style={{ color, fontWeight: 700 }}>{symbol}</span>
-      <span style={{ color: "var(--text)" }}>{formatted}</span>
-    </span>
-  );
-}
-
-export default function AppTopbar({ onMenuClick }: Props) {
+export default function AppTopbar({ onHamburger }: { onHamburger?: () => void }) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { mode, setMode, theme, setTheme } = useAppStore();
-  const { data: usdcBal } = useUsdcBalance(address);
-  const { data: eurcBal } = useEurcBalance(isConnected ? address : undefined);
-  const { data: usycBal } = useUsycBalance(isConnected ? address : undefined);
-  // Band oracle only enabled after wallet connect (rate-limit rule)
-  const { data: bandData } = useBandUsdcRate(isConnected);
+  const { setOpen } = useModal();
+  const { mode, setMode, theme, toggleTheme } = useAppStore();
+
+  const { data: usdcRaw } = useUsdcBalance(address);
+  const { data: eurcRaw } = useEurcBalance(address);
+  const { data: usycRaw } = useUsycBalance(address);
+
+  const usdcBal = usdcRaw ? parseFloat(formatUnits(usdcRaw, 6)).toFixed(2) : "0.00";
+  const eurcBal = eurcRaw ? parseFloat(formatUnits(eurcRaw, 6)).toFixed(2) : "0.00";
+  const usycBal = usycRaw ? parseFloat(formatUnits(usycRaw as bigint, 6)).toFixed(4) : "0.0000";
+
   const [copied, setCopied] = useState(false);
-
-  const usdcRate = bandData ? Number((bandData as [bigint, bigint, bigint])[0]) / 1e18 : 1.0;
-
-  const copyAddress = useCallback(async () => {
-    if (!address) return;
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard denied */ }
+  const handleCopyAddr = useCallback(() => {
+    if (address) {
+      navigator.clipboard.writeText(address).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    }
   }, [address]);
 
-  const short = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-
-  // USD value of USDC balance
-  const usdcUsdValue = usdcBal
-    ? (parseFloat(formatUnits(usdcBal.value, usdcBal.decimals)) * usdcRate).toFixed(2)
-    : null;
+  const shortAddr = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
 
   return (
-    <header style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 16px",
-      height: 48,
-      borderBottom: "1px solid var(--border)",
-      position: "sticky",
-      top: 0,
-      zIndex: 50,
-      background: "rgba(7,11,18,0.85)",
-      backdropFilter: "blur(16px)",
-      flexShrink: 0,
-      gap: 8,
-    }}>
-      {/* Left: hamburger + brand + network */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <button
-          onClick={onMenuClick}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent", color: "var(--text-dim)", cursor: "pointer", flexShrink: 0 }}
-          title="Toggle sidebar"
-        >
-          <Menu size={16} />
-        </button>
-        <div style={{ width: 26, height: 26, borderRadius: 7, background: "var(--gradient-brand)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 800, flexShrink: 0, fontFamily: "var(--font-display)" }}>
-          CG
-        </div>
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text)", display: "none" }} className="brand-name">
-          CallGuard
-        </span>
-        <span style={{
-          display: "flex", alignItems: "center", gap: 4,
-          padding: "2px 8px", borderRadius: 999,
-          background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)",
-          color: "var(--accent)", fontSize: 10, fontWeight: 500, whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", animation: "pulse 2s infinite" }} />
-          Arc Testnet
-        </span>
-      </div>
-
-      {/* Right */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", overflow: "hidden" }}>
-        {/* USDC balance + USD equiv */}
-        {isConnected && usdcBal && (
-          <BalancePill symbol="USDC" value={usdcBal.value} decimals={usdcBal.decimals} color="var(--accent)" />
-        )}
-        {/* EURC balance */}
-        {isConnected && eurcBal && eurcBal.value > 0n && (
-          <BalancePill symbol="EURC" value={eurcBal.value} decimals={eurcBal.decimals} color="#3b82f6" />
-        )}
-        {/* USYC balance */}
-        {isConnected && usycBal && usycBal.value > 0n && (
-          <BalancePill symbol="USYC" value={usycBal.value} decimals={usycBal.decimals} color="#f59e0b" />
-        )}
-        {/* USD equivalent (Band oracle) */}
-        {isConnected && usdcUsdValue && bandData && (
-          <span style={{ fontSize: 10, color: "var(--text-faint)", fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>
-            ≈${usdcUsdValue}
-          </span>
-        )}
-
-        {/* Address pill (click to copy) */}
-        {isConnected && address && (
+    <header className="topbar">
+      <div className="topbar-inner">
+        {/* Brand */}
+        <div className="brand">
+          {/* hamburger — mobile only */}
           <button
-            onClick={copyAddress}
-            title="Click to copy address"
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "3px 8px", borderRadius: 6,
-              background: "var(--bg-3)", border: "1px solid var(--border)",
-              color: "var(--text-dim)", fontSize: 11, cursor: "pointer",
-              fontFamily: "var(--font-mono)", whiteSpace: "nowrap",
-            }}
+            className="hamburger-btn"
+            id="hamburgerBtn"
+            aria-label="Menu"
+            onClick={onHamburger}
           >
-            {copied ? <Check size={10} color="var(--accent)" /> : <Copy size={10} />}
-            {short(address)}
+            ☰
           </button>
-        )}
+          <div className="brand-mark">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
+          <div>
+            <div className="brand-title">CallGuard</div>
+            <div className="brand-sub">built on Arc Testnet</div>
+          </div>
+        </div>
 
-        {/* Simple / Pro toggle */}
-        <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", fontSize: 10, flexShrink: 0 }}>
-          {(["simple","pro"] as const).map(m => (
-            <button key={m} onClick={() => setMode(m)} style={{
-              padding: "3px 7px",
-              border: "none",
-              background: mode === m ? "rgba(16,185,129,0.15)" : "transparent",
-              color: mode === m ? "var(--accent)" : "var(--text-dim)",
-              fontWeight: mode === m ? 600 : 400,
-              cursor: "pointer",
-              textTransform: "capitalize",
-              fontSize: 10,
-            }}>
-              {m === "simple" ? "S" : "P"}
+        {/* Right side */}
+        <div className="wallet-box">
+          {/* Network pill */}
+          <div className="network-pill" id="netPill">
+            <span className={`net-dot${isConnected ? " ok" : ""}`} id="netDot" />
+            <span id="netLabel">{isConnected ? "Arc Testnet" : "Disconnected"}</span>
+          </div>
+
+          {/* USDC balance — shown when connected */}
+          {isConnected && (
+            <div
+              className="usdc-balance"
+              id="balanceBox"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-faint)", letterSpacing: ".06em" }}>USDC</span>
+              <span style={{ fontWeight: 600, color: "var(--text)" }} id="usdcBal">{usdcBal}</span>
+            </div>
+          )}
+
+          {/* EURC balance */}
+          {isConnected && parseFloat(eurcBal) > 0 && (
+            <div
+              className="usdc-balance"
+              id="eurcBalBox"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-faint)", letterSpacing: ".06em" }}>EURC</span>
+              <span style={{ fontWeight: 600, color: "var(--text)" }} id="eurcBal">{eurcBal}</span>
+            </div>
+          )}
+
+          {/* USYC balance */}
+          {isConnected && parseFloat(usycBal) > 0 && (
+            <div
+              className="usdc-balance"
+              id="usycBalBox"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-faint)", letterSpacing: ".06em" }}>USYC</span>
+              <span style={{ fontWeight: 600, color: "var(--text)" }} id="usycBal">{usycBal}</span>
+            </div>
+          )}
+
+          {/* Theme toggle */}
+          <button
+            id="cgThemeToggle"
+            title="Toggle dark/light mode"
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
+
+          {/* Connect wallet / address pill */}
+          {!isConnected ? (
+            <button
+              className="btn btn-primary"
+              id="connectBtn"
+              onClick={() => setOpen(true)}
+              style={{ fontSize: 12, padding: "6px 14px" }}
+            >
+              Connect wallet
             </button>
-          ))}
-        </div>
+          ) : (
+            <>
+              <div
+                className="addr-pill"
+                id="addrPill"
+                title={copied ? "Copied!" : "Click to copy"}
+                onClick={handleCopyAddr}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 11, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", color: "var(--text-dim)" }}
+              >
+                <span id="addrText">{copied ? "✓ Copied" : shortAddr}</span>
+              </div>
+              <button
+                className="btn btn-sm btn-danger"
+                id="btnResetMM"
+                style={{ fontSize: 11, padding: "5px 10px" }}
+                onClick={() => disconnect()}
+              >
+                Reset
+              </button>
+            </>
+          )}
 
-        {/* Theme toggle */}
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          style={{ padding: 5, borderRadius: 8, border: "none", background: "transparent", color: "var(--text-dim)", cursor: "pointer", flexShrink: 0 }}
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-        >
-          {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-        </button>
-
-        {/* Disconnect button (visible when connected) */}
-        {isConnected && (
-          <button
-            onClick={() => disconnect()}
-            title="Disconnect wallet"
-            style={{ padding: 5, borderRadius: 8, border: "none", background: "transparent", color: "var(--danger)", cursor: "pointer", flexShrink: 0, opacity: 0.7 }}
+          {/* Simple / Pro toggle */}
+          <div
+            id="modeToggle"
+            style={{ display: "flex", alignItems: "center", gap: 0, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", fontSize: 11, fontWeight: 600 }}
           >
-            <LogOut size={13} />
-          </button>
-        )}
-
-        {/* ConnectKit button (handles connect/wallet modal) */}
-        <ConnectKitButton />
+            <button
+              id="btnSimpleMode"
+              onClick={() => setMode("simple")}
+              style={{ padding: "5px 10px", background: mode === "simple" ? "var(--accent)" : "transparent", color: mode === "simple" ? "#fff" : "var(--text-faint)", border: "none", cursor: "pointer", letterSpacing: ".04em" }}
+            >
+              Simple
+            </button>
+            <button
+              id="btnProMode"
+              onClick={() => setMode("pro")}
+              style={{ padding: "5px 10px", background: mode === "pro" ? "var(--accent)" : "transparent", color: mode === "pro" ? "#fff" : "var(--text-faint)", border: "none", cursor: "pointer", letterSpacing: ".04em" }}
+            >
+              Pro
+            </button>
+          </div>
+        </div>
       </div>
     </header>
   );

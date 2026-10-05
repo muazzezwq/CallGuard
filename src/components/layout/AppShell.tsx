@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
 import OnboardingWizard from "./OnboardingWizard";
+import LiveBar from "./LiveBar";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
@@ -50,6 +51,11 @@ export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
 
+  // apply theme to body
+  useEffect(() => {
+    document.body.classList.toggle("light-mode", theme === "light");
+  }, [theme]);
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -61,7 +67,7 @@ export default function AppShell() {
     }} data-theme={theme}>
 
       {/* Topbar */}
-      <AppTopbar onMenuClick={() => setSidebarOpen(o => !o)} />
+      <AppTopbar onHamburger={() => setSidebarOpen(o => !o)} />
 
       {/* Body */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
@@ -104,6 +110,8 @@ export default function AppShell() {
           background: "var(--bg-0)",
           minWidth: 0,
         }}>
+          {/* Live bar — clock + SLA gauge, orijinal HTML'deki .live-bar */}
+          <LiveBar />
           <Suspense fallback={<PanelLoader />}>
             {ActivePanel ? <ActivePanel /> : <PanelLoader />}
           </Suspense>
