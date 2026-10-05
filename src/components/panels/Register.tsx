@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
@@ -68,6 +68,7 @@ export default function Register() {
   const [v2Status, setV2Status] = useState<string | null>(null);
   const [nftId, setNftId] = useState<string | null>(() => localStorage.getItem("cgAgentNftId"));
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [unstakeStatus, setUnstakeStatus] = useState<string | null>(null);
   const [unstakeHash, setUnstakeHash] = useState<`0x${string}` | undefined>();
@@ -185,22 +186,23 @@ export default function Register() {
       setV2Status("⏳ Step 1/3 — Waiting for NFT confirmation…");
       // Wait for receipt to get tokenId
       let tokenId: bigint | null = null;
-      for (let i = 0; i < 30; i++) {
-        await new Promise(r => setTimeout(r, 2000));
-        try {
-          const receipt = await (walletClient as any).getTransactionReceipt?.({ hash: mintHash });
-          if (receipt) {
-            // Try to find Transfer event tokenId from logs
-            for (const log of (receipt.logs || [])) {
-              if (log.topics?.length === 4 && log.topics[1] === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-                tokenId = BigInt(log.topics[3]);
-                break;
-              }
-            }
-            if (!tokenId) tokenId = BigInt(1); // fallback
+      try {
+        const receipt = await publicClient!.waitForTransactionReceipt({ hash: mintHash, timeout: 60_000 });
+        // Try to find Transfer or Registered event tokenId from logs
+        for (const log of (receipt.logs || [])) {
+          // ERC-721 Transfer: topics[1] = from (0x0 for mint), topics[3] = tokenId
+          if (log.topics?.length === 4 && log.topics[1] === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+            tokenId = BigInt(log.topics[3]);
             break;
           }
-        } catch {}
+          // Registered(uint256 indexed agentId, ...) — topics[1] = agentId
+          if (log.topics?.length >= 2 && tokenId === null) {
+            try { tokenId = BigInt(log.topics[1]); } catch {}
+          }
+        }
+        if (!tokenId) tokenId = BigInt(1); // fallback
+      } catch (waitErr) {
+        setV2Status("❌ Timed out waiting for NFT mint TX. Check explorer."); setV2Step("idle"); return;
       }
       if (!tokenId) { setV2Status("❌ Could not read NFT tokenId from logs"); setV2Step("idle"); return; }
       localStorage.setItem("cgAgentNftId", tokenId.toString());

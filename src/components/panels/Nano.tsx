@@ -38,20 +38,39 @@ export default function Nano() {
       const res = await fetch('/api/nano-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caller: address, providerId: 1, payload: 'nano-ping' })
+        body: JSON.stringify({ caller: address, providerId: 1, payload: 'nano-ping', amount: '0.001' })
       })
       const data = await res.json()
-      if (data.ok) {
+      if (data.ok || data.success) {
         setCallCount(c => c + 1)
-        setOutput(`✅ Call success\nTX: ${data.txHash || 'pending batch'}\nGateway: ${data.gateway || 'Circle Gateway'}\nAmount: 0.001 USDC\nTimestamp: ${new Date().toISOString()}`)
+        const txLine = data.txHash ? `TX: ${data.txHash}` : data.batchId ? `BatchID: ${data.batchId}` : 'pending batch'
+        setOutput(`✅ Nanopayment call success\n${txLine}\nGateway: ${data.gateway || 'Circle Gateway'}\nAmount: ${data.amount || '0.001'} USDC\nTimestamp: ${new Date().toISOString()}`)
         await refreshBalance()
       } else {
-        setOutput(`❌ Failed: ${data.error || 'Unknown error'}`)
+        setOutput(`❌ Failed: ${data.error || data.message || 'Unknown error'}\n\nNote: Nanopayments require Circle Gateway API key in server config.`)
       }
     } catch (e: unknown) {
       setOutput(`❌ Network error: ${(e instanceof Error ? e.message : String(e))}`)
     }
     setLoading(false)
+  }
+
+  async function tryX402Endpoint(path: string, price: string) {
+    if (!address) { setOutput('❌ Connect wallet first'); return }
+    setOutput(`⏳ Calling ${path} via x402...`)
+    try {
+      // First request — expect 402
+      const r1 = await fetch(path, { headers: { 'x-address': address } })
+      if (r1.status === 402) {
+        const terms = await r1.json()
+        setOutput(`ℹ️ HTTP 402 received — payment required\nAmount: ${price}\nTerms: ${JSON.stringify(terms.accepts?.[0] ?? terms, null, 2)}\n\nUse the CallBuilder panel with x402 mode to complete payment.`)
+      } else {
+        const d = await r1.json()
+        setOutput(`✅ Response (${r1.status}):\n${JSON.stringify(d, null, 2)}`)
+      }
+    } catch (e: unknown) {
+      setOutput(`❌ ${(e instanceof Error ? e.message : String(e))}`)
+    }
   }
 
   useEffect(() => { if (address) refreshBalance() }, [address])
@@ -114,11 +133,7 @@ export default function Nano() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>{ep.price}</span>
               <button
                 style={{ padding: '6px 14px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
-                onClick={async () => {
-                  const r = await fetch(ep.path, { headers: { 'x-address': address || '' } })
-                  const d = await r.json()
-                  setOutput(JSON.stringify(d, null, 2))
-                }}
+                onClick={() => tryX402Endpoint(ep.path, ep.price)}
               >Pay & Try →</button>
             </div>
           </div>

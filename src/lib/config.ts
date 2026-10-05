@@ -25,6 +25,12 @@ export const CONFIG = {
   reputationLoanAddress: "0xE656dF6512e9d10e555518b7342fd8c81c42B8c0" as `0x${string}`,
   slaAttestationBridge: "0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7",
   agentWallet: "0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6",
+  // ERC-8004 AgentIdentity NFT registry (for registerV2)
+  identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+  identityRegistryAddress: "0x8004A818BFB912233c491871b3d84c89A494BD9e" as `0x${string}`,
+  // ERC-8183 Jobs contract
+  agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
+  agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
   subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
