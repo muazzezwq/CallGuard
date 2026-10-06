@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
 import OnboardingWizard from "./OnboardingWizard";
 import LiveBar from "./LiveBar";
+import { initTabTitleCounter } from "../../lib/utils";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
@@ -55,6 +56,9 @@ export default function AppShell() {
   useEffect(() => {
     document.body.classList.toggle("light-mode", theme === "light");
   }, [theme]);
+
+  // tab title unseen counter
+  useEffect(() => initTabTitleCounter(), []);
 
   return (
     <div style={{

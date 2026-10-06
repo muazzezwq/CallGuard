@@ -4,6 +4,8 @@ import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad } fr
 import { arcTestnet, CONFIG } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
+import { useBudgetCap } from "../../hooks/useBudgetCap";
+import { friendlyError } from "../../lib/utils";
 
 const REGISTRY_ABI = [
   { name: "getProvider", type: "function", stateMutability: "view",
@@ -73,6 +75,7 @@ export default function CallBuilder() {
   const { address, isConnected } = useAccount();
   const { setPanel } = useAppStore();
   const { data: walletClient } = useWalletClient();
+  const { checkBudget, spendBudget } = useBudgetCap();
 
   const [chain, setChain] = useState<Chain>("arc");
   const [providerId, setProviderId] = useState(() => {
@@ -143,6 +146,10 @@ export default function CallBuilder() {
   const handleCall = useCallback(async () => {
     if (!isConnected || !address) { setStatus("❌ Connect wallet first."); return; }
     if (!active) { setStatus("❌ Provider is not active."); return; }
+    // Budget cap check
+    const priceUsdc = price ? Number(price) / 1e6 : 0;
+    const budgetCheck = checkBudget(priceUsdc);
+    if (!budgetCheck.ok) { setStatus(`❌ ${budgetCheck.message}`); return; }
     setIsLoading(true);
     setStatus("⏳ Sending transaction...");
     try {
@@ -155,12 +162,13 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setLastCallId(hash);
+      spendBudget(priceUsdc);
       setStatus("⏳ Waiting for confirmation...");
     } catch (e: unknown) {
-      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+      setStatus(`❌ ${friendlyError(e)}`);
       setIsLoading(false);
     }
-  }, [isConnected, address, active, payload, providerIdNum, writeContractAsync]);
+  }, [isConnected, address, active, payload, providerIdNum, writeContractAsync, checkBudget, spendBudget, price]);
 
   // ── CCTP cross-chain call ───────────────────────────────────────
   const handleCCTPCall = useCallback(async () => {

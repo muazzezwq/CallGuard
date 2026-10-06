@@ -1,10 +1,10 @@
-import { lazy, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
-import { ExternalLink, Zap, Users, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ExternalLink, Zap, Users, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
 
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
@@ -73,9 +73,21 @@ function buildActivityChart(calls: { createdAt: string }[]): { hour: number; cou
   return buckets.map((count, i) => ({ hour: 23 - i, count })).reverse();
 }
 
+const WB_KEY = "cg_welcome_dismissed";
+
 export default function Overview() {
   const { setPanel } = useAppStore();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
+
+  // Welcome box — shown after wallet connect, dismissed once via localStorage
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() =>
+    localStorage.getItem(WB_KEY) === "1"
+  );
+  const showWelcome = isConnected && !welcomeDismissed;
+  const dismissWelcome = () => {
+    localStorage.setItem(WB_KEY, "1");
+    setWelcomeDismissed(true);
+  };
   const { data: sg } = useSubgraph(SUBGRAPH);
 
   // Onchain stats
@@ -227,6 +239,45 @@ export default function Overview() {
         <div style={{ ...s.section, display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",marginBottom:12 }}>
           <span style={{ fontSize:12,color:"var(--text-dim)" }}>Your USDC Balance</span>
           <span style={{ fontSize:18,fontWeight:700,color:"var(--accent)",fontFamily:"var(--font-display)" }}>{usdcFormatted} USDC</span>
+        </div>
+      )}
+
+      {/* Welcome box — shown once after wallet connect */}
+      {showWelcome && (
+        <div style={{ background:"linear-gradient(135deg,rgba(5,150,105,0.06),rgba(37,99,235,0.04))", border:"1px solid var(--border)", borderRadius:12, padding:"20px 24px", marginBottom:20 }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
+            <span style={{ fontSize:16,fontWeight:600,color:"var(--text)" }}>👋 Welcome to CallGuard — here's how to start</span>
+            <button onClick={dismissWelcome} style={{ background:"transparent",border:"none",color:"var(--text-faint)",fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1 }} title="Dismiss"><X size={16}/></button>
+          </div>
+          <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+            {/* Step 1 */}
+            <div style={{ display:"grid",gridTemplateColumns:"28px 1fr auto",gap:12,alignItems:"center",padding:"10px 12px",background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:8 }}>
+              <div style={{ width:28,height:28,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0 }}>1</div>
+              <div style={{ fontSize:13 }}>
+                <strong style={{ color:"var(--text)" }}>Get testnet USDC</strong><br/>
+                <span style={{ color:"var(--text-dim)" }}>You need USDC to stake or to pay for calls. On Arc it's also the gas token.</span>
+              </div>
+              <a href="https://faucet.circle.com/?chain=arc-testnet" target="_blank" rel="noreferrer" style={{ padding:"5px 12px",borderRadius:6,background:"var(--bg-3)",border:"1px solid var(--border)",color:"var(--text)",fontSize:12,cursor:"pointer",textDecoration:"none",whiteSpace:"nowrap" as const }}>Open faucet →</a>
+            </div>
+            {/* Step 2 */}
+            <div style={{ display:"grid",gridTemplateColumns:"28px 1fr auto",gap:12,alignItems:"center",padding:"10px 12px",background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:8 }}>
+              <div style={{ width:28,height:28,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0 }}>2</div>
+              <div style={{ fontSize:13 }}>
+                <strong style={{ color:"var(--text)" }}>Pick a role</strong><br/>
+                <span style={{ color:"var(--text-dim)" }}><strong style={{ color:"var(--accent)" }}>Provider</strong> = sell API calls, stake USDC, earn per request. &nbsp;<strong style={{ color:"var(--info)" }}>Caller</strong> = pay USDC to use a service with an SLA guarantee.</span>
+              </div>
+              <button onClick={() => setPanel("register")} style={{ padding:"5px 12px",borderRadius:6,background:"var(--bg-3)",border:"1px solid var(--border)",color:"var(--text)",fontSize:12,cursor:"pointer",whiteSpace:"nowrap" as const }}>Register →</button>
+            </div>
+            {/* Step 3 */}
+            <div style={{ display:"grid",gridTemplateColumns:"28px 1fr auto",gap:12,alignItems:"center",padding:"10px 12px",background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:8 }}>
+              <div style={{ width:28,height:28,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0 }}>3</div>
+              <div style={{ fontSize:13 }}>
+                <strong style={{ color:"var(--text)" }}>Make your first call</strong><br/>
+                <span style={{ color:"var(--text-dim)" }}>Call provider #1 to see the full SLA lifecycle — escrow, receipt, payout.</span>
+              </div>
+              <button onClick={() => setPanel("calls")} style={{ padding:"5px 12px",borderRadius:6,background:"linear-gradient(135deg,#10b981,#059669)",border:"none",color:"#fff",fontSize:12,cursor:"pointer",whiteSpace:"nowrap" as const }}>Call a service →</button>
+            </div>
+          </div>
         </div>
       )}
 

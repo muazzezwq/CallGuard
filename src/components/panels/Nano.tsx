@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
+import { parseUnits, encodeFunctionData, keccak256, toBytes } from 'viem'
+import { CONFIG, PPC_ABI } from '../../lib/config'
+
+const USDC_ABI = [
+  { name: 'allowance', type: 'function', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }] },
+] as const
+
+const MULTICALL3_ABI = [
+  { name: 'aggregate3', type: 'function', stateMutability: 'payable', inputs: [{ name: 'calls', type: 'tuple[]', components: [{ name: 'target', type: 'address' }, { name: 'allowFailure', type: 'bool' }, { name: 'callData', type: 'bytes' }] }], outputs: [{ name: 'results', type: 'tuple[]', components: [{ name: 'success', type: 'bool' }, { name: 'returnData', type: 'bytes' }] }] },
+] as const
+
+const REGISTRY_ABI = [
+  { name: 'getProvider', type: 'function', stateMutability: 'view', inputs: [{ name: 'providerId', type: 'uint256' }], outputs: [{ name: 'owner', type: 'address' }, { name: 'signer', type: 'address' }, { name: 'stake', type: 'uint256' }, { name: 'pricePerCall', type: 'uint256' }, { name: 'maxResponseTime', type: 'uint256' }, { name: 'slashPercentage', type: 'uint256' }, { name: 'active', type: 'bool' }] },
+] as const
 
 const S = {
   wrap: { padding: '24px', maxWidth: '680px' },
@@ -14,12 +29,19 @@ const S = {
 
 export default function Nano() {
   const { address } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
   const [nanoPId] = useState(() => { const s = sessionStorage.getItem("nano_provider"); if (s) { sessionStorage.removeItem("nano_provider"); return Number(s) || 1; } return 1; })
   const [callCount, setCallCount] = useState(0)
   const [balance, setBalance] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [output, setOutput] = useState('Result will appear here.')
   const [loading, setLoading] = useState(false)
+  // Multicall3
+  const [multiIds, setMultiIds] = useState<string[]>(['', ''])
+  const [multiPayload, setMultiPayload] = useState('ping')
+  const [multiResult, setMultiResult] = useState('')
+  const [multiLoading, setMultiLoading] = useState(false)
 
   async function refreshBalance() {
     if (!address) return
@@ -72,6 +94,59 @@ export default function Nano() {
     } catch (e: unknown) {
       setOutput(`❌ ${(e instanceof Error ? e.message : String(e))}`)
     }
+  }
+
+  async function doMultiCallNative() {
+    const ids = multiIds.filter(Boolean)
+    if (ids.length === 0) { setMultiResult('❌ Enter at least one provider ID'); return }
+    if (ids.length > 3) { setMultiResult('❌ Max 3 providers'); return }
+    if (!address || !walletClient || !publicClient) { setMultiResult('❌ Connect wallet first'); return }
+    setMultiLoading(true)
+    setMultiResult('⏳ Preparing batch...')
+    try {
+      const requestHash = keccak256(toBytes(multiPayload || 'ping'))
+      const MULTICALL3 = CONFIG.multicall3From as `0x${string}`
+      const USDC = CONFIG.usdc as `0x${string}`
+      const PPC = CONFIG.payPerCall as `0x${string}`
+
+      // Get provider prices
+      let total = 0n
+      for (const id of ids) {
+        try {
+          const p = await publicClient.readContract({ address: CONFIG.serviceRegistry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] })
+          if (p[6]) total += p[3] // active → add pricePerCall
+        } catch { /* skip */ }
+      }
+
+      // Approve if needed
+      if (total > 0n) {
+        setMultiResult('⏳ Checking USDC allowance...')
+        const allowance = await publicClient.readContract({ address: USDC, abi: USDC_ABI, functionName: 'allowance', args: [address as `0x${string}`, MULTICALL3] })
+        if (allowance < total) {
+          setMultiResult('⏳ Approving USDC...')
+          const approveTx = await walletClient.writeContract({ address: USDC, abi: USDC_ABI, functionName: 'approve', args: [MULTICALL3, total] })
+          await publicClient.waitForTransactionReceipt({ hash: approveTx })
+        }
+      }
+
+      // Build aggregate3 calls
+      setMultiResult('⏳ Signing batch tx...')
+      const calls = ids.map(id => ({
+        target: PPC,
+        allowFailure: true,
+        callData: encodeFunctionData({ abi: PPC_ABI, functionName: 'callService', args: [BigInt(id), requestHash] })
+      }))
+
+      const hash = await walletClient.writeContract({ address: MULTICALL3, abi: MULTICALL3_ABI, functionName: 'aggregate3', args: [calls] })
+      setMultiResult('⏳ Confirming...')
+      const rc = await publicClient.waitForTransactionReceipt({ hash })
+      const explorerUrl = `${CONFIG.explorerBase}/tx/${hash}`
+      setMultiResult(`✅ Multicall3From batch settled in 1 transaction!\n${ids.map(id => `Provider #${id}: ${rc.status === 'success' ? '✅ called' : '❌ failed'}`).join('\n')}\n\nTX: ${hash}\n${explorerUrl}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setMultiResult(`❌ ${msg.slice(0, 200)}`)
+    }
+    setMultiLoading(false)
   }
 
   useEffect(() => { if (address) refreshBalance() }, [address])
@@ -139,6 +214,44 @@ export default function Nano() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Multicall3From */}
+      <div style={S.card}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Multicall3 (1 tx)</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '16px' }}>Batch-call up to 3 providers in a single on-chain tx via Multicall3From.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+          {multiIds.map((id, i) => (
+            <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text" placeholder={`Provider ID ${i + 1}`} value={id}
+                onChange={e => { const n = [...multiIds]; n[i] = e.target.value; setMultiIds(n) }}
+                style={{ flex: 1, padding: '8px 12px', background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '13px' }}
+              />
+              {multiIds.length > 1 && (
+                <button onClick={() => setMultiIds(multiIds.filter((_, j) => j !== i))}
+                  style={{ padding: '6px 10px', background: 'var(--bg-3)', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}>−</button>
+              )}
+            </div>
+          ))}
+          {multiIds.length < 3 && (
+            <button onClick={() => setMultiIds([...multiIds, ''])}
+              style={{ alignSelf: 'flex-start', padding: '6px 12px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>+ Add Provider</button>
+          )}
+        </div>
+        <textarea
+          rows={2} placeholder="Payload (will be hashed on-chain)" value={multiPayload}
+          onChange={e => setMultiPayload(e.target.value)}
+          style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box', marginBottom: '12px' }}
+        />
+        <button
+          onClick={doMultiCallNative} disabled={multiLoading || !address}
+          style={{ ...S.btn, width: '100%', opacity: multiLoading || !address ? 0.6 : 1 }}>
+          {multiLoading ? '⏳ Processing...' : '⚡ Multicall3 (1 tx)'}
+        </button>
+        {multiResult && (
+          <pre style={{ ...S.pre, marginTop: '12px', whiteSpace: 'pre-wrap' }}>{multiResult}</pre>
+        )}
       </div>
 
       {/* Integration snippet */}
