@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useModal } from "connectkit";
 import { useSubgraph } from "../hooks/useSubgraph";
+import { useAppStore } from "../store/useAppStore";
 
-/* ── subgraph query ── */
+/* ── subgraph query — real Goldsky schema ── */
 const Q = `{
   calls(first:200,orderBy:createdAt,orderDirection:desc){id status amount createdAt providerId}
-  providers(first:50){id serviceUrl pricePerCall maxResponseMs stake honorRate}
+  providers(first:50,orderBy:createdAt,orderDirection:desc){id owner pricePerCall stake active completedCalls slashedCalls createdAt}
 }`;
+type Provider = { id:string; owner:string; pricePerCall:string; stake:string; active:boolean; completedCalls:string; slashedCalls:string; createdAt:string };
 type CGData = {
   calls: { id:string; status:string; amount:string; createdAt:string; providerId:string }[];
-  providers: { id:string; serviceUrl:string; pricePerCall:string; maxResponseMs:string; stake:string; honorRate:string }[];
+  providers: Provider[];
 };
 
 /* ── sparkline helper ── */
@@ -79,6 +81,7 @@ function Terminal() {
 export default function CgLanding() {
   const { setOpen } = useModal();
   const connect = () => setOpen(true);
+  const { mode, setMode } = useAppStore();
   const { data: raw, isLoading: loading } = useSubgraph(Q);
   const data = raw as CGData | undefined;
 
@@ -148,9 +151,10 @@ export default function CgLanding() {
             onClick={connect}
             style={{padding:"6px 14px",borderRadius:8,background:"var(--gradient-brand)",border:"none",color:"#fff",fontWeight:600,fontSize:12,cursor:"pointer",boxShadow:"var(--glow-green)"}}
           >Connect wallet</button>
-          <span style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--bg-2)",color:"var(--text-faint)",fontSize:11,fontWeight:600,cursor:"pointer"}}
-            onClick={()=>{/* simple/pro toggle placeholder */}}
-          >Simple&nbsp;<span style={{color:"var(--text-dim)"}}>Pro</span></span>
+          <div style={{display:"flex",alignItems:"center",background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",fontSize:11,fontWeight:700}}>
+            <button onClick={()=>setMode("simple")} style={{padding:"5px 10px",border:"none",cursor:"pointer",background:mode==="simple"?"var(--accent)":"transparent",color:mode==="simple"?"#fff":"var(--text-faint)",transition:"all .15s"}}>Simple</button>
+            <button onClick={()=>setMode("pro")} style={{padding:"5px 10px",border:"none",cursor:"pointer",background:mode==="pro"?"var(--accent)":"transparent",color:mode==="pro"?"#fff":"var(--text-faint)",transition:"all .15s"}}>Pro</button>
+          </div>
         </div>
       </header>
 
@@ -372,15 +376,20 @@ export default function CgLanding() {
           <div style={{textAlign:"center",color:"var(--text-faint)",padding:32}}>No providers registered yet.</div>
         ) : (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12}}>
-            {providers.slice(0,6).map((p: CGData["providers"][0])=>(
+            {providers.slice(0,6).map((p: Provider)=>{
+              const tot = Number(p.completedCalls)+Number(p.slashedCalls);
+              const honPct = tot>0 ? Math.round(((Number(p.completedCalls)+2)/(tot+3))*100) : 66;
+              return (
               <div key={p.id} style={{background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:12,padding:"16px",cursor:"pointer"}} onClick={connect}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                   <span style={{fontWeight:700,fontSize:13}}>Provider #{p.id}</span>
-                  <span style={{fontSize:10,color:"var(--accent)",background:"var(--accent-bg)",padding:"2px 8px",borderRadius:99,fontWeight:600}}>LIVE</span>
+                  <span style={{fontSize:10,color:p.active?"var(--accent)":"var(--text-faint)",background:p.active?"var(--accent-bg)":"var(--bg-2)",padding:"2px 8px",borderRadius:99,fontWeight:600}}>{p.active?"ACTIVE":"INACTIVE"}</span>
                 </div>
-                <div style={{fontSize:11,color:"var(--text-faint)",marginBottom:8,fontFamily:"var(--font-mono)",wordBreak:"break-all"}}>{p.serviceUrl||"—"}</div>
+                <div style={{fontSize:11,color:"var(--text-faint)",marginBottom:8,fontFamily:"var(--font-mono)",wordBreak:"break-all"}}>
+                  {p.owner.slice(0,6)}…{p.owner.slice(-4)}
+                </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                  {[["Price/call",`${(Number(p.pricePerCall)/1e6).toFixed(4)} USDC`],["SLA",`${p.maxResponseMs}ms`],["Stake",`${(Number(p.stake)/1e6).toFixed(0)} USDC`],["Honor",`${p.honorRate}%`]].map(([l,v])=>(
+                  {[["Price/call",`${(Number(p.pricePerCall)/1e6).toFixed(4)} USDC`],["Calls",`${p.completedCalls}`],["Stake",`${(Number(p.stake)/1e6).toFixed(0)} USDC`],["Honor",`${honPct}%`]].map(([l,v])=>(
                     <div key={l} style={{background:"var(--bg-2)",borderRadius:6,padding:"6px 8px"}}>
                       <div style={{fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>{l}</div>
                       <div style={{fontSize:12,fontWeight:600,fontFamily:"var(--font-mono)"}}>{v}</div>
@@ -388,7 +397,8 @@ export default function CgLanding() {
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
