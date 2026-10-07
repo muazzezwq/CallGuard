@@ -22,7 +22,7 @@ export default function Disputes() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
 
-  const [tab, setTab] = useState<"open" | "vote" | "history">("open");
+  const [tab, setTab] = useState<"open" | "vote" | "mine" | "history">("open");
   const [callIdInput, setCallIdInput] = useState("");
   const [evidence, setEvidence] = useState("");
   const [status, setStatus] = useState("");
@@ -37,7 +37,7 @@ export default function Disputes() {
   const { writeContractAsync, data: voteTxHash } = useWriteContract();
   const { isLoading: votePending } = useWaitForTransactionReceipt({ hash: voteTxHash });
 
-  // Subgraph: dispute history
+  // Subgraph: all dispute history
   const historyQuery = `{
     disputeRecords(first: 50, orderBy: openedAt, orderDirection: desc) {
       id callId caller providerId status slashAmount openedAt resolvedAt txHash
@@ -45,6 +45,16 @@ export default function Disputes() {
   }`;
   const { data: historyData, loading: historyLoading, refetch: refetchHistory } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
     historyQuery, { pollInterval: 30000 }
+  );
+
+  // MEDIUM-13: My disputes — filtered by connected address
+  const myDisputesQuery = address ? `{
+    disputeRecords(first: 50, orderBy: openedAt, orderDirection: desc, where: { caller: "${address.toLowerCase()}" }) {
+      id callId caller providerId status slashAmount openedAt resolvedAt txHash
+    }
+  }` : "";
+  const { data: myDisputesData, loading: myDisputesLoading, refetch: refetchMine } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
+    myDisputesQuery, { enabled: !!address, pollInterval: 30000 }
   );
 
   // CRITICAL-04 fix: openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
@@ -152,9 +162,14 @@ export default function Disputes() {
 
       {/* Tabs */}
       <div className="cg-tabs mb-4">
-        {(["open", "vote", "history"] as const).map(t => (
+        {(["open", "vote", "mine", "history"] as const).map(t => (
           <button key={t} className={`cg-tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-            {t === "open" ? "Open Dispute" : t === "vote" ? "Vote" : "History"}
+            {t === "open" ? "Open Dispute" : t === "vote" ? "Vote" : t === "mine" ? "My Disputes" : "History"}
+            {t === "mine" && (myDisputesData?.disputeRecords?.length ?? 0) > 0 && (
+              <span style={{ marginLeft: 4, background: "var(--accent)", color: "#000", borderRadius: 99, fontSize: 10, padding: "1px 5px", fontWeight: 700 }}>
+                {myDisputesData!.disputeRecords.length}
+              </span>
+            )}
             {t === "history" && disputes.length > 0 && (
               <span style={{ marginLeft: 4, background: "var(--accent)", color: "#000", borderRadius: 99, fontSize: 10, padding: "1px 5px", fontWeight: 700 }}>
                 {disputes.length}
@@ -280,6 +295,62 @@ export default function Disputes() {
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-faint)" }}>
               Selected: {voteChoice ? "Yes (provider honored)" : "No (provider slashed)"}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* MY DISPUTES TAB — MEDIUM-13 */}
+      {tab === "mine" && (
+        <div>
+          {!address && (
+            <div className="empty-state">Connect your wallet to see your disputes.</div>
+          )}
+          {address && myDisputesLoading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ height: 56, borderRadius: 8, background: "var(--bg-2)", animation: "shimmer 1.4s infinite" }} />
+              ))}
+            </div>
+          )}
+          {address && !myDisputesLoading && (myDisputesData?.disputeRecords?.length ?? 0) === 0 && (
+            <div className="empty-state">
+              <p>You have not opened any disputes yet.</p>
+              <p className="text-dim text-sm mt-1">Disputes you file as a caller will appear here.</p>
+            </div>
+          )}
+          {(myDisputesData?.disputeRecords ?? []).map(d => (
+            <div key={d.id} style={{
+              background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
+              padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+            }}>
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>
+                  Dispute #{d.id} · Call {d.callId ? d.callId.slice(0, 10) + "…" : "—"}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
+                  Opened {d.createdAt ? new Date(Number(d.createdAt) * 1000).toLocaleString() : "—"}
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const,
+                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--amber,#f59e0b)" : "var(--text-dim)",
+                }}>
+                  {d.status}
+                </span>
+                {d.outcome && (
+                  <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>Outcome: {d.outcome}</div>
+                )}
+              </div>
+              {d.status === "OPEN" && (
+                <button className="btn btn-sm" onClick={() => { setTab("vote"); setVoteDisputeId(d.id); }} style={{ fontSize: 11 }}>
+                  Vote →
+                </button>
+              )}
+            </div>
+          ))}
+          {address && !myDisputesLoading && (
+            <button className="btn btn-sm" onClick={refetchMine} style={{ marginTop: 8 }}>↻ Refresh</button>
           )}
         </div>
       )}
