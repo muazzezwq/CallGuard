@@ -38,7 +38,7 @@ export default function Quality() {
         address: ADDR,
         abi: DISPUTE_QUALITY_ABI,
         functionName: 'openDispute',
-        args: [BigInt(callId), evidence],
+        args: [BigInt(callId), evidence as `0x${string}`],
       })
       setTxHash(hash)
     } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
@@ -59,14 +59,15 @@ export default function Quality() {
 
   async function stakeAsArbiter() {
     try {
+      const amt = BigInt(Math.floor(parseFloat(stakeAmount) * 1e6));
       const hash = await writeContractAsync({
         address: ADDR,
         abi: DISPUTE_QUALITY_ABI,
         functionName: 'openDispute',
-        value: BigInt(Math.floor(parseFloat(stakeAmount) * 1e6)),
+        args: [amt, '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`],
       })
       setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
+    } catch (e: unknown) { alert((e instanceof Error ? e.message : String(e))) }
   }
 
   const tabs = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]

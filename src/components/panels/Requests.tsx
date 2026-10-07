@@ -57,7 +57,7 @@ export default function Requests() {
   }`;
 
   const { data, loading, refetch } = useSubgraph<{ calls: any[] }>(address ? q : "", {
-    skip: !address,
+    enabled: !!address,
     pollInterval: 15000,
   });
 
@@ -88,7 +88,7 @@ export default function Requests() {
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
       });
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
   }, [timeoutCallId, address, writeContract]);

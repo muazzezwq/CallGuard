@@ -73,7 +73,7 @@ export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
           { label: "Price/call", value: `${price} USDC` },
           { label: "Stake", value: `${stake} USDC` },
           { label: "SLA", value: `${p.maxResponseTime}s` },
-          { label: "Slash", value: `${(p.slashBps / 100).toFixed(0)}%` },
+          { label: "Slash", value: p.slashBps != null ? `${(p.slashBps / 100).toFixed(0)}%` : "—" },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white/[0.03] rounded-xl p-2.5">
             <div className="text-[10px] text-white/30 mb-0.5">{label}</div>

@@ -22,9 +22,8 @@ export default function LiveBar() {
 
   // honor rate from subgraph
   const { data } = useSubgraph<{ calls: { status: string }[] }>(
-    CONFIG.subgraphUrl,
     HONOR_QUERY,
-    30000,
+    { pollInterval: 30000 },
   );
 
   useEffect(() => {

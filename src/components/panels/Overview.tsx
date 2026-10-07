@@ -92,26 +92,27 @@ export default function Overview() {
   };
   const { data: sg } = useSubgraph(SUBGRAPH);
 
-  // Onchain stats
-  const { data: nextId } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
-  const { data: totalCalls } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalCalls" });
-  const { data: totalReceipts } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalReceipts" });
-  const { data: totalSlashes } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalSlashes" });
+  // Onchain: USDC balance + provider count
+  const { data: providerCountRaw } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "providerCount" });
   const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
 
-  const providerCount = nextId ? Number(nextId) - 1 : 0;
-  const callsNum = totalCalls ? Number(totalCalls) : 0;
-  const receiptsNum = totalReceipts ? Number(totalReceipts) : 0;
-  const slashesNum = totalSlashes ? Number(totalSlashes) : 0;
-  const calls = totalCalls ? Number(totalCalls).toString() : "—";
-  const receipts = totalReceipts ? Number(totalReceipts).toString() : "—";
-  const slashes = totalSlashes ? Number(totalSlashes).toString() : "—";
+  // Derive stats from subgraph
+  const sgProviders: any[] = (sg as any)?.providers ?? [];
+  const sgCalls: any[] = (sg as any)?.calls ?? [];
+  const providerCount = providerCountRaw ? Number(providerCountRaw) : sgProviders.length;
+  const callsNum = sgCalls.length;
+  const slashesNum = sgCalls.filter((c: any) => c.status === "SLASHED").length;
+  const completedNum = sgCalls.filter((c: any) => c.status === "COMPLETED").length;
+  const receiptsNum = completedNum;
+  const calls = callsNum > 0 ? callsNum.toString() : "—";
+  const receipts = receiptsNum > 0 ? receiptsNum.toString() : "—";
+  const slashes = slashesNum > 0 ? slashesNum.toString() : "—";
   // count-up animated values
-  const animProviders = useCountUp(typeof providerCount === "number" ? providerCount : 0);
+  const animProviders = useCountUp(providerCount);
   const animCalls = useCountUp(callsNum);
   const animReceipts = useCountUp(receiptsNum);
-  const honorRate = (totalCalls && totalReceipts && Number(totalCalls) > 0)
-    ? `${Math.round((Number(totalReceipts) / Number(totalCalls)) * 100)}%` : "—";
+  const honorRate = callsNum > 0
+    ? `${Math.round((completedNum / callsNum) * 100)}%` : "—";
   const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
   const allCalls = (sg as any)?.calls ?? [];
@@ -225,7 +226,7 @@ export default function Overview() {
             args: [BigInt(pid), reqHash],
           });
           setMultiResults(r => [...r, { pid, hash }]);
-        } catch (e: unknown) {
+        } catch (_err: unknown) { const e = _err as any;
           setMultiResults(r => [...r, { pid, err: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
         }
         await new Promise(r => setTimeout(r, 600));

@@ -12,7 +12,7 @@ export default function Receipts() {
       orderBy:completedAt orderDirection:desc first:50){
       id providerId amount status completedAt responseHash requestHash
     }
-  }` : "", { skip: !address, pollInterval: 30000 });
+  }` : "", { enabled: !!address, pollInterval: 30000 });
 
   const receipts = data?.calls ?? [];
 

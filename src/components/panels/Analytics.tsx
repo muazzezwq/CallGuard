@@ -79,7 +79,7 @@ export default function Analytics() {
         honorRate,
         avgPrice,
         topProviders,
-        recentCalls: calls.slice(0, 12),
+        recentCalls: calls.slice(0, 12).map(c => ({ id: String(c.id), providerId: String(c.providerId), amount: String(c.amount), status: String(c.status), createdAt: String(c.createdAt) })),
         updatedAt: new Date().toLocaleTimeString("en-US", { hour12: false }),
       });
     } catch (e: unknown) {

@@ -24,7 +24,7 @@ export default function Payments() {
     calls(where:{caller:"${address.toLowerCase()}",status:"COMPLETED"} orderBy:completedAt orderDirection:desc first:20){
       id providerId amount completedAt
     }
-  }` : "", { skip: !address, pollInterval: 30000 });
+  }` : "", { enabled: !!address, pollInterval: 30000 });
 
   const totalSpent = (data?.calls ?? []).reduce((s:number,c:any)=>s+Number(formatUnits(BigInt(c.amount??0),6)),0);
 

@@ -22,7 +22,7 @@ function ProviderCard({ p, onCall, onCompare, compareList }: {
   p: Provider;
   onCall: (p: Provider) => void;
   onCompare: (p: Provider) => void;
-  compareList: number[];
+  compareList: string[];
 }) {
   const price = formatUnits(BigInt(p.pricePerCall || 0), 6);
   const inCompare = compareList.includes(p.id);
@@ -47,7 +47,7 @@ function ProviderCard({ p, onCall, onCompare, compareList }: {
         </div>
         <div className="bg-bg-2 rounded-lg p-2">
           <div className="text-text-faint mb-0.5">SLA window</div>
-          <div className="font-mono font-semibold text-text">{p.maxResponseTime}s</div>
+          <div className="font-mono font-semibold text-text">{p.maxResponseTime ?? '—'}s</div>
         </div>
         <div className="bg-bg-2 rounded-lg p-2">
           <div className="text-text-faint mb-0.5">Completed</div>
@@ -111,10 +111,10 @@ function CompareModal({ providers, onClose }: { providers: Provider[]; onClose: 
               {[
                 { label: "Price / call", fn: (p: Provider) => `${formatUnits(BigInt(p.pricePerCall || 0), 6)} USDC` },
                 { label: "Honor rate", fn: (p: Provider) => `${p.reputation}%` },
-                { label: "SLA window", fn: (p: Provider) => `${p.maxResponseTime}s` },
+                { label: "SLA window", fn: (p: Provider) => `${p.maxResponseTime ?? '—'}s` },
                 { label: "Completed", fn: (p: Provider) => p.completedCalls.toString() },
                 { label: "Slashed", fn: (p: Provider) => p.slashedCalls.toString() },
-                { label: "Slash %", fn: (p: Provider) => `${p.slashBps / 100}%` },
+                { label: "Slash %", fn: (p: Provider) => `${(p.slashBps ? (p.slashBps / 100) + '%' : '—')}` },
                 { label: "Status", fn: (p: Provider) => p.active ? "Active" : "Inactive" },
               ].map(row => (
                 <tr key={row.label} className="border-b border-border/50">
@@ -146,7 +146,7 @@ export default function Marketplace() {
   const [sortKey, setSortKey] = useState<SortKey>("reputation");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [activeOnly, setActiveOnly] = useState(false);
-  const [compareList, setCompareList] = useState<number[]>([]);
+  const [compareList, setCompareList] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
 
   const filtered = useMemo(() => {

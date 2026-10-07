@@ -111,7 +111,7 @@ export default function Agent() {
       });
       setStatus(`✅ Deposited ${amount} USDC`);
       refetchStats();
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, address, agentAddr, amount, writeContractAsync, refetchStats]);
 
@@ -124,7 +124,7 @@ export default function Agent() {
       await writeContractAsync({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "withdraw", args: [amtWei], chainId: arcTestnet.id });
       setStatus(`✅ Withdrawn ${amount} USDC`);
       refetchStats();
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, agentAddr, amount, writeContractAsync, refetchStats]);
 
@@ -136,7 +136,7 @@ export default function Agent() {
       await writeContractAsync({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: isPaused ? "unpause" : "pause", args: [], chainId: arcTestnet.id });
       setStatus(isPaused ? "✅ Unpaused" : "✅ Paused");
       refetchPaused(); refetchStats();
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, agentAddr, isPaused, writeContractAsync, refetchPaused, refetchStats]);
 
@@ -146,7 +146,7 @@ export default function Agent() {
     try {
       await writeContractAsync({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "setDailyLimit", args: [parseUnits(dailyLimit || "0", 6)], chainId: arcTestnet.id });
       setStatus(`✅ Daily limit set to ${dailyLimit} USDC/day`);
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, agentAddr, dailyLimit, writeContractAsync]);
 
@@ -156,7 +156,7 @@ export default function Agent() {
     try {
       await writeContractAsync({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "setMaxPerCall", args: [parseUnits(maxPerCall || "0", 6)], chainId: arcTestnet.id });
       setStatus(`✅ Max-per-call set to ${maxPerCall} USDC`);
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, agentAddr, maxPerCall, writeContractAsync]);
 
@@ -166,7 +166,7 @@ export default function Agent() {
     try {
       await writeContractAsync({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: add ? "addToWhitelist" : "removeFromWhitelist", args: [BigInt(whitelistId)], chainId: arcTestnet.id });
       setStatus(`✅ Provider #${whitelistId} ${add ? "added to" : "removed from"} whitelist`);
-    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
+    } catch (_err: unknown) { const e = _err as any; setStatus("❌ " + (e instanceof Error ? (e instanceof Error ? e.message : String(e)) : "Error")); }
     setLoading(false);
   }, [isConnected, agentAddr, whitelistId, writeContractAsync]);
 
@@ -191,7 +191,7 @@ export default function Agent() {
         })
         .sort((a, b) => b.score - a.score);
       if (!scored.length) { setAutoResult("No providers found under " + maxPrice + " USDC/call"); setAutoRunning(false); return; }
-      const best = scored[0];
+      const best = scored[0] as any;
       setAutoResult(`✅ Best provider: #${best.id}\nPrice: ${best.price.toFixed(4)} USDC\nHonor rate: ${(best.honor * 100).toFixed(1)}%\nScore: ${best.score.toFixed(3)}\n\n⏳ Sending autonomous call via AgentWallet…`);
       const reqHash = keccak256(stringToBytes(autoPayload)) as `0x${string}`;
       const amount = BigInt(Math.round(best.price * 1e6));
@@ -201,7 +201,7 @@ export default function Agent() {
       });
       setAutoResult(`✅ Autonomous call complete!\nProvider: #${best.id} (score: ${best.score.toFixed(2)})\nPaid: ${best.price.toFixed(4)} USDC\nHonor: ${(best.honor * 100).toFixed(1)}%\nTX: ${txHash}`);
       refetchStats();
-    } catch (e: unknown) { setAutoResult("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Unknown error")); }
+    } catch (_err: unknown) { const e = _err as any; setAutoResult("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Unknown error")); }
     setAutoRunning(false);
   }, [isConnected, agentAddr, autoPayload, autoMaxPrice, writeContractAsync, refetchStats]);
 

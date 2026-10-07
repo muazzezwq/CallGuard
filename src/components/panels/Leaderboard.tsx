@@ -6,17 +6,17 @@ import { useAppStore } from '../../store/useAppStore'
 
 const PROVIDER_QUERY = `{
   providers(first: 20, orderBy: completedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake maxResponseTime active
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 const SLASH_QUERY = `{
   providers(first: 20, orderBy: slashedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake maxResponseTime active
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 const PRICE_QUERY = `{
   providers(first: 20, where: { active: true }, orderBy: pricePerCall, orderDirection: asc) {
-    id owner completedCalls slashedCalls pricePerCall stake maxResponseTime active
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 
@@ -60,7 +60,7 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
           {!p.active && <span style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>INACTIVE</span>}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>
-          {short(p.owner || "")} · {price.toFixed(4)} USDC/call · {p.maxResponseTime}s SLA
+          {short(p.owner || "")} · {price.toFixed(4)} USDC/call · {Number(p.completedCalls)} completed
         </div>
         {/* Honor bar */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>

@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { toast as _toast } from "sonner";
-const toast = { success: (m: string) => _toast.success(m), error: (m: string) => _toast.error(m) };
+// simple toast fallback — avoids sonner module resolution issues
+const toast = {
+  success: (m: string) => console.log("✓", m),
+  error:   (m: string) => console.error("✗", m),
+  warning: (m: string) => console.warn("⚠", m),
+  info:    (m: string) => console.info("ℹ", m),
+};
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad } from "viem";
 import { arcTestnet, CONFIG } from "../../lib/config";
@@ -178,7 +183,7 @@ export default function CallBuilder() {
           ({ kind, title, detail }) => toast[kind === "ok" ? "success" : kind === "err" ? "error" : "info"](`${title}${detail ? ` — ${detail}` : ""}`)
         ).then(() => clearPendingTx());
       }, 1500);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       clearPendingTx();
       setStatus(`❌ ${friendlyError(e)}`);
       setIsLoading(false);
@@ -250,7 +255,7 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus(`✅ Cross-chain call complete! TX: ${mintHash.slice(0,12)}...`);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setStatus(`❌ CCTP failed: ${(e instanceof Error ? e.message : String(e))}`);
     }
     setIsLoading(false);
@@ -271,7 +276,7 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("⏳ Waiting for confirmation...");
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
       setIsLoading(false);
     }
@@ -298,7 +303,7 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("✅ Receipt submitted — escrow released.");
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
     setIsLoading(false);
@@ -375,7 +380,7 @@ export default function CallBuilder() {
         setStatus(`✅ x402 call settled! callId: ${String(callId).slice(0,14)}…`);
         if (facData.callId) setLastCallId(facData.callId);
       }
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setStatus(`❌ x402 failed: ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
     setIsLoading(false);
@@ -397,7 +402,7 @@ export default function CallBuilder() {
           chainId: arcTestnet.id,
         });
         setBatchResults(r => [...r, { i: i + 1, hash }]);
-      } catch (e: unknown) {
+      } catch (_err: unknown) { const e = _err as any;
         setBatchResults(r => [...r, { i: i + 1, error: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
       }
       await new Promise(r => setTimeout(r, 800));

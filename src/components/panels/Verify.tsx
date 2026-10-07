@@ -98,7 +98,7 @@ export default function Verify() {
         onSuccess: (h) => { setRcpTxHash(h); setRcpStatus("⏳ Waiting for confirmation..."); },
         onError: (e: any) => setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
       });
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
     }
   }, [rcpCallId, rcpPayload, address, walletClient, writeReceipt]);
@@ -142,8 +142,8 @@ export default function Verify() {
             address: CONFIG.ppcAddress as `0x${string}`,
             abi: PPC_ABI,
             functionName: "calls",
-            args: [val as `0x${string}`],
-          }) as any[];
+            args: [BigInt(val)],
+          }) as unknown as any[];
 
           if (data && data[0]) {
             const status = ["NONE","OPEN","COMPLETED","REFUNDED","CANCELLED"][Number(data[3])] || "UNKNOWN";
@@ -174,7 +174,7 @@ export default function Verify() {
       }
 
       setResult({ ok: false, error: d.error || "Receipt not found on-chain." });
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setResult({ ok: false, error: (e instanceof Error ? e.message : String(e)) });
     }
     setLoading(false);

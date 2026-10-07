@@ -55,7 +55,7 @@ export default function History() {
         id providerId caller amount status createdAt completedAt requestHash responseHash refunded slashed
       }
     }` : "",
-    { skip: !address, pollInterval: 30000 }
+    { enabled: !!address, pollInterval: 30000 }
   );
 
   const all = data?.calls ?? [];
@@ -173,11 +173,11 @@ export default function History() {
                 </div>
                 {isExpanded && (
                   <div style={{ marginTop:8, fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)", display:"flex", flexDirection:"column", gap:3 }}>
-                    {c.requestHash  && <span>reqHash: {String(c.requestHash).slice(0,30)}…</span>}
-                    {c.responseHash && <span>resHash: {String(c.responseHash).slice(0,30)}…</span>}
-                    {c.completedAt  && <span>completedAt: {new Date(Number(c.completedAt)*1000).toLocaleString()}</span>}
-                    {c.refunded && <span style={{color:"var(--accent)"}}>✓ Refunded</span>}
-                    {c.slashed  && <span style={{color:"var(--danger,#ef4444)"}}>⚡ Slashed</span>}
+                    {!!c.requestHash  && <span>reqHash: {String(c.requestHash).slice(0,30)}…</span>}
+                    {!!c.responseHash && <span>resHash: {String(c.responseHash).slice(0,30)}…</span>}
+                    {!!c.completedAt  && <span>completedAt: {new Date(Number(c.completedAt)*1000).toLocaleString()}</span>}
+                    {!!c.refunded && <span style={{color:"var(--accent)"}}>✓ Refunded</span>}
+                    {!!c.slashed  && <span style={{color:"var(--danger,#ef4444)"}}>⚡ Slashed</span>}
                     <a
                       href={`https://testnet.arcscan.app/tx/${id}`}
                       target="_blank" rel="noreferrer"

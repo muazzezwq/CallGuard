@@ -57,11 +57,11 @@ export default function Disputes() {
 
   // Subgraph: dispute history
   const historyQuery = `{
-    disputes(first: 50, orderBy: createdAt, orderDirection: desc) {
-      id callId opener status createdAt resolvedAt outcome
+    disputeRecords(first: 50, orderBy: openedAt, orderDirection: desc) {
+      id callId caller providerId status slashAmount openedAt resolvedAt txHash
     }
   }`;
-  const { data: historyData, loading: historyLoading, refetch: refetchHistory } = useSubgraph<{ disputes: SubgraphDispute[] }>(
+  const { data: historyData, loading: historyLoading, refetch: refetchHistory } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
     historyQuery, { pollInterval: 30000 }
   );
 
@@ -130,7 +130,7 @@ export default function Disputes() {
     }
   }, [voteDisputeId, isConnected, writeContractAsync, fetchDisputeInfo]);
 
-  const disputes = historyData?.disputes ?? [];
+  const disputes = historyData?.disputeRecords ?? [];
 
   return (
     <div className="cg-panel">

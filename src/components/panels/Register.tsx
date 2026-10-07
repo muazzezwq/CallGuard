@@ -169,7 +169,7 @@ export default function Register() {
       address: CONFIG.registryAddress as `0x${string}`,
       abi: REGISTRY_ABI,
       functionName: "register",
-      args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""],
+      args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, (endpoint || "0x00") as `0x${string}`],
     }, { onSuccess: h => setHash(h) });
   };
 
@@ -197,7 +197,7 @@ export default function Register() {
           }
           // Registered(uint256 indexed agentId, ...) — topics[1] = agentId
           if (log.topics?.length >= 2 && tokenId === null) {
-            try { tokenId = BigInt(log.topics[1]); } catch {}
+            try { const t = log.topics[1]; if (t) tokenId = BigInt(t); } catch {}
           }
         }
         if (!tokenId) tokenId = BigInt(1); // fallback
@@ -222,7 +222,7 @@ export default function Register() {
       });
       setV2Status(`✅ Registered with NFT #${tokenId}! TX: ${regHash.slice(0, 14)}…`);
       setV2Step("done");
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setV2Status("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Failed"));
       setV2Step("idle");
     }

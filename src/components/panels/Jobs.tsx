@@ -76,7 +76,7 @@ export default function Jobs() {
       const receipt = await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job created\ntx: ${hash.slice(0, 12)}...\nBlock: ${receipt.blockNumber}\n\nNext: set a budget for this job.`);
       setStep(1);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -98,7 +98,7 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Budget set — ${budget} USDC for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: fund the escrow.`);
       setStep(2);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -138,7 +138,7 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Escrow funded for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: provider submits deliverable.`);
       setStep(3);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -161,7 +161,7 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Deliverable submitted for job #${jobId}\nhash: ${deliverableHash.slice(0, 12)}...\ntx: ${hash.slice(0, 12)}...\n\nNext: evaluator approves and settles.`);
       setStep(4);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -183,7 +183,7 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} completed and settled!\ntx: ${hash.slice(0, 12)}...\n\nUSDC released to provider.`);
       setStep(5);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -202,7 +202,7 @@ export default function Jobs() {
       });
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} cancelled\ntx: ${hash.slice(0, 12)}...`);
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
     }
     setLoading(false);
@@ -224,7 +224,7 @@ export default function Jobs() {
         budget: result?.budget ? (Number(result.budget) / 1e6).toFixed(4) + " USDC" : "—",
         status: statusNames[Number(result?.status)] || "UNKNOWN",
       });
-    } catch (e: unknown) {
+    } catch (_err: unknown) { const e = _err as any;
       setCheckResult({ error: e.shortMessage || (e instanceof Error ? e.message : String(e)) });
     }
   }
