@@ -5,7 +5,7 @@ import { formatUnits } from "viem";
 import { useAppStore } from "../../store/useAppStore";
 import { useUsdcBalance, useEurcBalance, useUsycBalance } from "../../hooks/useOnchain";
 
-export default function AppTopbar({ onHamburger }: { onHamburger?: () => void }) {
+export default function AppTopbar({ onHamburger, onCommandPalette }: { onHamburger?: () => void; onCommandPalette?: () => void }) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { setOpen } = useModal();
@@ -140,6 +140,16 @@ export default function AppTopbar({ onHamburger }: { onHamburger?: () => void })
               </button>
             </>
           )}
+
+          {/* ⌘K Command Palette */}
+          <button
+            onClick={onCommandPalette}
+            title="Command palette (Ctrl+K)"
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-faint)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}
+          >
+            <span>🔍</span>
+            <kbd style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>⌘K</kbd>
+          </button>
 
           {/* Simple / Pro toggle */}
           <div

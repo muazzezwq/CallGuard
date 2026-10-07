@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useCountUp } from "../../hooks/useCountUp";
 import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from "wagmi";
+import Sparkline from "../ui/Sparkline";
 import { parseUnits, formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
@@ -97,10 +99,17 @@ export default function Overview() {
   const { data: totalSlashes } = useReadContract({ address: CONFIG.ppcAddress as `0x${string}`, abi: PPC_ABI, functionName: "totalSlashes" });
   const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
 
-  const providerCount = nextId ? Number(nextId) - 1 : "—";
+  const providerCount = nextId ? Number(nextId) - 1 : 0;
+  const callsNum = totalCalls ? Number(totalCalls) : 0;
+  const receiptsNum = totalReceipts ? Number(totalReceipts) : 0;
+  const slashesNum = totalSlashes ? Number(totalSlashes) : 0;
   const calls = totalCalls ? Number(totalCalls).toString() : "—";
   const receipts = totalReceipts ? Number(totalReceipts).toString() : "—";
   const slashes = totalSlashes ? Number(totalSlashes).toString() : "—";
+  // count-up animated values
+  const animProviders = useCountUp(typeof providerCount === "number" ? providerCount : 0);
+  const animCalls = useCountUp(callsNum);
+  const animReceipts = useCountUp(receiptsNum);
   const honorRate = (totalCalls && totalReceipts && Number(totalCalls) > 0)
     ? `${Math.round((Number(totalReceipts) / Number(totalCalls)) * 100)}%` : "—";
   const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
@@ -281,17 +290,17 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Stats */}
-      <div style={s.grid4}>
+      {/* Stats — count-up animated */}
+      <div style={s.grid4} className="stagger">
         {[
-          { label:"Providers",   val: providerCount, sub:"registered" },
-          { label:"Total Calls", val: calls,         sub:"all-time" },
-          { label:"Receipts",    val: receipts,      sub:"SLA honored" },
-          { label:"Honor Rate",  val: honorRate,     sub:`${slashes} slashes` },
+          { label:"Providers",   val: animProviders || providerCount, raw: providerCount, sub:"registered" },
+          { label:"Total Calls", val: animCalls || calls,             raw: callsNum,      sub:"all-time" },
+          { label:"Receipts",    val: animReceipts || receipts,       raw: receiptsNum,   sub:"SLA honored" },
+          { label:"Honor Rate",  val: honorRate,                      raw: 0,             sub:`${slashesNum} slashes` },
         ].map(c => (
           <div key={c.label} style={s.card}>
             <div style={s.cardLabel}>{c.label}</div>
-            <div style={{ ...s.cardVal, color: c.label==="Honor Rate" && honorRate!=="—" && parseInt(honorRate)<50 ? "var(--danger)" : "var(--text)" }}>{String(c.val)}</div>
+            <div className="count-up" style={{ ...s.cardVal, color: c.label==="Honor Rate" && honorRate!=="—" && parseInt(honorRate)<50 ? "var(--danger)" : "var(--text)" }}>{String(c.val)}</div>
             <div style={s.cardSub}>{c.sub}</div>
           </div>
         ))}
@@ -486,13 +495,26 @@ export default function Overview() {
 
       {/* 24h Activity Chart */}
       <div style={s.section}>
-        <div style={s.sectionTitle}>24H ACTIVITY CHART</div>
+        <div style={{ ...s.sectionTitle, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span>24H ACTIVITY CHART</span>
+          <span style={{ fontSize:11, color:"var(--text-faint)", fontFamily:"var(--font-mono)", textTransform:"none", letterSpacing:0 }}>
+            {chartData.reduce((s, b) => s + b.count, 0)} calls
+          </span>
+        </div>
         {chartData.every(b => b.count === 0) ? (
-          <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-faint)", fontSize: 12 }}>No calls in last 24h</div>
+          <div style={{ padding: "8px 0 12px" }}>
+            {/* Fallback sparkline with gentle wave */}
+            <Sparkline data={Array.from({ length: 24 }, (_, i) => 3 + Math.sin(i * 0.4) * 2 + 0.5)} color="#10b981" height={56} />
+            <div style={{ textAlign: "center", marginTop: 6, fontSize: 11, color: "var(--text-faint)" }}>No calls in last 24h — showing baseline</div>
+          </div>
         ) : (
           <div>
+            {/* SVG sparkline curve — hero style */}
+            <div style={{ borderRadius: 8, overflow: "hidden", marginBottom: 8, background: "var(--bg-1)", padding: "8px 0 4px" }}>
+              <Sparkline data={chartData.map(b => b.count)} color="#10b981" height={56} />
+            </div>
             {/* Bar chart */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 60, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 40, marginBottom: 4 }}>
               {(() => {
                 const maxCount = Math.max(...chartData.map(b => b.count), 1);
                 return chartData.map((b, i) => (
@@ -501,10 +523,10 @@ export default function Overview() {
                     title={`${b.hour}:00 — ${b.count} call${b.count !== 1 ? "s" : ""}`}
                     style={{
                       flex: 1,
-                      height: `${Math.max(4, (b.count / maxCount) * 56)}px`,
+                      height: `${Math.max(3, (b.count / maxCount) * 36)}px`,
                       background: b.count > 0 ? "var(--accent)" : "var(--bg-3)",
                       borderRadius: "2px 2px 0 0",
-                      opacity: b.count > 0 ? 0.8 : 0.3,
+                      opacity: b.count > 0 ? 0.75 : 0.2,
                       transition: "height 0.3s",
                       cursor: "default",
                     }}
@@ -512,14 +534,11 @@ export default function Overview() {
                 ));
               })()}
             </div>
-            {/* Hour labels (every 6h) */}
+            {/* Hour labels */}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>
               {[0, 6, 12, 18, 23].map(h => (
                 <span key={h}>{String(h).padStart(2, "0")}h</span>
               ))}
-            </div>
-            <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-dim)", textAlign: "right" }}>
-              Total last 24h: <strong style={{ color: "var(--text)" }}>{chartData.reduce((s, b) => s + b.count, 0)}</strong> calls
             </div>
           </div>
         )}

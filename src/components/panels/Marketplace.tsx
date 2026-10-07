@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { formatUnits } from "viem";
 import { useProviders } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
+import RepBars from "../ui/RepBars";
 import type { Provider } from "../../lib/subgraph";
 
 type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "maxResponseTime";
@@ -56,6 +57,12 @@ function ProviderCard({ p, onCall, onCompare, compareList }: {
           <div className="text-text-faint mb-0.5">Slashed</div>
           <div className={`font-mono font-semibold ${p.slashedCalls > 0 ? "text-danger" : "text-text"}`}>{p.slashedCalls}</div>
         </div>
+      </div>
+
+      {/* Reputation trend sparkline */}
+      <div className="mb-3">
+        <div className="text-xs text-text-faint mb-1.5 font-mono uppercase tracking-widest" style={{ fontSize: 9 }}>Reputation trend</div>
+        <RepBars completed={p.completedCalls} slashed={p.slashedCalls} />
       </div>
 
       {p.reputation < 30 && (

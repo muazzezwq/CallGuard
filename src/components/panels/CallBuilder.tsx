@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast as _toast } from "sonner";
+const toast = { success: (m: string) => _toast.success(m), error: (m: string) => _toast.error(m) };
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad } from "viem";
 import { arcTestnet, CONFIG } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
 import { useBudgetCap } from "../../hooks/useBudgetCap";
-import { friendlyError } from "../../lib/utils";
+import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx } from "../../lib/utils";
 
 const REGISTRY_ABI = [
   { name: "getProvider", type: "function", stateMutability: "view",
@@ -146,6 +148,8 @@ export default function CallBuilder() {
   const handleCall = useCallback(async () => {
     if (!isConnected || !address) { setStatus("❌ Connect wallet first."); return; }
     if (!active) { setStatus("❌ Provider is not active."); return; }
+    // Double-submit guard
+    if (!checkNoPendingTx(({ kind, title, detail }) => toast[kind === "warn" ? "warning" : kind === "ok" ? "success" : "error"](`${title}${detail ? ` — ${detail}` : ""}`))) return;
     // Budget cap check
     const priceUsdc = price ? Number(price) / 1e6 : 0;
     const budgetCheck = checkBudget(priceUsdc);
@@ -161,10 +165,21 @@ export default function CallBuilder() {
         args: [BigInt(providerIdNum), reqHash],
         chainId: arcTestnet.id,
       });
+      setPendingTx(hash);
       setLastCallId(hash);
       spendBudget(priceUsdc);
       setStatus("⏳ Waiting for confirmation...");
+      // Auto-receipt: if provider has configured a signer key in sessionStorage
+      setTimeout(() => {
+        void tryClientAutoReceipt(
+          hash as `0x${string}`,
+          providerIdNum,
+          payload,
+          ({ kind, title, detail }) => toast[kind === "ok" ? "success" : kind === "err" ? "error" : "info"](`${title}${detail ? ` — ${detail}` : ""}`)
+        ).then(() => clearPendingTx());
+      }, 1500);
     } catch (e: unknown) {
+      clearPendingTx();
       setStatus(`❌ ${friendlyError(e)}`);
       setIsLoading(false);
     }

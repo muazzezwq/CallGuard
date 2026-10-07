@@ -113,7 +113,7 @@ export default function Nano() {
       let total = 0n
       for (const id of ids) {
         try {
-          const p = await publicClient.readContract({ address: CONFIG.serviceRegistry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] })
+          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] })
           if (p[6]) total += p[3] // active → add pricePerCall
         } catch { /* skip */ }
       }

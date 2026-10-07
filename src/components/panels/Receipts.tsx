@@ -22,7 +22,7 @@ export default function Receipts() {
     <div className="cg-panel">
       <div className="panel-head">
         <div><h2>Receipts</h2><p className="text-dim">{receipts.length} on-chain receipts</p></div>
-        <button className="btn btn-sm" onClick={refetch}>↻</button>
+        <button className="btn btn-sm" onClick={() => void refetch()}>↻</button>
       </div>
 
       {loading && <div className="skeleton-list">{[...Array(3)].map((_,i)=><div key={i} className="skeleton-row" style={{height:100}}/>)}</div>}

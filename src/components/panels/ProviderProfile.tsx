@@ -33,7 +33,7 @@ export default function ProviderProfile() {
   const handleCallProvider = useCallback(() => {
     // Navigate to CallBuilder with provider pre-filled via sessionStorage
     sessionStorage.setItem('callbuilder_provider', queried)
-    setPanel('callbuilder')
+    setPanel('calls')
   }, [queried, setPanel])
 
   const handleNanoPay = useCallback(() => {

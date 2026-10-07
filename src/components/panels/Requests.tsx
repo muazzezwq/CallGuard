@@ -133,7 +133,7 @@ export default function Requests() {
         <div style={{ display: "flex", gap: 6 }}>
           <button className="btn btn-sm" onClick={() => exportCalls(filtered, "csv")}>↓ CSV</button>
           <button className="btn btn-sm" onClick={() => exportCalls(filtered, "json")}>↓ JSON</button>
-          <button className="btn btn-sm" onClick={refetch}>↻</button>
+          <button className="btn btn-sm" onClick={() => void refetch()}>↻</button>
         </div>
       </div>
 

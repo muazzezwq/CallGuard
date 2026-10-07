@@ -94,7 +94,7 @@ export default function History() {
         <div style={{ display:"flex", gap:6 }}>
           <button className="btn btn-sm" onClick={() => exportHistory(filtered,"csv")} title="Export CSV">↓ CSV</button>
           <button className="btn btn-sm" onClick={() => exportHistory(filtered,"json")} title="Export JSON">↓ JSON</button>
-          <button className="btn btn-sm" onClick={refetch} title="Refresh">↻</button>
+          <button className="btn btn-sm" onClick={() => void refetch()} title="Refresh">↻</button>
         </div>
       </div>
 

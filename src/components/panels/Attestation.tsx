@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
 import { CONFIG } from '../../lib/config'
 
-const BRIDGE_ADDR = CONFIG.slaBridgeAddress as `0x${string}`
+const BRIDGE_ADDR = CONFIG.slaAttestationBridge as `0x${string}`
 
 const ATTESTATION_ABI = [
   { name: 'attestCall', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'callId', type: 'bytes32' }, { name: 'receiptHash', type: 'bytes32' }], outputs: [] },

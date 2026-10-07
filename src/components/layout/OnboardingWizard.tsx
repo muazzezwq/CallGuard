@@ -42,7 +42,7 @@ const STORAGE_KEY = "callguard_onboarding_done";
 export default function OnboardingWizard() {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
-  const { setActivePanel } = useAppStore();
+  const { setPanel } = useAppStore();
   const { isConnected } = useAccount();
 
   useEffect(() => {
@@ -59,8 +59,8 @@ export default function OnboardingWizard() {
     if (step === 0 && !isConnected) {
       // nudge toward wallet connect — just advance
     }
-    if (step === 1) setActivePanel("register" as never);
-    if (step === 2) setActivePanel("calls" as never);
+    if (step === 1) setPanel("register" as never);
+    if (step === 2) setPanel("calls" as never);
     if (step >= STEPS.length - 1) { dismiss(); return; }
     setStep(s => s + 1);
   };

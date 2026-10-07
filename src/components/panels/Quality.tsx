@@ -50,7 +50,7 @@ export default function Quality() {
       const hash = await writeContractAsync({
         address: ADDR,
         abi: DISPUTE_QUALITY_ABI,
-        functionName: 'vote',
+        functionName: 'voteOnDispute',
         args: [BigInt(disputeId), voteSupport],
       })
       setTxHash(hash)
@@ -62,7 +62,7 @@ export default function Quality() {
       const hash = await writeContractAsync({
         address: ADDR,
         abi: DISPUTE_QUALITY_ABI,
-        functionName: 'stakeArbiter',
+        functionName: 'openDispute',
         value: BigInt(Math.floor(parseFloat(stakeAmount) * 1e6)),
       })
       setTxHash(hash)

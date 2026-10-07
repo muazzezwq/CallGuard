@@ -1,4 +1,7 @@
-/** Shared utilities — ported from original HTML */
+import { createWalletClient, createPublicClient, http, keccak256, toHex, toBytes } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { CONFIG, PPC_ABI } from "./config";
+import { arcTestnet } from "./config";
 
 // ── friendlyError ─────────────────────────────────────────────────────────
 const ERROR_SELECTORS: Record<string, string> = {
@@ -39,7 +42,6 @@ export function friendlyError(e: unknown): string {
 }
 
 // ── waitWithFinality ───────────────────────────────────────────────────────
-// Returns how many ms Arc took to finalize the tx (sub-second on Arc Testnet)
 export async function waitWithFinality(
   waitFn: () => Promise<unknown>
 ): Promise<{ finalityMs: number }> {
@@ -88,7 +90,73 @@ export function initTabTitleCounter(): () => void {
   return () => document.removeEventListener("visibilitychange", handler);
 }
 
-// ── count-up animation ────────────────────────────────────────────────────
+// ── auto-receipt (client-side, provider key from sessionStorage) ──────────
+// After a successful callService TX, call this to auto-sign + submit the receipt.
+// sessionStorage key: cg_ar_key_<providerId>  (private key of provider signer)
+export async function tryClientAutoReceipt(
+  callId: `0x${string}`,
+  providerId: number,
+  payload: string,
+  toastFn: (opts: { kind: string; title: string; detail?: string }) => void
+): Promise<void> {
+  const key = sessionStorage.getItem(`cg_ar_key_${providerId}`);
+  if (!key) return;
+  const autoPayload = payload || sessionStorage.getItem(`cg_ar_payload_${providerId}`) || '{"status":"ok","auto":true}';
+  try {
+    const account = privateKeyToAccount(key as `0x${string}`);
+    const wc = createWalletClient({ account, chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
+    const pc = createPublicClient({ chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
+    const responseHash = keccak256(toHex(toBytes(autoPayload)));
+    const sig = await wc.signTypedData({
+      account,
+      domain: { name: "CallGuard", version: "1", chainId: CONFIG.chainId, verifyingContract: CONFIG.payPerCall as `0x${string}` },
+      types: { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }] },
+      primaryType: "Receipt",
+      message: { callId, responseHash },
+    });
+    toastFn({ kind: "info", title: "⚡ Auto-submitting receipt…" });
+    const hash = await wc.writeContract({
+      address: CONFIG.payPerCall as `0x${string}`,
+      abi: PPC_ABI,
+      functionName: "submitReceipt",
+      args: [callId, responseHash, sig],
+    });
+    await pc.waitForTransactionReceipt({ hash });
+    toastFn({ kind: "ok", title: "⚡ Receipt auto-submitted", detail: `call ${callId.slice(0, 10)}… · escrow released` });
+  } catch (e) {
+    const err = e as { reason?: string; message?: string };
+    toastFn({ kind: "err", title: "Auto-receipt failed", detail: err.reason ?? err.message?.slice(0, 80) });
+  }
+}
+
+// ── checkNoPendingTx ──────────────────────────────────────────────────────
+// Returns true if no TX is pending in sessionStorage (prevents double-submit)
+const PENDING_KEY = "cg_pending_tx";
+
+export function setPendingTx(hash: string): void {
+  sessionStorage.setItem(PENDING_KEY, hash);
+}
+
+export function clearPendingTx(): void {
+  sessionStorage.removeItem(PENDING_KEY);
+}
+
+export function checkNoPendingTx(
+  toastFn: (opts: { kind: string; title: string; detail?: string }) => void
+): boolean {
+  const pending = sessionStorage.getItem(PENDING_KEY);
+  if (pending) {
+    toastFn({
+      kind: "warn",
+      title: "Transaction pending",
+      detail: `Wait for ${pending.slice(0, 10)}… to confirm before sending another.`,
+    });
+    return false;
+  }
+  return true;
+}
+
+// ── count-up animation (React-friendly hook version) ─────────────────────
 export function countUp(
   el: HTMLElement,
   target: number,
