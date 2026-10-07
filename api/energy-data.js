@@ -8,7 +8,8 @@
  * Arkreen API'sinden gerçek kWh verisi çeker (veya testnet mock döner).
  */
 
-const USDC_ADDR   = process.env.VITE_USDC_ADDRESS    || '';
+// LOW-02: prefer unprefixed env vars server-side
+const USDC_ADDR   = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS || '';
 const FACILITATOR = process.env.FACILITATOR_ADDRESS  || '';
 const SELLER      = process.env.SELLER_ADDRESS       || '';
 

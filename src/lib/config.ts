@@ -127,8 +127,10 @@ export const DISPUTE_QUALITY_ABI = [
   { name: "finalize", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"disputeId",type:"uint256"}], outputs: [] },
   { name: "disputeCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "disputeBond", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "voterBond",   type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "disputeBond",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "voterBond",    type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  // LOW-01: votingWindow readable from contract
+  { name: "votingWindow", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
   { name: "disputeIdByCallId", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"uint256"}] },
   { name: "disputes", type: "function", stateMutability: "view",

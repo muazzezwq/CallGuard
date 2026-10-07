@@ -104,9 +104,10 @@ export default async function handler(req, res) {
     });
   }
 
-  const BRIDGE   = process.env.VITE_SLA_ATTESTATION_BRIDGE;
-  const REGISTRY = process.env.VITE_SERVICE_REGISTRY;
-  const PPC      = process.env.VITE_PAY_PER_CALL;
+  // LOW-02: prefer unprefixed env vars server-side
+  const BRIDGE   = process.env.SLA_ATTESTATION_BRIDGE || process.env.VITE_SLA_ATTESTATION_BRIDGE;
+  const REGISTRY = process.env.SERVICE_REGISTRY       || process.env.VITE_SERVICE_REGISTRY;
+  const PPC      = process.env.PAY_PER_CALL            || process.env.VITE_PAY_PER_CALL;
 
   try {
     if (req.method === "GET") {

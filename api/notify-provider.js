@@ -12,7 +12,8 @@ const RPC_URL =
     : process.env.ARC_RPC_URL; // set in Vercel env — no literal fallback
 
 const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY;
-const PAY_PER_CALL = process.env.VITE_PAY_PER_CALL;
+// LOW-02: prefer unprefixed env vars server-side
+const PAY_PER_CALL = process.env.PAY_PER_CALL || process.env.VITE_PAY_PER_CALL;
 
 const registryAbi = [
   "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active))",

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useReadContracts } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { CONFIG, DISPUTE_QUALITY_ABI } from "../../lib/config";
 
@@ -56,6 +56,19 @@ export default function Disputes() {
   const { data: myDisputesData, loading: myDisputesLoading, refetch: refetchMine } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
     myDisputesQuery, { enabled: !!address, pollInterval: 30000 }
   );
+
+  // LOW-01: read bond/window values from contract instead of hardcoding
+  const dqAddr = CONFIG.disputeQualityAddress as `0x${string}`;
+  const { data: bondData } = useReadContracts({
+    contracts: [
+      { address: dqAddr, abi: DISPUTE_QUALITY_ABI, functionName: "disputeBond" },
+      { address: dqAddr, abi: DISPUTE_QUALITY_ABI, functionName: "voterBond" },
+      { address: dqAddr, abi: DISPUTE_QUALITY_ABI, functionName: "votingWindow" },
+    ],
+  });
+  const callerBondUSDC = bondData?.[0]?.result != null ? (Number(bondData[0].result) / 1e6).toFixed(2) : "0.50";
+  const voterBondUSDC  = bondData?.[1]?.result != null ? (Number(bondData[1].result) / 1e6).toFixed(2) : "0.10";
+  const votingWindowH  = bondData?.[2]?.result != null ? `${Math.round(Number(bondData[2].result) / 3600)}h` : "48h";
 
   // CRITICAL-04 fix: openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
   const handleOpenDispute = useCallback(async () => {
@@ -148,10 +161,10 @@ export default function Disputes() {
         gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12,
       }}>
         {[
-          { label: "Caller Bond", value: "0.5 USDC" },
-          { label: "Voter Bond", value: "0.1 USDC" },
+          { label: "Caller Bond", value: `${callerBondUSDC} USDC` },
+          { label: "Voter Bond", value: `${voterBondUSDC} USDC` },
           { label: "Min Voter Stake", value: "1 USDC" },
-          { label: "Voting Window", value: "48 hours" },
+          { label: "Voting Window", value: votingWindowH },
         ].map(item => (
           <div key={item.label} style={{ textAlign: "center" }}>
             <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{item.label}</div>
@@ -183,7 +196,7 @@ export default function Disputes() {
       {tab === "open" && (
         <div className="cg-card">
           <div style={{ background: "var(--bg-3)", borderLeft: "3px solid var(--accent)", borderRadius: 6, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
-            <strong style={{ color: "var(--text)" }}>How it works:</strong> Submit the call ID and evidence. Community arbiters vote (stake-weighted majority). Bond: <strong>0.5 USDC</strong> from your wallet.
+            <strong style={{ color: "var(--text)" }}>How it works:</strong> Submit the call ID and evidence. Community arbiters vote (stake-weighted majority). Bond: <strong>{callerBondUSDC} USDC</strong> from your wallet.
           </div>
           <div className="form-group mb-3">
             <label className="form-label">Call ID (numeric)</label>
@@ -221,7 +234,7 @@ export default function Disputes() {
             onClick={handleOpenDispute}
             disabled={!callIdInput || !evidence || !isConnected}
           >
-            Open Quality Dispute — 0.5 USDC bond
+            Open Quality Dispute — {callerBondUSDC} USDC bond
           </button>
           {!isConnected && (
             <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>Connect wallet to open a dispute.</p>
