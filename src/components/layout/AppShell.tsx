@@ -23,6 +23,7 @@ const panels = {
   futures:       lazy(() => import("../panels/Futures")),
   attestation:   lazy(() => import("../panels/Attestation")),
   subscriptions: lazy(() => import("../panels/Subscriptions")),
+  admin:         lazy(() => import("../panels/AdminPanel")),
   mcp:           lazy(() => import("../panels/Mcp")),
   webhooks:      lazy(() => import("../panels/Webhooks")),
   leaderboard:   lazy(() => import("../panels/Leaderboard")),
