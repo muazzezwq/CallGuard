@@ -64,7 +64,7 @@ type StatsData = {
 };
 
 function LiveStatsBar() {
-  const { data } = useSubgraph<StatsData>(STATS_QUERY, 30_000);
+  const { data } = useSubgraph<StatsData>(STATS_QUERY, { pollInterval: 30000 });
   const calls = data?.calls ?? [];
   const providers = data?.providers ?? [];
 
@@ -123,7 +123,7 @@ function LiveStatsBar() {
 
 // ── Live feed section wrapper ─────────────────────────────────────────────────
 function LiveSection() {
-  const { data, isLoading } = useSubgraph<GoldskyCalls>(LIVE_QUERY, 15_000);
+  const { data, isLoading } = useSubgraph<GoldskyCalls>(LIVE_QUERY, { pollInterval: 15000 });
   const events = mapToCallEvents(data);
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useModal } from "connectkit";
 import { useSubgraph } from "../hooks/useSubgraph";
 import { useAppStore } from "../store/useAppStore";
@@ -14,21 +14,80 @@ type CGData = {
   providers: Provider[];
 };
 
-/* ── sparkline helper ── */
-function buildSparkline(calls: CGData["calls"]): string {
-  if (!calls.length) return "";
-  const buckets: number[] = Array(20).fill(0);
-  const sorted = [...calls].sort((a,b)=>Number(a.createdAt)-Number(b.createdAt)).slice(-200);
-  if (!sorted.length) return "";
-  const min = Number(sorted[0].createdAt);
-  const max = Number(sorted[sorted.length-1].createdAt)||min+1;
-  sorted.forEach(c=>{
-    const idx=Math.min(19,Math.floor(((Number(c.createdAt)-min)/(max-min||1))*20));
-    buckets[idx]++;
-  });
-  const peak=Math.max(...buckets,1);
-  const pts=buckets.map((v,i)=>`${i*(680/19)},${56-(v/peak)*50}`).join(" ");
-  return `M${pts.split(" ").join("L")}`;
+/* ── canvas sparkline ── */
+function SparklineCanvas({ calls }: { calls: CGData["calls"] }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.offsetWidth || 640;
+    const H = canvas.offsetHeight || 60;
+    canvas.width = W * window.devicePixelRatio;
+    canvas.height = H * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    const buckets: number[] = Array(20).fill(0);
+    if (calls.length) {
+      const sorted = [...calls].sort((a,b)=>Number(a.createdAt)-Number(b.createdAt)).slice(-200);
+      const min = Number(sorted[0].createdAt);
+      const max = Number(sorted[sorted.length-1].createdAt)||min+1;
+      sorted.forEach(c=>{
+        const idx=Math.min(19,Math.floor(((Number(c.createdAt)-min)/(max-min||1))*20));
+        buckets[idx]++;
+      });
+    }
+    // fallback demo data if all zeros
+    const peak = Math.max(...buckets, 1);
+    const pts = buckets.map((v,i)=>({ x: i*(W/19), y: H - 8 - (v/peak)*(H-16) }));
+
+    // fill
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,"rgba(16,185,129,0.25)");
+    grad.addColorStop(1,"rgba(16,185,129,0)");
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, H);
+    pts.forEach(p=>ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length-1].x, H);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    pts.forEach((p,i)=> i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle = "#10b981";
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }, [calls]);
+  return <canvas ref={ref} style={{width:"100%",height:60,display:"block"}} />;
+}
+
+/* ── particle dots ── */
+const PARTICLES = Array.from({length:12},(_,i)=>({
+  top: `${10+Math.random()*80}%`,
+  left: `${5+Math.random()*90}%`,
+  size: 3+Math.random()*4,
+  dur: `${6+Math.random()*8}s`,
+  delay: `-${Math.random()*8}s`,
+  opacity: 0.3+Math.random()*0.5,
+}));
+
+function ParticleDots() {
+  return (
+    <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
+      {PARTICLES.map((p,i)=>(
+        <div key={i} className="particle" style={{
+          top:p.top, left:p.left,
+          width:p.size, height:p.size,
+          "--dur":p.dur, "--delay":p.delay,
+          opacity:p.opacity,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  );
 }
 
 /* ── terminal animation lines ── */
@@ -45,34 +104,42 @@ const TERM_LINES = [
 
 function Terminal() {
   const [lines, setLines] = useState<typeof TERM_LINES>([]);
-  useEffect(()=>{
-    const timers = TERM_LINES.map((l,i)=>
-      setTimeout(()=>setLines(prev=>[...prev,l]), l.delay + i*100)
-    );
-    const reset = setTimeout(()=>setLines([]), 7000);
-    return ()=>{timers.forEach(clearTimeout); clearTimeout(reset);};
-  },[]);
-  useEffect(()=>{
-    if (lines.length===TERM_LINES.length){
-      const t=setTimeout(()=>setLines([]),3000);
-      return()=>clearTimeout(t);
-    }
-  },[lines.length]);
+  const cycleRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const runCycle = useCallback(() => {
+    setLines([]);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    TERM_LINES.forEach((l, i) => {
+      timers.push(setTimeout(() => setLines(prev => [...prev, l]), l.delay));
+    });
+    // after last line + pause, restart
+    const last = TERM_LINES[TERM_LINES.length - 1].delay + 3000;
+    cycleRef.current = setTimeout(runCycle, last);
+    return () => { timers.forEach(clearTimeout); };
+  }, []);
+
+  useEffect(() => {
+    const cleanup = runCycle();
+    return () => { cleanup?.(); if (cycleRef.current) clearTimeout(cycleRef.current); };
+  }, [runCycle]);
+
   return (
-    <div style={{background:"#0a0e14",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden",fontFamily:"var(--font-mono)",fontSize:12,minHeight:200}}>
-      <div style={{background:"#111827",padding:"8px 14px",display:"flex",alignItems:"center",gap:6,borderBottom:"1px solid var(--border)"}}>
-        {["#ff5f57","#ffbd2e","#28ca41"].map(c=>(
-          <span key={c} style={{width:10,height:10,borderRadius:"50%",background:c,display:"inline-block"}}/>
-        ))}
-        <span style={{marginLeft:8,fontSize:10,color:"var(--text-faint)"}}>callguard — arc testnet</span>
+    <div className="cgt-terminal">
+      <div className="cgt-term-bar">
+        <div className="cgt-term-dots">
+          {["#ff5f57","#ffbd2e","#28ca41"].map(c=>(
+            <span key={c} style={{background:c}} />
+          ))}
+        </div>
+        <span className="cgt-term-title">callguard — arc testnet</span>
       </div>
-      <div style={{padding:"14px",minHeight:160}}>
+      <div className="cgt-term-body">
         {lines.map((l,i)=>(
-          <div key={i} style={{color:l.color,lineHeight:1.8,whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
+          <span key={i} className="cgt-line" style={{color:l.color}}>
             {l.txt}
-          </div>
+          </span>
         ))}
-        <span style={{display:"inline-block",width:7,height:14,background:"var(--accent)",marginLeft:2,verticalAlign:"middle",animation:"cursor-blink 1s step-end infinite"}}/>
+        <span className="cgt-cursor" />
       </div>
     </div>
   );
@@ -97,7 +164,7 @@ export default function CgLanding() {
   const slashes   = calls.filter((c: CGData["calls"][0])=>c.status==="SLASHED").length;
   const completed = calls.filter((c: CGData["calls"][0])=>c.status==="COMPLETED").length;
   const honorPct  = total>0 ? Math.round(((completed+2)/(total+3))*100) : null;
-  const sparkPath = buildSparkline(calls);
+  // sparkline rendered via canvas component below
 
   /* live feed: last 8 events */
   const feed = [...calls].reverse().slice(0,8);
@@ -166,10 +233,8 @@ export default function CgLanding() {
 
       {/* ── HERO ── */}
       <section style={{textAlign:"center",padding:"80px 24px 56px",position:"relative",overflow:"hidden"}}>
-        {/* particle dots */}
-        {[{top:"15%",left:"8%"},{top:"30%",left:"85%"},{top:"60%",left:"12%"},{top:"20%",left:"65%"},{top:"70%",left:"75%"},{top:"45%",left:"45%"}].map((p,i)=>(
-          <span key={i} style={{position:"absolute",width:6,height:6,borderRadius:"50%",background:"var(--accent)",opacity:0.35,top:p.top,left:p.left,filter:"blur(1px)"}}/>
-        ))}
+        {/* particle dots — animated */}
+        <ParticleDots />
         <div style={{display:"inline-flex",alignItems:"center",gap:6,marginBottom:20,padding:"4px 14px",borderRadius:99,border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.06)",fontSize:11,fontWeight:600,color:"var(--accent)",letterSpacing:"0.08em"}}>
           5 SLA PROTOCOLS
         </div>
@@ -208,27 +273,16 @@ export default function CgLanding() {
           ))}
         </div>
 
-        {/* Sparkline */}
-        <div style={{maxWidth:680,margin:"0 auto",background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:12,padding:"16px 20px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:600,color:"var(--text-faint)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
-              <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",display:"inline-block",animation:"pulse-dot 2s ease-in-out infinite"}}/>
+        {/* Sparkline — canvas based */}
+        <div className="cg-sparkline-wrap">
+          <div className="sparkline-header">
+            <div className="sparkline-title">
+              <span className="live-dot-pulse" />
               Network call activity
             </div>
             <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-faint)"}}>last 20 blocks</span>
           </div>
-          <svg viewBox="0 0 680 56" preserveAspectRatio="none" style={{width:"100%",height:56,display:"block"}}>
-            <defs>
-              <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(16,185,129,0.18)"/>
-                <stop offset="100%" stopColor="rgba(16,185,129,0)"/>
-              </linearGradient>
-            </defs>
-            {sparkPath && <>
-              <path d={sparkPath+"L680,56 L0,56 Z"} fill="url(#spGrad)"/>
-              <path d={sparkPath} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </>}
-          </svg>
+          <SparklineCanvas calls={calls} />
         </div>
       </section>
 

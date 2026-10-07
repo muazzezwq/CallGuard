@@ -431,42 +431,44 @@ export default function Overview() {
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
           <div style={s.sectionTitle}>LIVE ACTIVITY</div>
           <span style={{ fontSize:10,color:"var(--accent)",display:"flex",alignItems:"center",gap:4 }}>
-            <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"inline-block" }} />
+            <span className="live-dot-pulse" />
             live
           </span>
         </div>
-        {/* Real-time events from watchContractEvent */}
-        {liveEvents.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            {liveEvents.slice(0, 5).map((e, i) => (
-              <div key={i} style={{ ...s.actItem, padding:"6px 0" }}>
-                <span style={{ fontSize:14,flexShrink:0 }}>{e.icon}</span>
-                <div style={{ flex:1,minWidth:0 }}>
-                  <div style={{ fontSize:12,color:"var(--text)",fontWeight:500 }}>{e.label}</div>
-                  <div style={{ fontSize:11,color:"var(--text-dim)" }}>{e.detail} · {e.time}</div>
-                </div>
-              </div>
-            ))}
-            {activities.length > 0 && <div style={{ borderTop:"1px solid var(--border)",margin:"8px 0",fontSize:10,color:"var(--text-faint)",textAlign:"center" }}>subgraph history</div>}
-          </div>
-        )}
-        {/* Subgraph fallback */}
-        {activities.length === 0 && liveEvents.length === 0 ? (
-          <div style={{ textAlign:"center",padding:"20px 0",color:"var(--text-faint)",fontSize:12 }}>Waiting for on-chain events…</div>
-        ) : activities.map((a: {id:string;status:string;providerId:string;amount:string;createdAt:string}) => (
-          <div key={a.id} style={s.actItem}>
-            <div style={s.statusDot(a.status)} />
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:2 }}>
-                <span style={{ fontSize:11,fontWeight:600,padding:"1px 6px",borderRadius:4,background:a.status==="STARTED"?"rgba(16,185,129,0.1)":a.status==="SLASHED"?"rgba(239,68,68,0.1)":"rgba(59,130,246,0.1)",color:a.status==="STARTED"?"var(--accent)":a.status==="SLASHED"?"var(--danger)":"#60a5fa" }}>{a.status}</span>
-                <span style={{ fontSize:12,color:"var(--text)" }}>provider #{a.providerId}</span>
-              </div>
-              <div style={{ fontSize:11,color:"var(--text-dim)" }}>
-                {Number(formatUnits(BigInt(a.amount || "0"), 6)).toFixed(2)} USDC · {a.id && <a href={`${ARCSCAN}/tx/${a.id}`} target="_blank" rel="noreferrer" style={s.link}>{shorten(a.id)}<ExternalLink size={10} /></a>}
+        <div className="activity-feed">
+          {/* Real-time events */}
+          {liveEvents.slice(0,5).map((e,i)=>(
+            <div key={i} className="activity-item">
+              <span style={{ fontSize:14,flexShrink:0 }}>{e.icon}</span>
+              <div style={{ flex:1,minWidth:0 }}>
+                <div className="activity-title">{e.label}</div>
+                <div className="activity-sub">{e.detail} · {e.time}</div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+          {liveEvents.length>0 && activities.length>0 && (
+            <div style={{ borderTop:"1px solid var(--border)",margin:"4px 0",fontSize:10,color:"var(--text-faint)",textAlign:"center",padding:"4px 0" }}>subgraph history</div>
+          )}
+          {/* Subgraph fallback */}
+          {activities.length===0 && liveEvents.length===0 && (
+            <div className="empty-state">Waiting for on-chain events…</div>
+          )}
+          {activities.map((a:{id:string;status:string;providerId:string;amount:string;createdAt:string})=>(
+            <div key={a.id} className="activity-item">
+              <div className={`activity-dot activity-dot-${a.status==="STARTED"?"green":a.status==="SLASHED"?"red":"blue"}`} />
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:2 }}>
+                  <span className={`status-pill ${a.status==="STARTED"?"status-pill-green":a.status==="SLASHED"?"status-pill-red":"status-pill-blue"}`}>{a.status}</span>
+                  <span className="activity-title">provider #{a.providerId}</span>
+                </div>
+                <div className="activity-sub">
+                  {Number(formatUnits(BigInt(a.amount||"0"),6)).toFixed(2)} USDC
+                  {a.id && <> · <a href={`${ARCSCAN}/tx/${a.id}`} target="_blank" rel="noreferrer" style={s.link}>{shorten(a.id)}<ExternalLink size={10}/></a></>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Top Providers */}

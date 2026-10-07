@@ -68,6 +68,13 @@ export default function AppShell() {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
+  const { mode } = useAppStore();
+  useEffect(() => {
+    document.body.classList.remove("simple-mode", "pro-mode");
+    document.body.classList.add(mode === "simple" ? "simple-mode" : "pro-mode");
+    document.body.setAttribute("data-mode", mode);
+  }, [mode]);
+
   useEffect(() => initTabTitleCounter(), []);
 
   useEffect(() => {

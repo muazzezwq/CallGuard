@@ -165,12 +165,12 @@ function SbIcon({ name }: { name: string }) {
 export default function Sidebar({ onNav }: { onNav?: () => void }) {
   const { activePanel, setPanel, mode, advancedOpen, toggleAdvanced } = useAppStore();
 
-  const Item = ({ item }: { item: NavItem }) => {
+  const Item = ({ item, proOnly }: { item: NavItem; proOnly?: boolean }) => {
     const active = activePanel === item.id;
     const label = mode === "simple" ? item.simple : item.pro;
     return (
       <div
-        className={`sb-item${active ? " on" : ""}`}
+        className={`sb-item${active ? " on" : ""}${proOnly ? " sb-pro-only" : ""}`}
         data-nav={item.id}
         onClick={() => { setPanel(item.id); onNav?.(); }}
       >
@@ -227,7 +227,7 @@ export default function Sidebar({ onNav }: { onNav?: () => void }) {
       <Section label="Settlement" />
       {SETTLEMENT.map(i => <Item key={i.id} item={i} />)}
 
-      {/* Advanced — collapsible, visible in both modes */}
+      {/* Advanced — collapsible, pro-only items hidden in simple mode */}
       <Section
         label="Advanced"
         id="sbAdvancedToggle"
@@ -236,9 +236,9 @@ export default function Sidebar({ onNav }: { onNav?: () => void }) {
       />
       {advancedOpen && (
         <div id="sbAdvancedGroup">
-          {ADVANCED.map(i => <Item key={i.id} item={i} />)}
+          {ADVANCED.map(i => <Item key={i.id} item={i} proOnly />)}
           <Section label="Developer" />
-          {DEVELOPER.map(i => <Item key={i.id} item={i} />)}
+          {DEVELOPER.map(i => <Item key={i.id} item={i} proOnly />)}
         </div>
       )}
 

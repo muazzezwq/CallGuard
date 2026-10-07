@@ -119,7 +119,7 @@ export async function tryClientAutoReceipt(
       address: CONFIG.payPerCall as `0x${string}`,
       abi: PPC_ABI,
       functionName: "submitReceipt",
-      args: [callId, responseHash, sig],
+      args: [BigInt(callId), responseHash as `0x${string}`, BigInt(Math.floor(Date.now()/1000)), sig as `0x${string}`],
     });
     await pc.waitForTransactionReceipt({ hash });
     toastFn({ kind: "ok", title: "⚡ Receipt auto-submitted", detail: `call ${callId.slice(0, 10)}… · escrow released` });
