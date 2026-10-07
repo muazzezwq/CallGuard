@@ -173,7 +173,9 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
         if (honorRate < minHonorRate) revert HonorRateTooLow();
 
         uint256 maxLoan = (totalAssets * maxLoanBps) / 10_000;
-        if (amount > maxLoan) revert LoanTooLarge();
+        uint256 stakeBasedCap = (provider.stake * maxLoanBps) / 10_000;
+        uint256 effectiveMax = maxLoan < stakeBasedCap ? maxLoan : stakeBasedCap;
+        if (amount > effectiveMax) revert LoanTooLarge();
         if (usdc.balanceOf(address(this)) < amount) revert InsufficientLiquidity();
 
         loanId = ++loanCount;
@@ -274,8 +276,8 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
             return (0, 0, false);
         }
 
-        completed = abi.decode(completedData, (uint32));
-        slashed = abi.decode(slashedData, (uint32));
+        completed = abi.decode(completedData, (uint64));
+        slashed = abi.decode(slashedData, (uint64));
         ok = true;
     }
 }

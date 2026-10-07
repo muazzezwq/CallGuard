@@ -78,6 +78,8 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     error AuthorizationNotYetValid();
     error InvalidAuthorization();
     error InsufficientProviderStake();
+    error InvalidBeneficiary();
+    error NothingToClaim();
 
     // ---------------------------------------------------------------------
     // Types
@@ -133,6 +135,8 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     ///         consumed. Prevents the same signature from being replayed.
     mapping(bytes32 => bool) public usedReceipts;
 
+    mapping(address => uint256) public claimable;
+
     // ---------------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------------
@@ -147,6 +151,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     );
     event ReceiptSubmitted(bytes32 indexed callId, bytes32 responseHash, uint64 respondedAt);
     event CallSlashed(bytes32 indexed callId, uint256 refunded, uint256 slashed);
+    event Claimed(address indexed account, uint256 amount);
 
     // ---------------------------------------------------------------------
     // Constructor
@@ -272,6 +277,23 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------------
 
     function callService(uint256 providerId, bytes32 requestHash) external nonReentrant returns (bytes32 callId) {
+        return _callServiceFor(providerId, requestHash, msg.sender);
+    }
+
+    function callServiceFor(uint256 providerId, bytes32 requestHash, address beneficiary)
+        external
+        nonReentrant
+        returns (bytes32 callId)
+    {
+        return _callServiceFor(providerId, requestHash, beneficiary);
+    }
+
+    function _callServiceFor(uint256 providerId, bytes32 requestHash, address beneficiary)
+        internal
+        returns (bytes32 callId)
+    {
+        if (beneficiary == address(0)) revert InvalidBeneficiary();
+
         IServiceRegistry.ProviderView memory p = registry.getProvider(providerId);
         if (!p.active) revert ProviderNotActive();
 
@@ -282,7 +304,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
         uint256 currentNonce = nonce++;
         callId = keccak256(
-            abi.encodePacked(providerId, msg.sender, currentNonce, block.timestamp, requestHash, block.chainid)
+            abi.encodePacked(providerId, beneficiary, currentNonce, block.timestamp, requestHash, block.chainid)
         );
         if (_calls[callId].status != CallStatus.None) revert CallIdCollision();
 
@@ -290,7 +312,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
         _calls[callId] = Call({
             providerId: providerId,
-            caller: msg.sender,
+            caller: beneficiary,
             amount: p.pricePerCall,
             startedAt: uint32(block.timestamp),
             deadline: deadline,
@@ -304,7 +326,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         usdc.safeTransferFrom(msg.sender, address(this), p.pricePerCall);
         registry.markCallStarted(providerId);
 
-        emit CallStarted(callId, providerId, msg.sender, p.pricePerCall, requestHash, deadline);
+        emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
     }
 
     // ---------------------------------------------------------------------
@@ -352,7 +374,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
         registry.markCallFinished(c.providerId);
         registry.incCompleted(c.providerId); // bump reputation
-        usdc.safeTransfer(p.owner, c.amount);
+        claimable[p.owner] += c.amount;
 
         emit ReceiptSubmitted(callId, responseHash, respondedAt);
     }
@@ -375,17 +397,28 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         //   1. Mark pending call finished first (so the registry's accounting is clean
         //      before any external transfer).
         //   2. Bump reputation counter.
-        //   3. Refund the caller from escrow.
-        //   4. Slash stake (registry does its own transfer).
+        //   3. Credit the caller refund from escrow.
+        //   4. Slash stake into this contract and credit caller for pull withdrawal.
         registry.markCallFinished(c.providerId);
         registry.incSlashed(c.providerId);
-        usdc.safeTransfer(c.caller, c.amount);
+        claimable[c.caller] += c.amount;
 
         if (slashAmount > 0) {
-            registry.slash(c.providerId, slashAmount, c.caller);
+            registry.slash(c.providerId, slashAmount, address(this));
+            claimable[c.caller] += slashAmount;
         }
 
         emit CallSlashed(callId, c.amount, slashAmount);
+    }
+
+    function claim() external nonReentrant {
+        uint256 amount = claimable[msg.sender];
+        if (amount == 0) revert NothingToClaim();
+
+        claimable[msg.sender] = 0;
+        usdc.safeTransfer(msg.sender, amount);
+
+        emit Claimed(msg.sender, amount);
     }
 
     // ---------------------------------------------------------------------

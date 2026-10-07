@@ -115,11 +115,18 @@ contract PayPerCallTest is Test {
         bytes32 callId = _callService(keccak256("r"));
         bytes32 responseHash = keccak256("response-body");
 
-        uint256 providerBalBefore = usdc.balanceOf(provider1);
         bytes memory sig = _sign(signerPk, callId, responseHash);
 
         vm.prank(provider1);
         payPerCall.submitReceipt(callId, responseHash, uint64(block.timestamp), sig);
+
+        // After submitReceipt the funds are in claimable[providerOwner] (pull model).
+        assertEq(payPerCall.claimable(provider1), PRICE, "claimable not credited");
+
+        // Provider calls claim() to pull funds out.
+        uint256 providerBalBefore = usdc.balanceOf(provider1);
+        vm.prank(provider1);
+        payPerCall.claim();
 
         assertEq(usdc.balanceOf(provider1), providerBalBefore + PRICE);
         assertEq(usdc.balanceOf(address(payPerCall)), 0);
@@ -236,7 +243,6 @@ contract PayPerCallTest is Test {
     function test_claimTimeout_refundsCaller() public {
         bytes32 callId = _callService(keccak256("r"));
 
-        uint256 callerBalBefore = usdc.balanceOf(caller);
         skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
         vm.prank(caller);
@@ -244,6 +250,15 @@ contract PayPerCallTest is Test {
 
         // Refund (PRICE) + slash (STAKE * SLASH_BPS / 10000 = 20e6)
         uint256 expectedSlash = (STAKE * SLASH_BPS) / 10_000;
+
+        // After claimTimeout, funds are in claimable[caller] (pull model).
+        assertEq(payPerCall.claimable(caller), PRICE + expectedSlash, "claimable not credited");
+
+        // Caller calls claim() to pull funds out.
+        uint256 callerBalBefore = usdc.balanceOf(caller);
+        vm.prank(caller);
+        payPerCall.claim();
+
         assertEq(usdc.balanceOf(caller), callerBalBefore + PRICE + expectedSlash);
     }
 
@@ -344,9 +359,16 @@ contract PayPerCallTest is Test {
 
         skip(MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
 
-        uint256 callerBalBefore = usdc.balanceOf(caller);
         vm.prank(caller);
         payPerCall.claimTimeout(callId);
+
+        // After claimTimeout, funds are in claimable[caller] (pull model).
+        assertEq(payPerCall.claimable(caller), PRICE + STAKE, "claimable not credited");
+
+        // Caller calls claim() to pull funds out.
+        uint256 callerBalBefore = usdc.balanceOf(caller);
+        vm.prank(caller);
+        payPerCall.claim();
 
         assertEq(usdc.balanceOf(caller), callerBalBefore + PRICE + STAKE);
         assertEq(registry.getProvider(pid).stake, 0);

@@ -385,11 +385,6 @@ contract DisputeQualityTest is Test {
         uint256 disputeId = _openDispute(callId);
         _runVotes(disputeId, DisputeQuality.Vote.ForCaller, DisputeQuality.Vote.ForCaller, DisputeQuality.Vote.ForCaller);
 
-        uint256 callerBalBefore = usdc.balanceOf(caller_);
-        uint256 v1BalBefore     = usdc.balanceOf(voter1);
-        uint256 v2BalBefore     = usdc.balanceOf(voter2);
-        uint256 v3BalBefore     = usdc.balanceOf(voter3);
-
         uint256 expectedSlash   = (PROVIDER_STAKE * SLASH_BPS) / 10_000; // 20 USDC
 
         vm.expectEmit(true, false, false, false, address(dq));
@@ -402,30 +397,43 @@ contract DisputeQualityTest is Test {
         assertEq(uint8(outcome),  uint8(DisputeQuality.Outcome.CallerWins), "outcome wrong");
         assertTrue(finalized,                                                "not finalized");
 
-        // Caller bond returned
-        assertEq(usdc.balanceOf(caller_), callerBalBefore + DISPUTE_BOND, "caller bond not returned");
-
         // Registry slash executed
         assertEq(registry.lastSlashedId(),     PROVIDER_ID,   "wrong provider slashed");
         assertEq(registry.lastSlashedAmt(),    expectedSlash,  "wrong slash amount");
         assertEq(registry.lastSlashRecipient(), address(dq),   "wrong slash recipient");
 
-        // Voters on winning side get their bond back + share of spoils
-        // Spoils = bondsForProviderSide (0) + slashAmount (20 USDC) = 20 USDC
-        // All three voted ForCaller with equal weight → each gets 1/3 * 20 USDC + 5 USDC bond back.
-        // (rounding: last winner gets dust)
-        uint256 spoils        = 0 + expectedSlash; // no losing voter bonds
-        uint256 totalWeight   = 100e6 + 100e6 + 100e6;
-        uint256 rewardEach    = (spoils * 100e6) / totalWeight;
-        uint256 v1Gain        = VOTER_BOND + rewardEach;
-        uint256 v2Gain        = VOTER_BOND + rewardEach;
-        // last winner (voter3) gets leftover dust
-        uint256 distributed   = rewardEach * 3;
-        uint256 v3Gain        = VOTER_BOND + rewardEach + (spoils - distributed);
+        // Payout math (pull model — funds sit in pendingWithdrawals until claimed).
+        // Caller bond returned.
+        assertEq(dq.pendingWithdrawals(caller_), DISPUTE_BOND, "caller pendingWithdrawals wrong");
 
-        assertEq(usdc.balanceOf(voter1), v1BalBefore + v1Gain, "voter1 payout wrong");
-        assertEq(usdc.balanceOf(voter2), v2BalBefore + v2Gain, "voter2 payout wrong");
-        assertEq(usdc.balanceOf(voter3), v3BalBefore + v3Gain, "voter3 payout wrong");
+        // Voters on winning side get their bond back + share of spoils.
+        // Spoils = bondsForProviderSide (0) + slashAmount (20 USDC) = 20 USDC.
+        // All three voted ForCaller with equal weight → each gets 1/3 * 20 USDC + 5 USDC bond.
+        uint256 spoils      = 0 + expectedSlash; // no losing voter bonds
+        uint256 totalWeight = 100e6 + 100e6 + 100e6;
+        uint256 rewardEach  = (spoils * 100e6) / totalWeight;
+        uint256 distributed = rewardEach * 3;
+        uint256 v3Gain      = VOTER_BOND + rewardEach + (spoils - distributed); // last winner gets dust
+
+        assertEq(dq.pendingWithdrawals(voter1), VOTER_BOND + rewardEach, "voter1 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter2), VOTER_BOND + rewardEach, "voter2 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter3), v3Gain,                  "voter3 pendingWithdrawals wrong");
+
+        // Each recipient calls withdrawPayout() to receive their funds.
+        uint256 callerBalBefore = usdc.balanceOf(caller_);
+        uint256 v1BalBefore     = usdc.balanceOf(voter1);
+        uint256 v2BalBefore     = usdc.balanceOf(voter2);
+        uint256 v3BalBefore     = usdc.balanceOf(voter3);
+
+        vm.prank(caller_); dq.withdrawPayout();
+        vm.prank(voter1);  dq.withdrawPayout();
+        vm.prank(voter2);  dq.withdrawPayout();
+        vm.prank(voter3);  dq.withdrawPayout();
+
+        assertEq(usdc.balanceOf(caller_), callerBalBefore + DISPUTE_BOND,        "caller bond not returned");
+        assertEq(usdc.balanceOf(voter1),  v1BalBefore + VOTER_BOND + rewardEach, "voter1 payout wrong");
+        assertEq(usdc.balanceOf(voter2),  v2BalBefore + VOTER_BOND + rewardEach, "voter2 payout wrong");
+        assertEq(usdc.balanceOf(voter3),  v3BalBefore + v3Gain,                  "voter3 payout wrong");
     }
 
     function test_finalize_providerWins() public {
@@ -437,38 +445,44 @@ contract DisputeQualityTest is Test {
             DisputeQuality.Vote.ForProvider
         );
 
-        uint256 v1BalBefore = usdc.balanceOf(voter1);
-        uint256 v2BalBefore = usdc.balanceOf(voter2);
-        uint256 v3BalBefore = usdc.balanceOf(voter3);
-        uint256 callerBalBefore = usdc.balanceOf(caller_);
-
         dq.finalize(disputeId);
 
         (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.ProviderWins), "outcome wrong");
         assertTrue(finalized, "not finalized");
 
-        // Caller loses bond
-        assertEq(usdc.balanceOf(caller_), callerBalBefore, "caller should NOT get bond back");
+        // Caller loses bond — pendingWithdrawals[caller_] stays 0
+        assertEq(dq.pendingWithdrawals(caller_), 0, "caller should NOT get bond back");
 
         // No slash should have been called (provider wins)
         assertEq(registry.lastSlashedAmt(), 0, "should not slash on provider win");
 
-        // Winning voters share caller's bond + losing bonds (0 losing bonds here)
-        // spoils = DISPUTE_BOND + bondsForCallerSide (0) = 10 USDC
+        // Winning voters share caller's bond + losing bonds (0 losing bonds here).
+        // spoils = DISPUTE_BOND + bondsForCallerSide (0) = 10 USDC.
         uint256 spoils      = DISPUTE_BOND + 0;
         uint256 totalWeight = 100e6 + 100e6 + 100e6;
         uint256 rewardEach  = (spoils * 100e6) / totalWeight;
         uint256 distributed = rewardEach * 3;
+        uint256 v3Gain      = VOTER_BOND + rewardEach + (spoils - distributed); // last winner gets dust
 
-        assertEq(usdc.balanceOf(voter1), v1BalBefore + VOTER_BOND + rewardEach, "voter1 payout wrong");
-        assertEq(usdc.balanceOf(voter2), v2BalBefore + VOTER_BOND + rewardEach, "voter2 payout wrong");
-        // voter3 is last winner, absorbs dust
-        assertEq(
-            usdc.balanceOf(voter3),
-            v3BalBefore + VOTER_BOND + rewardEach + (spoils - distributed),
-            "voter3 payout wrong"
-        );
+        assertEq(dq.pendingWithdrawals(voter1), VOTER_BOND + rewardEach, "voter1 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter2), VOTER_BOND + rewardEach, "voter2 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter3), v3Gain,                  "voter3 pendingWithdrawals wrong");
+
+        // Each winning voter calls withdrawPayout() to receive their funds.
+        uint256 v1BalBefore = usdc.balanceOf(voter1);
+        uint256 v2BalBefore = usdc.balanceOf(voter2);
+        uint256 v3BalBefore = usdc.balanceOf(voter3);
+        uint256 callerBalBefore = usdc.balanceOf(caller_);
+
+        vm.prank(voter1); dq.withdrawPayout();
+        vm.prank(voter2); dq.withdrawPayout();
+        vm.prank(voter3); dq.withdrawPayout();
+
+        assertEq(usdc.balanceOf(caller_), callerBalBefore,                    "caller should NOT get bond back");
+        assertEq(usdc.balanceOf(voter1),  v1BalBefore + VOTER_BOND + rewardEach, "voter1 payout wrong");
+        assertEq(usdc.balanceOf(voter2),  v2BalBefore + VOTER_BOND + rewardEach, "voter2 payout wrong");
+        assertEq(usdc.balanceOf(voter3),  v3BalBefore + v3Gain,                  "voter3 payout wrong");
     }
 
     function test_finalize_tied_refundsAll() public {
@@ -485,19 +499,25 @@ contract DisputeQualityTest is Test {
         _vote(voter1, disputeId, DisputeQuality.Vote.ForCaller);
         vm.warp(block.timestamp + VOTING_WINDOW + 1);
 
-        uint256 callerBalBefore = usdc.balanceOf(caller_);
-        uint256 v1BalBefore     = usdc.balanceOf(voter1);
-
         dq.finalize(disputeId);
 
         (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.Tied), "outcome should be Tied");
         assertTrue(finalized, "not finalized");
 
-        // Caller bond refunded
+        // On Tied: caller bond refunded, voter bond refunded (via pendingWithdrawals).
+        assertEq(dq.pendingWithdrawals(caller_), DISPUTE_BOND, "caller pendingWithdrawals wrong on Tied");
+        assertEq(dq.pendingWithdrawals(voter1),  VOTER_BOND,   "voter1 pendingWithdrawals wrong on Tied");
+
+        // Pull funds via withdrawPayout().
+        uint256 callerBalBefore = usdc.balanceOf(caller_);
+        uint256 v1BalBefore     = usdc.balanceOf(voter1);
+
+        vm.prank(caller_); dq.withdrawPayout();
+        vm.prank(voter1);  dq.withdrawPayout();
+
         assertEq(usdc.balanceOf(caller_), callerBalBefore + DISPUTE_BOND, "caller bond not refunded on Tied");
-        // Voter bond refunded
-        assertEq(usdc.balanceOf(voter1), v1BalBefore + VOTER_BOND, "voter1 bond not refunded on Tied");
+        assertEq(usdc.balanceOf(voter1),  v1BalBefore + VOTER_BOND,       "voter1 bond not refunded on Tied");
     }
 
     function test_finalize_equalWeights_tied() public {
@@ -543,6 +563,20 @@ contract DisputeQualityTest is Test {
         (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.Tied), "equal votes should be Tied");
         assertTrue(finalized);
+
+        // All bonds are in pendingWithdrawals (pull model).
+        assertEq(dq.pendingWithdrawals(caller_), DISPUTE_BOND, "caller pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter1),  VOTER_BOND,   "voter1 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter2),  VOTER_BOND,   "voter2 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter3),  VOTER_BOND,   "voter3 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter4),  VOTER_BOND,   "voter4 pendingWithdrawals wrong");
+
+        // Each party calls withdrawPayout() to receive their refund.
+        vm.prank(caller_); dq.withdrawPayout();
+        vm.prank(voter1);  dq.withdrawPayout();
+        vm.prank(voter2);  dq.withdrawPayout();
+        vm.prank(voter3);  dq.withdrawPayout();
+        vm.prank(voter4);  dq.withdrawPayout();
 
         // All bonds refunded
         assertEq(usdc.balanceOf(caller_), callerBalBefore + DISPUTE_BOND, "caller bond not refunded");
@@ -635,11 +669,7 @@ contract DisputeQualityTest is Test {
         uint256 providerStakeAfter = registry.getProviderStake(PROVIDER_ID);
         assertEq(providerStakeAfter, providerStakeBefore - expectedSlash, "provider stake not reduced");
 
-        // ── Step 7: Verify bond returns ──────────────────────────────────────
-        // Caller bond returned
-        assertEq(usdc.balanceOf(caller_), callerBalStart, "caller bond not returned");
-
-        // Each winning voter gets bond back + share of spoils
+        // ── Step 7: Verify pendingWithdrawals (pull model) ───────────────────
         // spoils = bondsForProviderSide(0) + slashAmount = 20 USDC
         uint256 spoils       = 0 + expectedSlash;
         uint256 totalWeight  = 300e6; // 100e6 * 3
@@ -647,6 +677,23 @@ contract DisputeQualityTest is Test {
         uint256 distributed  = rewardEach * 3;
         uint256 dust         = spoils - distributed;
 
+        // Caller bond is pending withdrawal.
+        assertEq(dq.pendingWithdrawals(caller_), DISPUTE_BOND,             "caller pendingWithdrawals wrong");
+        // Voter rewards are pending withdrawal.
+        assertEq(dq.pendingWithdrawals(voter1),  VOTER_BOND + rewardEach,  "voter1 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter2),  VOTER_BOND + rewardEach,  "voter2 pendingWithdrawals wrong");
+        assertEq(dq.pendingWithdrawals(voter3),  VOTER_BOND + rewardEach + dust, "voter3 pendingWithdrawals wrong");
+
+        // ── Step 8: Each recipient calls withdrawPayout() ────────────────────
+        vm.prank(caller_); dq.withdrawPayout();
+        vm.prank(voter1);  dq.withdrawPayout();
+        vm.prank(voter2);  dq.withdrawPayout();
+        vm.prank(voter3);  dq.withdrawPayout();
+
+        // Caller bond returned
+        assertEq(usdc.balanceOf(caller_), callerBalStart, "caller bond not returned");
+
+        // Each winning voter gets bond back + share of spoils
         assertEq(usdc.balanceOf(voter1), v1BalStart + rewardEach,        "voter1 payout wrong");
         assertEq(usdc.balanceOf(voter2), v2BalStart + rewardEach,        "voter2 payout wrong");
         assertEq(usdc.balanceOf(voter3), v3BalStart + rewardEach + dust, "voter3 payout wrong (last)");

@@ -58,9 +58,7 @@ contract CrossChainReceiver is ReentrancyGuard, Ownable {
 
         usdc.forceApprove(address(payPerCall), amount);
 
-        // NOTE: msg.sender in callService() = address(this) = CrossChainReceiver
-        // originalCaller is tracked via event only
-        bytes32 callId = payPerCall.callService(providerId, requestHash);
+        bytes32 callId = payPerCall.callServiceFor(providerId, requestHash, originalCaller);
 
         emit CrossChainCallTriggered(callId, providerId, originalCaller, amount);
     }

@@ -242,7 +242,6 @@ contract SLAFuturesTest is Test {
         uint256 amount = 3;
 
         uint256 cost = amount * PRICE;
-        uint256 providerBalBefore = usdc.balanceOf(provider);
         uint256 buyerBalBefore = usdc.balanceOf(buyer);
 
         vm.expectEmit(true, true, false, true, address(sla));
@@ -253,9 +252,11 @@ contract SLAFuturesTest is Test {
 
         // Buyer received ERC-1155 tokens
         assertEq(sla.balanceOf(buyer, batchId), amount);
-        // USDC transferred directly to provider
-        assertEq(usdc.balanceOf(provider), providerBalBefore + cost);
+        // USDC escrowed into contract (not sent to provider directly)
         assertEq(usdc.balanceOf(buyer), buyerBalBefore - cost);
+        assertEq(usdc.balanceOf(address(sla)), cost);
+        // providerClaimable tracks the earned amount
+        assertEq(sla.providerClaimable(batchId), cost);
         // purchased mapping updated
         assertEq(sla.purchased(batchId, buyer), amount);
 
@@ -409,9 +410,13 @@ contract SLAFuturesTest is Test {
         vm.prank(provider);
         sla.cancelBatch(batchId);
 
-        // Provider paid refund reserve into contract
-        assertEq(usdc.balanceOf(provider), providerBalBefore - refundReserve);
+        // cancelBatch does NOT transfer from provider — USDC was already escrowed
+        // at buySlots time. Provider balance is unchanged.
+        assertEq(usdc.balanceOf(provider), providerBalBefore);
+        // Contract still holds all the escrowed USDC (available for buyer refunds).
         assertEq(usdc.balanceOf(address(sla)), refundReserve);
+        // providerClaimable reduced to 0 (all sold slots are refundable, none were used).
+        assertEq(sla.providerClaimable(batchId), 0);
     }
 
     function test_cancelBatch_tooEarly_reverts() public {
@@ -572,11 +577,19 @@ contract SLAFuturesTest is Test {
         // 1. Mint batch
         uint256 batchId = _mintBatch();
 
-        // 2. Buyer purchases 5 slots
-        vm.prank(buyer);
-        sla.buySlots(batchId, 5);
-        assertEq(sla.balanceOf(buyer, batchId), 5);
-        assertEq(sla.purchased(batchId, buyer), 5);
+        // 2. Buyer purchases 5 slots — USDC escrowed into contract
+        uint256 buyerBalAfterBuy;
+        {
+            uint256 buyerBalBefore = usdc.balanceOf(buyer);
+            vm.prank(buyer);
+            sla.buySlots(batchId, 5);
+            assertEq(sla.balanceOf(buyer, batchId), 5);
+            assertEq(sla.purchased(batchId, buyer), 5);
+            assertEq(usdc.balanceOf(address(sla)), 5 * PRICE);
+            assertEq(sla.providerClaimable(batchId), 5 * PRICE);
+            buyerBalAfterBuy = usdc.balanceOf(buyer);
+            assertEq(buyerBalAfterBuy, buyerBalBefore - 5 * PRICE);
+        }
 
         // 3. Burn 3 slots (call service 3 times)
         vm.prank(buyer);
@@ -590,23 +603,34 @@ contract SLAFuturesTest is Test {
         (, , , , uint256 usedSlots, , , ) = sla.batches(batchId);
         assertEq(usedSlots, 3);
 
-        // 4. Warp past deadline and cancel
+        // 4. Warp past deadline and cancel (pull model: no USDC transfer from/to provider)
         vm.warp(block.timestamp + DURATION + 1);
 
-        uint256 providerBalBefore = usdc.balanceOf(provider);
-        // Provider must deposit 2 * PRICE as refund reserve (5 sold, 3 burned)
+        uint256 providerBalBeforeCancel = usdc.balanceOf(provider);
         vm.prank(provider);
         sla.cancelBatch(batchId);
-        assertEq(usdc.balanceOf(provider), providerBalBefore - 2 * PRICE);
+
+        // cancelBatch reduces providerClaimable by refundableSlots * price (2 * PRICE).
+        // Provider balance is unchanged — no transfer from provider.
+        assertEq(usdc.balanceOf(provider), providerBalBeforeCancel);
+        // Contract still holds all 5 * PRICE USDC.
+        assertEq(usdc.balanceOf(address(sla)), 5 * PRICE);
+        // providerClaimable = 5*PRICE - 2*PRICE = 3*PRICE (3 burned slots earned).
+        assertEq(sla.providerClaimable(batchId), 3 * PRICE);
+
+        // 5. Provider claims proceeds for the 3 used slots
+        uint256 providerBalBeforeClaim = usdc.balanceOf(provider);
+        vm.prank(provider);
+        sla.claimProceeds(batchId);
+        assertEq(usdc.balanceOf(provider), providerBalBeforeClaim + 3 * PRICE);
         assertEq(usdc.balanceOf(address(sla)), 2 * PRICE);
 
-        // 5. Buyer claims refund for remaining 2 slots
-        uint256 buyerBalBefore = usdc.balanceOf(buyer);
+        // 6. Buyer claims refund for remaining 2 slots
         vm.prank(buyer);
         sla.claimRefund(batchId);
 
         assertEq(sla.balanceOf(buyer, batchId), 0);
-        assertEq(usdc.balanceOf(buyer), buyerBalBefore + 2 * PRICE);
+        assertEq(usdc.balanceOf(buyer), buyerBalAfterBuy + 2 * PRICE);
         assertEq(usdc.balanceOf(address(sla)), 0);
     }
 
@@ -721,12 +745,18 @@ contract SLAFuturesTest is Test {
         vm.warp(block.timestamp + DURATION + 1);
 
         uint256 providerBalBefore = usdc.balanceOf(provider);
-        // 4 sold, 1 used → 3 refundable
+        // 4 sold, 1 used → 3 refundable, 1 earned by provider
         vm.prank(provider);
         sla.cancelBatch(batchId);
 
-        assertEq(usdc.balanceOf(provider), providerBalBefore - 3 * PRICE);
-        assertEq(usdc.balanceOf(address(sla)), 3 * PRICE);
+        // cancelBatch does NOT transfer from provider — USDC was already escrowed.
+        // Provider balance is unchanged.
+        assertEq(usdc.balanceOf(provider), providerBalBefore);
+        // Contract holds all 4 * PRICE USDC: 3 * PRICE for buyer refunds,
+        // 1 * PRICE for provider to claim via claimProceeds.
+        assertEq(usdc.balanceOf(address(sla)), 4 * PRICE);
+        // providerClaimable = 4*PRICE - 3*PRICE = 1*PRICE (1 slot was used/earned).
+        assertEq(sla.providerClaimable(batchId), 1 * PRICE);
     }
 
     // ---------------------------------------------------------------------------

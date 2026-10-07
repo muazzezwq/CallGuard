@@ -62,6 +62,12 @@ contract MockPayPerCall is IPayPerCall {
         callId = keccak256(abi.encodePacked(providerId, requestHash, callCount));
         lastCallId = callId;
     }
+
+    /// @inheritdoc IPayPerCall
+    function callServiceFor(uint256 providerId, bytes32 requestHash, address /*beneficiary*/) external returns (bytes32 callId) {
+        // Delegate to callService logic — beneficiary attribution not tested here
+        return this.callService(providerId, requestHash);
+    }
 }
 
 // ---------------------------------------------------------------------------

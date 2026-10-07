@@ -56,6 +56,7 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
     error InsufficientStake();
     error AlreadyFinalized();
     error VotingStillOpen();
+    error NothingToWithdraw();
 
     event DisputeOpened(
         uint256 indexed disputeId,
@@ -84,6 +85,7 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         uint256 voterCount,
         uint256 slashAmount
     );
+    event PayoutWithdrawn(address indexed account, uint256 amount);
 
     IERC20 public immutable usdc;
     IServiceRegistry public immutable registry;
@@ -115,6 +117,8 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
     mapping(uint256 => uint256) public voterCount;
     mapping(uint256 => uint256) public bondsForCallerSide;
     mapping(uint256 => uint256) public bondsForProviderSide;
+
+    mapping(address => uint256) public pendingWithdrawals;
 
     constructor(
         address _usdc,
@@ -247,7 +251,7 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
             d.outcome = Outcome.CallerWins;
 
             if (d.bond > 0) {
-                usdc.safeTransfer(d.caller, d.bond);
+                pendingWithdrawals[d.caller] += d.bond;
             }
 
             IServiceRegistry.ProviderView memory provider = registry.getProvider(d.providerId);
@@ -280,6 +284,16 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         return _disputeVoters[disputeId];
     }
 
+    function withdrawPayout() external nonReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        if (amount == 0) revert NothingToWithdraw();
+
+        pendingWithdrawals[msg.sender] = 0;
+        usdc.safeTransfer(msg.sender, amount);
+
+        emit PayoutWithdrawn(msg.sender, amount);
+    }
+
     function _voterStake(address voter) internal view returns (uint256) {
         uint256 providerId = registryStake.providerIdOf(voter);
         if (providerId == 0) return 0;
@@ -292,7 +306,7 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
 
     function _refundCallerAndAllVoters(uint256 disputeId, QualityDispute storage d) internal {
         if (d.bond > 0) {
-            usdc.safeTransfer(d.caller, d.bond);
+            pendingWithdrawals[d.caller] += d.bond;
         }
 
         address[] storage voters_ = _disputeVoters[disputeId];
@@ -302,7 +316,7 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
             address voter = voters_[i];
             uint256 bond = voterBonds[disputeId][voter];
             if (bond > 0) {
-                usdc.safeTransfer(voter, bond);
+                pendingWithdrawals[voter] += bond;
             }
         }
     }
@@ -336,11 +350,11 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
                 distributedSpoils += reward;
             }
 
-            usdc.safeTransfer(voter, bond + reward);
+            pendingWithdrawals[voter] += bond + reward;
         }
 
         if (spoils > distributedSpoils && lastWinner != address(0)) {
-            usdc.safeTransfer(lastWinner, spoils - distributedSpoils);
+            pendingWithdrawals[lastWinner] += spoils - distributedSpoils;
         }
     }
 }

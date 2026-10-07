@@ -39,6 +39,7 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     error NothingToBurn();
     error BatchStillActive();
     error NothingToRefund();
+    error NothingToClaim();
 
     event BatchMinted(
         uint256 indexed batchId,
@@ -51,6 +52,7 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     event SlotBurned(uint256 indexed batchId, address indexed caller, uint256 indexed providerId);
     event BatchCancelled(uint256 indexed batchId);
     event RefundClaimed(uint256 indexed batchId, address indexed buyer, uint256 amount);
+    event ProceedsClaimed(uint256 indexed batchId, address indexed provider, uint256 amount);
 
     uint256 public constant MIN_PRICE_PER_CALL = 1_000; // 0.001 USDC (6 decimals)
     uint256 public constant MIN_SLOTS = 1;
@@ -67,6 +69,7 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     // Required by spec: tracks direct purchases for refund accounting
     mapping(uint256 => mapping(address => uint256)) public purchased;
     mapping(uint256 => mapping(address => uint256)) public refunded;
+    mapping(uint256 => uint256) public providerClaimable;
 
     constructor(address _usdc, address _registry, address _owner, string memory _baseUri)
         ERC1155("")
@@ -120,8 +123,9 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
 
         b.soldSlots += amount;
         purchased[batchId][msg.sender] += amount;
+        providerClaimable[batchId] += cost;
 
-        usdc.safeTransferFrom(msg.sender, b.provider, cost);
+        usdc.safeTransferFrom(msg.sender, address(this), cost);
         _mint(msg.sender, batchId, amount, "");
 
         emit SlotsBought(batchId, msg.sender, amount);
@@ -152,10 +156,25 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         uint256 refundableSlots = b.soldSlots - b.usedSlots;
         if (refundableSlots > 0) {
             uint256 refundReserve = refundableSlots * b.pricePerCall;
-            usdc.safeTransferFrom(msg.sender, address(this), refundReserve);
+            providerClaimable[batchId] -= refundReserve;
         }
 
         emit BatchCancelled(batchId);
+    }
+
+    function claimProceeds(uint256 batchId) external nonReentrant {
+        Batch storage b = batches[batchId];
+        if (b.provider == address(0)) revert UnknownBatch();
+        if (msg.sender != b.provider) revert NotBatchProvider();
+        if (b.active) revert BatchStillActive();
+
+        uint256 claimable = providerClaimable[batchId];
+        if (claimable == 0) revert NothingToClaim();
+
+        providerClaimable[batchId] = 0;
+        usdc.safeTransfer(msg.sender, claimable);
+
+        emit ProceedsClaimed(batchId, msg.sender, claimable);
     }
 
     function claimRefund(uint256 batchId) external nonReentrant {

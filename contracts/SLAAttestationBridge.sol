@@ -25,8 +25,8 @@ interface IPayPerCallView {
 /// @dev Minimal interface into ServiceRegistry views.
 interface IServiceRegistryView {
     function getReputationScore(uint256 providerId) external view returns (uint8);
-    function completedCalls(uint256 providerId) external view returns (uint32);
-    function slashedCalls(uint256 providerId) external view returns (uint32);
+    function completedCalls(uint256 providerId) external view returns (uint64);
+    function slashedCalls(uint256 providerId) external view returns (uint64);
     function getProvider(uint256 providerId) external view returns (
         address owner,
         address signer,
@@ -112,8 +112,8 @@ contract SLAAttestationBridge is Ownable, ReentrancyGuard {
         SLAVerdict    verdict;
         // PROVIDER_SCORE fields (populated for PROVIDER_SCORE + BATCH_SUMMARY)
         uint8         reputationScore;  // Bayesian 0-100
-        uint32        completedCalls;
-        uint32        slashedCalls;
+        uint64        completedCalls;
+        uint64        slashedCalls;
     }
 
     // -----------------------------------------------------------------------
@@ -387,7 +387,7 @@ contract SLAAttestationBridge is Ownable, ReentrancyGuard {
     function peekProviderScore(uint256 providerId)
         external
         view
-        returns (uint8 score, uint32 completed, uint32 slashed)
+        returns (uint8 score, uint64 completed, uint64 slashed)
     {
         score     = registry.getReputationScore(providerId);
         completed = registry.completedCalls(providerId);

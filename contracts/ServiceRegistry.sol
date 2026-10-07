@@ -44,6 +44,9 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     error UnknownProvider();
     error InsufficientStake();
     error NotNFTOwner(); // Tier 2: caller does not own the ERC-8004 identity NFT
+    error InvalidPayPerCall();
+    error PayPerCallTimelockNotElapsed();
+    error NoPendingPayPerCall();
 
     // ---------------------------------------------------------------------
     // Constants
@@ -52,6 +55,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     uint32 public constant MIN_RESPONSE_TIME = 5; // seconds
     uint32 public constant MAX_SLASH_BPS = 10_000;
     uint32 public constant UNSTAKE_COOLDOWN = 1 hours;
+    uint256 public constant PAYPERCALL_TIMELOCK = 2 days;
 
     // --- Tier 2: ERC-8004 IdentityRegistry on Arc Testnet ---
     address public constant IDENTITY_REGISTRY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
@@ -69,8 +73,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         uint32 slashBps;
         uint32 deactivatedAt; // 0 = active
         uint32 pendingCalls; // open calls not yet finalized
-        uint32 completedCalls; // reputation: successful receipts submitted
-        uint32 slashedCalls; // reputation: SLA violations enforced
+        uint64 completedCalls; // reputation: successful receipts submitted
+        uint64 slashedCalls; // reputation: SLA violations enforced
         string endpoint;
         bool active;
     }
@@ -79,6 +83,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     uint256 public immutable minStake;
     address public payPerCall; // set once by owner via `setPayPerCall`
     address public admin;
+    address public pendingPayPerCall;
+    uint256 public payPerCallChangeAt;
 
     mapping(uint256 => Provider) internal _providers;
     mapping(address => uint256) public providerIdOf; // owner => id, 0 = none
@@ -108,7 +114,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     event PriceUpdated(uint256 indexed providerId, uint256 newPrice);
     event SignerUpdated(uint256 indexed providerId, address newSigner);
     event PayPerCallSet(address indexed payPerCall);
-    event ReputationUpdated(uint256 indexed providerId, uint32 completedCalls, uint32 slashedCalls);
+    event PayPerCallProposed(address indexed proposed, uint256 executeAt);
+    event ReputationUpdated(uint256 indexed providerId, uint64 completedCalls, uint64 slashedCalls);
 
     // --- Tier 2 ---
     event NFTBound(uint256 indexed providerId, uint256 indexed tokenId);
@@ -147,12 +154,33 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         emit PayPerCallSet(_payPerCall);
     }
 
-    /// @notice Update the authorized PayPerCall contract (admin only).
-    /// @dev    Use when upgrading PayPerCall to a new version.
-    function updatePayPerCall(address _payPerCall) external onlyAdmin {
-        require(_payPerCall != address(0), "zero address");
-        payPerCall = _payPerCall;
-        emit PayPerCallSet(_payPerCall);
+    /// @notice Deprecated in favor of timelocked payPerCall upgrades.
+    /// @dev Kept to preserve ABI compatibility for existing integrations.
+    function updatePayPerCall(address) external pure {
+        revert("deprecated: use proposePayPerCall/executePayPerCall");
+    }
+
+    /// @notice Propose a new PayPerCall contract with a timelock.
+    function proposePayPerCall(address _payPerCall) external onlyAdmin {
+        if (_payPerCall == address(0)) revert InvalidPayPerCall();
+
+        pendingPayPerCall = _payPerCall;
+        payPerCallChangeAt = block.timestamp + PAYPERCALL_TIMELOCK;
+
+        emit PayPerCallProposed(_payPerCall, payPerCallChangeAt);
+    }
+
+    /// @notice Execute a queued PayPerCall update once timelock has elapsed.
+    function executePayPerCall() external onlyAdmin {
+        address nextPayPerCall = pendingPayPerCall;
+        if (nextPayPerCall == address(0)) revert NoPendingPayPerCall();
+        if (block.timestamp < payPerCallChangeAt) revert PayPerCallTimelockNotElapsed();
+
+        payPerCall = nextPayPerCall;
+        pendingPayPerCall = address(0);
+        payPerCallChangeAt = 0;
+
+        emit PayPerCallSet(nextPayPerCall);
     }
 
     // ---------------------------------------------------------------------
@@ -306,26 +334,20 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     function markCallStarted(uint256 providerId) external onlyPayPerCall {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
-        unchecked {
-            p.pendingCalls += 1;
-        }
+        p.pendingCalls += 1;
     }
 
     function markCallFinished(uint256 providerId) external onlyPayPerCall {
         Provider storage p = _providers[providerId];
         if (p.pendingCalls == 0) revert("no pending");
-        unchecked {
-            p.pendingCalls -= 1;
-        }
+        p.pendingCalls -= 1;
     }
 
     /// @notice Called by PayPerCall after a successful receipt submission.
     function incCompleted(uint256 providerId) external onlyPayPerCall {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
-        unchecked {
-            p.completedCalls += 1;
-        }
+        p.completedCalls += 1;
         emit ReputationUpdated(providerId, p.completedCalls, p.slashedCalls);
     }
 
@@ -333,9 +355,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     function incSlashed(uint256 providerId) external onlyPayPerCall {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
-        unchecked {
-            p.slashedCalls += 1;
-        }
+        p.slashedCalls += 1;
         emit ReputationUpdated(providerId, p.completedCalls, p.slashedCalls);
     }
 
@@ -423,12 +443,12 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     }
 
     /// @notice Raw completed counter for off-chain UIs.
-    function completedCalls(uint256 providerId) external view returns (uint32) {
+    function completedCalls(uint256 providerId) external view returns (uint64) {
         return _providers[providerId].completedCalls;
     }
 
     /// @notice Raw slashed counter for off-chain UIs.
-    function slashedCalls(uint256 providerId) external view returns (uint32) {
+    function slashedCalls(uint256 providerId) external view returns (uint64) {
         return _providers[providerId].slashedCalls;
     }
 }

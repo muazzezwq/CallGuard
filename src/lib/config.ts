@@ -103,6 +103,14 @@ export const PPC_ABI = [
       {name:"responseHash",type:"bytes32",indexed:false},
       {name:"respondedAt",type:"uint64",indexed:false}
     ] },
+  // HLB-01: callServiceFor — sets caller=beneficiary (cross-chain support)
+  { name: "callServiceFor", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"},{name:"beneficiary",type:"address"}],
+    outputs: [{name:"callId",type:"bytes32"}] },
+  // HLB-03: pull settlement — claimable balance + claim()
+  { name: "claimable", type: "function", stateMutability: "view",
+    inputs: [{name:"account",type:"address"}], outputs: [{type:"uint256"}] },
+  { name: "claim", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
 ] as const;
 
 
@@ -131,6 +139,10 @@ export const DISPUTE_QUALITY_ABI = [
   { name: "voterBond",    type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
   // LOW-01: votingWindow readable from contract
   { name: "votingWindow", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  // HLB-05: pull payout accounting
+  { name: "pendingWithdrawals", type: "function", stateMutability: "view",
+    inputs: [{name:"account",type:"address"}], outputs: [{type:"uint256"}] },
+  { name: "withdrawPayout", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "disputeIdByCallId", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"uint256"}] },
   { name: "disputes", type: "function", stateMutability: "view",
@@ -162,6 +174,11 @@ export const SLA_FUTURES_ABI = [
               {name:"totalSlots",type:"uint256"},{name:"soldSlots",type:"uint256"},
               {name:"usedSlots",type:"uint256"},{name:"deadline",type:"uint64"},
               {name:"active",type:"bool"},{name:"provider",type:"address"}] },
+  // HLB-02: provider pull settlement
+  { name: "providerClaimable", type: "function", stateMutability: "view",
+    inputs: [{name:"batchId",type:"uint256"}], outputs: [{type:"uint256"}] },
+  { name: "claimProceeds", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"batchId",type:"uint256"}], outputs: [] },
 ] as const;
 
 // HIGH-10 fix: synced with ReputationLoan.sol — borrow(providerId, amount), repay(loanId, amount), etc.
@@ -250,10 +267,20 @@ export const REGISTRY_ABI = [
   { name: "nextProviderId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
   { name: "providerIdOf", type: "function", stateMutability: "view",
     inputs: [{name:"owner",type:"address"}], outputs: [{type:"uint256"}] },
+  // HLB-07: widened to uint64
   { name: "completedCalls", type: "function", stateMutability: "view",
-    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint64"}] },
   { name: "slashedCalls", type: "function", stateMutability: "view",
-    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint64"}] },
+  // HLB-06: timelock for payPerCall updates
+  { name: "proposePayPerCall", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"_new",type:"address"}], outputs: [] },
+  { name: "executePayPerCall", type: "function", stateMutability: "nonpayable",
+    inputs: [], outputs: [] },
+  { name: "pendingPayPerCall", type: "function", stateMutability: "view",
+    inputs: [], outputs: [{type:"address"}] },
+  { name: "payPerCallChangeAt", type: "function", stateMutability: "view",
+    inputs: [], outputs: [{type:"uint256"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(
