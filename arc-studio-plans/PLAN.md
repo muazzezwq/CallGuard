@@ -1,4 +1,47 @@
-# Pixel-Perfect HTML → Vite Migration Plan
+# Marketplace Premium UI Redesign
+
+## Özet
+`src/components/panels/Marketplace.tsx` (Browse Providers) panelini komple yeniden yaz. Landing sayfasına dokunma. Arc Dark + glassmorphism + canvas animasyonları + profesyonel UX.
+
+## Tasarım Kararları
+- **Layout:** Desktop grid (3 kolon) + mobilde tek kolon swipeable kartlar. Sol üstte hero header + particle canvas arka plan.
+- **Görsel Stil:** Arc Dark, glass surfaces (backdrop-blur), neon yeşil/mor vurgular, glow efektler.
+- **Canvas:** Header'da particle network ağı + her provider kartında canvas sparkline (reputation trend).
+- **UX:** Canlı stats bar (toplam/aktif/avg honor/elite count), honor ring SVG her karta, tier badge (Elite/Pro/Standard/At Risk), compare modal, list/grid toggle, animated skeleton loading.
+
+## Dosyalar
+
+| # | Dosya | İşlem |
+|---|---|---|
+| 1 | `src/components/panels/Marketplace.tsx` | Komple yeniden yaz |
+| 2 | `src/index.css` | `.mp-*` CSS class'ları ekle |
+
+## Build Sequence
+1. `Marketplace.tsx` yeniden yaz — ParticleCanvas, SparklineCanvas, HonorRing, TierBadge, ProviderCard, StatsBar, CompareModal, SortBtn bileşenleri
+2. `src/index.css`'e `.mp-root`, `.mp-hero`, `.mp-card`, `.mp-metrics`, `.mp-grid` vb. CSS ekle
+3. TypeScript sıfır hata — `tsc --noEmit`
+4. Commit + push
+
+## Başarı Kriteri
+- [ ] Header'da particle network canvas animasyonu çalışıyor
+- [ ] Her kart sparkline canvas çiziliyor (hover'da glow)
+- [ ] Honor ring SVG rate gösteriyor, renkli (yeşil/sarı/kırmızı)
+- [ ] Tier badge (Elite/Pro/Standard/At Risk) görünüyor
+- [ ] Stats bar (total/active/avgHonor/totalCalls/elite) doluyor
+- [ ] Compare modal çalışıyor (max 4 provider)
+- [ ] Grid/List toggle çalışıyor
+- [ ] Mobile tek kolon, touch-friendly 44px tap targets
+- [ ] Skeleton loading animasyonu var
+- [ ] TypeScript sıfır hata
+
+## Notlar
+- Landing sayfası (`CgLanding.tsx`) kesinlikle değiştirilmeyecek
+- Blockchain/wagmi/subgraph entegrasyonları korunacak (`useProviders`, `setPanel`, `formatUnits`)
+- Tüm renkler CSS var() token'ları kullanacak (`--accent`, `--bg-1`, `--border` vb.)
+
+---
+
+# Pixel-Perfect HTML → Vite Migration Plan (Archived)
 
 ## Özet
 23.413 satırlık orijinal HTML'deki tasarımı mevcut Vite/React projesine birebir taşı. Orijinal tasarım korunmalı, işlevsellik bozulmamalı.
