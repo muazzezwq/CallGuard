@@ -1,5 +1,5 @@
 /**
- * FeaturesGrid — kapsamlı özellik listesi, animasyonlu kartlar
+ * FeaturesGrid — full feature list, animated cards
  */
 import { useState } from "react";
 
@@ -8,7 +8,7 @@ const FEATURES = [
     icon: "⚡",
     category: "PAYMENTS",
     title: "Pay-per-call USDC",
-    desc: "Her API çağrısı için tam esrow. Provider yanıt verene kadar USDC kilitli kalır. Başarılı yanıt → otomatik serbest bırakma.",
+    desc: "Full escrow for every API call. USDC stays locked until the provider responds. Successful response → automatic release.",
     tags: ["EIP-712", "USDC", "Escrow"],
     color: "#16a34a",
   },
@@ -16,7 +16,7 @@ const FEATURES = [
     icon: "🔒",
     category: "SLA ENFORCEMENT",
     title: "On-chain SLA",
-    desc: "Provider, response time ve price commitment'ını stake ile destekler. Deadline kaçırıldığında stake otomatik slash edilir. Arbitratör yok.",
+    desc: "Providers back their response time and price commitment with stake. Miss the deadline — stake is automatically slashed. No arbiter.",
     tags: ["Auto-slash", "Stake", "No arbiter"],
     color: "#0ea5e9",
   },
@@ -24,7 +24,7 @@ const FEATURES = [
     icon: "✍️",
     category: "RECEIPTS",
     title: "EIP-712 Signed Receipts",
-    desc: "Provider her yanıt için kriptografik imza üretir. Caller on-chain doğrular. Sahte başarı imkansız.",
+    desc: "Provider generates a cryptographic signature for every response. Caller verifies on-chain. Fake success is impossible.",
     tags: ["EIP-712", "Typed Data", "Verification"],
     color: "#8b5cf6",
   },
@@ -32,7 +32,7 @@ const FEATURES = [
     icon: "🤖",
     category: "AI AGENTS",
     title: "MCP & ERC-8004",
-    desc: "AI agent'lar için native destek. Model Context Protocol ile Claude, GPT ve diğer LLM'ler CallGuard servislerini doğrudan çağırabilir.",
+    desc: "Native support for AI agents. Via Model Context Protocol, Claude, GPT, and other LLMs can call CallGuard services directly.",
     tags: ["MCP", "ERC-8004", "Agents"],
     color: "#f59e0b",
   },
@@ -40,7 +40,7 @@ const FEATURES = [
     icon: "🌉",
     category: "CROSS-CHAIN",
     title: "CCTP Bridge",
-    desc: "Ethereum, Base, Polygon → Arc. Circle CCTP ile USDC köprüleme. Attestation + relay tam otomatik.",
+    desc: "Ethereum, Base, Polygon → Arc. USDC bridging via Circle CCTP. Attestation + relay fully automatic.",
     tags: ["CCTP", "Cross-chain", "Circle"],
     color: "#06b6d4",
   },
@@ -48,7 +48,7 @@ const FEATURES = [
     icon: "💰",
     category: "NANOPAYMENTS",
     title: "Circle Gateway",
-    desc: "0.001 USDC'den küçük ödemeler. EIP-3009 off-chain imza ile gasless micropayments. x402 HTTP protokol desteği.",
+    desc: "Payments smaller than 0.001 USDC. Gasless micropayments with EIP-3009 off-chain signature. x402 HTTP protocol support.",
     tags: ["EIP-3009", "x402", "Gasless"],
     color: "#10b981",
   },
@@ -56,7 +56,7 @@ const FEATURES = [
     icon: "📊",
     category: "REPUTATION",
     title: "Bayesian Reputation",
-    desc: "Her provider'ın geçmiş performansı Bayesian skorlama ile hesaplanır. Yeni provider'lar için adil başlangıç skoru.",
+    desc: "Each provider's historical performance is scored with Bayesian estimation. Fair starting score for new providers.",
     tags: ["Reputation", "Scoring", "Goldsky"],
     color: "#ec4899",
   },
@@ -64,7 +64,7 @@ const FEATURES = [
     icon: "⚖️",
     category: "DISPUTES",
     title: "DisputeQuality System",
-    desc: "SLA ihlali iddialarında community arbitration. USDC bond ile spam koruması. 48 saat oylama penceresi.",
+    desc: "Community arbitration for SLA violation claims. USDC bond for spam protection. 48-hour voting window.",
     tags: ["Voting", "Bond", "Community"],
     color: "#ef4444",
   },
@@ -72,7 +72,7 @@ const FEATURES = [
     icon: "📈",
     category: "FUTURES",
     title: "SLA Futures",
-    desc: "Gelecekteki SLA slot'larına yatırım yap. Provider performansını hedge et veya üzerine bahse gir.",
+    desc: "Invest in future SLA slots. Hedge provider performance or take a position on uptime.",
     tags: ["DeFi", "Futures", "NFT"],
     color: "#f97316",
   },
@@ -80,7 +80,7 @@ const FEATURES = [
     icon: "🏦",
     category: "LENDING",
     title: "Reputation Loans",
-    desc: "Yüksek honor rate'e sahip provider'lar reputation'larını teminat göstererek USDC borç alabilir.",
+    desc: "Providers with high honor rates can borrow USDC using their reputation as collateral.",
     tags: ["DeFi", "Lending", "Reputation"],
     color: "#84cc16",
   },
@@ -88,7 +88,7 @@ const FEATURES = [
     icon: "💼",
     category: "JOBS",
     title: "ERC-8183 Jobs",
-    desc: "Uzun vadeli servis anlaşmaları için job sistemi. Client → Provider → Evaluator üçlü rol modeli.",
+    desc: "Job system for long-term service agreements. Triple-role model: Client → Provider → Evaluator.",
     tags: ["ERC-8183", "Jobs", "Workflow"],
     color: "#6366f1",
   },
@@ -96,7 +96,7 @@ const FEATURES = [
     icon: "🔐",
     category: "AGENT WALLET",
     title: "AgentWallet",
-    desc: "AI agent'lar için programmatic USDC cüzdanı. Spending limit, whitelist, auto-routing built-in.",
+    desc: "Programmable USDC wallet for AI agents. Spending limits, whitelist, and auto-routing built in.",
     tags: ["Smart Wallet", "Agent", "Limits"],
     color: "#14b8a6",
   },
@@ -114,10 +114,10 @@ export default function FeaturesGrid() {
             FULL FEATURE SET
           </div>
           <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#0a1628", margin: "0 0 16px", lineHeight: 1.1 }}>
-            Tüm özellikler. Tek protokol.
+            Everything. One protocol.
           </h2>
           <p style={{ fontSize: 15, color: "#6b8a7a", maxWidth: 560, margin: "0 auto", lineHeight: 1.65 }}>
-            CallGuard, API ekonomisi için tasarlanmış eksiksiz bir on-chain altyapı sağlar. Ödeme, SLA, kimlik, köprü ve daha fazlası tek akıllı kontrat setinde.
+            CallGuard provides a complete on-chain infrastructure for the API economy. Payments, SLA, identity, bridge, and more — in a single smart contract set.
           </p>
         </div>
 
@@ -143,12 +143,9 @@ export default function FeaturesGrid() {
                 boxShadow: hovered === i ? `0 8px 24px ${f.color}15` : "none",
               }}
             >
-              {/* Category */}
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: f.color, textTransform: "uppercase", marginBottom: 10 }}>
                 {f.category}
               </div>
-
-              {/* Icon + Title */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
@@ -163,13 +160,9 @@ export default function FeaturesGrid() {
                   {f.title}
                 </div>
               </div>
-
-              {/* Description */}
               <p style={{ fontSize: 13, color: "#6b8a7a", lineHeight: 1.6, margin: "0 0 14px" }}>
                 {f.desc}
               </p>
-
-              {/* Tags */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {f.tags.map(t => (
                   <span key={t} style={{

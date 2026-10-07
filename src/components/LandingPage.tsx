@@ -134,10 +134,10 @@ function LiveSection() {
             LIVE ON-CHAIN
           </div>
           <h2 style={{ fontSize: "clamp(22px, 3vw, 36px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#e8eaed", margin: "0 0 12px" }}>
-            Gerçek zamanlı ağ aktivitesi
+            Real-time network activity
           </h2>
           <p style={{ fontSize: 14, color: "#4a7a6a", maxWidth: 440, margin: "0 auto" }}>
-            Goldsky subgraph'tan doğrudan çekilen canlı call akışı. Her 15 saniyede güncellenir.
+            Live call stream pulled directly from the Goldsky subgraph. Refreshes every 15 seconds.
           </p>
         </div>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>

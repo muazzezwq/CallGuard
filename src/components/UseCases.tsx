@@ -1,12 +1,12 @@
 /**
- * UseCases — gerçek kullanım senaryoları + social proof
+ * UseCases — real use case scenarios + social proof
  */
 
 const CASES = [
   {
     emoji: "🤖",
-    title: "AI Agent Orkestrasyonu",
-    desc: "Claude, GPT-4 veya özel agent'lar CallGuard üzerinden external API'lere güvenli ödeme yapabilir. MCP entegrasyonu ile birkaç satır kod yeterli.",
+    title: "AI Agent Orchestration",
+    desc: "Claude, GPT-4, or custom agents can make secure payments to external APIs through CallGuard. MCP integration needs just a few lines of code.",
     code: `// Claude MCP config
 {
   "mcpServers": {
@@ -20,8 +20,8 @@ const CASES = [
   },
   {
     emoji: "🏗️",
-    title: "DeFi Protokol Entegrasyonu",
-    desc: "Oracle fiyat feed'leri, liquidity provider'lar ve on-chain veri kaynakları CallGuard SLA'sı ile güvence altına alınır. Stake kaçırılan deadline'da otomatik slash.",
+    title: "DeFi Protocol Integration",
+    desc: "Oracle price feeds, liquidity providers, and on-chain data sources are secured with CallGuard SLA. Stake is automatically slashed on missed deadlines.",
     code: `// On-chain SLA call
 await payPerCall.callService(
   providerId,
@@ -32,8 +32,8 @@ await payPerCall.callService(
   },
   {
     emoji: "🌐",
-    title: "Cross-Chain Servis Ekonomisi",
-    desc: "Ethereum, Base veya Polygon üzerindeki kullanıcılar Arc üzerindeki servisleri CCTP köprüsü ile doğrudan çağırabilir. Tek tıkla cross-chain ödeme.",
+    title: "Cross-Chain Service Economy",
+    desc: "Users on Ethereum, Base, or Polygon can call Arc services directly via the CCTP bridge. One-click cross-chain payment.",
     code: `// CCTP bridge + call
 const bridge = new CCTPBridge({
   sourceChain: "ethereum",
@@ -44,8 +44,8 @@ await bridge.bridgeAndCall(amount, providerId);`,
   },
   {
     emoji: "📱",
-    title: "Subscription Ekonomisi",
-    desc: "Provider'lar aylık veya yıllık subscription planı sunabilir. Caller'lar USDC approve ile auto-renewal yapar. SLA her periyod için geçerli.",
+    title: "Subscription Economy",
+    desc: "Providers can offer monthly or yearly subscription plans. Callers auto-renew with USDC approval. SLA applies to every billing period.",
     code: `// Create subscription
 await subscription.subscribe(
   providerId,
@@ -58,19 +58,19 @@ await subscription.subscribe(
 
 const TESTIMONIALS = [
   {
-    quote: "CallGuard, AI agent ekonomisinin eksik parçasıydı. Artık LLM'im API çağrılarında garantili SLA bekleyebiliyor.",
+    quote: "CallGuard was the missing piece for the AI agent economy. My LLM can now expect guaranteed SLA on every API call.",
     author: "AI Infrastructure Engineer",
     org: "Protocol Labs",
     avatar: "👨‍💻",
   },
   {
-    quote: "EIP-712 receipt sistemi mükemmel. Her çağrı için kriptografik kanıt, provider'ı hesap verebilir kılıyor.",
+    quote: "The EIP-712 receipt system is brilliant. Cryptographic proof for every call makes providers truly accountable.",
     author: "Smart Contract Developer",
     org: "Ethereum Foundation",
     avatar: "👩‍🔬",
   },
   {
-    quote: "CCTP entegrasyonu ile Ethereum'dan Arc'a köprü kurup servis çağırmak 3 adıma indi. Harika UX.",
+    quote: "With CCTP integration, bridging from Ethereum to Arc and calling a service is down to 3 steps. Great UX.",
     author: "DeFi Protocol Founder",
     org: "Base Ecosystem",
     avatar: "🧑‍🚀",
@@ -87,10 +87,10 @@ export default function UseCases() {
             USE CASES
           </div>
           <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#0a1628", margin: "0 0 16px", lineHeight: 1.1 }}>
-            Kim kullanır?
+            Who uses CallGuard?
           </h2>
           <p style={{ fontSize: 15, color: "#6b8a7a", maxWidth: 480, margin: "0 auto", lineHeight: 1.65 }}>
-            AI agent'lardan DeFi protokollerine, oracle sistemlerinden subscription platformlarına kadar her API ekonomisi senaryosu için.
+            From AI agents to DeFi protocols, oracle systems to subscription platforms — every API economy scenario.
           </p>
         </div>
 
@@ -103,7 +103,6 @@ export default function UseCases() {
               borderRadius: 20,
               overflow: "hidden",
             }}>
-              {/* Top */}
               <div style={{ padding: "28px 28px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
                   <div style={{
@@ -119,8 +118,6 @@ export default function UseCases() {
                 </div>
                 <p style={{ fontSize: 13, color: "#6b8a7a", lineHeight: 1.65, margin: 0 }}>{c.desc}</p>
               </div>
-
-              {/* Code block */}
               <div style={{
                 background: "#0a1628",
                 borderTop: "1px solid #dde8e1",
@@ -146,7 +143,7 @@ export default function UseCases() {
             COMMUNITY
           </div>
           <h3 style={{ fontSize: "clamp(20px, 2.5vw, 32px)", fontWeight: 800, letterSpacing: "-0.02em", color: "#0a1628", margin: 0 }}>
-            Geliştiriciler ne diyor?
+            What developers say
           </h3>
         </div>
 
