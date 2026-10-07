@@ -5,7 +5,8 @@ import { getDefaultConfig } from "connectkit";
 export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  // Arc Testnet: USDC is the native gas token — 6 decimals, NOT 18
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
   rpcUrls: { default: { http: ["https://rpc.testnet.arc.network"] } },
   blockExplorers: { default: { name: "ArcScan", url: "https://testnet.arcscan.app" } },
 });
@@ -65,8 +66,12 @@ export const USDC_ABI = [
 ] as const;
 
 export const PPC_ABI = [
-  { name: "callService", type: "function", stateMutability: "nonpayable", inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"}], outputs: [{name:"callId",type:"uint256"}] },
-  { name: "submitReceipt", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"uint256"},{name:"responseHash",type:"bytes32"},{name:"respondedAt",type:"uint256"},{name:"signature",type:"bytes"}], outputs: [] },
+  // callService returns bytes32 callId (not uint256)
+  { name: "callService", type: "function", stateMutability: "nonpayable", inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"}], outputs: [{name:"callId",type:"bytes32"}] },
+  // CRITICAL-02 fix also in PPC_ABI: callId=bytes32, respondedAt=uint64 (not uint256)
+  { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"callId",type:"bytes32"},{name:"responseHash",type:"bytes32"},{name:"respondedAt",type:"uint64"},{name:"signature",type:"bytes"}],
+    outputs: [] },
   { name: "claimTimeout", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"uint256"}], outputs: [] },
   { name: "calls", type: "function", stateMutability: "view", inputs: [{name:"callId",type:"uint256"}], outputs: [{name:"providerId",type:"uint256"},{name:"caller",type:"address"},{name:"amount",type:"uint256"},{name:"requestHash",type:"bytes32"},{name:"deadline",type:"uint256"},{name:"status",type:"uint8"},{name:"respondedAt",type:"uint256"},{name:"responseHash",type:"bytes32"}] },
   { name: "nextCallId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
@@ -74,37 +79,151 @@ export const PPC_ABI = [
 
 
 
+// CRITICAL-04 fix: synced with DisputeQuality.sol actual signatures
 export const DISPUTE_QUALITY_ABI = [
-  { name: "openDispute", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"uint256"},{name:"evidenceHash",type:"bytes32"}], outputs: [] },
-  { name: "voteOnDispute", type: "function", stateMutability: "nonpayable", inputs: [{name:"disputeId",type:"uint256"},{name:"vote",type:"bool"}], outputs: [] },
+  // openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
+  { name: "openDispute", type: "function", stateMutability: "nonpayable",
+    inputs: [
+      {name:"callId",type:"bytes32"},
+      {name:"providerId",type:"uint256"},
+      {name:"settledAt",type:"uint64"},
+      {name:"evidenceUri",type:"string"},
+    ], outputs: [] },
+  // vote(uint256 disputeId, Vote choice) — Vote enum: 1=ForCaller, 2=ForProvider
+  { name: "vote", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"},{name:"choice",type:"uint8"}], outputs: [] },
+  // submitResponseEvidence(uint256 disputeId, string responseUri)
+  { name: "submitResponseEvidence", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"},{name:"responseUri",type:"string"}], outputs: [] },
+  // finalize(uint256 disputeId)
+  { name: "finalize", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"}], outputs: [] },
   { name: "disputeCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "disputeBond", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "voterBond",   type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "disputeIdByCallId", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"uint256"}] },
+  { name: "disputes", type: "function", stateMutability: "view",
+    inputs: [{name:"disputeId",type:"uint256"}],
+    outputs: [{name:"callId",type:"bytes32"},{name:"caller",type:"address"},{name:"providerId",type:"uint256"},
+              {name:"openedAt",type:"uint64"},{name:"votingEndsAt",type:"uint64"},{name:"bond",type:"uint256"},
+              {name:"evidenceUri",type:"string"},{name:"responseUri",type:"string"},
+              {name:"votesForCaller",type:"uint256"},{name:"votesForProvider",type:"uint256"},
+              {name:"outcome",type:"uint8"},{name:"finalized",type:"bool"}] },
 ] as const;
 
+// HIGH-09 fix: synced with SLAFutures.sol — mintCapacity(providerId, pricePerCall, totalSlots, deadline)
 export const SLA_FUTURES_ABI = [
-  { name: "mintCapacity", type: "function", stateMutability: "nonpayable", inputs: [{name:"providerId",type:"uint256"},{name:"callCount",type:"uint256"},{name:"price",type:"uint256"},{name:"deadline",type:"uint256"}], outputs: [{name:"batchId",type:"uint256"}] },
-  { name: "redeemCapacity", type: "function", stateMutability: "nonpayable", inputs: [{name:"batchId",type:"uint256"},{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "mintCapacity", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"totalSlots",type:"uint256"},{name:"deadline",type:"uint64"}],
+    outputs: [{name:"batchId",type:"uint256"}] },
+  { name: "buySlots", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"batchId",type:"uint256"},{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "burnSlot", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"batchId",type:"uint256"}], outputs: [] },
+  { name: "cancelBatch", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"batchId",type:"uint256"}], outputs: [] },
+  { name: "claimRefund", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"batchId",type:"uint256"}], outputs: [] },
   { name: "nextBatchId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "batches", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{name:"providerId",type:"uint256"},{name:"callCount",type:"uint256"},{name:"price",type:"uint256"},{name:"deadline",type:"uint256"},{name:"redeemed",type:"uint256"}] },
+  { name: "batches", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}],
+    outputs: [{name:"providerId",type:"uint256"},{name:"pricePerCall",type:"uint256"},
+              {name:"totalSlots",type:"uint256"},{name:"soldSlots",type:"uint256"},
+              {name:"usedSlots",type:"uint256"},{name:"deadline",type:"uint64"},
+              {name:"active",type:"bool"},{name:"provider",type:"address"}] },
 ] as const;
 
+// HIGH-10 fix: synced with ReputationLoan.sol — borrow(providerId, amount), repay(loanId, amount), etc.
 export const REPUTATION_LOAN_ABI = [
-  { name: "borrow", type: "function", stateMutability: "nonpayable", inputs: [{name:"amount",type:"uint256"}], outputs: [] },
-  { name: "repay", type: "function", stateMutability: "nonpayable", inputs: [{name:"amount",type:"uint256"}], outputs: [] },
-  { name: "deposit", type: "function", stateMutability: "nonpayable", inputs: [{name:"amount",type:"uint256"}], outputs: [] },
-  { name: "totalShares", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  // LP functions
+  { name: "deposit", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "withdraw", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"shares",type:"uint256"}], outputs: [] },
+  // Borrower functions — borrow(providerId, amount) returns loanId
+  { name: "borrow", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"amount",type:"uint256"}],
+    outputs: [{name:"loanId",type:"uint256"}] },
+  { name: "repay", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"loanId",type:"uint256"},{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "liquidate", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"loanId",type:"uint256"}], outputs: [] },
+  // Views
+  { name: "totalShares",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "totalAssets",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "totalLoaned",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "loanCount",    type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "activeLoan",   type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint256"}] },
+  { name: "loans", type: "function", stateMutability: "view",
+    inputs: [{name:"loanId",type:"uint256"}],
+    outputs: [{name:"providerId",type:"uint256"},{name:"borrower",type:"address"},
+              {name:"principal",type:"uint256"},{name:"startTime",type:"uint256"},
+              {name:"duration",type:"uint256"},{name:"repaid",type:"uint256"},
+              {name:"active",type:"bool"}] },
+  { name: "lpPositions", type: "function", stateMutability: "view",
+    inputs: [{name:"lp",type:"address"}],
+    outputs: [{name:"shares",type:"uint256"},{name:"depositTime",type:"uint256"}] },
 ] as const;
 
+// HIGH-11 fix: synced with AgentWallet.sol — agentCall() not execute()
 export const AGENT_WALLET_ABI = [
-  { name: "spentToday", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "dailyLimit", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
-  { name: "execute", type: "function", stateMutability: "nonpayable", inputs: [{name:"to",type:"address"},{name:"value",type:"uint256"},{name:"data",type:"bytes"}], outputs: [] },
+  { name: "deposit",   type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "withdraw",  type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "agentCall", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"},
+             {name:"amount",type:"uint256"},{name:"extraData",type:"bytes"}],
+    outputs: [{name:"callId",type:"bytes32"}] },
+  { name: "pause",   type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "unpause", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "addToWhitelist",      type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
+  { name: "removeFromWhitelist", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
+  { name: "setLimits", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"dailyLimit",type:"uint256"},{name:"maxPerCall",type:"uint256"}], outputs: [] },
+  // Views
+  { name: "spentToday",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "dailyLimit",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "maxPerCall",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "totalSpent",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "totalCalls",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "paused",      type: "function", stateMutability: "view", inputs: [], outputs: [{type:"bool"}] },
+  { name: "owner",       type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "agent",       type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "whitelistedProviders", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"bool"}] },
 ] as const;
 
+// HIGH-02 fix: providerCount→nextProviderId; HIGH-03: getProvider tuple corrected to 7 fields matching ServiceRegistry.sol
 export const REGISTRY_ABI = [
-  { name: "register", type: "function", stateMutability: "nonpayable", inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"metadata",type:"bytes"}], outputs: [{type:"uint256"}] },
-  { name: "getProvider", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},{name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint32"},{name:"reputationScore",type:"uint256"},{name:"active",type:"bool"}] },
-  { name: "getReputationScore", type: "function", stateMutability: "view", inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
-  { name: "providerCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "register", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},
+             {name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},
+             {name:"slashBps",type:"uint32"},{name:"endpoint",type:"string"}],
+    outputs: [{type:"uint256"}] },
+  // getProvider returns a ProviderView tuple — 7 fields (owner,signer,stake,pricePerCall,maxResponseTime,slashBps,active)
+  { name: "getProvider", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}],
+    outputs: [{name:"", type:"tuple", components: [
+      {name:"owner",type:"address"}, {name:"signer",type:"address"},
+      {name:"stake",type:"uint256"}, {name:"pricePerCall",type:"uint256"},
+      {name:"maxResponseTime",type:"uint32"}, {name:"slashBps",type:"uint32"},
+      {name:"active",type:"bool"},
+    ]}] },
+  { name: "getReputationScore", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
+  // HIGH-02: correct function name is nextProviderId, not providerCount
+  { name: "nextProviderId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "providerIdOf", type: "function", stateMutability: "view",
+    inputs: [{name:"owner",type:"address"}], outputs: [{type:"uint256"}] },
+  { name: "completedCalls", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
+  { name: "slashedCalls", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(

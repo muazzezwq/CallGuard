@@ -48,7 +48,9 @@ export default function Nano() {
     try {
       const res = await fetch(`/api/nano-balance?address=${address}`)
       const data = await res.json()
-      if (data.balance !== undefined) setBalance(data.balance)
+      // HIGH-05 fix: API returns `formatted` field, not `balance`
+      if (data.formatted !== undefined) setBalance(data.formatted)
+      else if (data.balance !== undefined) setBalance(data.balance)
       if (data.pending !== undefined) setPending(data.pending)
     } catch { setBalance('—') }
   }

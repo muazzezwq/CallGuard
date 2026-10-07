@@ -19,20 +19,33 @@ const REGISTRY_V2_ABI = [
     ], outputs: [{ name: "", type: "uint256" }] },
 ] as const;
 
+// HIGH-01 fix: unstake(uint256 providerId) — not unstake()
+// HIGH-03 fix: getProvider tuple is 7 fields, not 10
 const REGISTRY_UNSTAKE_ABI = [
-  { name: "unstake", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "unstake",     type: "function", stateMutability: "nonpayable",
+    inputs: [{ name: "providerId", type: "uint256" }], outputs: [] },
+  { name: "deactivate",  type: "function", stateMutability: "nonpayable",
+    inputs: [{ name: "providerId", type: "uint256" }], outputs: [] },
+  { name: "updatePrice", type: "function", stateMutability: "nonpayable",
+    inputs: [{ name: "providerId", type: "uint256" }, { name: "newPrice", type: "uint256" }], outputs: [] },
   { name: "providerIdOf", type: "function", stateMutability: "view",
     inputs: [{ name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
   { name: "getProvider", type: "function", stateMutability: "view",
     inputs: [{ name: "id", type: "uint256" }],
     outputs: [{ name: "", type: "tuple", components: [
-      { name: "owner", type: "address" }, { name: "signer", type: "address" },
-      { name: "stake", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
-      { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
-      { name: "active", type: "bool" }, { name: "metadataUri", type: "string" },
-      { name: "completedCalls", type: "uint256" }, { name: "slashedCalls", type: "uint256" },
+      { name: "owner",           type: "address"  },
+      { name: "signer",          type: "address"  },
+      { name: "stake",           type: "uint256"  },
+      { name: "pricePerCall",    type: "uint256"  },
+      { name: "maxResponseTime", type: "uint32"   },
+      { name: "slashBps",        type: "uint32"   },
+      { name: "active",          type: "bool"     },
     ]}]
   },
+  { name: "completedCalls", type: "function", stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
+  { name: "slashedCalls", type: "function", stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
 ] as const;
 
 const s = {
@@ -115,11 +128,12 @@ export default function Register() {
     if (!address) return;
     if (!window.confirm(`Withdraw ${currentStake} USDC stake?\n\nThis permanently removes your provider registration. You can re-register later.`)) return;
     setUnstakeStatus("⏳ Submitting...");
+    // HIGH-01 fix: unstake requires providerId
     writeContract({
       address: CONFIG.registryAddress as `0x${string}`,
       abi: REGISTRY_UNSTAKE_ABI,
       functionName: "unstake",
-      args: [],
+      args: [(providerId as bigint)],
     }, {
       onSuccess: (h) => { setUnstakeHash(h); setUnstakeStatus("⏳ Waiting for confirmation..."); },
       onError: (e: any) => setUnstakeStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),

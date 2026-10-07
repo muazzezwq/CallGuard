@@ -107,19 +107,25 @@ export async function tryClientAutoReceipt(
     const wc = createWalletClient({ account, chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
     const pc = createPublicClient({ chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
     const responseHash = keccak256(toHex(toBytes(autoPayload)));
+    // CRITICAL-02 fix: domain name "ArcSLA", version "1"; Receipt type includes respondedAt (uint64)
+    const respondedAt = BigInt(Math.floor(Date.now() / 1000));
     const sig = await wc.signTypedData({
       account,
-      domain: { name: "CallGuard", version: "1", chainId: CONFIG.chainId, verifyingContract: CONFIG.payPerCall as `0x${string}` },
-      types: { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }] },
+      domain: { name: "ArcSLA", version: "1", chainId: CONFIG.chainId, verifyingContract: CONFIG.payPerCall as `0x${string}` },
+      types: { Receipt: [
+        { name: "callId",       type: "bytes32" },
+        { name: "responseHash", type: "bytes32" },
+        { name: "respondedAt",  type: "uint64"  },
+      ]},
       primaryType: "Receipt",
-      message: { callId, responseHash },
+      message: { callId, responseHash, respondedAt },
     });
     toastFn({ kind: "info", title: "⚡ Auto-submitting receipt…" });
     const hash = await wc.writeContract({
       address: CONFIG.payPerCall as `0x${string}`,
       abi: PPC_ABI,
       functionName: "submitReceipt",
-      args: [BigInt(callId), responseHash as `0x${string}`, BigInt(Math.floor(Date.now()/1000)), sig as `0x${string}`],
+      args: [callId as `0x${string}`, responseHash as `0x${string}`, respondedAt, sig as `0x${string}`],
     });
     await pc.waitForTransactionReceipt({ hash });
     toastFn({ kind: "ok", title: "⚡ Receipt auto-submitted", detail: `call ${callId.slice(0, 10)}… · escrow released` });

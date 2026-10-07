@@ -16,9 +16,11 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type,X-Payment",
 };
 
-const USDC_ADDR   = process.env.VITE_USDC_ADDRESS;
-const CONTRACT    = process.env.VITE_PAY_PER_CALL;
-const CHAIN_ID    = Number(process.env.VITE_CHAIN_ID || "5042002");
+// HIGH-08 fix: VITE_* prefix is not available in Node.js serverless environments.
+// Read from unprefixed vars first, then fall back to VITE_* for backward compat.
+const USDC_ADDR = process.env.USDC_ADDRESS  || process.env.VITE_USDC_ADDRESS;
+const CONTRACT  = process.env.PAY_PER_CALL  || process.env.VITE_PAY_PER_CALL;
+const CHAIN_ID  = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "5042002");
 
 const PAY_ABI = [
   "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) external returns (bytes32)",

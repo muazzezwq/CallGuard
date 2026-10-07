@@ -10,8 +10,9 @@ const SOURCE_CHAINS = [
   { id: 80002,    name: "Polygon Amoy",     symbol: "MATIC", usdcAddr: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" as `0x${string}`, domain: 7, tokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5" as `0x${string}` },
 ] as const;
 
-const ARC_DOMAIN = 9; // Arc Testnet CCTP domain
-const ARC_TOKEN_MESSENGER = "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c" as `0x${string}`; // crossChainReceiver
+// CRITICAL-05 fix: Arc Testnet CCTP domain is 26, not 9 (matches cctp.ts)
+const ARC_DOMAIN = 26;
+// ARC_TOKEN_MESSENGER is unused here — each source chain has its own tokenMessenger address above
 
 const USDC_ABI = [
   { name: "approve", type: "function" as const, stateMutability: "nonpayable" as const, inputs: [{ name: "spender", type: "address" }, { name: "value", type: "uint256" }], outputs: [{ type: "bool" }] },

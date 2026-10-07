@@ -31,43 +31,42 @@ export default function Quality() {
   const { writeContractAsync, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
+  // CRITICAL-04 fix: openDispute(bytes32, uint256, uint64, string)
   async function openDispute() {
     if (!callId || !evidence) return
+    if (!/^0x[0-9a-fA-F]{64}$/.test(callId)) {
+      alert("Call ID must be a 0x-prefixed 32-byte hex (66 chars)"); return;
+    }
     try {
+      const now = BigInt(Math.floor(Date.now() / 1000));
       const hash = await writeContractAsync({
         address: ADDR,
         abi: DISPUTE_QUALITY_ABI,
         functionName: 'openDispute',
-        args: [BigInt(callId), evidence as `0x${string}`],
-      })
-      setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
-  }
-
-  async function voteOnDispute() {
-    if (!disputeId) return
-    try {
-      const hash = await writeContractAsync({
-        address: ADDR,
-        abi: DISPUTE_QUALITY_ABI,
-        functionName: 'voteOnDispute',
-        args: [BigInt(disputeId), voteSupport],
-      })
-      setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
-  }
-
-  async function stakeAsArbiter() {
-    try {
-      const amt = BigInt(Math.floor(parseFloat(stakeAmount) * 1e6));
-      const hash = await writeContractAsync({
-        address: ADDR,
-        abi: DISPUTE_QUALITY_ABI,
-        functionName: 'openDispute',
-        args: [amt, '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`],
+        args: [callId as `0x${string}`, BigInt(1), now - 1n, evidence],
       })
       setTxHash(hash)
     } catch (e: unknown) { alert((e instanceof Error ? e.message : String(e))) }
+  }
+
+  // CRITICAL-04 fix: vote(uint256, uint8) — 1=ForCaller, 2=ForProvider
+  async function voteOnDispute() {
+    if (!disputeId) return
+    try {
+      const choice = voteSupport ? 1 : 2; // true = ForCaller
+      const hash = await writeContractAsync({
+        address: ADDR,
+        abi: DISPUTE_QUALITY_ABI,
+        functionName: 'vote',
+        args: [BigInt(disputeId), choice],
+      })
+      setTxHash(hash)
+    } catch (e: unknown) { alert((e instanceof Error ? e.message : String(e))) }
+  }
+
+  // stakeAsArbiter: not a contract function; show informational message only
+  async function stakeAsArbiter() {
+    alert("Becoming an arbiter requires holding USDC and participating in vote windows. Call the vote() function when a dispute is open.");
   }
 
   const tabs = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]

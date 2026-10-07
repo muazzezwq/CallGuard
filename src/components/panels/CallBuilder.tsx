@@ -7,13 +7,14 @@ const toast = {
   info:    (m: string) => console.info("ℹ", m),
 };
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
-import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad } from "viem";
+import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad, decodeEventLog } from "viem";
 import { arcTestnet, CONFIG } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
 import { useBudgetCap } from "../../hooks/useBudgetCap";
 import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx } from "../../lib/utils";
 
+// HIGH-03 fix: getProvider returns 7-field tuple matching ServiceRegistry.sol ProviderView
 const REGISTRY_ABI = [
   { name: "getProvider", type: "function", stateMutability: "view",
     inputs: [{ name: "id", type: "uint256" }],
@@ -21,10 +22,13 @@ const REGISTRY_ABI = [
       { name: "owner", type: "address" }, { name: "signer", type: "address" },
       { name: "stake", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
       { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
-      { name: "active", type: "bool" }, { name: "metadataUri", type: "string" },
-      { name: "completedCalls", type: "uint256" }, { name: "slashedCalls", type: "uint256" },
+      { name: "active", type: "bool" },
     ]}]
   },
+  { name: "completedCalls", type: "function", stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
+  { name: "slashedCalls", type: "function", stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
 ] as const;
 
 const PPC_ABI = [
@@ -37,13 +41,29 @@ const PPC_ABI = [
   },
 ] as const;
 
+// CRITICAL-02 fix: respondedAt (uint64) added — matches PayPerCall.sol submitReceipt signature
 const SUBMIT_RECEIPT_ABI = [
   { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
     inputs: [
-      { name: "callId", type: "bytes32" },
+      { name: "callId",       type: "bytes32" },
       { name: "responseHash", type: "bytes32" },
-      { name: "signature", type: "bytes" },
+      { name: "respondedAt",  type: "uint64"  },
+      { name: "signature",    type: "bytes"   },
     ], outputs: [] },
+] as const;
+
+// ABI for parsing CallStarted event to extract real callId (CRITICAL-03)
+const CALL_STARTED_ABI = [
+  { name: "CallStarted", type: "event",
+    inputs: [
+      { name: "callId",      type: "bytes32", indexed: true  },
+      { name: "providerId",  type: "uint256", indexed: true  },
+      { name: "caller",      type: "address", indexed: true  },
+      { name: "amount",      type: "uint256", indexed: false },
+      { name: "requestHash", type: "bytes32", indexed: false },
+      { name: "deadline",    type: "uint32",  indexed: false },
+    ]
+  },
 ] as const;
 
 type Chain = "arc" | "sepolia" | "base" | "amoy";
@@ -113,13 +133,33 @@ export default function CallBuilder() {
   });
 
   const provider = providerData as any;
-  const price = provider?.pricePerCall ?? BigInt(0);
+  const price    = provider?.pricePerCall    ?? BigInt(0);
   const slaWindow = provider?.maxResponseTime ?? 0;
-  const slashBps = provider?.slashBps ?? 0;
-  const active = provider?.active ?? false;
-  const stake = provider?.stake ?? BigInt(0);
-  const honorRate = provider
-    ? Math.round((Number(provider.completedCalls) / Math.max(Number(provider.completedCalls) + Number(provider.slashedCalls), 1)) * 100)
+  const slashBps  = provider?.slashBps        ?? 0;
+  const active    = provider?.active          ?? false;
+  const stake     = provider?.stake           ?? BigInt(0);
+
+  // HIGH-03 fix: completedCalls/slashedCalls are separate reads (not in getProvider tuple)
+  const { data: completedCallsRaw } = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_ABI,
+    functionName: "completedCalls",
+    args: [BigInt(providerIdNum || 1)],
+    chainId: arcTestnet.id,
+    query: { enabled: providerIdNum > 0 && !!provider, refetchInterval: 60_000 },
+  });
+  const { data: slashedCallsRaw } = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_ABI,
+    functionName: "slashedCalls",
+    args: [BigInt(providerIdNum || 1)],
+    chainId: arcTestnet.id,
+    query: { enabled: providerIdNum > 0 && !!provider, refetchInterval: 60_000 },
+  });
+  const completedN = completedCallsRaw ? Number(completedCallsRaw) : 0;
+  const slashedN   = slashedCallsRaw   ? Number(slashedCallsRaw)   : 0;
+  const honorRate  = (completedN + slashedN) > 0
+    ? Math.round((completedN / (completedN + slashedN)) * 100)
     : 100;
 
   const { writeContractAsync, data: txHash } = useWriteContract();
@@ -171,18 +211,34 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setPendingTx(hash);
-      setLastCallId(hash);
       spendBudget(priceUsdc);
       setStatus("⏳ Waiting for confirmation...");
-      // Auto-receipt: if provider has configured a signer key in sessionStorage
-      setTimeout(() => {
-        void tryClientAutoReceipt(
-          hash as `0x${string}`,
-          providerIdNum,
-          payload,
-          ({ kind, title, detail }) => toast[kind === "ok" ? "success" : kind === "err" ? "error" : "info"](`${title}${detail ? ` — ${detail}` : ""}`)
-        ).then(() => clearPendingTx());
-      }, 1500);
+
+      // CRITICAL-03 fix: wait for receipt and parse real callId from CallStarted event
+      if (publicClient) {
+        publicClient.waitForTransactionReceipt({ hash }).then(receipt => {
+          let realCallId: `0x${string}` | null = null;
+          for (const log of receipt.logs) {
+            try {
+              const decoded = decodeEventLog({ abi: CALL_STARTED_ABI, data: log.data, topics: log.topics });
+              if (decoded.eventName === "CallStarted") {
+                realCallId = (decoded.args as any).callId as `0x${string}`;
+                break;
+              }
+            } catch { /* not CallStarted log */ }
+          }
+          const callId = realCallId ?? hash as `0x${string}`;
+          setLastCallId(callId);
+          clearPendingTx();
+          // Auto-receipt with the correct callId
+          void tryClientAutoReceipt(
+            callId,
+            providerIdNum,
+            payload,
+            ({ kind, title, detail }) => toast[kind === "ok" ? "success" : kind === "err" ? "error" : "info"](`${title}${detail ? ` — ${detail}` : ""}`)
+          );
+        }).catch(() => clearPendingTx());
+      }
     } catch (_err: unknown) { const e = _err as any;
       clearPendingTx();
       setStatus(`❌ ${friendlyError(e)}`);
@@ -291,15 +347,25 @@ export default function CallBuilder() {
     setStatus("⏳ Signing EIP-712 receipt...");
     try {
       const responseHash = keccak256(stringToBytes(responsePayload)) as `0x${string}`;
-      const domain = { name: "CallGuard", version: "1", chainId: arcTestnet.id, verifyingContract: CONFIG.payPerCall as `0x${string}` } as const;
-      const types = { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }] } as const;
-      const sig = await walletClient.signTypedData({ domain, types, primaryType: "Receipt", message: { callId: id as `0x${string}`, responseHash } });
+      // CRITICAL-02 fix: EIP-712 domain must match PayPerCall.sol — name "ArcSLA", version "1"
+      const respondedAt = BigInt(Math.floor(Date.now() / 1000));
+      const domain = { name: "ArcSLA", version: "1", chainId: arcTestnet.id, verifyingContract: CONFIG.payPerCall as `0x${string}` } as const;
+      // CRITICAL-02 fix: Receipt type must include respondedAt (uint64) to match RECEIPT_TYPEHASH
+      const types = { Receipt: [
+        { name: "callId",       type: "bytes32" },
+        { name: "responseHash", type: "bytes32" },
+        { name: "respondedAt",  type: "uint64"  },
+      ] } as const;
+      const sig = await walletClient.signTypedData({
+        domain, types, primaryType: "Receipt",
+        message: { callId: id as `0x${string}`, responseHash, respondedAt },
+      });
       setStatus("⏳ Submitting receipt on-chain...");
       await writeContractAsync({
         address: CONFIG.payPerCall as `0x${string}`,
         abi: SUBMIT_RECEIPT_ABI,
         functionName: "submitReceipt",
-        args: [id as `0x${string}`, responseHash, sig],
+        args: [id as `0x${string}`, responseHash, respondedAt, sig],
         chainId: arcTestnet.id,
       });
       setStatus("✅ Receipt submitted — escrow released.");

@@ -1,30 +1,12 @@
 import { useState, useCallback } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
-import { keccak256, toHex } from "viem";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { CONFIG } from "../../lib/config";
+import { CONFIG, DISPUTE_QUALITY_ABI } from "../../lib/config";
 
-const DQ_ABI = [
-  { name: "openDispute", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "callId", type: "uint256" }, { name: "evidenceHash", type: "bytes32" }], outputs: [] },
-  { name: "voteOnDispute", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "disputeId", type: "uint256" }, { name: "vote", type: "bool" }], outputs: [] },
-  { name: "resolveDispute", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "disputeId", type: "uint256" }], outputs: [] },
-  { name: "disputeCount", type: "function", stateMutability: "view",
-    inputs: [], outputs: [{ type: "uint256" }] },
-  { name: "getDispute", type: "function", stateMutability: "view",
-    inputs: [{ name: "disputeId", type: "uint256" }],
-    outputs: [
-      { name: "callId", type: "uint256" },
-      { name: "opener", type: "address" },
-      { name: "evidenceHash", type: "bytes32" },
-      { name: "yesVotes", type: "uint256" },
-      { name: "noVotes", type: "uint256" },
-      { name: "resolved", type: "bool" },
-      { name: "outcome", type: "bool" },
-    ] },
-] as const;
+// CRITICAL-04 fix: use centralized DISPUTE_QUALITY_ABI from config (synced with DisputeQuality.sol)
+// Vote enum: 1 = ForCaller, 2 = ForProvider
+const VOTE_FOR_CALLER   = 1;
+const VOTE_FOR_PROVIDER = 2;
 
 interface SubgraphDispute {
   id: string;
@@ -51,8 +33,8 @@ export default function Disputes() {
   const [voteStatus, setVoteStatus] = useState("");
   const [disputeInfo, setDisputeInfo] = useState<Record<string, string> | null>(null);
 
-  const { writeContractAsync } = useWriteContract();
-  const { data: voteTxHash } = useWriteContract();
+  // MEDIUM-06 fix: single useWriteContract instance
+  const { writeContractAsync, data: voteTxHash } = useWriteContract();
   const { isLoading: votePending } = useWaitForTransactionReceipt({ hash: voteTxHash });
 
   // Subgraph: dispute history
@@ -65,20 +47,26 @@ export default function Disputes() {
     historyQuery, { pollInterval: 30000 }
   );
 
-  // Open dispute
+  // CRITICAL-04 fix: openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
   const handleOpenDispute = useCallback(async () => {
     if (!isConnected) { setStatus("❌ Connect wallet first"); return; }
-    if (!callIdInput || !evidence) { setStatus("❌ Enter call ID and evidence"); return; }
+    if (!callIdInput || !evidence) { setStatus("❌ Enter call ID and evidence URI"); return; }
+    // callIdInput must be a 0x-prefixed bytes32 hex (66 chars) and providerId should be provided
+    if (!/^0x[0-9a-fA-F]{64}$/.test(callIdInput)) {
+      setStatus("❌ Call ID must be a 0x-prefixed 32-byte hex string (e.g. 0xabc...)");
+      return;
+    }
     setStatus("⏳ Opening dispute...");
     try {
-      const evidenceHash = keccak256(toHex(evidence));
+      const now = BigInt(Math.floor(Date.now() / 1000));
       await writeContractAsync({
         address: CONFIG.disputeQualityAddress as `0x${string}`,
-        abi: DQ_ABI,
+        abi: DISPUTE_QUALITY_ABI,
         functionName: "openDispute",
-        args: [BigInt(callIdInput), evidenceHash],
+        // settledAt: approximate — use current time minus 1 block (~0.5s)
+        args: [callIdInput as `0x${string}`, BigInt(1), now - 1n, evidence],
       });
-      setStatus("✅ Dispute opened! Bond: 0.5 USDC deducted.");
+      setStatus("✅ Dispute opened! Bond deducted. Voting window now open.");
       setCallIdInput(""); setEvidence("");
       setTimeout(refetchHistory, 4000);
     } catch (e: unknown) {
@@ -93,36 +81,37 @@ export default function Disputes() {
     try {
       const result = await publicClient.readContract({
         address: CONFIG.disputeQualityAddress as `0x${string}`,
-        abi: DQ_ABI,
-        functionName: "getDispute",
+        abi: DISPUTE_QUALITY_ABI,
+        functionName: "disputes",
         args: [BigInt(voteDisputeId)],
-      }) as [bigint, string, `0x${string}`, bigint, bigint, boolean, boolean];
+      }) as unknown as { callId: `0x${string}`; caller: string; providerId: bigint; votesForCaller: bigint; votesForProvider: bigint; outcome: number; finalized: boolean };
       setDisputeInfo({
-        callId: result[0].toString(),
-        opener: result[1].slice(0, 8) + "…" + result[1].slice(-4),
-        yesVotes: result[3].toString(),
-        noVotes: result[4].toString(),
-        resolved: result[5] ? "Yes" : "No",
-        outcome: result[6] ? "✅ Honored" : "❌ Slashed",
+        callId:   result.callId.slice(0, 10) + "…",
+        opener:   result.caller.slice(0, 8) + "…" + result.caller.slice(-4),
+        forCaller:   result.votesForCaller.toString(),
+        forProvider: result.votesForProvider.toString(),
+        finalized: result.finalized ? "Yes" : "No",
+        outcome:   result.outcome === 1 ? "✅ Caller Wins" : result.outcome === 2 ? "🛡 Provider Wins" : result.outcome === 3 ? "🤝 Tied" : "⏳ Pending",
       });
     } catch (e: unknown) {
       setDisputeInfo({ error: e instanceof Error ? e.message : String(e) });
     }
   }, [voteDisputeId, publicClient]);
 
-  // Vote on dispute
-  const handleVote = useCallback(async (vote: boolean) => {
+  // CRITICAL-04 fix: vote(uint256 disputeId, uint8 choice) — 1=ForCaller, 2=ForProvider
+  const handleVote = useCallback(async (forCaller: boolean) => {
     if (!isConnected) { setVoteStatus("❌ Connect wallet first"); return; }
     if (!voteDisputeId) { setVoteStatus("❌ Enter dispute ID"); return; }
-    setVoteStatus(`⏳ Voting ${vote ? "Yes (honored)" : "No (slashed)"}…`);
+    const choice = forCaller ? VOTE_FOR_CALLER : VOTE_FOR_PROVIDER;
+    setVoteStatus(`⏳ Voting ${forCaller ? "ForCaller" : "ForProvider"}…`);
     try {
       await writeContractAsync({
         address: CONFIG.disputeQualityAddress as `0x${string}`,
-        abi: DQ_ABI,
-        functionName: "voteOnDispute",
-        args: [BigInt(voteDisputeId), vote],
+        abi: DISPUTE_QUALITY_ABI,
+        functionName: "vote",
+        args: [BigInt(voteDisputeId), choice],
       });
-      setVoteStatus(`✅ Vote cast: ${vote ? "Provider honored" : "Provider slashed"}`);
+      setVoteStatus(`✅ Vote cast: ${forCaller ? "ForCaller" : "ForProvider"}`);
       setTimeout(() => fetchDisputeInfo(), 3000);
     } catch (e: unknown) {
       const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
