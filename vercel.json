@@ -2,7 +2,6 @@
   "outputDirectory": "dist",
   "buildCommand": "bun run build",
   "framework": null,
-  "cleanUrls": true,
   "functions": {
     "api/auto-receipt.js":   { "maxDuration": 25 },
     "api/call-service.js":   { "maxDuration": 25 },

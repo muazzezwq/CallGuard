@@ -113,7 +113,7 @@ export default function Hero() {
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
-            <a href="/app/" style={{ fontSize: 14, fontWeight: 700, color: "#fff", background: "#0a1628", padding: "12px 24px", borderRadius: 10, textDecoration: "none", transition: "all 0.15s" }}
+            <a href="/?app=1" style={{ fontSize: 14, fontWeight: 700, color: "#fff", background: "#0a1628", padding: "12px 24px", borderRadius: 10, textDecoration: "none", transition: "all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "#16a34a"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "#0a1628"; }}
             >Launch the app →</a>

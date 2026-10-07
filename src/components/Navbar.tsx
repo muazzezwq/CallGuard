@@ -51,7 +51,7 @@ export default function Navbar() {
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block", boxShadow: "0 0 0 2px #dcfce7" }} />
             <span style={{ fontSize: 11, color: "#6b8a7a", fontWeight: 500 }}>Arc Testnet</span>
           </div>
-          <a href="/app/" style={{
+          <a href="/?app=1" style={{
             fontSize: 13, fontWeight: 600, color: "#fff",
             background: "#0a1628", padding: "8px 16px", borderRadius: 8,
             textDecoration: "none", transition: "all 0.15s",
@@ -72,7 +72,7 @@ export default function Navbar() {
               style={{ display: "block", fontSize: 15, fontWeight: 500, color: "#0a1628", padding: "10px 0", borderBottom: "1px solid #f0f5f2", textDecoration: "none" }}
             >{l}</a>
           ))}
-          <a href="/app/" style={{ display: "block", marginTop: 12, textAlign: "center", fontSize: 14, fontWeight: 600, color: "#fff", background: "#0a1628", padding: "12px", borderRadius: 8, textDecoration: "none" }}>Launch App →</a>
+          <a href="/?app=1" style={{ display: "block", marginTop: 12, textAlign: "center", fontSize: 14, fontWeight: 600, color: "#fff", background: "#0a1628", padding: "12px", borderRadius: 8, textDecoration: "none" }}>Launch App →</a>
         </div>
       )}
 

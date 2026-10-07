@@ -7,8 +7,10 @@ const AppShell    = lazy(() => import("./components/layout/AppShell"));
 export default function App() {
   const { isConnected } = useAccount();
 
-  // If path starts with /app, always show the app shell
-  const isAppPath = window.location.pathname.startsWith("/app");
+  // /app path veya ?app=1 query parametresi → AppShell
+  const isAppPath =
+    window.location.pathname.startsWith("/app") ||
+    new URLSearchParams(window.location.search).get("app") === "1";
 
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", background: "#070b12" }} />}>
