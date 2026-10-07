@@ -42,38 +42,33 @@ const panels = {
 
 function PanelLoader() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "var(--text-faint)", fontSize: 13 }}>
-      <span>Loading…</span>
+    <div className="panel-loader">
+      <div className="panel-loader-spinner" />
     </div>
   );
 }
 
-// Mobile bottom nav items — matches orijinal HTML
-const MOBILE_NAV = [
-  { icon: "📊", label: "Dashboard", id: "overview"    as PanelId, badge: 0 },
-  { icon: "💼", label: "Market",    id: "marketplace" as PanelId, badge: 0 },
-  { icon: "⚡", label: "Pay",       id: "nano"        as PanelId, badge: 0 },
-  { icon: "📋", label: "Jobs",      id: "jobs"        as PanelId, badge: 0 },
+const MOBILE_NAV: { icon: string; label: string; id: PanelId }[] = [
+  { icon: "◫",  label: "Dashboard", id: "overview"    },
+  { icon: "⊞",  label: "Market",    id: "marketplace" },
+  { icon: "⚡", label: "Pay",       id: "nano"        },
+  { icon: "≡",  label: "Jobs",      id: "jobs"        },
 ];
 
 export default function AppShell() {
   const { activePanel, theme, setPanel } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  // badge counters — incremented by live events, cleared on panel visit
   const [badges, setBadges] = useState<Record<string, number>>({});
 
   const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
 
-  // apply theme to body
   useEffect(() => {
-    document.body.classList.toggle("light-mode", theme === "light");
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // tab title unseen counter
   useEffect(() => initTabTitleCounter(), []);
 
-  // Ctrl+K / Cmd+K → CommandPalette
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -85,130 +80,75 @@ export default function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // clear badge when panel is visited
   useEffect(() => {
     setBadges(b => ({ ...b, [activePanel]: 0 }));
   }, [activePanel]);
 
-  // listen for live-feed badge bumps from Overview
   useEffect(() => {
     function onBump(e: Event) {
       const { panel } = (e as CustomEvent<{ panel: string }>).detail ?? {};
-      if (panel && panel !== activePanel) {
+      if (panel && panel !== activePanel)
         setBadges(b => ({ ...b, [panel]: (b[panel] ?? 0) + 1 }));
-      }
     }
     window.addEventListener("cg:badge", onBump);
     return () => window.removeEventListener("cg:badge", onBump);
   }, [activePanel]);
 
+  // close sidebar on nav (mobile)
+  const handleNav = () => setSidebarOpen(false);
+
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      background: "var(--bg-0)",
-      color: "var(--text)",
-      fontFamily: "var(--font-sans)",
-    }} data-theme={theme}>
+    <div className="app-shell">
+      {/* ── Topbar ── */}
+      <AppTopbar
+        onHamburger={() => setSidebarOpen(o => !o)}
+        onCommandPalette={() => setPaletteOpen(true)}
+      />
 
-      {/* Topbar */}
-      <AppTopbar onHamburger={() => setSidebarOpen(o => !o)} onCommandPalette={() => setPaletteOpen(true)} />
+      {/* ── Sidebar overlay (mobile) ── */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
 
-      {/* Body */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
+      {/* ── Sidebar ── */}
+      <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
+        <Sidebar onNav={handleNav} />
+      </aside>
 
-        {/* Mobile overlay */}
-        {sidebarOpen && (
-          <div
-            onClick={() => setSidebarOpen(false)}
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
-          />
-        )}
+      {/* ── Main ── */}
+      <main className="main-content">
+        <LiveBar />
+        <Suspense fallback={<PanelLoader />}>
+          {ActivePanel ? <ActivePanel /> : <PanelLoader />}
+        </Suspense>
+      </main>
 
-        {/* Sidebar — desktop always visible, mobile drawer */}
-        <div style={{
-          width: 220,
-          flexShrink: 0,
-          borderRight: "1px solid var(--border)",
-          background: "var(--bg-1)",
-          overflowY: "auto",
-          position: "sticky" as const,
-          top: 0,
-          height: "calc(100vh - 48px)",
-        }} className="sidebar-wrapper">
-          <Sidebar onNav={() => setSidebarOpen(false)} />
-        </div>
-
-        {/* Mobile sidebar drawer */}
-        <div style={{
-          position: "fixed",
-          top: 48,
-          left: sidebarOpen ? 0 : -220,
-          width: 220,
-          height: "calc(100vh - 48px)",
-          zIndex: 50,
-          background: "var(--bg-1)",
-          borderRight: "1px solid var(--border)",
-          overflowY: "auto",
-          transition: "left 0.25s ease",
-          display: "none",
-        }} className="sidebar-mobile">
-          <Sidebar onNav={() => setSidebarOpen(false)} />
-        </div>
-
-        {/* Main content */}
-        <main style={{
-          flex: 1,
-          overflowY: "auto",
-          background: "var(--bg-0)",
-          minWidth: 0,
-        }}>
-          {/* Live bar — clock + SLA gauge */}
-          <LiveBar />
-          <Suspense fallback={<PanelLoader />}>
-            {ActivePanel ? <ActivePanel /> : <PanelLoader />}
-          </Suspense>
-        </main>
-      </div>
-
-      {/* Onboarding wizard — fixed bottom-right */}
+      {/* ── Onboarding ── */}
       <OnboardingWizard />
 
-      {/* Command Palette */}
+      {/* ── Command Palette ── */}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
-      {/* Mobile bottom nav — 4 items + ⌘K button */}
+      {/* ── Mobile bottom nav ── */}
       <nav className="mobile-bottom-nav">
         {MOBILE_NAV.map(item => (
           <button
             key={item.id}
             className={`mbn-item${activePanel === item.id ? " active" : ""}`}
-            onClick={() => setPanel(item.id)}
-            style={{ position: "relative" }}
+            onClick={() => { setPanel(item.id); setSidebarOpen(false); }}
           >
             <span className="mbn-icon">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="mbn-label">{item.label}</span>
             {(badges[item.id] ?? 0) > 0 && (
-              <span style={{
-                position: "absolute", top: 4, right: "calc(50% - 18px)",
-                background: "var(--danger)", color: "#fff",
-                borderRadius: "99px", fontSize: 9, fontWeight: 700,
-                padding: "1px 5px", lineHeight: "14px", minWidth: 14, textAlign: "center",
-              }}>
+              <span className="mbn-badge">
                 {badges[item.id] > 9 ? "9+" : badges[item.id]}
               </span>
             )}
           </button>
         ))}
-        {/* ⌘K button — opens CommandPalette */}
-        <button
-          className="mbn-item"
-          onClick={() => setPaletteOpen(true)}
-          style={{ position: "relative" }}
-        >
+        <button className="mbn-item" onClick={() => setPaletteOpen(true)}>
           <span className="mbn-icon">🔍</span>
-          <span>Search</span>
+          <span className="mbn-label">Search</span>
         </button>
       </nav>
     </div>
