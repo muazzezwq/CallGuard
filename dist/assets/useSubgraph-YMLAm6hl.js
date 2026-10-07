@@ -1,0 +1,6 @@
+import{C as n,K as o}from"./index-CDkl8BKr.js";async function l(r){const e=await fetch(n.subgraphUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:r})});if(!e.ok)throw new Error(`Subgraph error: ${e.status}`);const{data:s}=await e.json();return s}async function c(){return((await l(`{
+    providers(first: 100, orderBy: completedCalls, orderDirection: desc) {
+      id owner signer stake pricePerCall maxResponseTime slashBps
+      active completedCalls slashedCalls endpoint
+    }
+  }`)).providers??[]).map(e=>{const s=Number(e.completedCalls??0),t=Number(e.slashedCalls??0),a=s+t,i=a>0?Math.round((s+2)/(a+3)*100):66;return{...e,id:Number(e.id),completedCalls:s,slashedCalls:t,maxResponseTime:Number(e.maxResponseTime),slashBps:Number(e.slashBps),reputation:i}})}function u(r,e){return o({queryKey:["subgraph",r,e],queryFn:async()=>(await(await fetch(n.subgraphUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:r,variables:e})})).json()).data??{},refetchInterval:15e3,staleTime:1e4})}function p(){return o({queryKey:["providers"],queryFn:c,refetchInterval:15e3,staleTime:1e4})}export{p as a,u};
