@@ -18,7 +18,7 @@ import { ethers } from "ethers";
 const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.network");
 const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
 
-const SERVICE_REGISTRY = "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF";
+const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY; // arc-studio-allow-onchain-literal
 const registryAbi = [
   "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active))"
 ];

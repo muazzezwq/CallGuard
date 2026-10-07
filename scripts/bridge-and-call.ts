@@ -21,7 +21,7 @@ import { argv } from "process";
 dotenv.config();
 
 // MEDIUM-08: use deployed addresses from AGENTS.md
-const PAY_PER_CALL_ADDRESS = (process.env.VITE_PAY_PER_CALL ?? "0x51bbd776d01bbb99b5425c701f00b2c516215e2e") as `0x${string}`;
+const PAY_PER_CALL_ADDRESS = (process.env.VITE_PAY_PER_CALL ?? "0x5e6b2621a25497d9a1d16a342f592332f11abed5") as `0x${string}`;
 const USDC_DECIMALS = 6;
 // CCTP v2 MessageTransmitter on Arc Testnet
 export const ARC_MESSAGE_TRANSMITTER = "0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275";

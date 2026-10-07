@@ -12,7 +12,7 @@
 const { ethers } = require('ethers');
 
 const RPC_URL       = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.io';
-const SERVICE_REG   = process.env.VITE_SERVICE_REGISTRY || '0xea00f898C0eA249de7226b283e93C13eFa7BbcFF';
+const SERVICE_REG   = process.env.VITE_SERVICE_REGISTRY || '0xd2097820870535aa59cecbe46c6c3e399edb3fa7';
 const USDC_ADDR     = process.env.VITE_USDC_ADDRESS     || '0x3600000000000000000000000000000000000000';
 const PRIVATE_KEY   = process.env.PRIVATE_KEY;
 
