@@ -2,13 +2,16 @@
   "outputDirectory": "dist",
   "buildCommand": "bun run build",
   "framework": null,
-  "cleanUrls": true,
   "functions": {
     "api/auto-receipt.js":   { "maxDuration": 25 },
     "api/call-service.js":   { "maxDuration": 25 },
     "api/notify-provider.js":{ "maxDuration": 15 },
     "api/attestation.js":    { "maxDuration": 30 }
   },
+  "redirects": [
+    { "source": "/app",  "destination": "/", "permanent": false },
+    { "source": "/app/", "destination": "/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/callService",       "destination": "/api/call-service" },
     { "source": "/nano/call",         "destination": "/api/nano-call" },
@@ -24,6 +27,12 @@
         { "key": "Access-Control-Allow-Origin",  "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type,X-Payment,X-Machine-Id,Authorization" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]
