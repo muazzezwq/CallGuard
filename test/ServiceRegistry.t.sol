@@ -27,7 +27,7 @@ contract ServiceRegistryTest is Test {
     function setUp() public {
         vm.startPrank(admin);
         usdc = new MockUSDC();
-        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE);
+        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, address(this));
         registry.setPayPerCall(payPerCall);
         vm.stopPrank();
 
@@ -260,7 +260,7 @@ contract ServiceRegistryTest is Test {
 
     function test_setPayPerCall_notAdmin_reverts() public {
         vm.prank(admin);
-        ServiceRegistry fresh = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE);
+        ServiceRegistry fresh = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, address(this));
 
         vm.expectRevert(ServiceRegistry.NotOwner.selector);
         vm.prank(user);

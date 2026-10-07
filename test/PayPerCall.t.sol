@@ -37,7 +37,7 @@ contract PayPerCallTest is Test {
 
         vm.startPrank(admin);
         usdc = new MockUSDC();
-        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE);
+        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, address(this));
         payPerCall = new PayPerCall(IERC20(address(usdc)), IServiceRegistry(address(registry)));
         registry.setPayPerCall(address(payPerCall));
         vm.stopPrank();
@@ -542,7 +542,7 @@ contract PayPerCallTest is Test {
     /// @dev Insufficient stake: callService reverts when provider stake < expectedSlash.
     function test_InsufficientStakeReverts() public {
         // Deploy a registry with very high slash bps so that stake=MIN_STAKE is insufficient
-        ServiceRegistry highSlashRegistry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE);
+        ServiceRegistry highSlashRegistry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, address(this));
         PayPerCall highSlashPPC = new PayPerCall(IERC20(address(usdc)), IServiceRegistry(address(highSlashRegistry)));
 
         // Register provider with minimum stake (10 USDC), price=100 USDC, slash=50%

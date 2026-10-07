@@ -40,7 +40,7 @@ contract Deploy is Script {
         vm.startBroadcast();
 
         // 1. Deploy ServiceRegistry (v2 — includes registerV2 + ERC-8004 NFT binding)
-        registry = new ServiceRegistry(IERC20(usdcAddress), minStake);
+        registry = new ServiceRegistry(IERC20(usdcAddress), minStake, msg.sender);
         console2.log("ServiceRegistry     :", address(registry));
 
         // 2. Deploy PayPerCall, pointing at the registry

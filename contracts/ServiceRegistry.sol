@@ -138,10 +138,11 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     // Constructor
     // ---------------------------------------------------------------------
 
-    constructor(IERC20 _usdc, uint256 _minStake) {
+    constructor(IERC20 _usdc, uint256 _minStake, address _admin) {
+        require(_admin != address(0), "zero admin");
         usdc = _usdc;
         minStake = _minStake;
-        admin = msg.sender;
+        admin = _admin;
     }
 
     /// @notice One-time wire-up of the PayPerCall contract address. Admin

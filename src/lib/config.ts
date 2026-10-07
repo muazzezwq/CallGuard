@@ -19,11 +19,11 @@ export const CONFIG = {
   eurcAddress: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as `0x${string}`,
   usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
   usycAddress: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C" as `0x${string}`,
-  // Core contracts (v4 — HLB security fixes, 7 Oct 2026)
-  registry: "0xd2097820870535aa59cecbe46c6c3e399edb3fa7",
-  registryAddress: "0xd2097820870535aa59cecbe46c6c3e399edb3fa7" as `0x${string}`,
-  payPerCall: "0x5e6b2621a25497d9a1d16a342f592332f11abed5",
-  ppcAddress: "0x5e6b2621a25497d9a1d16a342f592332f11abed5" as `0x${string}`,
+  // Core contracts (v5 — admin=owner cüzdan, 7 Oct 2026)
+  registry: "0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4",
+  registryAddress: "0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4" as `0x${string}`,
+  payPerCall: "0x389b44b7ad68c9e661a9ef2625f958840c31b601",
+  ppcAddress: "0x389b44b7ad68c9e661a9ef2625f958840c31b601" as `0x${string}`,
   disputeQuality: "0x7e2771df71c30307a95f038c93077d5350e7789d",
   disputeQualityAddress: "0x7e2771df71c30307a95f038c93077d5350e7789d" as `0x${string}`,
   slaFutures: "0x19d03ff147816c97aad88f1275ad80855dcac9b2",

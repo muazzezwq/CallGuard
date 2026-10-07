@@ -1,10 +1,10 @@
 # CallGuard — Project State (Arc Testnet, chain ID 5042002)
 
-## Core Contracts — ACTIVE (HLB security fixes, 7 Oct 2026)
+## Core Contracts — ACTIVE (v5 — admin=owner wallet, 7 Oct 2026)
 | Contract | Address | Notes |
 |---|---|---|
-| `ServiceRegistry` (v4) | `0xd2097820870535aa59cecbe46c6c3e399edb3fa7` | HLB-06 timelock, HLB-07 uint64 counters |
-| `PayPerCall` (v4) | `0x5e6b2621a25497d9a1d16a342f592332f11abed5` | HLB-01 callServiceFor, HLB-03 pull settlement |
+| `ServiceRegistry` (v5) | `0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4` | admin=0xfbac99...06Da (owner wallet) |
+| `PayPerCall` (v5) | `0x389b44b7ad68c9e661a9ef2625f958840c31b601` | registry=v5 |
 | `DisputeQuality` (v2) | `0x7e2771df71c30307a95f038c93077d5350e7789d` | HLB-05 pull payouts (withdrawPayout) |
 | `SLAFutures` (v2) | `0x19d03ff147816c97aad88f1275ad80855dcac9b2` | HLB-02 escrow model (claimProceeds) |
 | `ReputationLoan` (v2) | `0x5a2f5455560ff9957db7fc208f9c819655c3a2d4` | HLB-04 stake-based loan cap |
@@ -62,8 +62,8 @@
 | `FACILITATOR_PRIVATE_KEY` | Facilitator wallet private key |
 | `SELLER_PRIVATE_KEY` | Auto-receipt provider private key |
 | `VITE_USDC_ADDRESS` | `0x3600000000000000000000000000000000000000` |
-| `VITE_PAY_PER_CALL` | `0x5e6b2621a25497d9a1d16a342f592332f11abed5` |
-| `VITE_SERVICE_REGISTRY` | `0xd2097820870535aa59cecbe46c6c3e399edb3fa7` |
+| `VITE_PAY_PER_CALL` | `0x389b44b7ad68c9e661a9ef2625f958840c31b601` |
+| `VITE_SERVICE_REGISTRY` | `0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4` |
 | `VITE_CHAIN_ID` | `5042002` |
 | `ARC_RPC_URL` | `https://rpc.testnet.arc.io` |
 | `PROVIDER_1_WEBHOOK` | `https://arcsla.vercel.app/api/auto-receipt` |
