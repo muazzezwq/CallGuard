@@ -1,17 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { keccak256, toBytes } from "viem";
+// MEDIUM-09: PPC_ABI from config already includes submitReceipt with correct respondedAt
 import { CONFIG, PPC_ABI } from "../../lib/config";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 
-const SUBMIT_RECEIPT_ABI = [
-  { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
-    inputs: [
-      { name: "callId", type: "bytes32" },
-      { name: "responseHash", type: "bytes32" },
-      { name: "signature", type: "bytes" },
-    ], outputs: [] },
-] as const;
+// Alias for readability — same as PPC_ABI
+const SUBMIT_RECEIPT_ABI = PPC_ABI;
 
 const s: Record<string, React.CSSProperties> = {
   page: { padding: "20px 16px", maxWidth: 720, margin: "0 auto" },
@@ -71,20 +66,22 @@ export default function Verify() {
       setRcpStatus("⏳ Signing EIP-712 receipt...");
       const responseHash = keccak256(toBytes(rcpPayload)) as `0x${string}`;
 
-      // EIP-712 structured signature — matches v2 PayPerCall contract
+      // EIP-712 structured signature — matches PayPerCall EIP712("ArcSLA","1")
+      const respondedAt = BigInt(Math.floor(Date.now() / 1000));
       const domain = {
-        name: "CallGuard",
+        name: "ArcSLA",
         version: "1",
         chainId: CONFIG.chainId,
         verifyingContract: CONFIG.payPerCall as `0x${string}`,
       } as const;
       const types = {
         Receipt: [
-          { name: "callId", type: "bytes32" },
+          { name: "callId",       type: "bytes32" },
           { name: "responseHash", type: "bytes32" },
+          { name: "respondedAt",  type: "uint64"  },
         ],
       } as const;
-      const value = { callId: callId as `0x${string}`, responseHash } as const;
+      const value = { callId: callId as `0x${string}`, responseHash, respondedAt } as const;
 
       const signature = await walletClient.signTypedData({ domain, types, primaryType: "Receipt", message: value });
       setRcpStatus("⏳ Submitting receipt on-chain...");
@@ -93,7 +90,7 @@ export default function Verify() {
         address: CONFIG.payPerCall as `0x${string}`,
         abi: SUBMIT_RECEIPT_ABI,
         functionName: "submitReceipt",
-        args: [callId as `0x${string}`, responseHash, signature],
+        args: [callId as `0x${string}`, responseHash, respondedAt, signature],
       }, {
         onSuccess: (h) => { setRcpTxHash(h); setRcpStatus("⏳ Waiting for confirmation..."); },
         onError: (e: any) => setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
@@ -142,7 +139,7 @@ export default function Verify() {
             address: CONFIG.ppcAddress as `0x${string}`,
             abi: PPC_ABI,
             functionName: "calls",
-            args: [BigInt(val)],
+            args: [val as `0x${string}`],
           }) as unknown as any[];
 
           if (data && data[0]) {

@@ -20,9 +20,11 @@ import { argv } from "process";
 
 dotenv.config();
 
-const PAY_PER_CALL_ADDRESS = "0xde0BeeF72976040eDa3F4f3E06B45c441CB2761B" as const;
+// MEDIUM-08: use deployed addresses from AGENTS.md
+const PAY_PER_CALL_ADDRESS = (process.env.VITE_PAY_PER_CALL ?? "0x51bbd776d01bbb99b5425c701f00b2c516215e2e") as `0x${string}`;
 const USDC_DECIMALS = 6;
-export const ARC_MESSAGE_TRANSMITTER = "0x8EF77B696afF6BfDe78F9D6780C1Ade2B4b7e58";
+// CCTP v2 MessageTransmitter on Arc Testnet
+export const ARC_MESSAGE_TRANSMITTER = "0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275";
 
 const PAY_PER_CALL_ABI = parseAbi([
   "function callService(uint256 providerId, bytes32 requestHash) external returns (bytes32 callId)",

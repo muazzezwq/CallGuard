@@ -80,8 +80,9 @@ export async function fetchProviders(): Promise<Provider[]> {
     const completed = Number(p.completedCalls ?? 0);
     const slashed   = Number(p.slashedCalls ?? 0);
     const total     = completed + slashed;
+    // MEDIUM-05: clean formula — 100% for new providers, completed/total otherwise
     const reputation = total > 0
-      ? Math.round((completed + 2) / (total + 3) * 100) : 66;
+      ? Math.round(completed / total * 100) : 100;
     return {
       id:           String(p.id),
       owner:        String(p.owner ?? ""),

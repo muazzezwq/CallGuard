@@ -1,5 +1,6 @@
 // CallGuard Subgraph Connector
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
+// MEDIUM-04: updated from stale callguard/1.2.0 to current arcsla/3.0.0
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
 
 async function fetchSubgraph() {
   const query = `

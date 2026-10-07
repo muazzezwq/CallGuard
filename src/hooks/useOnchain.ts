@@ -1,35 +1,17 @@
 import { useReadContract, useWriteContract, useAccount, useBalance } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
-import { CONFIG } from "../lib/config";
+// MEDIUM-09: use canonical ABIs from config — no local duplicates
+import { CONFIG, REGISTRY_ABI } from "../lib/config";
 
-const REGISTRY_ABI = [
-  { name: "nextProviderId", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { name: "getProvider", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "address" }, { type: "address" }, { type: "uint256" }, { type: "uint256" }, { type: "uint32" }, { type: "uint32" }, { type: "bool" }] },
-  { name: "getReputationScore", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
-  { name: "completedCalls", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
-  { name: "slashedCalls", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
-] as const;
-
-const PPC_ABI = [
-  { name: "callCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { name: "slashCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { name: "receiptCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-] as const;
+// callCount/slashCount/receiptCount do NOT exist on PayPerCall.sol —
+// use fetchNetworkStats() from subgraph.ts for aggregate counts instead.
+// These stubs are kept for backward-compatible hook signature only and are disabled.
+export function useCallCount() { return { data: undefined as bigint | undefined }; }
+export function useSlashCount() { return { data: undefined as bigint | undefined }; }
+export function useReceiptCount() { return { data: undefined as bigint | undefined }; }
 
 export function useProviderCount() {
   return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
-}
-
-export function useCallCount() {
-  return useReadContract({ address: CONFIG.payPerCall as `0x${string}`, abi: PPC_ABI, functionName: "callCount" });
-}
-
-export function useSlashCount() {
-  return useReadContract({ address: CONFIG.payPerCall as `0x${string}`, abi: PPC_ABI, functionName: "slashCount" });
-}
-
-export function useReceiptCount() {
-  return useReadContract({ address: CONFIG.payPerCall as `0x${string}`, abi: PPC_ABI, functionName: "receiptCount" });
 }
 
 export function useProvider(id: number) {

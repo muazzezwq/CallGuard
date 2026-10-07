@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAccount, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, keccak256, toHex, encodeFunctionData } from "viem";
-import { CONFIG } from "../../lib/config";
+// MEDIUM-09: import USDC_ABI from config
+import { CONFIG, USDC_ABI } from "../../lib/config";
 import { CheckCircle, ChevronRight, AlertTriangle } from "lucide-react";
 
 const JOBS_ABI = [
@@ -15,11 +16,6 @@ const JOBS_ABI = [
   { name: "getJob", type: "function", inputs: [{ name: "jobId", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "provider", type: "address" }, { name: "client", type: "address" }, { name: "budget", type: "uint256" }, { name: "status", type: "uint8" }] }], stateMutability: "view" },
   { name: "approve", type: "function", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ name: "", type: "bool" }], stateMutability: "nonpayable" },
   { name: "allowance", type: "function", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
-] as const;
-
-const USDC_ABI = [
-  { name: "allowance", type: "function", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
-  { name: "approve", type: "function", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ name: "", type: "bool" }], stateMutability: "nonpayable" },
 ] as const;
 
 const STEPS = ["Create Job", "Set Budget", "Fund Escrow", "Submit Work", "Complete & Pay", "Done"];

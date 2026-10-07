@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
 import { parseUnits, encodeFunctionData, keccak256, toBytes } from 'viem'
-import { CONFIG, PPC_ABI } from '../../lib/config'
-
-const USDC_ABI = [
-  { name: 'allowance', type: 'function', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }] },
-] as const
+// MEDIUM-09: import canonical ABIs from config
+import { CONFIG, PPC_ABI, USDC_ABI, REGISTRY_ABI } from '../../lib/config'
 
 const MULTICALL3_ABI = [
   { name: 'aggregate3', type: 'function', stateMutability: 'payable', inputs: [{ name: 'calls', type: 'tuple[]', components: [{ name: 'target', type: 'address' }, { name: 'allowFailure', type: 'bool' }, { name: 'callData', type: 'bytes' }] }], outputs: [{ name: 'results', type: 'tuple[]', components: [{ name: 'success', type: 'bool' }, { name: 'returnData', type: 'bytes' }] }] },
-] as const
-
-const REGISTRY_ABI = [
-  { name: 'getProvider', type: 'function', stateMutability: 'view', inputs: [{ name: 'providerId', type: 'uint256' }], outputs: [{ name: 'owner', type: 'address' }, { name: 'signer', type: 'address' }, { name: 'stake', type: 'uint256' }, { name: 'pricePerCall', type: 'uint256' }, { name: 'maxResponseTime', type: 'uint256' }, { name: 'slashPercentage', type: 'uint256' }, { name: 'active', type: 'bool' }] },
 ] as const
 
 const S = {
@@ -116,7 +108,7 @@ export default function Nano() {
       for (const id of ids) {
         try {
           const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] })
-          if (p[6]) total += p[3] // active → add pricePerCall
+          if (p.active) total += p.pricePerCall // active → add pricePerCall
         } catch { /* skip */ }
       }
 

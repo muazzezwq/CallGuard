@@ -83,15 +83,19 @@ export default function Bridge() {
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
-  const pollAttestation = useCallback(async (txHash: string): Promise<string | null> => {
-    // Circle IRIS attestation API
+  // MEDIUM-06: use CCTP v2 Iris endpoint (v1 /attestations/:txHash is deprecated)
+  const pollAttestation = useCallback(async (txHash: string, sourceDomain: number): Promise<string | null> => {
     for (let i = 0; i < 40; i++) {
       await new Promise(r => setTimeout(r, 8000));
       try {
-        const res = await fetch(`https://iris-api-sandbox.circle.com/attestations/${txHash}`);
+        const res = await fetch(
+          `https://iris-api-sandbox.circle.com/v2/messages/${sourceDomain}/${txHash}`
+        );
         const data = await res.json();
-        if (data?.status === "complete" && data?.attestation) {
-          return data.attestation;
+        // v2 response: { messages: [{ status, attestation }] }
+        const msg = data?.messages?.[0];
+        if (msg?.status === "complete" && msg?.attestation) {
+          return msg.attestation;
         }
         addLog(`⏳ Attestation pending (attempt ${i + 1}/40)…`);
       } catch { addLog("⚠ Attestation poll error, retrying…"); }
@@ -155,10 +159,10 @@ export default function Bridge() {
       // Step 3: Poll Circle IRIS for attestation
       setStep("attesting");
       addLog("Step 3/4 — Waiting for Circle attestation (up to 5 min)…");
-      const att = await pollAttestation(burnTx);
+      const att = await pollAttestation(burnTx, src.domain);
       if (!att) {
         setStep("error");
-        addLog("❌ Attestation timed out. Check https://iris-api-sandbox.circle.com/attestations/" + burnTx);
+        addLog("❌ Attestation timed out. Check https://iris-api-sandbox.circle.com/v2/messages/" + src.domain + "/" + burnTx);
         return;
       }
       setAttestation(att);

@@ -2,12 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
-import { CONFIG } from "../../lib/config";
-
-const PPC_ABI = [
-  { name: "claimTimeout", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "callId", type: "bytes32" }], outputs: [] },
-] as const;
+// MEDIUM-09: import canonical ABI from config (was local duplicate)
+import { CONFIG, PPC_ABI } from "../../lib/config";
 
 const STATUS_COLORS: Record<string, string> = {
   STARTED:   "var(--amber,#f59e0b)",

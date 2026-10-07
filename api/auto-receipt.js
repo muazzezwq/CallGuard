@@ -25,8 +25,9 @@ const ABI = [
   "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
 ];
 
+// MEDIUM-07: domain name/version must match PayPerCall constructor EIP712("ArcSLA","1")
 function receiptDomain(chainId, verifyingContract) {
-  return { name: "CallGuard", version: "2", chainId, verifyingContract };
+  return { name: "ArcSLA", version: "1", chainId, verifyingContract };
 }
 
 const RECEIPT_TYPES = {
@@ -98,9 +99,8 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    const addr = SELLER_PRIVATE_KEY
-      ? new ethers.Wallet(SELLER_PRIVATE_KEY).address
-      : "not configured";
+    const _key = process.env.SELLER_PRIVATE_KEY;
+    const addr = _key ? new ethers.Wallet(_key).address : "not configured";
     return res.json({ ok: true, service: "CallGuard auto-receipt", seller: addr });
   }
 

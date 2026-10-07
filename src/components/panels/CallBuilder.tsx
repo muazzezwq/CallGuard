@@ -8,63 +8,16 @@ const toast = {
 };
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad, decodeEventLog } from "viem";
-import { arcTestnet, CONFIG } from "../../lib/config";
+// MEDIUM-09: import canonical ABIs from config — eliminates local duplicates
+import { arcTestnet, CONFIG, REGISTRY_ABI, PPC_ABI } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
 import { useBudgetCap } from "../../hooks/useBudgetCap";
 import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx } from "../../lib/utils";
 
-// HIGH-03 fix: getProvider returns 7-field tuple matching ServiceRegistry.sol ProviderView
-const REGISTRY_ABI = [
-  { name: "getProvider", type: "function", stateMutability: "view",
-    inputs: [{ name: "id", type: "uint256" }],
-    outputs: [{ name: "", type: "tuple", components: [
-      { name: "owner", type: "address" }, { name: "signer", type: "address" },
-      { name: "stake", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
-      { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
-      { name: "active", type: "bool" },
-    ]}]
-  },
-  { name: "completedCalls", type: "function", stateMutability: "view",
-    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
-  { name: "slashedCalls", type: "function", stateMutability: "view",
-    inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
-] as const;
-
-const PPC_ABI = [
-  { name: "callService", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "providerId", type: "uint256" }, { name: "requestHash", type: "bytes32" }],
-    outputs: [{ name: "callId", type: "bytes32" }]
-  },
-  { name: "claimTimeout", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "callId", type: "bytes32" }], outputs: []
-  },
-] as const;
-
-// CRITICAL-02 fix: respondedAt (uint64) added — matches PayPerCall.sol submitReceipt signature
-const SUBMIT_RECEIPT_ABI = [
-  { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
-    inputs: [
-      { name: "callId",       type: "bytes32" },
-      { name: "responseHash", type: "bytes32" },
-      { name: "respondedAt",  type: "uint64"  },
-      { name: "signature",    type: "bytes"   },
-    ], outputs: [] },
-] as const;
-
-// ABI for parsing CallStarted event to extract real callId (CRITICAL-03)
-const CALL_STARTED_ABI = [
-  { name: "CallStarted", type: "event",
-    inputs: [
-      { name: "callId",      type: "bytes32", indexed: true  },
-      { name: "providerId",  type: "uint256", indexed: true  },
-      { name: "caller",      type: "address", indexed: true  },
-      { name: "amount",      type: "uint256", indexed: false },
-      { name: "requestHash", type: "bytes32", indexed: false },
-      { name: "deadline",    type: "uint32",  indexed: false },
-    ]
-  },
-] as const;
+// Aliases for local readability — both reference the same canonical PPC_ABI from config
+const SUBMIT_RECEIPT_ABI = PPC_ABI;  // contains submitReceipt with correct respondedAt uint64
+const CALL_STARTED_ABI   = PPC_ABI;  // contains CallStarted event definition
 
 type Chain = "arc" | "sepolia" | "base" | "amoy";
 

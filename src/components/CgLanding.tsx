@@ -438,7 +438,8 @@ export default function CgLanding() {
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12}}>
             {providers.slice(0,6).map((p: Provider)=>{
               const tot = Number(p.completedCalls)+Number(p.slashedCalls);
-              const honPct = tot>0 ? Math.round(((Number(p.completedCalls)+2)/(tot+3))*100) : 66;
+              // MEDIUM-05: consistent honor rate formula
+              const honPct = tot>0 ? Math.round((Number(p.completedCalls)/tot)*100) : 100;
               return (
               <div key={p.id} style={{background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:12,padding:"16px",cursor:"pointer"}} onClick={connect}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>

@@ -72,9 +72,37 @@ export const PPC_ABI = [
   { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"callId",type:"bytes32"},{name:"responseHash",type:"bytes32"},{name:"respondedAt",type:"uint64"},{name:"signature",type:"bytes"}],
     outputs: [] },
-  { name: "claimTimeout", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"uint256"}], outputs: [] },
-  { name: "calls", type: "function", stateMutability: "view", inputs: [{name:"callId",type:"uint256"}], outputs: [{name:"providerId",type:"uint256"},{name:"caller",type:"address"},{name:"amount",type:"uint256"},{name:"requestHash",type:"bytes32"},{name:"deadline",type:"uint256"},{name:"status",type:"uint8"},{name:"respondedAt",type:"uint256"},{name:"responseHash",type:"bytes32"}] },
-  { name: "nextCallId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  // MEDIUM-01: claimTimeout takes bytes32 callId (not uint256)
+  { name: "claimTimeout", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"bytes32"}], outputs: [] },
+  // MEDIUM-02: calls() output matches struct Call exactly (no respondedAt field in struct)
+  { name: "calls", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}],
+    outputs: [
+      {name:"providerId",type:"uint256"},
+      {name:"caller",type:"address"},
+      {name:"amount",type:"uint256"},
+      {name:"startedAt",type:"uint32"},
+      {name:"deadline",type:"uint32"},
+      {name:"requestHash",type:"bytes32"},
+      {name:"responseHash",type:"bytes32"},
+      {name:"status",type:"uint8"}
+    ] },
+  // Events (needed for log decoding)
+  { name: "CallStarted", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"providerId",type:"uint256",indexed:true},
+      {name:"caller",type:"address",indexed:true},
+      {name:"amount",type:"uint256",indexed:false},
+      {name:"requestHash",type:"bytes32",indexed:false},
+      {name:"deadline",type:"uint32",indexed:false}
+    ] },
+  { name: "ReceiptSubmitted", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"responseHash",type:"bytes32",indexed:false},
+      {name:"respondedAt",type:"uint64",indexed:false}
+    ] },
 ] as const;
 
 
