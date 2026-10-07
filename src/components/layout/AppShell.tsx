@@ -65,6 +65,7 @@ export default function AppShell() {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
   useEffect(() => initTabTitleCounter(), []);

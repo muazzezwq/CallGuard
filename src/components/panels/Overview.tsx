@@ -114,9 +114,9 @@ export default function Overview() {
     ? `${Math.round((Number(totalReceipts) / Number(totalCalls)) * 100)}%` : "—";
   const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
-  const allCalls = sg?.data?.calls ?? [];
+  const allCalls = (sg as any)?.calls ?? [];
   const activities = allCalls.slice(0, 8);
-  const topProviders = sg?.data?.providers ?? [];
+  const topProviders = (sg as any)?.providers ?? [];
   const chartData = buildActivityChart(allCalls);
 
   // Auto-router state

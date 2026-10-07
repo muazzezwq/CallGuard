@@ -81,7 +81,13 @@ function Terminal() {
 export default function CgLanding() {
   const { setOpen } = useModal();
   const connect = () => setOpen(true);
-  const { mode, setMode } = useAppStore();
+  const { mode, setMode, theme, setTheme } = useAppStore();
+
+  // Apply theme to DOM
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.body.setAttribute("data-theme", theme);
+  }, [theme]);
   const { data: raw, isLoading: loading } = useSubgraph(Q);
   const data = raw as CGData | undefined;
 

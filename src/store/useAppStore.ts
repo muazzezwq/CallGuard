@@ -33,7 +33,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       activePanel: "overview",
       mode: "simple",
-      theme: "dark",
+      theme: "light",
       advancedOpen: false,
       setPanel: (panel) => set({ activePanel: normalizePanel(panel) }),
       setMode: (mode) => set({ mode, advancedOpen: mode === "pro" }),

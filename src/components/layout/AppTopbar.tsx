@@ -14,7 +14,7 @@ export default function AppTopbar({
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { setOpen } = useModal();
-  const { theme, setTheme } = useAppStore();
+  const { theme, setTheme, mode, setMode } = useAppStore();
 
   const { data: usdcRaw } = useUsdcBalance(address);
   const usdcBal = usdcRaw ? (Number(usdcRaw) / 1e6).toFixed(2) : null;
@@ -46,10 +46,23 @@ export default function AppTopbar({
 
       {/* Right: controls */}
       <div className="tb-right">
+
+        {/* Simple / Pro toggle — always visible */}
+        <div className="tb-mode-toggle">
+          <button
+            className={`tb-mode-btn${mode === "simple" ? " active" : ""}`}
+            onClick={() => setMode("simple")}
+          >Simple</button>
+          <button
+            className={`tb-mode-btn${mode === "pro" ? " active" : ""}`}
+            onClick={() => setMode("pro")}
+          >Pro</button>
+        </div>
+
         {/* Network pill */}
         <div className={`net-pill${isConnected ? " ok" : ""}`}>
           <span className="net-dot" />
-          <span className="tb-hide-sm">{isConnected ? "Arc Testnet" : "Disconnected"}</span>
+          <span className="tb-hide-sm">{isConnected ? "Arc Testnet" : ""}</span>
         </div>
 
         {/* USDC balance — only when connected */}
@@ -68,16 +81,19 @@ export default function AppTopbar({
         {/* Connect / address */}
         {!isConnected ? (
           <button className="btn btn-primary tb-connect" onClick={() => setOpen(true)}>
-            Connect wallet
+            Connect
           </button>
         ) : (
           <>
             <button className="tb-addr tb-hide-sm" title={copied ? "Copied!" : "Copy address"} onClick={copy}>
               {copied ? "✓" : short}
             </button>
-            <button className="btn btn-danger btn-sm" onClick={() => disconnect()}>
-              Reset
-            </button>
+            <button
+              className="tb-addr"
+              style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }}
+              onClick={() => disconnect()}
+              title="Disconnect"
+            >✕</button>
           </>
         )}
 
