@@ -122,7 +122,16 @@ export default function Providers() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const p = provData as { signer:string; pricePerCall:bigint; maxResponseTime:number; slashBps:number; active:boolean; stakeAmount:bigint } | undefined;
+  // getProvider returns a 7-field tuple: [id, owner, pricePerCall, maxResponseTime, slashBps, active, stakeAmount]
+  const raw = provData as readonly [bigint, string, bigint, bigint, bigint, boolean, bigint] | undefined;
+  const p = raw && raw[1] ? {
+    signer:          raw[1],
+    pricePerCall:    raw[2] ?? 0n,
+    maxResponseTime: Number(raw[3] ?? 0n),
+    slashBps:        Number(raw[4] ?? 0n),
+    active:          raw[5] ?? false,
+    stakeAmount:     raw[6] ?? 0n,
+  } : undefined;
   const shorten = (a: string) => `${a.slice(0,8)}…${a.slice(-6)}`;
 
   return (
