@@ -6,7 +6,6 @@ import OnboardingWizard from "./OnboardingWizard";
 import LiveBar from "./LiveBar";
 import CommandPalette from "./CommandPalette";
 import { initTabTitleCounter } from "../../lib/utils";
-import AppFooter from "../ui/AppFooter";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
