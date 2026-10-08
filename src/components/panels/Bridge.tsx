@@ -19,16 +19,20 @@ const USDC_ABI = [
   { name: "balanceOf", type: "function" as const, stateMutability: "view" as const, inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
 ] as const;
 
+// HIGH-05 fix: CCTP v2 TokenMessenger depositForBurn has 7 params
 const TOKEN_MESSENGER_ABI = [
   {
     name: "depositForBurn",
     type: "function" as const,
     stateMutability: "nonpayable" as const,
     inputs: [
-      { name: "amount", type: "uint256" },
-      { name: "destinationDomain", type: "uint32" },
-      { name: "mintRecipient", type: "bytes32" },
-      { name: "burnToken", type: "address" },
+      { name: "amount",                type: "uint256" },
+      { name: "destinationDomain",     type: "uint32"  },
+      { name: "mintRecipient",         type: "bytes32" },
+      { name: "burnToken",             type: "address" },
+      { name: "destinationCaller",     type: "bytes32" },
+      { name: "maxFee",                type: "uint256" },
+      { name: "minFinalityThreshold",  type: "uint32"  },
     ],
     outputs: [{ name: "nonce", type: "uint64" }],
   },
@@ -148,7 +152,8 @@ export default function Bridge() {
         address: src.tokenMessenger,
         abi: TOKEN_MESSENGER_ABI,
         functionName: "depositForBurn",
-        args: [parsedAmount, ARC_DOMAIN, mintRecipient, src.usdcAddr],
+        // HIGH-05 fix: CCTP v2 requires 7 args — destinationCaller=0x0, maxFee=0, minFinalityThreshold=1000
+        args: [parsedAmount, ARC_DOMAIN, mintRecipient, src.usdcAddr, `0x${"0".repeat(64)}` as `0x${string}`, BigInt(0), 1000],
         chain: undefined,
         account: address,
       });

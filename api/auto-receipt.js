@@ -4,7 +4,8 @@
 
 import { ethers } from "ethers";
 
-const RPC_URL = process.env.ARC_RPC_URL;
+// HIGH-08 fix: fallback chain for multiple RPC env var names
+const RPC_URL = process.env.ARC_RPC_URL || process.env.ARC_TESTNET_RPC_URL || process.env.RPC_URL;
 // LOW-02: prefer unprefixed env vars on the server side; VITE_* as fallback
 const PAY_PER_CALL_ADDR = process.env.PAY_PER_CALL || process.env.VITE_PAY_PER_CALL;
 const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "5042002");

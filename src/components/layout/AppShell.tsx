@@ -130,7 +130,6 @@ export default function AppShell() {
         <Suspense fallback={<PanelLoader />}>
           {ActivePanel ? <ActivePanel /> : <PanelLoader />}
         </Suspense>
-        <AppFooter />
       </main>
 
       {/* ── Onboarding ── */}

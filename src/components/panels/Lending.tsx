@@ -1,23 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
-import { arcTestnet, CONFIG, USDC_ABI } from "../../lib/config";
+import { arcTestnet, CONFIG, USDC_ABI, REPUTATION_LOAN_ABI } from "../../lib/config";
 import { TrendingUp, DollarSign, RefreshCw, AlertTriangle } from "lucide-react";
 
-const RL_ADDR = "0xE656dF6512e9d10e555518b7342fd8c81c42B8c0" as `0x${string}`;
+// CRITICAL-01 fix: use v2 address from CONFIG, not hardcoded v1 address
+const RL_ADDR = CONFIG.reputationLoanAddress;
 
-const RL_ABI = [
-  { name: "deposit",   type: "function", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }], outputs: [] },
-  { name: "withdraw",  type: "function", stateMutability: "nonpayable", inputs: [{ name: "shares", type: "uint256" }], outputs: [] },
-  { name: "borrow",    type: "function", stateMutability: "nonpayable", inputs: [{ name: "providerId", type: "uint256" }, { name: "amount", type: "uint256" }], outputs: [{ name: "", type: "uint256" }] },
-  { name: "repay",     type: "function", stateMutability: "nonpayable", inputs: [{ name: "loanId", type: "uint256" }], outputs: [] },
-  { name: "loanCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
-  { name: "loans",     type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "borrower", type: "address" }, { name: "providerId", type: "uint256" }, { name: "principal", type: "uint256" }, { name: "startTime", type: "uint256" }, { name: "duration", type: "uint256" }, { name: "active", type: "bool" }] }] },
-  { name: "poolBalance", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
-  { name: "totalShares", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
-  { name: "balanceOf",   type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
-  { name: "interestRate", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
-] as const;
+// CRITICAL-02 fix: use canonical REPUTATION_LOAN_ABI from config
+// repay(loanId, amount) — 2 arguments, not 1
+const RL_ABI = REPUTATION_LOAN_ABI;
 
 const s = {
   page: { padding: "20px 16px", maxWidth: 860, margin: "0 auto" },
@@ -51,11 +43,15 @@ export default function Lending() {
 
   const { writeContractAsync } = useWriteContract();
 
-  const { data: poolBalance, refetch: refetchPool } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "poolBalance", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
+  // CRITICAL-02: REPUTATION_LOAN_ABI uses totalAssets, not poolBalance
+  const { data: poolBalance, refetch: refetchPool } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "totalAssets", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
   const { data: totalShares, refetch: refetchShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "totalShares", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
-  const { data: myShares, refetch: refetchMyShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: arcTestnet.id, query: { enabled: !!address, refetchInterval: 20_000 } });
+  // CRITICAL-02: lpPositions(address) returns {shares, depositTime} — no balanceOf
+  const { data: lpPos, refetch: refetchMyShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "lpPositions", args: address ? [address] : undefined, chainId: arcTestnet.id, query: { enabled: !!address, refetchInterval: 20_000 } });
+  const myShares = (lpPos as any)?.shares;
   const { data: loanCount } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "loanCount", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
-  const { data: interestRate } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "interestRate", chainId: arcTestnet.id });
+  // interestRate not in REPUTATION_LOAN_ABI v2 — use fixed display value
+  const interestRate = undefined;
 
   const refetchAll = useCallback(() => { refetchPool(); refetchShares(); refetchMyShares(); }, [refetchPool, refetchShares, refetchMyShares]);
 
@@ -108,7 +104,8 @@ export default function Lending() {
     try {
       await writeContractAsync({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "approve", args: [RL_ADDR, totalWei], chainId: arcTestnet.id });
       setStatus(`⏳ Repaying loan #${loanId}…`);
-      await writeContractAsync({ address: RL_ADDR, abi: RL_ABI, functionName: "repay", args: [BigInt(loanId)], chainId: arcTestnet.id });
+      // CRITICAL-02 fix: repay(loanId, amount) — 2 args
+      await writeContractAsync({ address: RL_ADDR, abi: RL_ABI, functionName: "repay", args: [BigInt(loanId), totalWei], chainId: arcTestnet.id });
       setStatus(`✅ Loan #${loanId} repaid`);
       refetchAll();
     } catch (e: unknown) { setStatus("❌ " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e)))); }

@@ -4,7 +4,7 @@ import { parseUnits, formatUnits } from "viem";
 import { arcTestnet, CONFIG, USDC_ABI } from "../../lib/config";
 import { Package, ShoppingCart, Flame, RefreshCw } from "lucide-react";
 
-const FUTURES_ADDR = "0xa6f194c621eE67559aDcA883824e01F1828e887c" as `0x${string}`;
+const FUTURES_ADDR = CONFIG.slaFuturesAddress;
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const FUTURES_ABI = [
@@ -15,7 +15,10 @@ const FUTURES_ABI = [
   { name: "claimRefund",   type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
   { name: "batchCount",    type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
   { name: "batches",       type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "providerId", type: "uint256" }, { name: "pricePerCall", type: "uint256" }, { name: "totalSlots", type: "uint256" }, { name: "soldSlots", type: "uint256" }, { name: "usedSlots", type: "uint256" }, { name: "deadline", type: "uint64" }, { name: "active", type: "bool" }, { name: "provider", type: "address" }] }] },
-  { name: "purchased",     type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }, { name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  { name: "purchased",       type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }, { name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  // HLB-02: provider pull settlement
+  { name: "providerClaimable", type: "function", stateMutability: "view", inputs: [{ name: "batchId", type: "uint256" }], outputs: [{ name: "", type: "uint256" }] },
+  { name: "claimProceeds",     type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
 ] as const;
 
 const s = {
@@ -53,6 +56,8 @@ export default function Futures() {
   const [buyAmount, setBuyAmount] = useState("1");
   const [burnBatchId, setBurnBatchId] = useState("1");
   const [cancelBatchId, setCancelBatchId] = useState("1");
+  // HIGH-09: claimProceeds
+  const [claimBatchId, setClaimBatchId] = useState("1");
 
   const { writeContractAsync } = useWriteContract();
   const { data: batchCount, refetch: refetchCount } = useReadContract({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "batchCount", chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
@@ -102,6 +107,17 @@ export default function Futures() {
     } catch (e: unknown) { setStatus("❌ " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e)))); }
     setLoading(false);
   }, [isConnected, burnBatchId, writeContractAsync]);
+
+  // HIGH-09: provider claims proceeds from sold slots (pull settlement)
+  const handleClaimProceeds = useCallback(async () => {
+    if (!isConnected) { setStatus("❌ Connect wallet"); return; }
+    setLoading(true);
+    try {
+      const txHash = await writeContractAsync({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "claimProceeds", args: [BigInt(claimBatchId)], chainId: arcTestnet.id });
+      setStatus(`✅ Proceeds claimed for batch #${claimBatchId}! TX: ${txHash.slice(0, 14)}…`);
+    } catch (e: unknown) { setStatus("❌ " + (e instanceof Error ? e.message : String(e))); }
+    setLoading(false);
+  }, [isConnected, claimBatchId, writeContractAsync]);
 
   const handleCancel = useCallback(async () => {
     if (!isConnected) { setStatus("❌ Connect wallet"); return; }
@@ -206,6 +222,16 @@ export default function Futures() {
           </button>
 
           <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+            <div style={s.sectionTitle}>CLAIM PROCEEDS (provider)</div>
+            <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>Claim your USDC from sold slots. Funds are held in escrow until you claim.</p>
+            <label style={s.label}>Batch ID</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input style={{ ...s.input, flex: 1 }} type="number" min="1" value={claimBatchId} onChange={e => setClaimBatchId(e.target.value)} />
+              <button style={s.btn("primary", loading || !isConnected)} onClick={handleClaimProceeds} disabled={loading || !isConnected}>Claim</button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
             <div style={s.sectionTitle}>CANCEL BATCH</div>
             <label style={s.label}>Batch ID</label>
             <div style={{ display: "flex", gap: 8 }}>

@@ -183,7 +183,8 @@ export default function Register() {
       address: CONFIG.registryAddress as `0x${string}`,
       abi: REGISTRY_ABI,
       functionName: "register",
-      args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, (endpoint || "0x00") as `0x${string}`],
+      // CRITICAL-03 fix: endpoint is string, not hex address
+    args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""],
     }, { onSuccess: h => setHash(h) });
   };
 

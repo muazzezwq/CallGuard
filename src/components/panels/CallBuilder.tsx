@@ -85,12 +85,14 @@ export default function CallBuilder() {
     query: { enabled: providerIdNum > 0, refetchInterval: 30_000 },
   });
 
-  const provider = providerData as any;
-  const price    = provider?.pricePerCall    ?? BigInt(0);
-  const slaWindow = provider?.maxResponseTime ?? 0;
-  const slashBps  = provider?.slashBps        ?? 0;
-  const active    = provider?.active          ?? false;
-  const stake     = provider?.stake           ?? BigInt(0);
+  // HIGH-01 fix: getProvider returns 7-field indexed tuple, not named struct
+  // [0]=owner [1]=signer [2]=stake [3]=pricePerCall [4]=maxResponseTime [5]=slashBps [6]=active
+  const raw = providerData as readonly [string, string, bigint, bigint, number, number, boolean] | undefined;
+  const price     = raw?.[3]  ?? BigInt(0);
+  const slaWindow = raw?.[4]  ?? 0;
+  const slashBps  = raw?.[5]  ?? 0;
+  const active    = raw?.[6]  ?? false;
+  const stake     = raw?.[2]  ?? BigInt(0);
 
   // HIGH-03 fix: completedCalls/slashedCalls are separate reads (not in getProvider tuple)
   const { data: completedCallsRaw } = useReadContract({
@@ -99,7 +101,7 @@ export default function CallBuilder() {
     functionName: "completedCalls",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!provider, refetchInterval: 60_000 },
+    query: { enabled: providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
   });
   const { data: slashedCallsRaw } = useReadContract({
     address: CONFIG.registryAddress as `0x${string}`,
@@ -107,7 +109,7 @@ export default function CallBuilder() {
     functionName: "slashedCalls",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!provider, refetchInterval: 60_000 },
+    query: { enabled: providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
   });
   const completedN = completedCallsRaw ? Number(completedCallsRaw) : 0;
   const slashedN   = slashedCallsRaw   ? Number(slashedCallsRaw)   : 0;
@@ -153,8 +155,30 @@ export default function CallBuilder() {
     const budgetCheck = checkBudget(priceUsdc);
     if (!budgetCheck.ok) { setStatus(`❌ ${budgetCheck.message}`); return; }
     setIsLoading(true);
-    setStatus("⏳ Sending transaction...");
+    setStatus("⏳ Checking USDC allowance...");
     try {
+      // MEDIUM-01: ensure PayPerCall has USDC approval before callService
+      if (publicClient && price > 0n) {
+        const allowed = await publicClient.readContract({
+          address: CONFIG.usdcAddress as `0x${string}`,
+          abi: [{ name:"allowance",type:"function",stateMutability:"view",inputs:[{name:"owner",type:"address"},{name:"spender",type:"address"}],outputs:[{type:"uint256"}] }] as const,
+          functionName: "allowance",
+          args: [address as `0x${string}`, CONFIG.payPerCall as `0x${string}`],
+        });
+        if ((allowed as bigint) < price) {
+          setStatus("⏳ Approving USDC (confirm in wallet)...");
+          const approveHash = await writeContractAsync({
+            address: CONFIG.usdcAddress as `0x${string}`,
+            abi: [{ name:"approve",type:"function",stateMutability:"nonpayable",inputs:[{name:"spender",type:"address"},{name:"value",type:"uint256"}],outputs:[{type:"bool"}] }] as const,
+            functionName: "approve",
+            args: [CONFIG.payPerCall as `0x${string}`, maxUint256],
+            chainId: arcTestnet.id,
+          });
+          await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 30_000 });
+          setStatus("✅ Approved. Sending call...");
+        }
+      }
+      setStatus("⏳ Sending transaction...");
       const reqHash = keccak256(stringToBytes(payload)) as `0x${string}`;
       const hash = await writeContractAsync({
         address: CONFIG.payPerCall as `0x${string}`,
@@ -495,7 +519,7 @@ export default function CallBuilder() {
           </div>
 
           {/* Risk badge */}
-          {provider && <RiskBadge honorRate={honorRate} stake={stake} price={price} />}
+          {providerData && <RiskBadge honorRate={honorRate} stake={stake} price={price} />}
 
           {/* Call ID */}
           <div style={{ marginBottom:16 }}>

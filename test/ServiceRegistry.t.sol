@@ -27,7 +27,7 @@ contract ServiceRegistryTest is Test {
     function setUp() public {
         vm.startPrank(admin);
         usdc = new MockUSDC();
-        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, address(this));
+        registry = new ServiceRegistry(IERC20(address(usdc)), MIN_STAKE, admin);
         registry.setPayPerCall(payPerCall);
         vm.stopPrank();
 

@@ -2,7 +2,7 @@ import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits, parseUnits } from "viem";
 import { useState } from "react";
-import { CONFIG, USDC_ABI, PPC_ABI } from "../../lib/config";
+import { CONFIG, USDC_ABI, PPC_ABI, arcTestnet } from "../../lib/config";
 
 export default function Payments() {
   const { address, isConnected } = useAccount();
@@ -18,6 +18,18 @@ export default function Payments() {
     query: { enabled: !!address, refetchInterval: 10000 },
   });
 
+  // CRITICAL-06: claimable balance from PayPerCall pull settlement model
+  const { data: claimableData, refetch: refetchClaimable } = useReadContract({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: PPC_ABI,
+    functionName: "claimable",
+    args: [address as `0x${string}`],
+    chainId: arcTestnet.id,
+    query: { enabled: !!address, refetchInterval: 10000 },
+  });
+  const claimableAmt = claimableData ? formatUnits(claimableData as bigint, 6) : "0";
+  const hasClaimable = claimableData ? (claimableData as bigint) > 0n : false;
+
   const { writeContractAsync } = useWriteContract();
 
   const { data, loading } = useSubgraph<{calls:any[]}>(address ? `{
@@ -28,8 +40,28 @@ export default function Payments() {
 
   const totalSpent = (data?.calls ?? []).reduce((s:number,c:any)=>s+Number(formatUnits(BigInt(c.amount??0),6)),0);
 
+  // CRITICAL-06: claim() pull settlement
+  const handleClaim = async () => {
+    if (!isConnected) return;
+    try {
+      setStatus("Claiming...");
+      await writeContractAsync({
+        address: CONFIG.ppcAddress as `0x${string}`,
+        abi: PPC_ABI,
+        functionName: "claim",
+        chainId: arcTestnet.id,
+      });
+      setStatus("Claimed!");
+      void refetchClaimable();
+    } catch(e:any){ setStatus(e.shortMessage ?? (e instanceof Error ? e.message : String(e))); }
+  };
+
   const handleSend = async () => {
     if (!isConnected || !sendTo || !sendAmt) return;
+    // MEDIUM-04: validate address format before sending
+    if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setStatus("Invalid address format"); return; }
+    const amt = parseFloat(sendAmt);
+    if (isNaN(amt) || amt <= 0) { setStatus("Invalid amount"); return; }
     try {
       setStatus("Sending...");
       await writeContractAsync({
@@ -54,6 +86,15 @@ export default function Payments() {
         <div className="balance-value">{balance} <span className="text-dim" style={{fontSize:20}}>USDC</span></div>
         <div className="balance-meta text-dim text-xs">On Arc Testnet · {totalSpent.toFixed(2)} USDC spent on calls</div>
       </div>
+
+      {/* CRITICAL-06: Provider claimable settlement */}
+      {hasClaimable && (
+        <div className="cg-card mb-4" style={{border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.05)"}}>
+          <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Claimable Settlement</div>
+          <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{claimableAmt} USDC</strong> from completed calls ready to claim.</p>
+          <button className="btn btn-primary" onClick={handleClaim}>Claim {claimableAmt} USDC →</button>
+        </div>
+      )}
 
       <div className="cg-card mb-4">
         <div className="card-title mb-3">Send USDC</div>

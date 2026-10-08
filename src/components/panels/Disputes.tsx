@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useReadContracts } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useReadContracts, useReadContract } from "wagmi";
+import { formatUnits } from "viem";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { CONFIG, DISPUTE_QUALITY_ABI } from "../../lib/config";
 
@@ -24,6 +25,7 @@ export default function Disputes() {
 
   const [tab, setTab] = useState<"open" | "vote" | "mine" | "history">("open");
   const [callIdInput, setCallIdInput] = useState("");
+  const [providerIdInput, setProviderIdInput] = useState("1"); // HIGH-03: user-provided, not hardcoded
   const [evidence, setEvidence] = useState("");
   const [status, setStatus] = useState("");
 
@@ -57,6 +59,31 @@ export default function Disputes() {
     myDisputesQuery, { enabled: !!address, pollInterval: 30000 }
   );
 
+  // HIGH-04: pendingWithdrawals from DisputeQuality pull model
+  const { data: pendingPayout, refetch: refetchPayout } = useReadContract({
+    address: CONFIG.disputeQualityAddress as `0x${string}`,
+    abi: DISPUTE_QUALITY_ABI,
+    functionName: "pendingWithdrawals",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, refetchInterval: 15000 },
+  });
+  const hasPayout = pendingPayout ? (pendingPayout as bigint) > 0n : false;
+  const payoutAmt = pendingPayout ? formatUnits(pendingPayout as bigint, 6) : "0";
+
+  const handleWithdrawPayout = useCallback(async () => {
+    try {
+      await writeContractAsync({
+        address: CONFIG.disputeQualityAddress as `0x${string}`,
+        abi: DISPUTE_QUALITY_ABI,
+        functionName: "withdrawPayout",
+      });
+      setTimeout(() => void refetchPayout(), 3000);
+    } catch (e: unknown) {
+      const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
+      setStatus(`❌ Withdraw failed: ${msg}`);
+    }
+  }, [writeContractAsync, refetchPayout]);
+
   // LOW-01: read bond/window values from contract instead of hardcoding
   const dqAddr = CONFIG.disputeQualityAddress as `0x${string}`;
   const { data: bondData } = useReadContracts({
@@ -86,8 +113,9 @@ export default function Disputes() {
         address: CONFIG.disputeQualityAddress as `0x${string}`,
         abi: DISPUTE_QUALITY_ABI,
         functionName: "openDispute",
+        // HIGH-03 fix: use user-provided providerId, not hardcoded 1
         // settledAt: approximate — use current time minus 1 block (~0.5s)
-        args: [callIdInput as `0x${string}`, BigInt(1), now - 1n, evidence],
+        args: [callIdInput as `0x${string}`, BigInt(providerIdInput || "1"), now - 1n, evidence],
       });
       setStatus("✅ Dispute opened! Bond deducted. Voting window now open.");
       setCallIdInput(""); setEvidence("");
@@ -154,6 +182,15 @@ export default function Disputes() {
         <button className="btn btn-sm" onClick={refetchHistory}>↻</button>
       </div>
 
+      {/* HIGH-04: withdrawPayout banner */}
+      {hasPayout && (
+        <div className="cg-card mb-4" style={{border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.05)"}}>
+          <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Dispute Payout Ready</div>
+          <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{payoutAmt} USDC</strong> from resolved disputes ready to claim.</p>
+          <button className="btn btn-primary" onClick={handleWithdrawPayout}>Claim {payoutAmt} USDC →</button>
+        </div>
+      )}
+
       {/* Dispute protocol info */}
       <div style={{
         background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
@@ -199,12 +236,22 @@ export default function Disputes() {
             <strong style={{ color: "var(--text)" }}>How it works:</strong> Submit the call ID and evidence. Community arbiters vote (stake-weighted majority). Bond: <strong>{callerBondUSDC} USDC</strong> from your wallet.
           </div>
           <div className="form-group mb-3">
-            <label className="form-label">Call ID (numeric)</label>
+            <label className="form-label">Call ID (0x bytes32)</label>
             <input
               className="cg-input mono"
-              placeholder="e.g. 42"
+              placeholder="0xabc123... (32-byte hex)"
               value={callIdInput}
               onChange={e => setCallIdInput(e.target.value)}
+            />
+          </div>
+          <div className="form-group mb-3">
+            <label className="form-label">Provider ID</label>
+            <input
+              className="cg-input mono"
+              placeholder="e.g. 1"
+              type="number" min="1"
+              value={providerIdInput}
+              onChange={e => setProviderIdInput(e.target.value)}
             />
           </div>
           <div className="form-group mb-3">

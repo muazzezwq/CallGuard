@@ -18,7 +18,8 @@ export const CCTP_CONFIG = {
     arc: { chainId: 5042002, chainIdHex: "0x4CEF52", rpcUrl: "https://rpc.testnet.arc.io", name: "Arc Testnet", explorer: "https://explorer.testnet.arc.io" },
   } as Record<string, { chainId: number; chainIdHex: string; rpcUrl: string; name: string; explorer: string }>,
   irisApi: "https://iris-api-sandbox.circle.com/v2/messages",
-  crossChainReceiver: "0x28a683A5fAB9B5DC2608089e86d733aB1f116e5c",
+  // CRITICAL-05 fix: v2 CrossChainReceiver address
+  crossChainReceiver: "0x760326de3cba39994dfd81d2b71b072c0265601c",
 };
 
 export async function switchToChain(chainKey: string): Promise<void> {
@@ -36,7 +37,8 @@ export async function switchToChain(chainKey: string): Promise<void> {
           chainId: chain.chainIdHex,
           chainName: chain.name,
           rpcUrls: [chain.rpcUrl],
-          nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+          // CRITICAL-04 fix: Arc native USDC is 6 decimals, not 18
+          nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
           blockExplorerUrls: [chain.explorer],
         }],
       });

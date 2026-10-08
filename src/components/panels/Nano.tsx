@@ -52,9 +52,11 @@ export default function Nano() {
     setLoading(true)
     setOutput('⚡ Initiating nanopayment call...')
     try {
+      // MEDIUM-09: include X-Api-Key if configured via VITE_NANO_API_KEY env
+      const nanoKey = import.meta.env.VITE_NANO_API_KEY as string | undefined;
       const res = await fetch('/api/nano-call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(nanoKey ? { 'X-Api-Key': nanoKey } : {}) },
         body: JSON.stringify({ caller: address, providerId: nanoPId, payload: 'nano-ping', amount: '0.001' })
       })
       const data = await res.json()
@@ -107,8 +109,9 @@ export default function Nano() {
       let total = 0n
       for (const id of ids) {
         try {
-          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] })
-          if (p.active) total += p.pricePerCall // active → add pricePerCall
+          // HIGH-02 fix: getProvider returns indexed tuple [0]=owner [1]=signer [2]=stake [3]=pricePerCall [4]=maxResponseTime [5]=slashBps [6]=active
+          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as unknown as readonly [string, string, bigint, bigint, number, number, boolean]
+          if (p[6]) total += p[3] // active → add pricePerCall
         } catch { /* skip */ }
       }
 

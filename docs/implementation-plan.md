@@ -1,1 +1,1 @@
-Footer'ı kaldırıyorum.Build moduna geç, sonra kaldırırım.
+Tüm fix'leri sırayla uyguluyorum. Önce CONFIG'de eksik adresleri kontrol edeyim:Build moduna geçmem gerekiyor.
