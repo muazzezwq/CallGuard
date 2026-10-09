@@ -188,91 +188,6 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     }
 
     // ---------------------------------------------------------------------
-    // Open a call — x402 path (EIP-3009 transferWithAuthorization)
-    // ---------------------------------------------------------------------
-
-    /// @notice Open a service call using an EIP-3009 payment authorization.
-    /// @dev    The caller (msg.sender) acts as the x402 facilitator/relayer.
-    ///         The actual payer is `from` — the address that signed the
-    ///         EIP-3009 TransferWithAuthorization message.
-    ///         USDC is pulled from `from` into escrow via transferWithAuthorization,
-    ///         so the payer never needs to call approve().
-    /// @param providerId  Target provider ID in ServiceRegistry.
-    /// @param requestHash keccak256 of the request payload.
-    /// @param from        Payer address (EIP-3009 authorization signer).
-    /// @param validAfter  EIP-3009: authorization valid after this timestamp.
-    /// @param validBefore EIP-3009: authorization valid before this timestamp.
-    /// @param authNonce   EIP-3009: unique random nonce (32 bytes).
-    /// @param v           EIP-712 signature v component.
-    /// @param r           EIP-712 signature r component.
-    /// @param s           EIP-712 signature s component.
-    function callServiceWithAuthorization(
-        uint256 providerId,
-        bytes32 requestHash,
-        address from,
-        uint256 validAfter,
-        uint256 validBefore,
-        bytes32 authNonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external nonReentrant returns (bytes32 callId) {
-        // --- Validate authorization timing ---
-        if (block.timestamp < validAfter)  revert AuthorizationNotYetValid();
-        if (block.timestamp > validBefore) revert AuthorizationExpired();
-
-        // --- Replay protection: nonce must not be used ---
-        if (IUSDC(address(usdc)).authorizationState(from, authNonce))
-            revert AuthorizationAlreadyUsed();
-
-        // --- Provider must be active ---
-        IServiceRegistry.ProviderView memory p = registry.getProvider(providerId);
-        if (!p.active) revert ProviderNotActive();
-
-        uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
-        if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
-
-        // --- Authorization amount must cover the provider price ---
-        // (USDC will revert if amount < p.pricePerCall or sig invalid)
-
-        // --- Generate callId (same entropy as callService) ---
-        uint256 currentNonce = nonce++;
-        callId = keccak256(
-            abi.encodePacked(providerId, from, currentNonce, block.timestamp, requestHash, block.chainid)
-        );
-        if (_calls[callId].status != CallStatus.None) revert CallIdCollision();
-
-        uint32 deadline = uint32(block.timestamp) + p.maxResponseTime;
-
-        _calls[callId] = Call({
-            providerId: providerId,
-            caller: from,           // payer is the caller, not the relayer
-            amount: p.pricePerCall,
-            startedAt: uint32(block.timestamp),
-            deadline: deadline,
-            requestHash: requestHash,
-            responseHash: bytes32(0),
-            status: CallStatus.Pending
-        });
-
-        // --- Pull USDC from payer into escrow via EIP-3009 ---
-        // transferWithAuthorization verifies the EIP-712 sig internally.
-        IUSDC(address(usdc)).transferWithAuthorization(
-            from,
-            address(this),
-            p.pricePerCall,
-            validAfter,
-            validBefore,
-            authNonce,
-            v, r, s
-        );
-
-        registry.markCallStarted(providerId);
-
-        emit CallStarted(callId, providerId, from, p.pricePerCall, requestHash, deadline);
-    }
-
-    // ---------------------------------------------------------------------
     // Open a call
     // ---------------------------------------------------------------------
 
@@ -286,6 +201,78 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         returns (bytes32 callId)
     {
         return _callServiceFor(providerId, requestHash, beneficiary);
+    }
+
+    /// @notice x402 / EIP-3009 entry point. Caller authorises the USDC transfer
+    ///         inline — no prior approve() required.
+    /// @param providerId   Target provider ID.
+    /// @param requestHash  Keccak256 hash of the request payload.
+    /// @param beneficiary  Address to credit on timeout / refund (use msg.sender for normal callers).
+    /// @param validAfter   EIP-3009 validAfter timestamp.
+    /// @param validBefore  EIP-3009 validBefore timestamp (must be > block.timestamp).
+    /// @param authNonce    EIP-3009 nonce (must be unique per authorizer).
+    /// @param v            Signature v.
+    /// @param r            Signature r.
+    /// @param s            Signature s.
+    function callServiceWithAuthorization(
+        uint256 providerId,
+        bytes32 requestHash,
+        address beneficiary,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 authNonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant returns (bytes32 callId) {
+        if (beneficiary == address(0)) revert InvalidBeneficiary();
+        if (block.timestamp < validAfter) revert AuthorizationNotYetValid();
+        if (block.timestamp > validBefore) revert AuthorizationExpired();
+
+        if (IUSDC(address(usdc)).authorizationState(beneficiary, authNonce)) {
+            revert AuthorizationAlreadyUsed();
+        }
+
+        IServiceRegistry.ProviderView memory p = registry.getProvider(providerId);
+        if (!p.active) revert ProviderNotActive();
+
+        uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
+        if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
+
+        uint256 currentNonce = nonce++;
+        callId = keccak256(
+            abi.encodePacked(providerId, beneficiary, currentNonce, block.timestamp, requestHash, block.chainid)
+        );
+        if (_calls[callId].status != CallStatus.None) revert CallIdCollision();
+
+        uint32 deadline = uint32(block.timestamp) + p.maxResponseTime;
+
+        _calls[callId] = Call({
+            providerId: providerId,
+            caller: beneficiary,
+            amount: p.pricePerCall,
+            startedAt: uint32(block.timestamp),
+            deadline: deadline,
+            requestHash: requestHash,
+            responseHash: bytes32(0),
+            status: CallStatus.Pending
+        });
+
+        IUSDC(address(usdc)).transferWithAuthorization(
+            beneficiary,
+            address(this),
+            p.pricePerCall,
+            validAfter,
+            validBefore,
+            authNonce,
+            v,
+            r,
+            s
+        );
+
+        registry.markCallStarted(providerId);
+
+        emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
     }
 
     function _callServiceFor(uint256 providerId, bytes32 requestHash, address beneficiary)

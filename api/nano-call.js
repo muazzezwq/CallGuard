@@ -10,16 +10,47 @@ const SELLER    = process.env.SELLER_ADDRESS;
 // Required API key — callers must send X-Api-Key: <value> header
 const NANO_API_KEY = process.env.NANO_API_KEY;
 
-// In-memory rate limiter: max 5 calls per IP per 60 seconds
-const rateLimiter = new Map(); // ip -> { count, resetAt }
+// Persistent rate limiter via Upstash Redis REST API (serverless-safe).
+// Falls back to in-memory if UPSTASH_REDIS_REST_URL is not set.
 const RATE_LIMIT  = 5;
-const RATE_WINDOW = 60_000; // ms
+const RATE_WINDOW = 60; // seconds
 
-function checkRateLimit(ip) {
+const UPSTASH_URL   = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+// In-memory fallback (single-instance only — not reliable on serverless)
+const _memStore = new Map();
+
+async function checkRateLimit(ip) {
+  const key = `rl:nano:${ip}`;
+
+  // --- Upstash persistent path ---
+  if (UPSTASH_URL && UPSTASH_TOKEN) {
+    try {
+      // INCR key
+      const incrRes = await fetch(`${UPSTASH_URL}/incr/${key}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+      });
+      const { result: count } = await incrRes.json();
+      // Set TTL only on first request (count === 1)
+      if (count === 1) {
+        await fetch(`${UPSTASH_URL}/expire/${key}/${RATE_WINDOW}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+        });
+      }
+      return count <= RATE_LIMIT;
+    } catch {
+      // Upstash unreachable — fall through to in-memory
+    }
+  }
+
+  // --- In-memory fallback ---
   const now = Date.now();
-  const entry = rateLimiter.get(ip);
+  const entry = _memStore.get(key);
   if (!entry || now > entry.resetAt) {
-    rateLimiter.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    _memStore.set(key, { count: 1, resetAt: now + RATE_WINDOW * 1000 });
     return true;
   }
   if (entry.count >= RATE_LIMIT) return false;

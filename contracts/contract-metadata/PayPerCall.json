@@ -1,13 +1,20 @@
 {
-  "contractAddress": "0x389b44b7ad68c9e661a9ef2625f958840c31b601",
+  "contractAddress": "0xe901462b31f8a42262a2fc5ea3ee4f373cb75630",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/PayPerCall.sol",
   "contract_compiled_code_path": "/home/user/app/out/PayPerCall.sol/PayPerCall.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x389b44b7ad68c9e661a9ef2625f958840c31b601"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xe901462b31f8a42262a2fc5ea3ee4f373cb75630"
   },
   "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0xe901462b31f8a42262a2fc5ea3ee4f373cb75630",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xe901462b31f8a42262a2fc5ea3ee4f373cb75630",
+      "txHash": "0xa5218a7b6a4e72746e00ee6cbe809f23e464376e32eda7f5b1de1aadafd70f09",
+      "deployedAt": "2026-10-09T16:11:32.264Z"
+    },
     {
       "chain": "Arc Testnet",
       "address": "0x389b44b7ad68c9e661a9ef2625f958840c31b601",
@@ -134,7 +141,7 @@
           "internalType": "bytes32"
         },
         {
-          "name": "from",
+          "name": "beneficiary",
           "type": "address",
           "internalType": "address"
         },

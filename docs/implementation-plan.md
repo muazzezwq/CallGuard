@@ -1,1 +1,1 @@
-Tüm fix'leri sırayla uyguluyorum. Önce CONFIG'de eksik adresleri kontrol edeyim:Build moduna geçmem gerekiyor.
+Hepsini sırayla yapıyorum. Build moduna geçmem gerekiyor — mod seçiciden **Build** moduna geç.
