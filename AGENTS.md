@@ -4,7 +4,8 @@
 | Contract | Address | Notes |
 |---|---|---|
 | `ServiceRegistry` (v5) | `0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4` | admin=0xfbac99...06Da (owner wallet) |
-| `PayPerCall` (v6) | `0xe901462b31f8a42262a2fc5ea3ee4f373cb75630` | registry=v5, +callServiceWithAuthorization (x402/EIP-3009) |
+| `PayPerCall` (v5) | `0x389b44b7ad68c9e661a9ef2625f958840c31b601` | registry=v5, setPayPerCall done |
+| `PayPerCall` (v6, standby) | `0xe901462b31f8a42262a2fc5ea3ee4f373cb75630` | +callServiceWithAuthorization; activate via proposePayPerCall timelock |
 | `DisputeQuality` (v2) | `0x7e2771df71c30307a95f038c93077d5350e7789d` | HLB-05 pull payouts (withdrawPayout) |
 | `SLAFutures` (v2) | `0x19d03ff147816c97aad88f1275ad80855dcac9b2` | HLB-02 escrow model (claimProceeds) |
 | `ReputationLoan` (v2) | `0x5a2f5455560ff9957db7fc208f9c819655c3a2d4` | HLB-04 stake-based loan cap |

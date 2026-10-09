@@ -22,8 +22,8 @@ export const CONFIG = {
   // Core contracts (v5 — admin=owner cüzdan, 7 Oct 2026)
   registry: "0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4",
   registryAddress: "0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4" as `0x${string}`,
-  payPerCall: "0xe901462b31f8a42262a2fc5ea3ee4f373cb75630",
-  ppcAddress: "0xe901462b31f8a42262a2fc5ea3ee4f373cb75630" as `0x${string}`,
+  payPerCall: "0x389b44b7ad68c9e661a9ef2625f958840c31b601",
+  ppcAddress: "0x389b44b7ad68c9e661a9ef2625f958840c31b601" as `0x${string}`,
   disputeQuality: "0x7e2771df71c30307a95f038c93077d5350e7789d",
   disputeQualityAddress: "0x7e2771df71c30307a95f038c93077d5350e7789d" as `0x${string}`,
   slaFutures: "0x19d03ff147816c97aad88f1275ad80855dcac9b2",
