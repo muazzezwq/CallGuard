@@ -8,6 +8,10 @@
     "api/notify-provider.js":{ "maxDuration": 15 },
     "api/attestation.js":    { "maxDuration": 30 }
   },
+  "redirects": [
+    { "source": "/app",  "destination": "/", "permanent": false },
+    { "source": "/app/", "destination": "/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/callService",       "destination": "/api/call-service" },
     { "source": "/nano/call",         "destination": "/api/nano-call" },

@@ -232,19 +232,23 @@ export default function Sidebar({ onNav }: { onNav?: () => void }) {
       <Section label="Settlement" />
       {SETTLEMENT.map(i => <Item key={i.id} item={i} />)}
 
-      {/* Advanced — collapsible, pro-only items hidden in simple mode */}
-      <Section
-        label="Advanced"
-        id="sbAdvancedToggle"
-        onClick={toggleAdvanced}
-        chevronOpen={advancedOpen}
-      />
-      {advancedOpen && (
-        <div id="sbAdvancedGroup">
-          {ADVANCED.map(i => <Item key={i.id} item={i} proOnly />)}
-          <Section label="Developer" />
-          {DEVELOPER.map(i => <Item key={i.id} item={i} proOnly />)}
-        </div>
+      {/* Advanced + Developer — shown only in Pro mode */}
+      {mode === "pro" && (
+        <>
+          <Section
+            label="Advanced"
+            id="sbAdvancedToggle"
+            onClick={toggleAdvanced}
+            chevronOpen={advancedOpen}
+          />
+          {advancedOpen && (
+            <div id="sbAdvancedGroup">
+              {ADVANCED.map(i => <Item key={i.id} item={i} />)}
+              <Section label="Developer" />
+              {DEVELOPER.map(i => <Item key={i.id} item={i} />)}
+            </div>
+          )}
+        </>
       )}
 
       <Section label="System" />
