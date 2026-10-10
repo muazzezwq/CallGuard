@@ -140,7 +140,7 @@ function NetworkCanvas() {
   return (
     <canvas
       ref={ref}
-      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"all", opacity:0.55 }}
+      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.45 }}
     />
   );
 }
@@ -333,8 +333,9 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   return (
     <div ref={ref} style={{
       opacity: vis ? 1 : 0,
-      transform: vis ? "translateY(0)" : "translateY(28px)",
-      transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
+      transform: vis ? "translateY(0)" : "translateY(16px)",
+      transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
+      willChange: "opacity, transform",
     }}>
       {children}
     </div>
