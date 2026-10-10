@@ -1560,6 +1560,47 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   .sla-gauge { justify-content: center; }
 }
 
+/* ── CgLanding Ticker Bar ────────────────────────────── */
+.cg-ticker {
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  height: 28px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 90;
+}
+.cg-ticker-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: ticker-scroll 32s linear infinite;
+  will-change: transform;
+}
+.cg-ticker:hover .cg-ticker-track { animation-play-state: paused; }
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.cg-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 18px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  border-right: 1px solid var(--border);
+  height: 28px;
+}
+.cg-ticker-item.accent .cg-ticker-value { color: var(--accent); }
+.cg-ticker-label { text-transform: uppercase; font-size: 9px; letter-spacing: 0.08em; opacity: 0.6; }
+.cg-ticker-value { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text); }
+
 /* ══════════════════════════════════════════════════════
    CgLanding — premium redesign
 ══════════════════════════════════════════════════════ */
