@@ -1,1 +1,1 @@
-Devam ediyorum.Hâlâ Plan modunda. Lütfen ekranın üst kısmındaki **mod seçiciden Build moduna geç** — plan modunda dosya düzenleyemiyorum.
+Tamam, sorular olmadan direkt yapıyorum. Önce mevcut landing'i tam okuyorum. Tüm landing page'i okudum. Şimdi premium bir yeniden yazım yapıyorum — interaktif canvas network, SLA lifecycle animasyonu, scroll reveal, glassmorphism kartlar: Yine Plan moduna geçilmiş. Lütfen ekranın üst kısmındaki **mod seçiciden Build moduna geç** — tekrar "Geçtim" dersen hemen yazıyorum.
