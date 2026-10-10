@@ -12,7 +12,7 @@ const RL_ADDR = CONFIG.reputationLoanAddress;
 const RL_ABI = REPUTATION_LOAN_ABI;
 
 const s = {
-  page: { padding: "20px 16px", maxWidth: 860, margin: "0 auto" },
+  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 4 },

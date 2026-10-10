@@ -7,9 +7,11 @@ import { useUsdcBalance } from "../../hooks/useOnchain";
 export default function AppTopbar({
   onHamburger,
   onCommandPalette,
+  panelLabel,
 }: {
   onHamburger?: () => void;
   onCommandPalette?: () => void;
+  panelLabel?: string;
 }) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -33,7 +35,7 @@ export default function AppTopbar({
 
   return (
     <header className="topbar">
-      {/* Left: hamburger + brand */}
+      {/* Left: hamburger + brand + breadcrumb */}
       <div className="tb-left">
         <button className="tb-hamburger" aria-label="Menu" onClick={onHamburger}>
           <span /><span /><span />
@@ -42,6 +44,12 @@ export default function AppTopbar({
           <div className="tb-brand-icon">⚡</div>
           <span className="tb-brand-name">CallGuard</span>
         </div>
+        {panelLabel && (
+          <div className="tb-breadcrumb">
+            <span className="tb-breadcrumb-sep">›</span>
+            <span className="tb-breadcrumb-panel">{panelLabel}</span>
+          </div>
+        )}
       </div>
 
       {/* Right: controls */}

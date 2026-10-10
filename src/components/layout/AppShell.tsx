@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { useAppStore, PanelId } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
+import AppFooter from "./AppFooter";
 import OnboardingWizard from "./OnboardingWizard";
 import LiveBar from "./LiveBar";
 import CommandPalette from "./CommandPalette";
@@ -50,11 +51,24 @@ function PanelLoader() {
 }
 
 const MOBILE_NAV: { icon: string; label: string; id: PanelId }[] = [
-  { icon: "◫",  label: "Dashboard", id: "overview"    },
-  { icon: "⊞",  label: "Market",    id: "marketplace" },
-  { icon: "⚡", label: "Pay",       id: "nano"        },
-  { icon: "≡",  label: "Jobs",      id: "jobs"        },
+  { icon: "⌂",  label: "Home",     id: "overview"    },
+  { icon: "⊞",  label: "Market",   id: "marketplace" },
+  { icon: "⚡", label: "Pay",      id: "calls"       },
+  { icon: "≡",  label: "Requests", id: "requests"    },
 ];
+
+const PANEL_LABELS: Record<string, string> = {
+  overview:"Overview", calls:"Call Builder", marketplace:"Services",
+  requests:"My Requests", providers:"Providers", receipts:"Receipts",
+  payments:"Payments", disputes:"Disputes", history:"Tx History",
+  quality:"Quality Disputes", agent:"Agent Loop", lending:"RepFi Lending",
+  futures:"SLA Futures", attestation:"SLA Bridge", subscriptions:"Subscriptions",
+  admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Leaderboard",
+  apidocs:"API Docs", verify:"Verify", provprofile:"Provider Profile",
+  analytics:"Analytics", notifications:"Notifications", settings:"Settings",
+  jobs:"Jobs", bulkcall:"Bulk Call", register:"Register", nano:"Receipts",
+  privacy:"Privacy", bridge:"Bridge",
+};
 
 export default function AppShell() {
   const { activePanel, theme, setPanel } = useAppStore();
@@ -112,6 +126,7 @@ export default function AppShell() {
       <AppTopbar
         onHamburger={() => setSidebarOpen(o => !o)}
         onCommandPalette={() => setPaletteOpen(true)}
+        panelLabel={PANEL_LABELS[activePanel] ?? activePanel}
       />
 
       {/* ── Sidebar overlay (mobile) ── */}
@@ -130,6 +145,7 @@ export default function AppShell() {
         <Suspense fallback={<PanelLoader />}>
           {ActivePanel ? <ActivePanel /> : <PanelLoader />}
         </Suspense>
+        <AppFooter />
       </main>
 
       {/* ── Onboarding ── */}

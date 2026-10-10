@@ -23,7 +23,7 @@ const AGENT_WALLET_ABI = [
 const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
 
 const s = {
-  page: { padding: "20px 16px", maxWidth: 860, margin: "0 auto" },
+  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 },

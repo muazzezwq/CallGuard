@@ -5,7 +5,7 @@ const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const s = {
-  page: { padding: "20px 16px", maxWidth: 900, margin: "0 auto" },
+  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   grid4: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 } as React.CSSProperties,

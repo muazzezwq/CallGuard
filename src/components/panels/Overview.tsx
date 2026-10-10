@@ -11,13 +11,13 @@ import { ExternalLink, Zap, Users, ChevronDown, ChevronUp, RefreshCw, X } from "
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const s = {
-  page: { padding: "20px 16px", maxWidth: 860, margin: "0 auto" },
+  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   badge: { display:"inline-flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:20,background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",color:"var(--accent)",fontSize:11,fontWeight:600,marginBottom:12 },
   dot: { width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite" },
   h1: { fontSize:22,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" },
   sub: { fontSize:13,color:"var(--text-dim)",margin:"0 0 20px" },
-  grid4: { display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16 },
-  card: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px" },
+  grid4: { display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 },
+  card: { background:"var(--bg-2)",border:"1px solid var(--border)",borderLeft:"3px solid var(--accent)",borderRadius:10,padding:"14px 16px",position:"relative" as const },
   cardLabel: { fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:4 },
   cardVal: { fontSize:22,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-display)" },
   cardSub: { fontSize:11,color:"var(--text-dim)",marginTop:2 },
