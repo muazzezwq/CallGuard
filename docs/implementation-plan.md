@@ -1,33 +1,5 @@
-Tüm panelleri ve mevcut yapıyı paralel okuyorum. Plan modundayım. Dosyaları okuyabilirim: Tam resmi görüyorum. Şimdi planı oluşturup kaydediyorum: Plan `arc-studio-plans/app-ux-redesign.md`'e kaydedildi.
+Sorunu görüyorum. Hero section yukarıda dev boşluk var — `min-height: 100vh` veya büyük `padding-top` CgLanding'de. Hemen bakıyorum. Sorun buldum. `cg-hero-section` CSS'inde. Şimdi kontrol ediyorum: `cg-hero-section` CSS'te yok — bu yüzden varsayılan `div` davranışı geçerli. Boşluk büyük ihtimalle `NetworkCanvas`'ın büyük `position:absolute` container'ından geliyor. Landing CSS dosyasını arıyorum: Sadece `index.css` var. `cg-hero-section`, `cg-hero-content`, `cg-landing` class'ları index.css'te tanımlı değil — bu dev boşluğun nedeni. Hemen ekleyip düzeltiyorum: **Sorun buldum:** `.cg-hero-section { min-height: 100vh; }` — bu tam ekran yüksekliği demek. Topbar + ticker bar'ı hesaba katmıyor. Mobile ve masaüstünde hero çok büyük görünüyor ve aşağı kaydırmak gerekiyor. Düzeltiyorum:Plan moduna geçilmiş. Lütfen **Build moduna geç** — tam olarak ne düzelteceğimi biliyorum, 3 CSS satırı meselesi.
 
----
+**Sorun:** `.cg-hero-section { min-height: 100vh }` — topbar (48px) + ticker (28px) = 76px hesaba katılmıyor. Hero tam ekran yüksekliğinde başlıyor, içerik aşağıda kalıyor.
 
-## Analiz Özeti
-
-**30 panel incelendi.** Temel sorunlar:
-
-**Layout:**
-- Topbar'da elemanlar gruplandırılmamış, sıkışık
-- Panel alanı `padding-bottom` yok → footer içerikle çakışıyor
-- Mobile nav'da Search butonu eksik
-
-**Panel CSS:**
-- Hepsi inline `style={}` kullanıyor → tutarsız spacing, tema geçişinde sorunlar
-- `maxWidth: 860` dar — geniş ekranda boş alan
-- Stat kartlarda renkli accent border yok
-- Empty state sadece metin, görsel yok
-
-**Eksik bileşenler:**
-- **Footer/Docs yok** — Arc Docs, Circle Docs, GitHub, ArcScan, Faucet, Security linkleri hiç yok
-- Breadcrumb yok — hangi panelde olduğunu gösteren gösterge
-- Loading skeleton tutarsız
-
-**Plan:**
-1. `index.css` — panel token standardizasyonu + footer CSS
-2. `AppFooter.tsx` — yeni docs/links bileşeni
-3. `AppShell` — footer entegrasyonu + mobile nav
-4. `AppTopbar` — breadcrumb
-5. `Overview`, `CallBuilder`, `Providers`, `Receipts` — layout polish
-6. TypeScript sıfır hata, push yok
-
-**Onaylıyor musun?** → "Yap" dersen Build modunda hepsini uyguluyorum.
+**Düzeltme:** `min-height: calc(100vh - 76px)` + `padding: 80px → 48px`. "Geçtim" de, hemen yapıyorum.

@@ -478,12 +478,12 @@ export default function CgLanding() {
           </div>
 
           {/* sparkline */}
-          <div className="cg-sparkline-wrap">
-            <div className="sparkline-header">
-              <span className="sparkline-title">
-                <span className="cg-dot-green" /> NETWORK CALL ACTIVITY
+          <div style={{background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:12,padding:"10px 14px",marginTop:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:"var(--text-faint)",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+                <span className="cg-dot-green" /> Network Call Activity
               </span>
-              <span style={{fontSize:11,color:"var(--text-faint)"}}>last 20 blocks</span>
+              <span style={{fontSize:10,color:"var(--text-faint)"}}>last 20 blocks</span>
             </div>
             <SparklineCanvas calls={calls} />
           </div>
