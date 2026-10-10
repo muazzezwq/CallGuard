@@ -210,23 +210,22 @@ export default function CgLanding() {
       </div>
 
       {/* ── TOPBAR ── */}
-      <header style={{position:"sticky",top:0,zIndex:100,background:"rgba(7,11,18,0.92)",backdropFilter:"blur(16px)",borderBottom:"1px solid var(--border)",height:48,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-          <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#10b981,#0ea5e9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
-          <span style={{fontWeight:700,fontSize:15,letterSpacing:"-0.02em"}}>CallGuard</span>
+      <header className="topbar">
+        <div className="tb-left">
+          <div className="tb-brand-icon">⚡</div>
+          <span className="tb-brand-name">CallGuard</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:99,background:"var(--accent-bg)",border:"1px solid rgba(16,185,129,0.2)",fontSize:11,color:"var(--accent)"}}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",display:"inline-block",animation:"pulse-dot 2s ease-in-out infinite"}}/>
-            Disconnected
+        <div className="tb-right">
+          <div className="net-pill">
+            <span className="net-dot" />
+            <span>Disconnected</span>
           </div>
-          <button
-            onClick={connect}
-            style={{padding:"6px 14px",borderRadius:8,background:"var(--gradient-brand)",border:"none",color:"#fff",fontWeight:600,fontSize:12,cursor:"pointer",boxShadow:"var(--glow-green)"}}
-          >Connect wallet</button>
-          <div style={{display:"flex",alignItems:"center",background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",fontSize:11,fontWeight:700}}>
-            <button onClick={()=>setMode("simple")} style={{padding:"5px 10px",border:"none",cursor:"pointer",background:mode==="simple"?"var(--accent)":"transparent",color:mode==="simple"?"#fff":"var(--text-faint)",transition:"all .15s"}}>Simple</button>
-            <button onClick={()=>setMode("pro")} style={{padding:"5px 10px",border:"none",cursor:"pointer",background:mode==="pro"?"var(--accent)":"transparent",color:mode==="pro"?"#fff":"var(--text-faint)",transition:"all .15s"}}>Pro</button>
+          <button className="btn btn-primary tb-connect" onClick={connect}>
+            Connect wallet
+          </button>
+          <div className="tb-mode-toggle">
+            <button className={`tb-mode-btn${mode==="simple"?" active":""}`} onClick={()=>setMode("simple")}>Simple</button>
+            <button className={`tb-mode-btn${mode==="pro"?" active":""}`} onClick={()=>setMode("pro")}>Pro</button>
           </div>
         </div>
       </header>
@@ -258,17 +257,17 @@ export default function CgLanding() {
           </button>
         </div>
 
-        {/* Live stats row */}
-        <div style={{display:"inline-flex",alignItems:"center",gap:0,background:"var(--bg-1)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden",margin:"0 auto 32px",flexWrap:"wrap"}}>
+        {/* Live stats row — always 4 cols, never wraps */}
+        <div className="cg-stats-grid">
           {[
-            {n:loading?"—":providers.length,l:"Providers"},
-            {n:loading?"—":total,l:"Calls on-chain"},
-            {n:loading?"—":slashes,l:"Slashes"},
+            {n:loading?"—":String(providers.length),l:"Providers"},
+            {n:loading?"—":String(total),l:"Calls on-chain"},
+            {n:loading?"—":String(slashes),l:"Slashes"},
             {n:"Arc",l:"Network",accent:true},
           ].map((s,i,arr)=>(
-            <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 28px",borderRight:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:26,fontWeight:800,letterSpacing:"-0.03em",color:s.accent?"var(--accent)":"var(--text)",fontFamily:"var(--font-display)"}}>{String(s.n)}</span>
-              <span style={{fontSize:11,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.06em",marginTop:2}}>{s.l}</span>
+            <div key={i} className={`cg-stat-cell${i<arr.length-1?" cg-stat-divider":""}`}>
+              <span className={`cg-stat-num${s.accent?" accent":""}`}>{s.n}</span>
+              <span className="cg-stat-lbl">{s.l}</span>
             </div>
           ))}
         </div>

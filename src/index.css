@@ -1560,6 +1560,49 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   .sla-gauge { justify-content: center; }
 }
 
+/* ── CgLanding stats grid (always 4 cols) ────────────── */
+.cg-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 auto 32px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: var(--shadow-sm);
+}
+.cg-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  min-width: 0;
+  background: var(--bg-1);
+  transition: background 0.15s;
+}
+.cg-stat-cell:hover { background: var(--bg-2); }
+.cg-stat-divider { border-right: 1px solid var(--border); }
+.cg-stat-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+.cg-stat-num.accent { color: var(--accent); }
+.cg-stat-lbl {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* ── Network stats bar ───────────────────────────────── */
 .stats-bar {
   display: grid;
