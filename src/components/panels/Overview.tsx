@@ -14,12 +14,12 @@ const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   badge: { display:"inline-flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:20,background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",color:"var(--accent)",fontSize:11,fontWeight:600,marginBottom:12 },
   dot: { width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite" },
-  h1: { fontSize:22,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" },
+  h1: { fontSize:24,fontWeight:800,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)",letterSpacing:"-0.02em" },
   sub: { fontSize:13,color:"var(--text-dim)",margin:"0 0 20px" },
-  grid4: { display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 },
-  card: { background:"var(--bg-2)",border:"1px solid var(--border)",borderLeft:"3px solid var(--accent)",borderRadius:10,padding:"14px 16px",position:"relative" as const },
+  grid4: { display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16 },
+  card: { background:"var(--bg-2)",border:"1px solid var(--border)",borderLeft:"3px solid var(--accent)",borderRadius:12,padding:"16px",position:"relative" as const, boxShadow:"0 2px 8px rgba(0,0,0,0.15)", transition:"transform 0.18s,box-shadow 0.18s,border-color 0.18s" },
   cardLabel: { fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:4 },
-  cardVal: { fontSize:22,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-display)" },
+  cardVal: { fontSize:24,fontWeight:800,color:"var(--text)",fontFamily:"var(--font-display)",letterSpacing:"-0.02em" },
   cardSub: { fontSize:11,color:"var(--text-dim)",marginTop:2 },
   section: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",marginBottom:12 },
   sectionTitle: { fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:12 },
@@ -246,6 +246,21 @@ export default function Overview() {
       <h1 style={s.h1}>Overview</h1>
       <p style={s.sub}>Monitor services, requests and settlements on Arc Testnet.</p>
 
+      {/* Quick stat strip */}
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap" as const}}>
+        {[
+          {icon:"🌐",label:"Network",val:"Arc Testnet",color:"#3b82f6"},
+          {icon:"✅",label:"Status",val:"Live",color:"#10b981"},
+          {icon:"⚡",label:"Gas",val:"USDC native",color:"#f59e0b"},
+        ].map(b=>(
+          <div key={b.label} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:99,background:"var(--bg-2)",border:`1px solid ${b.color}33`,fontSize:11,fontWeight:600}}>
+            <span>{b.icon}</span>
+            <span style={{color:"var(--text-faint)"}}>{b.label}:</span>
+            <span style={{color:b.color}}>{b.val}</span>
+          </div>
+        ))}
+      </div>
+
       {/* USDC balance */}
       {usdcFormatted && (
         <div style={{ ...s.section, display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",marginBottom:12 }}>
@@ -296,14 +311,17 @@ export default function Overview() {
       {/* Stats — count-up animated */}
       <div style={s.grid4} className="stagger">
         {[
-          { label:"Providers",   val: animProviders || providerCount, raw: providerCount, sub:"registered" },
-          { label:"Total Calls", val: animCalls || calls,             raw: callsNum,      sub:"all-time" },
-          { label:"Receipts",    val: animReceipts || receipts,       raw: receiptsNum,   sub:"SLA honored" },
-          { label:"Honor Rate",  val: honorRate,                      raw: 0,             sub:`${slashesNum} slashes` },
+          { label:"Providers",   val: animProviders || providerCount, sub:"registered",   icon:"👥", iconBg:"linear-gradient(135deg,#3b82f6,#2563eb)", accent:"#3b82f6" },
+          { label:"Total Calls", val: animCalls || calls,             sub:"all-time",     icon:"📡", iconBg:"linear-gradient(135deg,#10b981,#059669)", accent:"#10b981" },
+          { label:"Receipts",    val: animReceipts || receipts,       sub:"SLA honored",  icon:"🧾", iconBg:"linear-gradient(135deg,#8b5cf6,#7c3aed)", accent:"#8b5cf6" },
+          { label:"Honor Rate",  val: honorRate,                      sub:`${slashesNum} slashes`, icon:"⭐", iconBg:"linear-gradient(135deg,#f59e0b,#d97706)", accent:honorRate!=="—"&&parseInt(honorRate)<50?"#ef4444":"#f59e0b" },
         ].map(c => (
-          <div key={c.label} style={s.card}>
-            <div style={s.cardLabel}>{c.label}</div>
-            <div className="count-up" style={{ ...s.cardVal, color: c.label==="Honor Rate" && honorRate!=="—" && parseInt(honorRate)<50 ? "var(--danger)" : "var(--text)" }}>{String(c.val)}</div>
+          <div key={c.label} style={{...s.card, borderLeftColor: c.accent}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={s.cardLabel}>{c.label}</div>
+              <div style={{width:32,height:32,borderRadius:8,background:c.iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,boxShadow:`0 2px 8px ${c.accent}40`}}>{c.icon}</div>
+            </div>
+            <div className="count-up" style={{ ...s.cardVal, color: c.label==="Honor Rate"&&honorRate!=="—"&&parseInt(honorRate)<50?"var(--danger)":c.accent }}>{String(c.val)}</div>
             <div style={s.cardSub}>{c.sub}</div>
           </div>
         ))}

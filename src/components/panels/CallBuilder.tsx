@@ -604,30 +604,35 @@ export default function CallBuilder() {
 
         {/* Right panel */}
         <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
-          {/* Execution summary */}
-          <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:12,padding:18 }}>
-            <div style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:14 }}>Execution Summary</div>
+          {/* Execution summary — glassmorphism */}
+          <div style={{ background:"linear-gradient(135deg,rgba(16,185,129,0.07) 0%,rgba(59,130,246,0.05) 100%)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:14,padding:18,backdropFilter:"blur(12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.12)" }}>
+            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:14 }}>
+              <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"block" }} />
+              <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--accent)",fontWeight:700 }}>Execution Summary</span>
+            </div>
             {[
-              { label:"Provider",    value: providerIdNum ? `#${providerIdNum}` : "—" },
-              { label:"Price",       value: price ? `${formatUnits(price,6)} USDC` : "—" },
-              { label:"SLA window",  value: slaWindow ? `${slaWindow}s` : "—" },
-              { label:"Slash %",     value: slashBps ? `${slashBps/100}%` : "—" },
-              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (chain === "arc" && isConnected ? "estimating…" : "—") },
-              { label:"Network",     value: isCCTP ? `${chainInfo.label}` : "Arc Testnet" },
-              { label:"Settlement",  value: "Arc Testnet (on-chain)" },
-              { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009" },
+              { label:"Provider",    value: providerIdNum ? `#${providerIdNum}` : "—",      highlight: !!providerIdNum },
+              { label:"Price",       value: price ? `${formatUnits(price,6)} USDC` : "—",   highlight: !!price },
+              { label:"SLA window",  value: slaWindow ? `${slaWindow}s` : "—",              highlight: false },
+              { label:"Slash %",     value: slashBps ? `${slashBps/100}%` : "—",            highlight: false },
+              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (chain === "arc" && isConnected ? "estimating…" : "—"), highlight: false },
+              { label:"Network",     value: isCCTP ? `${chainInfo.label}` : "Arc Testnet",  highlight: false },
+              { label:"Settlement",  value: "Arc Testnet (on-chain)",                       highlight: false },
+              { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009",               highlight: true },
             ].map(row => (
-              <div key={row.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border)" }}>
-                <span style={{ fontSize:12,color:"var(--text-dim)" }}>{row.label}</span>
-                <span style={{ fontSize:12,fontFamily:"var(--font-mono)",color:"var(--text)" }}>{row.value}</span>
+              <div key={row.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize:12,color:"var(--text-faint)" }}>{row.label}</span>
+                <span style={{ fontSize:12,fontFamily:"var(--font-mono)",color: row.highlight ? "var(--accent)" : "var(--text)",fontWeight: row.highlight ? 600 : 400 }}>{row.value}</span>
               </div>
             ))}
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginTop:14,background:"var(--accent)",color:"#000",border:"none",borderRadius:8,padding:"11px",fontSize:13,fontWeight:700,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 0 16px rgba(16,185,129,0.25)" }}
+              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:10,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(16,185,129,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
+              onMouseEnter={e=>{if(!isLoading&&isConnected){(e.target as HTMLElement).style.transform="translateY(-2px)";(e.target as HTMLElement).style.boxShadow="0 6px 28px rgba(16,185,129,0.5)";}}}
+              onMouseLeave={e=>{(e.target as HTMLElement).style.transform="";(e.target as HTMLElement).style.boxShadow="0 4px 20px rgba(16,185,129,0.4)";}}
             >
-              {isLoading ? "Processing..." : "Review & Execute →"}
+              {isLoading ? "⏳ Processing..." : "Review & Execute →"}
             </button>
             {lastCallId && (
               <div style={{ marginTop:12,paddingTop:12,borderTop:"1px solid var(--border)" }}>
@@ -675,14 +680,18 @@ export default function CallBuilder() {
           <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:12,padding:14 }}>
             <div style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,marginBottom:10 }}>Quick navigation</div>
             {[
-              { label:"Browse providers",  panel:"marketplace" as const },
-              { label:"View my receipts",  panel:"receipts" as const },
-              { label:"Claim a timeout",   panel:"disputes" as const },
-              { label:"Verify a receipt",  panel:"verify" as const },
+              { label:"Browse providers",  panel:"marketplace" as const, icon:"🏪" },
+              { label:"View my receipts",  panel:"receipts" as const,    icon:"🧾" },
+              { label:"Claim a timeout",   panel:"disputes" as const,    icon:"⏱" },
+              { label:"Verify a receipt",  panel:"verify" as const,      icon:"✅" },
             ].map(item => (
               <button key={item.panel} onClick={() => setPanel(item.panel)}
-                style={{ display:"block",width:"100%",textAlign:"left" as const,fontSize:12,color:"var(--text-dim)",background:"none",border:"none",cursor:"pointer",padding:"4px 0" }}>
-                {item.label} →
+                style={{ display:"flex",alignItems:"center",gap:8,width:"100%",textAlign:"left" as const,fontSize:12,color:"var(--text-dim)",background:"none",border:"none",cursor:"pointer",padding:"6px 8px",borderRadius:6,transition:"background 0.15s,color 0.15s" }}
+                onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--bg-3)";(e.currentTarget as HTMLElement).style.color="var(--text)";}}
+                onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="none";(e.currentTarget as HTMLElement).style.color="var(--text-dim)";}}>
+                <span style={{fontSize:14}}>{item.icon}</span>
+                <span style={{flex:1}}>{item.label}</span>
+                <span style={{opacity:0.4}}>→</span>
               </button>
             ))}
           </div>
