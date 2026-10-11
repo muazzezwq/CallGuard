@@ -73,6 +73,7 @@ const PANEL_LABELS: Record<string, string> = {
 export default function AppShell() {
   const { activePanel, theme, setPanel } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("cg_sb_collapsed") === "1");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({});
 
@@ -92,16 +93,40 @@ export default function AppShell() {
 
   useEffect(() => initTabTitleCounter(), []);
 
+  const toggleCollapsed = () => {
+    setSidebarCollapsed(v => {
+      localStorage.setItem("cg_sb_collapsed", v ? "0" : "1");
+      return !v;
+    });
+  };
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setPaletteOpen(o => !o);
+        return;
       }
+      // G + letter shortcuts (no modifier, not in input)
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "Escape") { setSidebarOpen(false); setPaletteOpen(false); return; }
+      // g+o, g+c etc via data attribute trick
+      if ((window as any).__cgLastKey === "g") {
+        const map: Record<string, PanelId> = {
+          o: "overview", c: "calls", m: "marketplace",
+          r: "requests", p: "providers", e: "receipts",
+          y: "payments", d: "disputes", h: "history",
+          a: "analytics", n: "notifications",
+        };
+        if (map[e.key]) { setPanel(map[e.key]); (window as any).__cgLastKey = null; e.preventDefault(); return; }
+      }
+      (window as any).__cgLastKey = e.key;
+      setTimeout(() => { (window as any).__cgLastKey = null; }, 800);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setPanel]);
 
   useEffect(() => {
     setBadges(b => ({ ...b, [activePanel]: 0 }));
@@ -130,13 +155,18 @@ export default function AppShell() {
       />
 
       {/* ── Sidebar overlay (mobile) ── */}
-      {sidebarOpen && (
-        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
-      )}
+      <div className={`sidebar-overlay${sidebarOpen ? " active" : ""}`} onClick={() => setSidebarOpen(false)} />
 
       {/* ── Sidebar ── */}
-      <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
+      <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>
         <Sidebar onNav={handleNav} />
+        <button
+          className="sidebar-collapse-btn"
+          onClick={toggleCollapsed}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          ‹
+        </button>
       </aside>
 
       {/* ── Main ── */}

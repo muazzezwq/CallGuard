@@ -194,8 +194,9 @@ function StatsBar({ providers }: { providers: Provider[] }) {
 /* ─────────────────────────────────────────────
    Provider Card
 ───────────────────────────────────────────── */
-function ProviderCard({ p, onCall, onCompare, inCompare, top }: {
+function ProviderCard({ p, onCall, onCompare, onProfile, inCompare, top }: {
   p: Provider; onCall: (p: Provider) => void; onCompare: (p: Provider) => void;
+  onProfile: (id: string) => void;
   inCompare: boolean; top: boolean;
 }) {
   const [hov, setHov] = useState(false);
@@ -261,6 +262,14 @@ function ProviderCard({ p, onCall, onCompare, inCompare, top }: {
       <div className="mp-card-actions">
         <button className="mp-btn-call" onClick={() => onCall(p)}>
           Call Provider <span className="mp-arrow">→</span>
+        </button>
+        <button
+          className="mp-btn-profile"
+          onClick={() => onProfile(p.id)}
+          title="View profile"
+          style={{ padding:"0 10px",borderRadius:7,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text-dim)",fontSize:12,cursor:"pointer",height:36,display:"inline-flex",alignItems:"center" }}
+        >
+          👤
         </button>
         <button
           className={`mp-btn-cmp${inCompare ? " mp-btn-cmp-on" : ""}`}
@@ -517,6 +526,7 @@ export default function Marketplace() {
                 key={p.id} p={p}
                 onCall={handleCall}
                 onCompare={handleCompare}
+                onProfile={(id) => { sessionStorage.setItem("provprofile_id", id); setPanel("provprofile"); }}
                 inCompare={compareList.includes(p.id)}
                 top={i === 0 && sortKey === "reputation"}
               />

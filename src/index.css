@@ -216,6 +216,117 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* ── Theme transition smooth ─────────────────────────── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+/* override for elements that need their own transitions */
+button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.15s, opacity 0.15s !important;
+}
+
+/* ── Sidebar collapsed mode ──────────────────────────── */
+.app-sidebar.collapsed {
+  width: 52px;
+}
+.app-sidebar.collapsed .sb-label,
+.app-sidebar.collapsed .sb-section-label,
+.app-sidebar.collapsed .sb-brand-text,
+.app-sidebar.collapsed .sb-badge,
+.app-sidebar.collapsed .sb-adv-toggle span {
+  display: none;
+}
+.app-sidebar.collapsed .sb-item {
+  justify-content: center;
+  padding: 8px;
+}
+.app-sidebar.collapsed .sb-icon {
+  margin: 0;
+}
+.app-sidebar.collapsed:hover .sb-label,
+.app-sidebar.collapsed:hover .sb-section-label,
+.app-sidebar.collapsed:hover .sb-brand-text {
+  display: block;
+}
+.sidebar-collapse-btn {
+  position: absolute;
+  bottom: 60px;
+  right: -12px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  z-index: 10;
+  transition: background 0.15s, transform 0.2s !important;
+}
+.sidebar-collapse-btn:hover { background: var(--bg-3); }
+.app-sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
+@media (max-width: 768px) { .sidebar-collapse-btn { display: none; } }
+
+/* ── Sidebar overlay backdrop ────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 149;
+  animation: fade-in 0.2s ease;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 768px) { .sidebar-overlay.active { display: block; } }
+
+/* ── Wallet copy tooltip ─────────────────────────────── */
+.tb-addr-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.tb-addr-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tooltip-in 0.15s ease;
+  z-index: 200;
+}
+@keyframes tooltip-in { from { opacity:0; transform:translateX(-50%) translateY(4px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+
+/* ── Skeleton standardize ────────────────────────────── */
+.skeleton-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-2) 50%, var(--bg-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  margin-bottom: 8px;
+}
+.skeleton-line.wide { width: 100%; }
+.skeleton-line.mid  { width: 65%; }
+.skeleton-line.short { width: 40%; }
+.skeleton-line.tall { height: 20px; }
+
 /* ── Global Visual Polish ────────────────────────────── */
 
 /* Cards get shadow */

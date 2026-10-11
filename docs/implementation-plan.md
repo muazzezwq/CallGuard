@@ -1,35 +1,49 @@
-Mevcut panelleri ve CSS'i okuyarak gerçek durumu analiz ediyorum. Gerçek durumu anladım. Şimdi dürüst ve kapsamlı önerilerimi yazıyorum:
+Tüm kaynak kodu, CSS ve panel yapısını derinlemesine inceliyorum.Plan modundayım. Dosyaları okuyarak kapsamlı analiz yapıyorum. Kapsamlı analiz tamamlandı. İşte dürüst ve önceliklendirilmiş önerilerim:
 
 ---
 
-## Uygulama İçi Tasarım Önerileri
+## Yapılabilecek Değişiklikler — Öncelik Sırası
 
-**Mevcut sorun:** Tüm paneller aynı `inline style` objesini kullanıyor — beyaz/gri kartlar, tek tip layout, hiç görsel hiyerarşi yok. Zengin veri var ama sunumu düz.
+### 🔴 Kritik (Kullanıcı deneyimini direkt etkiliyor)
 
-**5 somut öneri:**
+**1. Marketplace → Provider Kartları görsel yenileme**
+Şu an tablo benzeri bir liste. Orijinal HTML'deki gibi kart bazlı grid yapısı, her provider için honor rate progress bar, online/offline badge, fiyat ve "Call now" butonu direkt kartta görünsün.
 
----
+**2. Analytics → Grafik yok**
+Analytics panelinde subgraph'tan gerçek veri çekiliyor ama sadece sayılar gösteriliyor. Canvas/SVG ile calls over time çizgi grafiği, provider bar chart, honor rate dağılım histogramı eklenebilir — tüm veri zaten mevcut.
 
-**1. Sidebar — Aktif panel vurgusu güçlendir**
-Şu an sadece `border-left: 3px solid var(--accent)` var. Orijinal HTML'deki gibi aktif item'a hafif yeşil arka plan + ikon rengi de değişsin. Sidebar section başlıkları daha belirgin olsun.
-
-**2. Overview — Dashboard'a dönüştür**
-Şu an 4 stat kartı + liste. Öneri:
-- Stat kartlarına renkli gradient ikon ekle (Providers → mavi, Calls → yeşil, Slashes → kırmızı, Honor → mor)
-- Live Activity feed sol, Top Providers bar chart sağ — 2 kolon layout
-- Chart'ı daha büyük ve belirgin yap
-
-**3. CallBuilder — Adım adım wizard UI**
-Şu an tek sayfada her şey var. "Adım 1: Provider seç → Adım 2: Chain seç → Adım 3: Execute" şeklinde wizard flow daha temiz görünür. Execution Summary sağ kolonu glassmorphism kart yap.
-
-**4. Panel başlıkları — Eyebrow + gradient**
-Her panelin tepesinde `CALL BUILDER` küçük renkli etiket, altında büyük başlık, `Gas-free · EIP-3009` gibi badge'ler. Şu an bazı panellerde bu var, bazısında yok — standardize et.
-
-**5. Genel CSS — 3 görsel iyileştirme**
-- Kartlara `box-shadow: var(--shadow-sm)` ekle (şu an yok)
-- Input'lara focus glow: `box-shadow: 0 0 0 2px var(--accent)`
-- Butonlara micro-animation: `transform: translateY(-1px)` hover
+**3. Light/Dark tema toggle animasyonu**
+Şu an tema aniden değişiyor. CSS transition ile smooth geçiş (`transition: background 0.3s, color 0.3s`) eklenebilir.
 
 ---
 
-**Hangisini önce yapalım?** Hepsini tek seferde mi, yoksa öncelik sırasına göre mi uygulayayım?
+### 🟡 Önemli (Görünümü ciddi iyileştirir)
+
+**4. Panel loading state'leri**
+Bazı paneller hâlâ "Loading…" metni gösteriyor. Skeleton shimmer animasyonu tüm panellere standart olarak eklenebilir.
+
+**5. Mobile sidebar overlay**
+Mobile'da sidebar açıkken arka plana yarı saydam overlay gelmiyor — içerik görünüyor. `backdrop` overlay eklenmeli.
+
+**6. Wallet adresi kopyalama**
+Topbar'daki `0xfbac…06Da` adresine tıklayınca kopyalanıyor ama görsel feedback yok. "Copied!" tooltip eklenebilir.
+
+**7. Notifications paneli**
+Panel mevcut ama içi boş. Contract event'lerini dinleyip gerçek bildirimler gösterilebilir.
+
+---
+
+### 🟢 İyileştirme (Polishing)
+
+**8. Sidebar collapsed mode (desktop)**
+Masaüstünde sidebar daraltılabilir olsun — sadece ikonlar görünsün, hover'da etiket. Daha fazla içerik alanı.
+
+**9. Keyboard shortcuts**
+`⌘K` command palette çalışıyor. Ek kısayollar: `G+O` → Overview, `G+C` → CallBuilder, `Esc` → sidebar kapat.
+
+**10. Provider profil sayfası**
+`ProviderProfile` paneli mevcut ama sidebar'da link yok. Marketplace'deki her provider kartından tıklanabilir olsun.
+
+---
+
+**Hangilerini yapalım?** "Hepsini yap" veya numara belirt.

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useRef } from "react";
 import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
 const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
@@ -30,6 +31,35 @@ interface AnalyticsData {
   topProviders: { id: string; total: number; completed: number; slashed: number }[];
   recentCalls: { id: string; providerId: string; amount: string; status: string; createdAt: string }[];
   updatedAt: string;
+}
+
+/* ── Mini sparkline canvas ───────────────────────────── */
+function MiniChart({ values, color = "#10b981", height = 48 }: { values: number[]; color?: string; height?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    const W = c.offsetWidth; const H = height;
+    c.width = W * window.devicePixelRatio; c.height = H * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    if (!values.length) return;
+    const mn = Math.min(...values); const mx = Math.max(...values) || 1;
+    const pad = 4;
+    const pts = values.map((v, i) => ({
+      x: pad + (i / (values.length - 1 || 1)) * (W - pad * 2),
+      y: H - pad - ((v - mn) / (mx - mn || 1)) * (H - pad * 2),
+    }));
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, color + "40"); grad.addColorStop(1, color + "00");
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length - 1].x, H); ctx.lineTo(pts[0].x, H); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+  }, [values, color, height]);
+  return <canvas ref={ref} style={{ width: "100%", height, display: "block" }} />;
 }
 
 export default function Analytics() {
@@ -155,6 +185,24 @@ export default function Analytics() {
       </div>
 
       {/* Provider performance bars */}
+      {/* Call trend sparkline */}
+      {data && data.recentCalls.length > 0 && (
+        <div style={s.section}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
+            <div style={s.sectionTitle}>Call Activity (last {data.recentCalls.length})</div>
+            <div style={{ display:"flex",gap:12,fontSize:11 }}>
+              <span style={{ color:"var(--accent)" }}>● Completed</span>
+              <span style={{ color:"#ef4444" }}>● Slashed</span>
+            </div>
+          </div>
+          <MiniChart
+            values={data.recentCalls.map(c => c.status === "COMPLETED" ? 1 : 0)}
+            color="var(--accent)"
+            height={56}
+          />
+        </div>
+      )}
+
       <div style={s.section}>
         <div style={s.sectionTitle}>Provider Performance (calls)</div>
         {loading && !data ? (

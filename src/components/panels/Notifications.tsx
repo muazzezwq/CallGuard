@@ -1,30 +1,198 @@
-import { useState, useEffect } from "react";
-type Notif = { id:string; msg:string; type:"info"|"success"|"error"; ts:number };
+import { useState, useCallback } from "react";
+import { useWatchContractEvent } from "wagmi";
+import { CONFIG, PPC_ABI } from "../../lib/config";
+
+type Notif = {
+  id: string;
+  msg: string;
+  sub: string;
+  type: "call" | "slash" | "receipt" | "dispute" | "info";
+  ts: number;
+  txHash?: string;
+};
+
+const ARCSCAN = "https://explorer.testnet.arc.io";
+
+const TYPE_META: Record<Notif["type"], { icon: string; color: string; label: string }> = {
+  call:    { icon: "📡", color: "#3b82f6",  label: "Call Started"   },
+  slash:   { icon: "⚡", color: "#ef4444",  label: "Slashed"        },
+  receipt: { icon: "✅", color: "#10b981",  label: "Receipt"        },
+  dispute: { icon: "⚖️", color: "#f59e0b",  label: "Dispute"        },
+  info:    { icon: "ℹ️", color: "var(--text-faint)", label: "Info"  },
+};
+
+function ago(ts: number) {
+  const d = Math.floor((Date.now() - ts) / 1000);
+  if (d < 60) return `${d}s ago`;
+  if (d < 3600) return `${Math.round(d / 60)}m ago`;
+  return `${Math.round(d / 3600)}h ago`;
+}
+
 export default function Notifications() {
-  const [notifs, setNotifs] = useState<Notif[]>([]);
-  useEffect(()=>{ const n = JSON.parse(localStorage.getItem("cg_notifs")||"[]"); setNotifs(n); },[]);
-  const clear = () => { setNotifs([]); localStorage.removeItem("cg_notifs"); };
+  const [notifs, setNotifs] = useState<Notif[]>(() => {
+    try { return JSON.parse(localStorage.getItem("cg_notifs_v2") || "[]"); }
+    catch { return []; }
+  });
+  const [filter, setFilter] = useState<Notif["type"] | "all">("all");
+
+  const push = useCallback((n: Omit<Notif, "id" | "ts">) => {
+    const notif: Notif = { ...n, id: Math.random().toString(36).slice(2), ts: Date.now() };
+    setNotifs(prev => {
+      const next = [notif, ...prev].slice(0, 50);
+      localStorage.setItem("cg_notifs_v2", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Watch CallStarted
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: PPC_ABI,
+    eventName: "CallStarted",
+    onLogs: logs => logs.forEach(l => {
+      const a = l.args as any;
+      push({
+        type: "call",
+        msg: `Call started → Provider #${a.providerId}`,
+        sub: `${Number(a.amount || 0) / 1e6} USDC · ${String(a.callId || "").slice(0, 10)}…`,
+        txHash: l.transactionHash ?? undefined,
+      });
+    }),
+  });
+
+  // Watch ReceiptSubmitted (timeout/slash implied by CallSlashed)
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: PPC_ABI,
+    eventName: "ReceiptSubmitted",
+    onLogs: logs => logs.forEach(l => {
+      const a = l.args as any;
+      push({
+        type: "receipt",
+        msg: `Receipt submitted by Provider #${a.providerId ?? ""}`,
+        sub: `Call ${String(a.callId || "").slice(0, 10)}…`,
+        txHash: l.transactionHash ?? undefined,
+      });
+    }),
+  });
+
+
+
+  const clear = () => { setNotifs([]); localStorage.removeItem("cg_notifs_v2"); };
+
+  const filtered = filter === "all" ? notifs : notifs.filter(n => n.type === filter);
+  const counts = notifs.reduce<Record<string, number>>((a, n) => ({ ...a, [n.type]: (a[n.type] || 0) + 1 }), {});
+
   return (
-    <div className="panel-body">
-      <div className="panel-head" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><h2>Notifications</h2><p className="panel-sub">On-chain event alerts.</p></div>
-        {notifs.length>0 && <button className="btn-secondary" onClick={clear} style={{fontSize:12}}>Clear all</button>}
-      </div>
-      {notifs.length===0 ? (
-        <div style={{textAlign:"center",padding:40,color:"var(--text-dim)"}}>
-          <div style={{fontSize:32,marginBottom:12}}>🔔</div>
-          <div>No notifications yet</div>
+    <div style={{ padding: "24px 20px", maxWidth: 780, margin: "0 auto", paddingBottom: 80 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent)", marginBottom: 4, fontWeight: 700 }}>Notifications</div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>On-Chain Alerts</h1>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0 }}>
+            Live contract events — {notifs.length} total
+          </p>
         </div>
-      ) : (
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {notifs.map((n:Notif)=>(
-            <div key={n.id} style={{padding:"12px 14px",background:"var(--bg-2)",borderRadius:8,borderLeft:`3px solid ${n.type==="success"?"var(--accent)":n.type==="error"?"var(--red)":"var(--border)"}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:13,color:"var(--text)"}}>{n.msg}</span>
-              <span style={{fontSize:11,color:"var(--text-dim)"}}>{new Date(n.ts).toLocaleTimeString()}</span>
-            </div>
-          ))}
+        {notifs.length > 0 && (
+          <button onClick={clear} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-2)", color: "var(--text-dim)", fontSize: 12, cursor: "pointer" }}>
+            Clear all ✕
+          </button>
+        )}
+      </div>
+
+      {/* Live indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "block", animation: "pulse 2s infinite" }} />
+        <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>Listening for contract events…</span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · TimeoutClaimed</span>
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
+        {(["all", "call", "receipt", "slash", "dispute"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: "4px 12px", borderRadius: 99, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
+              background: filter === f ? "var(--accent)" : "var(--bg-2)",
+              color: filter === f ? "#fff" : "var(--text-dim)",
+              transition: "all 0.15s",
+            }}
+          >
+            {f === "all" ? `All (${notifs.length})` : `${TYPE_META[f as Notif["type"]].icon} ${TYPE_META[f as Notif["type"]].label}${counts[f] ? ` (${counts[f]})` : ""}`}
+          </button>
+        ))}
+      </div>
+
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div style={{ textAlign: "center" as const, padding: "60px 20px", color: "var(--text-faint)" }}>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>🔔</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: "var(--text-dim)" }}>
+            {filter === "all" ? "No notifications yet" : `No ${TYPE_META[filter].label} events`}
+          </div>
+          <div style={{ fontSize: 13 }}>Events appear here as they happen on-chain</div>
         </div>
       )}
+
+      {/* Notification list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {filtered.map(n => {
+          const meta = TYPE_META[n.type];
+          return (
+            <div
+              key={n.id}
+              style={{
+                display: "flex", gap: 12, alignItems: "flex-start",
+                padding: "12px 14px",
+                background: "var(--bg-2)",
+                border: "1px solid var(--border)",
+                borderLeft: `3px solid ${meta.color}`,
+                borderRadius: 10,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                transition: "transform 0.15s",
+              }}
+            >
+              {/* Icon */}
+              <div style={{
+                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                background: `${meta.color}18`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16,
+              }}>
+                {meta.icon}
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: meta.color }}>
+                    {meta.label}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto", whiteSpace: "nowrap" as const }}>
+                    {ago(n.ts)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500, marginBottom: 2 }}>{n.msg}</div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{n.sub}</div>
+              </div>
+
+              {/* TX link */}
+              {n.txHash && (
+                <a
+                  href={`${ARCSCAN}/tx/${n.txHash}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ fontSize: 10, color: "var(--accent)", textDecoration: "none", flexShrink: 0, marginTop: 4 }}
+                >
+                  ↗
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

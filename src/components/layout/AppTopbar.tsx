@@ -93,9 +93,12 @@ export default function AppTopbar({
           </button>
         ) : (
           <>
-            <button className="tb-addr tb-hide-sm" title={copied ? "Copied!" : "Copy address"} onClick={copy}>
-              {copied ? "✓" : short}
-            </button>
+            <div className="tb-addr-wrap tb-hide-sm">
+              {copied && <div className="tb-addr-tooltip">✓ Copied!</div>}
+              <button className="tb-addr" title="Copy address" onClick={copy}>
+                {short}
+              </button>
+            </div>
             <button
               className="tb-addr"
               style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }}
