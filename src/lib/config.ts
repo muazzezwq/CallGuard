@@ -290,10 +290,16 @@ export const REGISTRY_ABI = [
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     chains: [arcTestnet],
-    transports: { [arcTestnet.id]: http("https://rpc.testnet.arc.network") },
+    transports: {
+      [arcTestnet.id]: http("https://rpc.testnet.arc.network", {
+        timeout: 10_000,
+        retryCount: 2,
+        retryDelay: 1_000,
+      }),
+    },
     walletConnectProjectId: "2f05ae7f1116030fde2d36508f472bfb",
     appName: "CallGuard",
     appDescription: "On-chain SLA marketplace · Arc Testnet",
-    appUrl: "https://callguard.vercel.app",
+    appUrl: "https://arcsla.vercel.app",
   })
 );

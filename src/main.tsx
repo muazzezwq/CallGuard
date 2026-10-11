@@ -7,7 +7,17 @@ import { ConnectKitProvider } from "connectkit";
 import { wagmiConfig } from "./lib/config";
 import App from "./App";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduce RPC polling pressure — default 4s is too aggressive for mobile
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
+});
 const root = document.getElementById("root")!;
 
 ReactDOM.createRoot(root).render(
