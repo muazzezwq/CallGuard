@@ -6,6 +6,7 @@ export default function RoleModal() {
   const { isConnected } = useAccount();
   const { role, onboardingDone, setRole, setOnboardingDone, setMode } = useAppStore();
   const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (isConnected && !role && !onboardingDone) {
@@ -16,21 +17,27 @@ export default function RoleModal() {
 
   if (!visible) return null;
 
+  const close = () => {
+    setClosing(true);
+    setTimeout(() => { setVisible(false); setClosing(false); }, 250);
+  };
+
   const choose = (r: "provider" | "caller") => {
     setRole(r);
     setOnboardingDone();
     if (r === "provider") setMode("pro");
-    setVisible(false);
+    close();
   };
 
-  const skip = () => { setOnboardingDone(); setVisible(false); };
+  const skip = () => { setOnboardingDone(); close(); };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1200,
-      background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+      background: "rgba(0,0,0,0.65)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 20, animation: "fadeIn 0.2s ease",
+      padding: 20,
+      animation: closing ? "fadeOut 0.25s ease forwards" : "fadeIn 0.2s ease",
     }}>
       <div style={{
         background: "var(--bg-2)", border: "1px solid var(--border)",
