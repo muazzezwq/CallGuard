@@ -11,7 +11,8 @@ const STEP_LABELS: Record<string, string> = {
 
 export default function ProgressTracker() {
   const { isConnected } = useAccount();
-  const { progressSteps, markStep } = useAppStore();
+  const progressSteps = useAppStore(s => s.progressSteps);
+  const markStep = useAppStore(s => s.markStep);
 
   // Mark wallet step on connection — inside effect to avoid render-phase mutation
   useEffect(() => {

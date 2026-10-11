@@ -78,7 +78,9 @@ function buildActivityChart(calls: { createdAt: string }[]): { hour: number; cou
 const WB_KEY = "cg_welcome_dismissed";
 
 export default function Overview() {
-  const { setPanel, role, markStep } = useAppStore();
+  const setPanel = useAppStore(s => s.setPanel);
+  const role = useAppStore(s => s.role);
+  const markStep = useAppStore(s => s.markStep);
   const { address, isConnected } = useAccount();
 
   // Welcome box — shown after wallet connect, dismissed once via localStorage

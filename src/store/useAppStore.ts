@@ -61,10 +61,16 @@ export const useAppStore = create<AppState>()(
       toggleAdvanced: () => set((s) => ({ advancedOpen: !s.advancedOpen })),
       setRole: (role) => set({ role }),
       setOnboardingDone: () => set({ onboardingDone: true }),
-      markHintSeen: (id) => set((s) => ({ hintsSeen: [...s.hintsSeen.filter(x => x !== id), id] })),
-      markStep: (id) => set((s) => ({
-        progressSteps: s.progressSteps.map(st => st.id === id ? { ...st, done: true } : st)
-      })),
+      markHintSeen: (id) => set((s) => {
+        if (s.hintsSeen.includes(id)) return s; // no-op
+        return { hintsSeen: [...s.hintsSeen, id] };
+      }),
+      markStep: (id) => set((s) => {
+        // Idempotent — only update if not already done to prevent re-render loops
+        const step = s.progressSteps.find(st => st.id === id);
+        if (!step || step.done) return s; // no-op: return same state reference
+        return { progressSteps: s.progressSteps.map(st => st.id === id ? { ...st, done: true } : st) };
+      }),
     }),
     {
       name: "cg-app-state-v2",

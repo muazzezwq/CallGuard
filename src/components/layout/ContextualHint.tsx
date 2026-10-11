@@ -45,7 +45,8 @@ const HINTS: Record<string, { icon: string; title: string; body: string }> = {
 };
 
 export default function ContextualHint({ panel }: { panel: string }) {
-  const { hintsSeen, markHintSeen } = useAppStore();
+  const hintsSeen = useAppStore(s => s.hintsSeen);
+  const markHintSeen = useAppStore(s => s.markHintSeen);
   const [show, setShow] = useState(false);
 
   const hint = HINTS[panel];

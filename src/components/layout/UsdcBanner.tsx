@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 export default function UsdcBanner() {
   const { address, isConnected } = useAccount();
-  const { markStep } = useAppStore();
+  const markStep = useAppStore(s => s.markStep);
 
   const { data: bal } = useReadContract({
     address: CONFIG.usdcAddress as `0x${string}`,
