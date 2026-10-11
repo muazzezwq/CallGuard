@@ -15,10 +15,11 @@ ReactDOM.createRoot(root).render(
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ConnectKitProvider
-          theme="auto"
+          theme="midnight"
           customTheme={{
             "--ck-accent-color": "#10b981",
             "--ck-accent-text-color": "#ffffff",
+            "--ck-body-background": "#0d1117",
             "--ck-border-radius": "16px",
             "--ck-font-family": '"DM Sans", -apple-system, sans-serif',
           }}
