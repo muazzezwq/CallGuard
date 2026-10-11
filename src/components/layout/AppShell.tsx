@@ -70,7 +70,7 @@ const PANEL_LABELS: Record<string, string> = {
   admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Leaderboard",
   apidocs:"API Docs", verify:"Verify", provprofile:"Provider Profile",
   analytics:"Analytics", notifications:"Notifications", settings:"Settings",
-  jobs:"Jobs", bulkcall:"Bulk Call", register:"Register", nano:"Receipts",
+  jobs:"Claims", bulkcall:"Bulk Call", register:"Register", nano:"Receipts",
   privacy:"Privacy", bridge:"Bridge",
 };
 

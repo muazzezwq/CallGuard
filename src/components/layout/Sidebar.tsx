@@ -86,6 +86,10 @@ const ADVANCED: NavItem[] = [
     id: "jobs", simple: "Claims", pro: "Claims",
     icon: "briefcase",
   },
+  {
+    id: "bulkcall", simple: "Bulk Call", pro: "Bulk Call",
+    icon: "list",
+  },
 ];
 
 const DEVELOPER: NavItem[] = [
@@ -104,6 +108,14 @@ const DEVELOPER: NavItem[] = [
   {
     id: "leaderboard", simple: "Leaderboard", pro: "Leaderboard",
     icon: "bar-chart",
+  },
+  {
+    id: "analytics", simple: "Analytics", pro: "Analytics",
+    icon: "bar-chart",
+  },
+  {
+    id: "bridge", simple: "Bridge", pro: "Bridge",
+    icon: "refresh",
   },
 ];
 

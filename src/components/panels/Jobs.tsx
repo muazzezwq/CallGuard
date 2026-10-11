@@ -22,6 +22,7 @@ const STEPS = ["Create Job", "Set Budget", "Fund Escrow", "Submit Work", "Comple
 
 const s: Record<string, React.CSSProperties> = {
   page: { padding: "20px 16px", maxWidth: 720, margin: "0 auto" },
+  eyebrow: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "var(--accent)", fontWeight: 700, marginBottom: 6 },
   h1: { fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 12 },
@@ -304,8 +305,9 @@ export default function Jobs() {
   return (
     <div style={s.page}>
       <div style={{ marginBottom: 16 }}>
-        <div style={s.h1}>ERC-8183 Jobs</div>
-        <div style={s.sub}>Trustless job settlement — client locks USDC, provider delivers, evaluator approves, contract pays.</div>
+        <div style={s.eyebrow}>Claims & Jobs</div>
+        <div style={s.h1}>ERC-8183 Agentic Commerce</div>
+        <div style={s.sub}>Trustless job settlement — client locks USDC, provider delivers, evaluator approves, contract pays automatically.</div>
       </div>
 
       {/* Step Rail */}
