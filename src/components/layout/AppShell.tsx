@@ -126,7 +126,8 @@ export default function AppShell() {
         if (map[e.key]) { setPanel(map[e.key]); (window as any).__cgLastKey = null; e.preventDefault(); return; }
       }
       (window as any).__cgLastKey = e.key;
-      setTimeout(() => { (window as any).__cgLastKey = null; }, 800);
+      if ((window as any).__cgLastKeyTimer) clearTimeout((window as any).__cgLastKeyTimer);
+      (window as any).__cgLastKeyTimer = setTimeout(() => { (window as any).__cgLastKey = null; }, 800);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

@@ -60,6 +60,15 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
 }
+/* ── Smooth theme transition ─────────────────────────── */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease,
+              box-shadow 0.2s ease;
+}
+/* Don't animate these — causes jank */
+canvas, img, video, svg, .no-transition,
+.cg-ticker-track, .cg-hero-canvas { transition: none !important; }
+
 [data-theme="light"] body::before {
   background:
     radial-gradient(ellipse 80% 50% at 20% 20%, rgba(5,150,105,0.03) 0%, transparent 60%),

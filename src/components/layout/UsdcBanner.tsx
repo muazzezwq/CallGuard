@@ -50,7 +50,7 @@ export default function UsdcBanner() {
         </div>
       </div>
       <a
-        href="https://faucet.circle.com"
+        href="https://faucet.testnet.arc.io"
         target="_blank"
         rel="noopener noreferrer"
         style={{

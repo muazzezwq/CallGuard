@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useModal } from "connectkit";
 import { useAppStore } from "../../store/useAppStore";
@@ -23,13 +23,17 @@ export default function AppTopbar({
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copy = useCallback(() => {
     if (!address) return;
     navigator.clipboard.writeText(address).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
     });
   }, [address]);
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
 

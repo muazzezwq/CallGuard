@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -12,8 +13,10 @@ export default function ProgressTracker() {
   const { isConnected } = useAccount();
   const { progressSteps, markStep } = useAppStore();
 
-  // Mark wallet step on connection
-  if (isConnected) markStep("wallet");
+  // Mark wallet step on connection — inside effect to avoid render-phase mutation
+  useEffect(() => {
+    if (isConnected) markStep("wallet");
+  }, [isConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = progressSteps.length;
   const done = progressSteps.filter(s => s.done).length;

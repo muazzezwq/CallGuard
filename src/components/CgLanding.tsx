@@ -5,10 +5,10 @@ import { useAppStore } from "../store/useAppStore";
 
 const SUBGRAPH_Q = `{
   calls(first:200,orderBy:createdAt,orderDirection:desc){id status amount createdAt providerId}
-  providers(first:50,orderBy:createdAt,orderDirection:desc){id owner pricePerCall stake active completedCalls slashedCalls createdAt}
+  providers(first:50,orderBy:createdAt,orderDirection:desc){id pricePerCall stake active completedCalls slashedCalls createdAt}
 }`;
 type Call = { id:string; status:string; amount:string; createdAt:string; providerId:string };
-type Provider = { id:string; owner:string; pricePerCall:string; stake:string; active:boolean; completedCalls:string; slashedCalls:string; createdAt:string };
+type Provider = { id:string; pricePerCall:string; stake:string; active:boolean; completedCalls:string; slashedCalls:string; createdAt:string };
 type CGData = { calls: Call[]; providers: Provider[] };
 
 /* ─────────────────────────────────────────

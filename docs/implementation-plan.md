@@ -1,82 +1,46 @@
-Mevcut onboarding akışını ve panelleri okuyorum. Tam resmi görüyorum. Mevcut `OnboardingWizard` var (4 adım, localStorage ile), `Overview`'da welcome card var, `CgLanding`'de role kartları var. Şimdi kullanıcı yolculuğunu uçtan uca analiz edip kapsamlı önerilerimi sunuyorum:
+Kapsamlı audit başlatıyorum. Tüm kritik dosyaları paralel okuyorum. Plan modundayım. Tüm dosyaları read-only araçlarla kapsamlı okuyorum: Yeterince gördüm. Şimdi daha fazla kritik panel okuuyorum: Yeterince kapsamlı analiz yaptım. Build moduna geçmem gerekiyor. Tüm bulguları şimdi sunuyorum:
 
 ---
 
-## Kullanıcı İlk Girişi — Kapsamlı Analiz & Öneriler
+## Kapsamlı Audit Raporu — Tespit Edilen 22 Sorun
 
-### Mevcut Durum
+### 🔴 Kritik
 
-Şu an ne oluyor:
-1. Kullanıcı siteye giriyor → CgLanding görüyor (iyi)
-2. "Connect wallet" tıklıyor → AppShell açılıyor → Overview geliyor
-3. Overview'da "Welcome" kartı var (3 adım: USDC al, Rol seç, İlk call)
-4. OnboardingWizard modal var ama `AppShell` içine eklenmemiş — görünmüyor
-5. Kullanıcı ne yapacağını bilemiyor, tüm sidebar tek seviye
+| # | Sorun | Dosya |
+|---|-------|-------|
+| 1 | `ProgressTracker.tsx` satır 16: `markStep` render içinde çağrılıyor — her render'da state mutation, sonsuz döngü | ProgressTracker.tsx |
+| 2 | `main.tsx`: ConnectKit `theme="midnight"` hardcoded — light tema seçilince modal koyu kalıyor | main.tsx |
+| 3 | `Analytics.tsx` satır 5: `SUBGRAPH_URL` hardcoded — `CONFIG.subgraphUrl`'i kullanmıyor, yanlış URL olursa sessizce başarısız | Analytics.tsx |
+| 4 | `App.tsx` Suspense fallback `background: #070b12` koyu hardcoded — light tema geçişinde flash | App.tsx |
+| 5 | `useSubgraph` satır 5: `fetchProviders` import edilmiş ama schema hatası var — `maxResponseTime` field yok | lib/subgraph.ts |
 
----
+### 🟡 Önemli
 
-### 5 Somut Öneri
+| # | Sorun | Dosya |
+|---|-------|-------|
+| 6 | `CgLanding.tsx` `SUBGRAPH_Q` satır 8: `providers { owner }` field'ı subgraph schema'sında yok | CgLanding.tsx |
+| 7 | `index.css`: `body` `transition: background color` yok — tema geçişi flash yapıyor | index.css |
+| 8 | `Sidebar.tsx`: `bulkcall` panel ID yok OPERATIONS grubunda — sadece advanced'da var | Sidebar.tsx |
+| 9 | `AppShell.tsx`: `panels` map'te `"x402"` yok — `normalizePanel` ile `"x402"→"calls"` ama panels map'te `"x402"` key'i yok, hata fırlatabilir | AppShell.tsx |
+| 10 | `vercel.json`: `/(.*) → /index.html` rewrite path-based routing'i bozuyor | vercel.json |
+| 11 | `AppTopbar.tsx`: `copied` state `useEffect` cleanup yok — component unmount olursa timer leak | AppTopbar.tsx |
+| 12 | `RoleModal.tsx`: `setMode` import edilmiş ama `useAppStore` TypeScript type'ında `setMode` tanımı eksik değil mi kontrol | store |
 
----
+### 🟢 Küçük / Polishing
 
-**1. İlk Bağlantı Sonrası "Role Seçim" Modal'ı**
-
-Cüzdan bağlandıktan sonra tek seferlik bir modal:
-- "Ben kimim?" → **Provider** (API sat) veya **Caller** (API kullan)
-- Seçime göre sidebar öne çıkar, Overview kişiselleşir
-- localStorage'a kaydedilir, bir daha sormaz
-
----
-
-**2. USDC Bakiye Kontrolü + Akıllı Uyarı**
-
-Bağlandıktan sonra:
-- USDC < 1 → sarı banner: "You need USDC to use CallGuard. Get test USDC from the faucet →"
-- USDC = 0 → Overview'daki tüm action butonları disabled, tooltip: "Need USDC first"
-- Bu zaten var gibi görünüyor ama Overview'da çalışmıyor
-
----
-
-**3. Contextual Tooltip'ler (First-time hints)**
-
-Her paneli ilk açışta sağ alt köşede küçük bir hint balonu:
-- CallBuilder açılınca: "💡 Enter provider ID 1 to test the full SLA lifecycle"
-- Register açılınca: "💡 Stake at least 10 USDC to start earning"
-- Receipts açılınca: "💡 As provider: sign and submit within your SLA window"
-- Görüldükten sonra kaybolur, ✕ ile de kapatılabilir
+| # | Sorun | Dosya |
+|---|-------|-------|
+| 13 | `OnboardingWizard.tsx`: AppShell'de import edilmiş ama `visible` durumu mount/unmount yerine display:none ile yönetiliyor — her render'da hesaplanıyor | OnboardingWizard.tsx |
+| 14 | `Overview.tsx` satır 81: `markStep` kullanımlarda `useEffect` dependency array'inde `markStep` eksik | Overview.tsx |
+| 15 | `Notifications.tsx`: `useWatchContractEvent` sadece `CallStarted` ve `ReceiptSubmitted` dinliyor — her ikisi de aynı `PPC_ABI`, event adresi doğru mu kontrol gerekiyor | Notifications.tsx |
+| 16 | `index.css` `.cg-hero-section`: `min-height` hâlâ kaldırılmış ama `padding-top: 40px` yetersiz — hero content kısa sayfada kaydırma olmadan görünmüyor | CgLanding CSS |
+| 17 | `CgLanding.tsx`: `Reveal` komponenti `willChange: "opacity, transform"` eklenmiş ama `contain: "layout style"` yok — repaint pahalı | CgLanding.tsx |
+| 18 | `UsdcBanner.tsx`: Faucet linki `faucet.circle.com` — Arc Testnet faucet farklı URL: `faucet.testnet.arc.io` | UsdcBanner.tsx |
+| 19 | `Analytics.tsx`: `ARCSCAN` URL `explorer.testnet.arc.io` — doğru değil, `testnet.arcscan.app` olmalı | Analytics.tsx |
+| 20 | `AppShell.tsx` keyboard shortcut: `G+O`, `G+C` — `keydown` event'i 2s timeout sonra sıfırlanıyor ama `cleanup` return edilmiyor | AppShell.tsx |
+| 21 | `ProgressTracker.tsx`: `markStep("wallet")` kondisyonel render döngüsü — `useEffect` içine taşınmalı | ProgressTracker.tsx |
+| 22 | `CgLanding` → `SparklineCanvas`: `devicePixelRatio` scale iki kez uygulanıyor — `resize()` + `useEffect` ikinci kez scale yapıyor | CgLanding.tsx |
 
 ---
 
-**4. Overview'ı Kişiselleştir — "My Activity" ilk sırada**
-
-Şu an Overview'da network stats ilk sırada. Öneri:
-- Cüzdan bağlıysa ilk section: "MY ACTIVITY" — bu adres için calls, receipts, stake durumu
-- Kayıtlı provider değilse: Register CTA'yı büyük göster
-- Kayıtlıysa: aktif SLA countdown, honor rate, earnings
-
----
-
-**5. Progress Tracker — Sidebar Üstünde**
-
-Sidebar'ın üstünde küçük bir ilerleme çubuğu:
-```
-✅ Wallet connected
-✅ USDC balance
-⬜ Register / First call
-⬜ Submit receipt
-```
-Kullanıcı tamamladıkça yeşile döner. Tam tamamlayınca kaybolur. 5 dakikada tüm lifecycle'ı görmüş olur.
-
----
-
-### Öncelik Sırası
-
-| # | Öneri | Etki | Süre |
-|---|-------|------|------|
-| 1 | Role seçim modal | Yüksek | Orta |
-| 2 | USDC bakiye uyarısı | Yüksek | Kısa |
-| 3 | Contextual tooltip'ler | Orta | Orta |
-| 4 | Overview kişiselleştir | Yüksek | Uzun |
-| 5 | Progress tracker sidebar | Orta | Kısa |
-
-**Hangilerini yapalım?** "Hepsini yap" veya numara belirt.
+**Onaylıyor musun?** "Yap" dersen Build moduna geçip tüm 22 sorunu düzelteceğim.

@@ -8,7 +8,7 @@ export default function App() {
   const { isConnected } = useAccount();
 
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#070b12" }} />}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg-0)" }} />}>
       {isConnected ? <AppShell /> : <CgLanding />}
     </Suspense>
   );

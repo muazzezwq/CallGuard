@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRef } from "react";
 import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
-const ARCSCAN = "https://explorer.testnet.arc.io";
+import { CONFIG } from "../../lib/config";
+const SUBGRAPH_URL = CONFIG.subgraphUrl;
+const ARCSCAN = "https://testnet.arcscan.app";
 
 const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
