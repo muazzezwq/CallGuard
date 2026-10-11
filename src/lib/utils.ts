@@ -57,7 +57,7 @@ export function shortAddr(addr: string, n = 6): string {
 }
 
 // ── explorer tx link ──────────────────────────────────────────────────────
-export function txLink(hash: string, explorerBase = "https://testnet.arcscan.app"): string {
+export function txLink(hash: string, explorerBase = "https://explorer.testnet.arc.io"): string {
   return `${explorerBase}/tx/${hash}`;
 }
 

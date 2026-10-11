@@ -8,7 +8,7 @@ export const arcTestnet = defineChain({
   // Arc Testnet: USDC is the native gas token — 6 decimals, NOT 18
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
   rpcUrls: { default: { http: ["https://rpc.testnet.arc.network"] } },
-  blockExplorers: { default: { name: "ArcScan", url: "https://testnet.arcscan.app" } },
+  blockExplorers: { default: { name: "ArcScan", url: "https://explorer.testnet.arc.io" } },
 });
 
 export const CONFIG = {
@@ -48,9 +48,9 @@ export const CONFIG = {
   agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
   agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
   subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn",
-  explorerBase: "https://testnet.arcscan.app",
-  explorerTx: (hash: string) => `https://testnet.arcscan.app/tx/${hash}`,
-  explorerAddr: (addr: string) => `https://testnet.arcscan.app/address/${addr}`,
+  explorerBase: "https://explorer.testnet.arc.io",
+  explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
+  explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
   rpcUrl: "https://rpc.testnet.arc.network",
   chainId: 5042002,
   chainName: "Arc Testnet",

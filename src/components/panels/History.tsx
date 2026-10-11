@@ -179,7 +179,7 @@ export default function History() {
                     {!!c.refunded && <span style={{color:"var(--accent)"}}>✓ Refunded</span>}
                     {!!c.slashed  && <span style={{color:"var(--danger,#ef4444)"}}>⚡ Slashed</span>}
                     <a
-                      href={`https://testnet.arcscan.app/tx/${id}`}
+                      href={`https://explorer.testnet.arc.io/tx/${id}`}
                       target="_blank" rel="noreferrer"
                       style={{ color:"var(--accent)", marginTop:2 }}
                       onClick={e => e.stopPropagation()}

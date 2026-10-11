@@ -4,7 +4,7 @@ import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
 import { CONFIG } from "../../lib/config";
 const SUBGRAPH_URL = CONFIG.subgraphUrl;
-const ARCSCAN = "https://testnet.arcscan.app";
+const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
