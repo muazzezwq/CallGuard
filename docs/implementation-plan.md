@@ -1,49 +1,82 @@
-Tüm kaynak kodu, CSS ve panel yapısını derinlemesine inceliyorum.Plan modundayım. Dosyaları okuyarak kapsamlı analiz yapıyorum. Kapsamlı analiz tamamlandı. İşte dürüst ve önceliklendirilmiş önerilerim:
+Mevcut onboarding akışını ve panelleri okuyorum. Tam resmi görüyorum. Mevcut `OnboardingWizard` var (4 adım, localStorage ile), `Overview`'da welcome card var, `CgLanding`'de role kartları var. Şimdi kullanıcı yolculuğunu uçtan uca analiz edip kapsamlı önerilerimi sunuyorum:
 
 ---
 
-## Yapılabilecek Değişiklikler — Öncelik Sırası
+## Kullanıcı İlk Girişi — Kapsamlı Analiz & Öneriler
 
-### 🔴 Kritik (Kullanıcı deneyimini direkt etkiliyor)
+### Mevcut Durum
 
-**1. Marketplace → Provider Kartları görsel yenileme**
-Şu an tablo benzeri bir liste. Orijinal HTML'deki gibi kart bazlı grid yapısı, her provider için honor rate progress bar, online/offline badge, fiyat ve "Call now" butonu direkt kartta görünsün.
-
-**2. Analytics → Grafik yok**
-Analytics panelinde subgraph'tan gerçek veri çekiliyor ama sadece sayılar gösteriliyor. Canvas/SVG ile calls over time çizgi grafiği, provider bar chart, honor rate dağılım histogramı eklenebilir — tüm veri zaten mevcut.
-
-**3. Light/Dark tema toggle animasyonu**
-Şu an tema aniden değişiyor. CSS transition ile smooth geçiş (`transition: background 0.3s, color 0.3s`) eklenebilir.
+Şu an ne oluyor:
+1. Kullanıcı siteye giriyor → CgLanding görüyor (iyi)
+2. "Connect wallet" tıklıyor → AppShell açılıyor → Overview geliyor
+3. Overview'da "Welcome" kartı var (3 adım: USDC al, Rol seç, İlk call)
+4. OnboardingWizard modal var ama `AppShell` içine eklenmemiş — görünmüyor
+5. Kullanıcı ne yapacağını bilemiyor, tüm sidebar tek seviye
 
 ---
 
-### 🟡 Önemli (Görünümü ciddi iyileştirir)
-
-**4. Panel loading state'leri**
-Bazı paneller hâlâ "Loading…" metni gösteriyor. Skeleton shimmer animasyonu tüm panellere standart olarak eklenebilir.
-
-**5. Mobile sidebar overlay**
-Mobile'da sidebar açıkken arka plana yarı saydam overlay gelmiyor — içerik görünüyor. `backdrop` overlay eklenmeli.
-
-**6. Wallet adresi kopyalama**
-Topbar'daki `0xfbac…06Da` adresine tıklayınca kopyalanıyor ama görsel feedback yok. "Copied!" tooltip eklenebilir.
-
-**7. Notifications paneli**
-Panel mevcut ama içi boş. Contract event'lerini dinleyip gerçek bildirimler gösterilebilir.
+### 5 Somut Öneri
 
 ---
 
-### 🟢 İyileştirme (Polishing)
+**1. İlk Bağlantı Sonrası "Role Seçim" Modal'ı**
 
-**8. Sidebar collapsed mode (desktop)**
-Masaüstünde sidebar daraltılabilir olsun — sadece ikonlar görünsün, hover'da etiket. Daha fazla içerik alanı.
-
-**9. Keyboard shortcuts**
-`⌘K` command palette çalışıyor. Ek kısayollar: `G+O` → Overview, `G+C` → CallBuilder, `Esc` → sidebar kapat.
-
-**10. Provider profil sayfası**
-`ProviderProfile` paneli mevcut ama sidebar'da link yok. Marketplace'deki her provider kartından tıklanabilir olsun.
+Cüzdan bağlandıktan sonra tek seferlik bir modal:
+- "Ben kimim?" → **Provider** (API sat) veya **Caller** (API kullan)
+- Seçime göre sidebar öne çıkar, Overview kişiselleşir
+- localStorage'a kaydedilir, bir daha sormaz
 
 ---
+
+**2. USDC Bakiye Kontrolü + Akıllı Uyarı**
+
+Bağlandıktan sonra:
+- USDC < 1 → sarı banner: "You need USDC to use CallGuard. Get test USDC from the faucet →"
+- USDC = 0 → Overview'daki tüm action butonları disabled, tooltip: "Need USDC first"
+- Bu zaten var gibi görünüyor ama Overview'da çalışmıyor
+
+---
+
+**3. Contextual Tooltip'ler (First-time hints)**
+
+Her paneli ilk açışta sağ alt köşede küçük bir hint balonu:
+- CallBuilder açılınca: "💡 Enter provider ID 1 to test the full SLA lifecycle"
+- Register açılınca: "💡 Stake at least 10 USDC to start earning"
+- Receipts açılınca: "💡 As provider: sign and submit within your SLA window"
+- Görüldükten sonra kaybolur, ✕ ile de kapatılabilir
+
+---
+
+**4. Overview'ı Kişiselleştir — "My Activity" ilk sırada**
+
+Şu an Overview'da network stats ilk sırada. Öneri:
+- Cüzdan bağlıysa ilk section: "MY ACTIVITY" — bu adres için calls, receipts, stake durumu
+- Kayıtlı provider değilse: Register CTA'yı büyük göster
+- Kayıtlıysa: aktif SLA countdown, honor rate, earnings
+
+---
+
+**5. Progress Tracker — Sidebar Üstünde**
+
+Sidebar'ın üstünde küçük bir ilerleme çubuğu:
+```
+✅ Wallet connected
+✅ USDC balance
+⬜ Register / First call
+⬜ Submit receipt
+```
+Kullanıcı tamamladıkça yeşile döner. Tam tamamlayınca kaybolur. 5 dakikada tüm lifecycle'ı görmüş olur.
+
+---
+
+### Öncelik Sırası
+
+| # | Öneri | Etki | Süre |
+|---|-------|------|------|
+| 1 | Role seçim modal | Yüksek | Orta |
+| 2 | USDC bakiye uyarısı | Yüksek | Kısa |
+| 3 | Contextual tooltip'ler | Orta | Orta |
+| 4 | Overview kişiselleştir | Yüksek | Uzun |
+| 5 | Progress tracker sidebar | Orta | Kısa |
 
 **Hangilerini yapalım?** "Hepsini yap" veya numara belirt.

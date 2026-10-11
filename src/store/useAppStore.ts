@@ -16,17 +16,33 @@ export function normalizePanel(p: PanelId): PanelId {
 }
 
 export type AppMode = "simple" | "pro";
+export type UserRole = "provider" | "caller" | null;
 
 interface AppState {
   activePanel: PanelId;
   mode: AppMode;
   theme: "dark" | "light";
   advancedOpen: boolean;
+  role: UserRole;
+  onboardingDone: boolean;
+  hintsSeen: string[];
+  progressSteps: { id: string; done: boolean }[];
   setPanel: (panel: PanelId) => void;
   setMode: (mode: AppMode) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleAdvanced: () => void;
+  setRole: (role: UserRole) => void;
+  setOnboardingDone: () => void;
+  markHintSeen: (id: string) => void;
+  markStep: (id: string) => void;
 }
+
+const INIT_STEPS = [
+  { id: "wallet",  done: false },
+  { id: "usdc",    done: false },
+  { id: "action",  done: false },
+  { id: "receipt", done: false },
+];
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -35,11 +51,28 @@ export const useAppStore = create<AppState>()(
       mode: "simple",
       theme: "light",
       advancedOpen: false,
+      role: null,
+      onboardingDone: false,
+      hintsSeen: [],
+      progressSteps: INIT_STEPS,
       setPanel: (panel) => set({ activePanel: normalizePanel(panel) }),
       setMode: (mode) => set({ mode, advancedOpen: mode === "pro" }),
       setTheme: (theme) => set({ theme }),
       toggleAdvanced: () => set((s) => ({ advancedOpen: !s.advancedOpen })),
+      setRole: (role) => set({ role }),
+      setOnboardingDone: () => set({ onboardingDone: true }),
+      markHintSeen: (id) => set((s) => ({ hintsSeen: [...s.hintsSeen.filter(x => x !== id), id] })),
+      markStep: (id) => set((s) => ({
+        progressSteps: s.progressSteps.map(st => st.id === id ? { ...st, done: true } : st)
+      })),
     }),
-    { name: "cg-app-state", partialize: (s) => ({ mode: s.mode, theme: s.theme, advancedOpen: s.advancedOpen }) }
+    {
+      name: "cg-app-state-v2",
+      partialize: (s) => ({
+        mode: s.mode, theme: s.theme, advancedOpen: s.advancedOpen,
+        role: s.role, onboardingDone: s.onboardingDone,
+        hintsSeen: s.hintsSeen, progressSteps: s.progressSteps,
+      })
+    }
   )
 );

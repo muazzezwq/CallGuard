@@ -78,7 +78,7 @@ function buildActivityChart(calls: { createdAt: string }[]): { hour: number; cou
 const WB_KEY = "cg_welcome_dismissed";
 
 export default function Overview() {
-  const { setPanel } = useAppStore();
+  const { setPanel, role, markStep } = useAppStore();
   const { address, isConnected } = useAccount();
 
   // Welcome box — shown after wallet connect, dismissed once via localStorage
@@ -239,12 +239,63 @@ export default function Overview() {
 
   const shorten = (addr: string) => `${addr.slice(0,6)}…${addr.slice(-4)}`;
 
+  // Mark steps
+  useEffect(() => {
+    if (isConnected) markStep("wallet");
+    if (sgCalls.some((c: any) => c.caller?.toLowerCase() === address?.toLowerCase())) markStep("action");
+    if (sgCalls.some((c: any) => c.status === "COMPLETED" && c.caller?.toLowerCase() === address?.toLowerCase())) markStep("receipt");
+  }, [isConnected, sgCalls, address]);
+
+  // MY ACTIVITY: calls by this address
+  const myActivity = sgCalls.filter((c: any) =>
+    c.caller?.toLowerCase() === address?.toLowerCase()
+  ).slice(0, 5);
+
   return (
     <div style={s.page}>
       {/* Header */}
       <div style={s.badge}><span style={s.dot} />Arc Testnet · Live</div>
       <h1 style={s.h1}>Overview</h1>
       <p style={s.sub}>Monitor services, requests and settlements on Arc Testnet.</p>
+
+      {/* Role-aware CTA banner */}
+      {isConnected && role && (
+        <div style={{
+          background: role === "provider"
+            ? "linear-gradient(135deg,rgba(16,185,129,0.08),rgba(5,150,105,0.04))"
+            : "linear-gradient(135deg,rgba(59,130,246,0.08),rgba(37,99,235,0.04))",
+          border: `1px solid ${role === "provider" ? "rgba(16,185,129,0.25)" : "rgba(59,130,246,0.25)"}`,
+          borderRadius: 12, padding: "14px 16px", marginBottom: 16,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap" as const, gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>
+              {role === "provider" ? "🖥️ Provider Dashboard" : "📡 Caller Dashboard"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+              {role === "provider"
+                ? "Register your service, set your stake and SLA terms."
+                : "Browse providers, call services, and track your receipts."}
+            </div>
+          </div>
+          <button
+            onClick={() => setPanel(role === "provider" ? "register" : "calls")}
+            style={{
+              padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+              background: role === "provider"
+                ? "linear-gradient(135deg,#10b981,#059669)"
+                : "linear-gradient(135deg,#3b82f6,#2563eb)",
+              color: "#fff", fontSize: 12, fontWeight: 600,
+              boxShadow: role === "provider"
+                ? "0 4px 12px rgba(16,185,129,0.3)"
+                : "0 4px 12px rgba(59,130,246,0.3)",
+            }}
+          >
+            {role === "provider" ? "Register →" : "Make a call →"}
+          </button>
+        </div>
+      )}
 
       {/* Quick stat strip */}
       <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap" as const}}>
@@ -305,6 +356,43 @@ export default function Overview() {
               <button onClick={() => setPanel("calls")} style={{ padding:"5px 12px",borderRadius:6,background:"linear-gradient(135deg,#10b981,#059669)",border:"none",color:"#fff",fontSize:12,cursor:"pointer",whiteSpace:"nowrap" as const }}>Call a service →</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* MY ACTIVITY — personalized section */}
+      {isConnected && myActivity.length > 0 && (
+        <div style={{ ...s.section, marginBottom: 16, borderLeft: "3px solid var(--accent)" }}>
+          <div style={s.sectionTitle}>MY ACTIVITY</div>
+          {myActivity.map((c: any) => (
+            <div key={c.id} style={{ ...s.row }}>
+              <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                  background: c.status === "STARTED" ? "var(--accent)" : c.status === "SLASHED" ? "var(--danger)" : "#3b82f6",
+                }} />
+                <span style={{ fontSize: 12, color: "var(--text)", fontFamily: "var(--font-mono)" }}>
+                  Call #{c.id?.slice(-4)}
+                </span>
+                <span style={{
+                  fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                  background: c.status === "STARTED" ? "rgba(16,185,129,0.1)" : c.status === "SLASHED" ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.1)",
+                  color: c.status === "STARTED" ? "var(--accent)" : c.status === "SLASHED" ? "var(--danger)" : "#3b82f6",
+                  fontWeight: 600,
+                }}>
+                  {c.status}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                {c.amount ? `${Number(formatUnits(BigInt(c.amount), 6)).toFixed(4)} USDC` : ""}
+              </div>
+            </div>
+          ))}
+          <button onClick={() => setPanel("requests")} style={{
+            marginTop: 10, fontSize: 11, color: "var(--accent)", background: "none",
+            border: "none", cursor: "pointer", padding: 0, fontWeight: 600,
+          }}>
+            View all my requests →
+          </button>
         </div>
       )}
 

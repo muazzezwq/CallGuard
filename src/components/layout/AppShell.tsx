@@ -6,6 +6,10 @@ import AppFooter from "./AppFooter";
 import OnboardingWizard from "./OnboardingWizard";
 import LiveBar from "./LiveBar";
 import CommandPalette from "./CommandPalette";
+import RoleModal from "./RoleModal";
+import UsdcBanner from "./UsdcBanner";
+import ContextualHint from "./ContextualHint";
+import ProgressTracker from "./ProgressTracker";
 import { initTabTitleCounter } from "../../lib/utils";
 
 const panels = {
@@ -159,6 +163,7 @@ export default function AppShell() {
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>
+        <ProgressTracker />
         <Sidebar onNav={handleNav} />
         <button
           className="sidebar-collapse-btn"
@@ -172,6 +177,7 @@ export default function AppShell() {
       {/* ── Main ── */}
       <main className="main-content">
         <LiveBar />
+        <UsdcBanner />
         <Suspense fallback={<PanelLoader />}>
           {ActivePanel ? <ActivePanel /> : <PanelLoader />}
         </Suspense>
@@ -180,6 +186,12 @@ export default function AppShell() {
 
       {/* ── Onboarding ── */}
       <OnboardingWizard />
+
+      {/* ── Role modal (first connect) ── */}
+      <RoleModal />
+
+      {/* ── Contextual hint ── */}
+      <ContextualHint panel={activePanel} />
 
       {/* ── Command Palette ── */}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
