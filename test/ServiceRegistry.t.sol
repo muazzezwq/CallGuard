@@ -43,7 +43,7 @@ contract ServiceRegistryTest is Test {
 
     function test_register_setsState() public {
         vm.prank(provider1);
-        uint256 id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api.example");
+        uint256 id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api.example");
 
         assertEq(id, 1);
         assertEq(registry.providerIdOf(provider1), 1);
@@ -62,7 +62,7 @@ contract ServiceRegistryTest is Test {
         uint256 balBefore = usdc.balanceOf(provider1);
 
         vm.prank(provider1);
-        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api");
+        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api");
 
         assertEq(usdc.balanceOf(provider1), balBefore - STAKE);
         assertEq(usdc.balanceOf(address(registry)), STAKE);
@@ -75,40 +75,40 @@ contract ServiceRegistryTest is Test {
         );
 
         vm.prank(provider1);
-        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api");
+        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api");
     }
 
     function test_register_twice_reverts() public {
         vm.startPrank(provider1);
-        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "a");
+        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "a");
 
         vm.expectRevert(ServiceRegistry.AlreadyRegistered.selector);
-        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "b");
+        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "b");
         vm.stopPrank();
     }
 
     function test_register_belowMinStake_reverts() public {
         vm.expectRevert(ServiceRegistry.BelowMinStake.selector);
         vm.prank(provider1);
-        registry.register(provider1Signer, MIN_STAKE - 1, PRICE, MAX_RESP, SLASH_BPS, "a");
+        registry.register(provider1Signer, MIN_STAKE - 1, PRICE, MAX_RESP, SLASH_BPS, 0, "a");
     }
 
     function test_register_slashBpsOverMax_reverts() public {
         vm.expectRevert(ServiceRegistry.InvalidSlashBps.selector);
         vm.prank(provider1);
-        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, 10_001, "a");
+        registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, 10_001, 0, "a");
     }
 
     function test_register_responseTimeTooShort_reverts() public {
         vm.expectRevert(ServiceRegistry.InvalidResponseTime.selector);
         vm.prank(provider1);
-        registry.register(provider1Signer, STAKE, PRICE, 4, SLASH_BPS, "a");
+        registry.register(provider1Signer, STAKE, PRICE, 4, SLASH_BPS, 0, "a");
     }
 
     function test_register_zeroSigner_reverts() public {
         vm.expectRevert(ServiceRegistry.InvalidSigner.selector);
         vm.prank(provider1);
-        registry.register(address(0), STAKE, PRICE, MAX_RESP, SLASH_BPS, "a");
+        registry.register(address(0), STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "a");
     }
 
     // ------------------------------------------------------------------
@@ -438,6 +438,7 @@ contract ServiceRegistryTest is Test {
             PRICE,
             MAX_RESP,
             SLASH_BPS,
+            0,
             "https://v2.example"
         );
 
@@ -462,7 +463,7 @@ contract ServiceRegistryTest is Test {
         uint256 balBefore = usdc.balanceOf(nftOwner);
 
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2");
 
         assertEq(usdc.balanceOf(nftOwner), balBefore - STAKE);
         assertEq(usdc.balanceOf(address(registry)), STAKE);
@@ -481,7 +482,7 @@ contract ServiceRegistryTest is Test {
         emit ServiceRegistry.NFTBound(1, NFT_TOKEN_ID);
 
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2");
     }
 
     // --- failure paths ---
@@ -492,7 +493,7 @@ contract ServiceRegistryTest is Test {
 
         vm.expectRevert(ServiceRegistry.NotNFTOwner.selector);
         vm.prank(nonOwner);
-        registry.registerV2(NFT_TOKEN_ID, nonOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+        registry.registerV2(NFT_TOKEN_ID, nonOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2");
     }
 
     function test_registerV2_alreadyRegistered_reverts() public {
@@ -500,11 +501,11 @@ contract ServiceRegistryTest is Test {
         _fundAndApproveV2(nftOwner);
 
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2");
 
         vm.expectRevert(ServiceRegistry.AlreadyRegistered.selector);
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2-2");
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2-2");
     }
 
     function test_registerV2_belowMinStake_reverts() public {
@@ -513,7 +514,7 @@ contract ServiceRegistryTest is Test {
 
         vm.expectRevert(ServiceRegistry.BelowMinStake.selector);
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, nftOwner, MIN_STAKE - 1, PRICE, MAX_RESP, SLASH_BPS, "a");
+        registry.registerV2(NFT_TOKEN_ID, nftOwner, MIN_STAKE - 1, PRICE, MAX_RESP, SLASH_BPS, 0, "a");
     }
 
     function test_registerV2_zeroSigner_reverts() public {
@@ -522,7 +523,7 @@ contract ServiceRegistryTest is Test {
 
         vm.expectRevert(ServiceRegistry.InvalidSigner.selector);
         vm.prank(nftOwner);
-        registry.registerV2(NFT_TOKEN_ID, address(0), STAKE, PRICE, MAX_RESP, SLASH_BPS, "a");
+        registry.registerV2(NFT_TOKEN_ID, address(0), STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "a");
     }
 
     // --- parallel v1 / v2 isolation ---
@@ -533,12 +534,12 @@ contract ServiceRegistryTest is Test {
 
         // v1 registration (provider1, no NFT)
         vm.prank(provider1);
-        uint256 v1Id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v1");
+        uint256 v1Id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v1");
 
         // v2 registration (nftOwner, with NFT)
         vm.prank(nftOwner);
         uint256 v2Id = registry.registerV2(
-            NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2"
+            NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2"
         );
 
         // IDs are sequential and distinct
@@ -563,7 +564,7 @@ contract ServiceRegistryTest is Test {
         _fundAndApproveV2(nftOwner);
 
         vm.prank(nftOwner);
-        uint256 id = registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://v2");
+        uint256 id = registry.registerV2(NFT_TOKEN_ID, nftOwner, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://v2");
 
         // fresh v2 provider also starts at 66
         assertEq(registry.getReputationScore(id), 66);
@@ -579,6 +580,6 @@ contract ServiceRegistryTest is Test {
 
     function _registerDefault() internal returns (uint256 id) {
         vm.prank(provider1);
-        id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api");
+        id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api");
     }
 }  

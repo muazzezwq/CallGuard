@@ -44,7 +44,8 @@ contract MockRegistry is IServiceRegistry {
             pricePerCall: 0,
             maxResponseTime: 0,
             slashBps: 0,
-            active: e.active
+            active: e.active,
+            maxConcurrentCalls: 0
         });
     }
 

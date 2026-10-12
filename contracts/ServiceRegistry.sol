@@ -75,6 +75,10 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         uint32 pendingCalls; // open calls not yet finalized
         uint64 completedCalls; // reputation: successful receipts submitted
         uint64 slashedCalls; // reputation: SLA violations enforced
+        /// @notice Max simultaneous open calls per caller address.
+        ///         0 means "use the PayPerCall default" (10).
+        ///         Providers set this to prevent spam / griefing.
+        uint32 maxConcurrentCalls;
         string endpoint;
         bool active;
     }
@@ -195,6 +199,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         uint256 pricePerCall_,
         uint32 maxResponseTime,
         uint32 slashBps,
+        uint32 maxConcurrentCalls_,
         string calldata endpoint
     ) external nonReentrant returns (uint256 providerId) {
         if (providerIdOf[msg.sender] != 0) revert AlreadyRegistered();
@@ -215,6 +220,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             pendingCalls: 0,
             completedCalls: 0,
             slashedCalls: 0,
+            maxConcurrentCalls: maxConcurrentCalls_,
             endpoint: endpoint,
             active: true
         });
@@ -244,6 +250,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         uint256 pricePerCall_,
         uint32 maxResponseTime,
         uint32 slashBps,
+        uint32 maxConcurrentCalls_,
         string calldata endpoint
     ) external nonReentrant returns (uint256 providerId) {
         // 1. ERC-8004 ownership check
@@ -271,6 +278,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             pendingCalls: 0,
             completedCalls: 0,
             slashedCalls: 0,
+            maxConcurrentCalls: maxConcurrentCalls_,
             endpoint: endpoint,
             active: true
         });
@@ -392,8 +400,17 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             pricePerCall: p.pricePerCall,
             maxResponseTime: p.maxResponseTime,
             slashBps: p.slashBps,
-            active: p.active
+            active: p.active,
+            maxConcurrentCalls: p.maxConcurrentCalls
         });
+    }
+
+    /// @notice Update the per-caller concurrent call cap for a provider.
+    ///         0 resets to the PayPerCall default (10).
+    function updateMaxConcurrentCalls(uint256 providerId, uint32 newCap) external {
+        Provider storage p = _providers[providerId];
+        if (p.owner != msg.sender) revert NotOwner();
+        p.maxConcurrentCalls = newCap;
     }
 
     function getEndpoint(uint256 providerId) external view returns (string memory) {

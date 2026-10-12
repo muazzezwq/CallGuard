@@ -80,6 +80,8 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     error InsufficientProviderStake();
     error InvalidBeneficiary();
     error NothingToClaim();
+    /// @notice Caller has reached the provider's per-caller concurrent call cap.
+    error TooManyConcurrentCalls();
 
     // ---------------------------------------------------------------------
     // Types
@@ -136,6 +138,14 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     mapping(bytes32 => bool) public usedReceipts;
 
     mapping(address => uint256) public claimable;
+
+    /// @notice Tracks how many calls are open for each (providerId, caller) pair.
+    ///         Decremented on receipt submit or timeout claim.
+    ///         Capped at provider.maxConcurrentCalls (default 10 when 0).
+    mapping(uint256 => mapping(address => uint32)) public openCallsPerCaller;
+
+    /// @dev Default cap used when provider sets maxConcurrentCalls = 0.
+    uint32 public constant DEFAULT_MAX_CONCURRENT = 10;
 
     // ---------------------------------------------------------------------
     // Events
@@ -239,6 +249,10 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
         if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
 
+        // Rate-limit check for x402 path.
+        uint32 cap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        if (openCallsPerCaller[providerId][beneficiary] >= cap) revert TooManyConcurrentCalls();
+
         uint256 currentNonce = nonce++;
         callId = keccak256(
             abi.encodePacked(providerId, beneficiary, currentNonce, block.timestamp, requestHash, block.chainid)
@@ -272,6 +286,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
         registry.markCallStarted(providerId);
 
+        // Track open call against rate-limit counter (x402 path).
+        openCallsPerCaller[providerId][beneficiary]++;
+
         emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
     }
 
@@ -288,6 +305,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         // from providers whose stake has been depleted by previous slashes.
         uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
         if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
+
+        // Rate-limit: enforce per-caller concurrent call cap.
+        // Prevents griefing / DoS via mass simultaneous call flooding.
+        uint32 cap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        if (openCallsPerCaller[providerId][beneficiary] >= cap) revert TooManyConcurrentCalls();
 
         uint256 currentNonce = nonce++;
         callId = keccak256(
@@ -312,6 +334,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         // transfer fails, pendingCalls doesn't drift.
         usdc.safeTransferFrom(msg.sender, address(this), p.pricePerCall);
         registry.markCallStarted(providerId);
+
+        // Track open call against rate-limit counter.
+        openCallsPerCaller[providerId][beneficiary]++;
 
         emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
     }
@@ -359,6 +384,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         c.responseHash = responseHash;
         c.status = CallStatus.Completed;
 
+        // Decrement rate-limit counter — slot is now free for a new call.
+        if (openCallsPerCaller[c.providerId][c.caller] > 0) {
+            openCallsPerCaller[c.providerId][c.caller]--;
+        }
+
         registry.markCallFinished(c.providerId);
         registry.incCompleted(c.providerId); // bump reputation
         claimable[p.owner] += c.amount;
@@ -376,6 +406,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         if (block.timestamp <= uint256(c.deadline) + SUBMIT_GRACE) revert DeadlineNotReached();
 
         c.status = CallStatus.Slashed;
+
+        // Decrement rate-limit counter — free the slot.
+        if (openCallsPerCaller[c.providerId][c.caller] > 0) {
+            openCallsPerCaller[c.providerId][c.caller]--;
+        }
 
         IServiceRegistry.ProviderView memory p = registry.getProvider(c.providerId);
         uint256 slashAmount = (p.stake * p.slashBps) / 10_000;

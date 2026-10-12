@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { Script, console2 } from "forge-std/Script.sol";
-import { SLAAttestationBridge } from "../src/SLAAttestationBridge.sol";
+import { SLAAttestationBridge } from "../contracts/SLAAttestationBridge.sol";
 
 /// @title DeploySLABridge
 /// @notice Deploys SLAAttestationBridge and wires it to existing

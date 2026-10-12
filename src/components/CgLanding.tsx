@@ -443,6 +443,37 @@ export default function CgLanding() {
       <section className="cg-hero-section">
         <NetworkCanvas />
         <div className="cg-hero-content">
+          {/* ── Marketplace + rate-limit badges ── */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:18 }}>
+            <span style={{
+              display:"inline-flex", alignItems:"center", gap:6,
+              background:"linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))",
+              border:"1px solid rgba(16,185,129,.35)", borderRadius:20,
+              padding:"5px 13px", fontSize:11, fontWeight:700, letterSpacing:"0.07em",
+              color:"#10b981", textTransform:"uppercase",
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Circle Agent Marketplace
+            </span>
+            <span style={{
+              display:"inline-flex", alignItems:"center", gap:6,
+              background:"rgba(56,189,248,.08)", border:"1px solid rgba(56,189,248,.3)",
+              borderRadius:20, padding:"5px 13px", fontSize:11, fontWeight:700,
+              letterSpacing:"0.07em", color:"#38bdf8", textTransform:"uppercase",
+            }}>
+              ⚡ Gateway Nanopayments
+            </span>
+            <span style={{
+              display:"inline-flex", alignItems:"center", gap:6,
+              background:"rgba(167,139,250,.08)", border:"1px solid rgba(167,139,250,.3)",
+              borderRadius:20, padding:"5px 13px", fontSize:11, fontWeight:700,
+              letterSpacing:"0.07em", color:"#a78bfa", textTransform:"uppercase",
+            }}>
+              🛡️ Per-caller Rate Limit
+            </span>
+          </div>
           <div className="cg-hero-badge">5 SLA PROTOCOLS</div>
           <h1 className="cg-hero-h1">
             Service guarantees,<br />
@@ -525,6 +556,116 @@ export default function CgLanding() {
           </div>
           <div>
             <Terminal />
+          </div>
+        </section>
+      </Reveal>
+
+      {/* ── GATEWAY NANOPAYMENTS + RATE LIMITING ── */}
+      <Reveal>
+        <section className="cg-section">
+          <div className="cg-label-sm" style={{textAlign:"center"}}>New in v4.1</div>
+          <h2 className="cg-h2" style={{textAlign:"center",marginBottom:8}}>Two new infrastructure upgrades.</h2>
+          <p className="cg-body-text" style={{textAlign:"center",maxWidth:560,margin:"0 auto 40px"}}>
+            Gateway Nanopayments enable sub-cent, sub-second transfers. Per-caller rate limiting closes the DoS vector at the contract level.
+          </p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:24}}>
+
+            {/* Gateway Nanopayments card */}
+            <div style={{
+              background:"var(--bg-1)", border:"1px solid var(--border)",
+              borderRadius:16, padding:28, position:"relative", overflow:"hidden",
+            }}>
+              <div style={{
+                position:"absolute", inset:0, opacity:0.04,
+                background:"radial-gradient(ellipse at 20% 50%, #38bdf8 0%, transparent 70%)",
+                pointerEvents:"none",
+              }}/>
+              <div style={{fontSize:32,marginBottom:12}}>⚡</div>
+              <div style={{fontWeight:700,fontSize:18,marginBottom:8,color:"var(--text)"}}>Gateway Nanopayments</div>
+              <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:20,lineHeight:1.6}}>
+                Circle's off-chain batching rail handles sub-cent transfers without per-call gas. Payments are
+                settled to Arc Testnet in batches by the Gateway relayer — typically under 500ms.
+              </p>
+              {/* Flow diagram */}
+              {[
+                { icon:"🤖", label:"Agent", color:"#38bdf8" },
+                { icon:"⚡", label:"Gateway Batch", color:"#38bdf8" },
+                { icon:"🔗", label:"Arc Testnet settlement", color:"#10b981" },
+                { icon:"🖥️", label:"Provider earns", color:"#10b981" },
+              ].map((step, i, arr) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:i<arr.length-1?6:0}}>
+                  <div style={{
+                    width:32, height:32, borderRadius:8, background:`${step.color}18`,
+                    border:`1px solid ${step.color}44`, display:"flex", alignItems:"center",
+                    justifyContent:"center", fontSize:15, flexShrink:0,
+                  }}>{step.icon}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:step.color}}>{step.label}</div>
+                  {i < arr.length-1 && <div style={{width:1,height:14,background:"var(--border)",marginLeft:"auto",marginRight:"auto"}}/>}
+                </div>
+              ))}
+              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)",display:"flex",gap:16}}>
+                {[
+                  { label:"Latency", value:"<500ms" },
+                  { label:"Batch size", value:"∞" },
+                  { label:"Gas/call", value:"~0" },
+                ].map(kv => (
+                  <div key={kv.label} style={{textAlign:"center",flex:1}}>
+                    <div style={{fontSize:16,fontWeight:700,color:"#38bdf8"}}>{kv.value}</div>
+                    <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{kv.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Per-caller Rate Limiting card */}
+            <div style={{
+              background:"var(--bg-1)", border:"1px solid var(--border)",
+              borderRadius:16, padding:28, position:"relative", overflow:"hidden",
+            }}>
+              <div style={{
+                position:"absolute", inset:0, opacity:0.04,
+                background:"radial-gradient(ellipse at 80% 50%, #a78bfa 0%, transparent 70%)",
+                pointerEvents:"none",
+              }}/>
+              <div style={{fontSize:32,marginBottom:12}}>🛡️</div>
+              <div style={{fontWeight:700,fontSize:18,marginBottom:8,color:"var(--text)"}}>Per-caller Rate Limiting</div>
+              <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:20,lineHeight:1.6}}>
+                Each provider sets a concurrent call cap (default 10). A single address cannot flood a provider with
+                simultaneous calls, preventing the escrow-lock DoS vector identified in SECURITY.md.
+              </p>
+              {/* Logic visualization */}
+              <div style={{background:"var(--bg-0)",borderRadius:10,padding:14,fontFamily:"monospace",fontSize:12}}>
+                <div style={{color:"#a78bfa",marginBottom:4}}>// PayPerCall.sol — _callServiceFor()</div>
+                <div style={{color:"var(--text-muted)"}}>
+                  <span style={{color:"#38bdf8"}}>uint32 </span>cap = maxConcurrentCalls == 0
+                </div>
+                <div style={{color:"var(--text-muted)",paddingLeft:16}}>
+                  ? DEFAULT_MAX_CONCURRENT <span style={{color:"#fbbf24"}}>(10)</span>
+                </div>
+                <div style={{color:"var(--text-muted)",paddingLeft:16}}>
+                  : maxConcurrentCalls;
+                </div>
+                <div style={{color:"#10b981",marginTop:8}}>
+                  if (openCallsPerCaller[pid][caller] {">="}  cap)
+                </div>
+                <div style={{color:"#ef4444",paddingLeft:16}}>
+                  revert TooManyConcurrentCalls();
+                </div>
+              </div>
+              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)",display:"flex",gap:16}}>
+                {[
+                  { label:"Default cap", value:"10" },
+                  { label:"Custom cap", value:"1-∞" },
+                  { label:"Enforcement", value:"On-chain" },
+                ].map(kv => (
+                  <div key={kv.label} style={{textAlign:"center",flex:1}}>
+                    <div style={{fontSize:16,fontWeight:700,color:"#a78bfa"}}>{kv.value}</div>
+                    <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{kv.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </section>
       </Reveal>

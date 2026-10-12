@@ -1,7 +1,27 @@
 /**
  * POST /api/nano-call
- * CRITICAL-07 fix: added rate limiting (5 req/min per IP) and API key auth.
- * BUYER_PRIVATE_KEY funds demo nano transfers — requires NANO_API_KEY in env.
+ *
+ * Sends a 0.001 USDC nano-payment on Arc Testnet via two rails:
+ *
+ *   1. Gateway Nanopayments (preferred) — @circle-fin/x402-batching
+ *      Uses Circle's off-chain batching service for sub-cent, sub-second
+ *      transfers. Activated when GATEWAY_BATCH_URL env var is set.
+ *      Falls back to Rail 2 if the Gateway call fails.
+ *
+ *   2. Standard ERC-20 transfer (fallback) — direct on-chain USDC.transfer()
+ *      Always available. Used when Gateway is unconfigured or unreachable.
+ *
+ * Security:
+ *   - Rate limit: 5 req/min per IP (Upstash Redis if configured, else in-memory)
+ *   - API key auth: X-Api-Key header required when NANO_API_KEY is set
+ *
+ * Env vars:
+ *   BUYER_PRIVATE_KEY       — wallet that funds the transfer (Rail 2)
+ *   SELLER_ADDRESS          — recipient of the nano-payment
+ *   NANO_API_KEY            — optional, gates the endpoint with an API key
+ *   GATEWAY_BATCH_URL       — Circle Gateway batching endpoint (enables Rail 1)
+ *   GATEWAY_BATCH_API_KEY   — API key for the Gateway batching endpoint
+ *   USDC_ADDRESS / VITE_USDC_ADDRESS — USDC contract on Arc Testnet
  */
 import { ethers } from "ethers";
 
@@ -9,6 +29,11 @@ const BUYER_KEY = process.env.BUYER_PRIVATE_KEY;
 const SELLER    = process.env.SELLER_ADDRESS;
 // Required API key — callers must send X-Api-Key: <value> header
 const NANO_API_KEY = process.env.NANO_API_KEY;
+
+// Gateway Nanopayments (Rail 1) config.
+// Set GATEWAY_BATCH_URL to enable — Circle Gateway batching endpoint.
+const GATEWAY_BATCH_URL     = process.env.GATEWAY_BATCH_URL;
+const GATEWAY_BATCH_API_KEY = process.env.GATEWAY_BATCH_API_KEY;
 
 // Persistent rate limiter via Upstash Redis REST API (serverless-safe).
 // Falls back to in-memory if UPSTASH_REDIS_REST_URL is not set.
@@ -104,6 +129,50 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "Amount exceeds max 0.001 USDC" });
   }
 
+  // ── Rail 1: Gateway Nanopayments ─────────────────────────────────────────
+  // Preferred path: Circle's off-chain batching service handles sub-cent
+  // transfers without on-chain gas per call. The batch is settled to Arc
+  // Testnet periodically by the Gateway relayer.
+  if (GATEWAY_BATCH_URL && SELLER) {
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (GATEWAY_BATCH_API_KEY) headers["Authorization"] = `Bearer ${GATEWAY_BATCH_API_KEY}`;
+
+      const gatewayRes = await fetch(GATEWAY_BATCH_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          to:     SELLER,
+          amount: "1000",        // 0.001 USDC in 6-decimal units
+          asset:  process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS ||
+                  "0x3600000000000000000000000000000000000000",
+          chain:  "arc-testnet",
+          memo:   "callguard-nano",
+        }),
+      });
+
+      if (gatewayRes.ok) {
+        const data = await gatewayRes.json();
+        console.log("[nano-call] Gateway rail succeeded:", data?.batchId);
+        return res.json({
+          ok: true,
+          amount: "0.001",
+          rail: "gateway",
+          batchId: data?.batchId || null,
+          txHash:  data?.txHash  || null,
+        });
+      }
+
+      // Gateway returned an error — log and fall through to Rail 2.
+      const errText = await gatewayRes.text().catch(() => "(unreadable)");
+      console.warn("[nano-call] Gateway rail failed, falling back to ERC-20:", gatewayRes.status, errText);
+    } catch (gatewayErr) {
+      console.warn("[nano-call] Gateway rail threw, falling back to ERC-20:", gatewayErr.message);
+    }
+  }
+
+  // ── Rail 2: Standard ERC-20 transfer ─────────────────────────────────────
+  // Direct on-chain USDC.transfer(). Always available; requires BUYER_PRIVATE_KEY.
   try {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const buyer    = new ethers.Wallet(BUYER_KEY, provider);
@@ -115,10 +184,10 @@ export default async function handler(req, res) {
     const usdcAddr = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS;
     if (!usdcAddr) return res.status(503).json({ ok: false, error: "USDC_ADDRESS not configured" });
 
-    const usdc     = new ethers.Contract(usdcAddr, usdcAbi, buyer);
+    const usdc = new ethers.Contract(usdcAddr, usdcAbi, buyer);
     const transferAmount = ethers.parseUnits("0.001", 6);
 
-    // Balance check before sending
+    // Balance check before sending.
     const bal = await usdc.balanceOf(buyer.address);
     if (bal < transferAmount) {
       return res.status(402).json({ ok: false, error: "Insufficient demo wallet balance" });
@@ -126,9 +195,9 @@ export default async function handler(req, res) {
 
     const tx = await usdc.transfer(SELLER, transferAmount);
     await tx.wait();
-    return res.json({ ok: true, amount: "0.001", txHash: tx.hash });
+    return res.json({ ok: true, amount: "0.001", rail: "erc20", txHash: tx.hash });
   } catch (e) {
-    console.error("[nano-call] error:", e.message);
+    console.error("[nano-call] ERC-20 rail error:", e.message);
     return res.status(500).json({ ok: false, error: e.message });
   }
 }

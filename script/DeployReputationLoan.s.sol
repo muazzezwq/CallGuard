@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../src/ReputationLoan.sol";
+import "../contracts/ReputationLoan.sol";
 
 contract DeployReputationLoan is Script {
     function run() external {

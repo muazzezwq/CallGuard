@@ -42,14 +42,65 @@ function getRpcUrl() {
   return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL;
 }
 
+// Arc Testnet chain constants.
+const ARC_TESTNET_CHAIN_ID = "eip155:5042002";
+const USDC_ARC = "0x3600000000000000000000000000000000000000";
+const FACILITATOR = process.env.VITE_FACILITATOR_ADDRESS || process.env.FACILITATOR_ADDRESS;
+
+/**
+ * Returns a fully-formed x402 payment-required body.
+ * Follows the Circle Agent Marketplace `accepts` array schema so that any
+ * x402-aware agent can auto-pay without reading docs.
+ */
+function paymentRequired(priceUsdc = "1000000") {
+  return {
+    x402Version: 1,
+    error: "X-Payment header required",
+    accepts: [
+      {
+        scheme: "exact",
+        network: ARC_TESTNET_CHAIN_ID,
+        asset: USDC_ARC,
+        maxAmountRequired: priceUsdc,
+        payTo: FACILITATOR || "0x0000000000000000000000000000000000000000",
+        description: "USDC on Arc Testnet — CallGuard SLA per-call fee",
+        inputSchema: {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          required: ["providerId", "requestHash", "authorization", "signature"],
+          properties: {
+            providerId:    { type: "integer" },
+            requestHash:   { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" },
+            authorization: { type: "object" },
+            signature:     { type: "string", pattern: "^0x[0-9a-fA-F]{130}$" },
+          },
+        },
+        outputSchema: {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          required: ["success", "callId"],
+          properties: {
+            success:     { type: "boolean" },
+            callId:      { type: "string" },
+            txHash:      { type: ["string", "null"] },
+            blockNumber: { type: ["integer", "null"] },
+          },
+        },
+      },
+    ],
+  };
+}
+
 export default async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).end();
 
   const { providerId, requestHash, authorization, signature } = req.body || {};
-  if (!providerId || !requestHash || !authorization || !signature)
-    return res.status(400).json({ error: "providerId, requestHash, authorization, signature required" });
+  if (!providerId || !requestHash || !authorization || !signature) {
+    res.setHeader("Content-Type", "application/json");
+    return res.status(402).json(paymentRequired());
+  }
 
   try {
     const rpcUrl = getRpcUrl();

@@ -61,7 +61,8 @@ contract MockRegistry is IServiceRegistry {
             pricePerCall: 0,
             maxResponseTime: 0,
             slashBps: 0,
-            active: cfg.active
+            active: cfg.active,
+            maxConcurrentCalls: 0
         });
     }
 
@@ -775,7 +776,8 @@ contract MockRegistryNoReputation is IServiceRegistry {
             pricePerCall: 0,
             maxResponseTime: 0,
             slashBps: 0,
-            active: cfg.active
+            active: cfg.active,
+            maxConcurrentCalls: 0
         });
     }
 

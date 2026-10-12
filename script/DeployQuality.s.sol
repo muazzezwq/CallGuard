@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../src/DisputeQuality.sol";
+import "../contracts/DisputeQuality.sol";
 
 contract DeployQuality is Script {
     function run() external {

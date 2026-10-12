@@ -3,11 +3,11 @@ pragma solidity ^0.8.24;
 
 import { Script, console2 } from "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ServiceRegistry } from "../src/ServiceRegistry.sol";
-import { PayPerCall } from "../src/PayPerCall.sol";
-import { CrossChainReceiver } from "../src/CrossChainReceiver.sol";
-import { IServiceRegistry } from "../src/interfaces/IServiceRegistry.sol";
-import { IPayPerCall } from "../src/interfaces/IPayPerCall.sol";
+import { ServiceRegistry } from "../contracts/ServiceRegistry.sol";
+import { PayPerCall } from "../contracts/PayPerCall.sol";
+import { CrossChainReceiver } from "../contracts/CrossChainReceiver.sol";
+import { IServiceRegistry } from "../contracts/interfaces/IServiceRegistry.sol";
+import { IPayPerCall } from "../contracts/interfaces/IPayPerCall.sol";
 
 /// @title Deploy
 /// @notice Deploys ServiceRegistry + PayPerCall + CrossChainReceiver

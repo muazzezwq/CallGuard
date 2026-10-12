@@ -14,6 +14,8 @@ interface IServiceRegistry {
         uint32 maxResponseTime;
         uint32 slashBps;
         bool active;
+        /// @notice Per-caller concurrent call cap (0 = use default of 10).
+        uint32 maxConcurrentCalls;
     }
 
     function getProvider(uint256 providerId) external view returns (ProviderView memory);

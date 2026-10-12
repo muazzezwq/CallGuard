@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../src/SLAFutures.sol";
+import "../contracts/SLAFutures.sol";
 
 contract DeploySLAFutures is Script {
     function run() external {

@@ -53,7 +53,7 @@ contract PayPerCallTest is Test {
 
         // Register a default provider using `signerAddr` as its SLA signer.
         vm.prank(provider1);
-        providerId = registry.register(signerAddr, STAKE, PRICE, MAX_RESP, SLASH_BPS, "https://api");
+        providerId = registry.register(signerAddr, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api");
     }
 
     // ------------------------------------------------------------------
@@ -310,7 +310,7 @@ contract PayPerCallTest is Test {
         usdc.approve(address(registry), type(uint256).max);
 
         vm.prank(provider2);
-        uint256 pid = registry.register(signer2, STAKE, PRICE, MAX_RESP, 0, "https://api2");
+        uint256 pid = registry.register(signer2, STAKE, PRICE, MAX_RESP, 0, 0, "https://api2");
 
         // With 0 slash bps, expectedSlash = 0 < PRICE — must revert
         vm.prank(caller);
@@ -335,7 +335,7 @@ contract PayPerCallTest is Test {
         usdc.approve(address(registry), type(uint256).max);
 
         vm.prank(provider4);
-        uint256 pid = registry.register(signer4, smallStake, PRICE, MAX_RESP, lowSlash, "https://api4");
+        uint256 pid = registry.register(signer4, smallStake, PRICE, MAX_RESP, lowSlash, 0, "https://api4");
 
         vm.prank(caller);
         vm.expectRevert(PayPerCall.InsufficientProviderStake.selector);
@@ -352,7 +352,7 @@ contract PayPerCallTest is Test {
         usdc.approve(address(registry), type(uint256).max);
 
         vm.prank(provider3);
-        uint256 pid = registry.register(signer3, STAKE, PRICE, MAX_RESP, 10_000, "https://api3");
+        uint256 pid = registry.register(signer3, STAKE, PRICE, MAX_RESP, 10_000, 0, "https://api3");
 
         vm.prank(caller);
         bytes32 callId = payPerCall.callService(pid, keccak256("r"));
@@ -551,7 +551,7 @@ contract PayPerCallTest is Test {
         usdc.mint(pAddr, MIN_STAKE);
         vm.startPrank(pAddr);
         usdc.approve(address(highSlashRegistry), MIN_STAKE);
-        uint256 pId = highSlashRegistry.register(vm.addr(0xBEEF5), MIN_STAKE, 100e6, 30, 5_000, ""); // 50% slash
+        uint256 pId = highSlashRegistry.register(vm.addr(0xBEEF5), MIN_STAKE, 100e6, 30, 5_000, 0, ""); // 50% slash
         vm.stopPrank();
 
         usdc.mint(caller, 200e6);
@@ -561,6 +561,152 @@ contract PayPerCallTest is Test {
         vm.prank(caller);
         vm.expectRevert(PayPerCall.InsufficientProviderStake.selector);
         highSlashPPC.callService(pId, keccak256("req"));
+    }
+
+    // ------------------------------------------------------------------
+    // Rate limiting — TooManyConcurrentCalls
+    // ------------------------------------------------------------------
+
+    /// @dev Caller cannot exceed the default cap (10) on the same provider.
+    function test_rateLimiting_defaultCap_reverts() public {
+        // Give caller enough USDC and approval for 11 calls.
+        usdc.mint(caller, PRICE * 11);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 11);
+
+        // Open DEFAULT_MAX_CONCURRENT (10) calls — all should succeed.
+        for (uint256 i; i < 10; i++) {
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encode("req-default", i)));
+        }
+
+        // 11th call must revert.
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.TooManyConcurrentCalls.selector);
+        payPerCall.callService(providerId, keccak256("req-default-over"));
+    }
+
+    /// @dev After a receipt is submitted the slot is freed and the caller can open a new call.
+    function test_rateLimiting_slotFreedAfterReceipt() public {
+        // Open exactly 10 calls (default cap).
+        usdc.mint(caller, PRICE * 11);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 11);
+
+        bytes32 firstCallId;
+        for (uint256 i; i < 10; i++) {
+            vm.prank(caller);
+            bytes32 cid = payPerCall.callService(providerId, keccak256(abi.encode("req-slot", i)));
+            if (i == 0) firstCallId = cid;
+        }
+
+        // Assert cap is reached.
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.TooManyConcurrentCalls.selector);
+        payPerCall.callService(providerId, keccak256("over-cap"));
+
+        // Submit receipt for the first call — frees one slot.
+        bytes32 responseHash = keccak256("resp-slot");
+        bytes memory sig = _sign(signerPk, firstCallId, responseHash);
+        vm.prank(signerAddr);
+        payPerCall.submitReceipt(firstCallId, responseHash, uint64(block.timestamp), sig);
+
+        // Now a new call should succeed.
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("new-after-receipt"));
+    }
+
+    /// @dev After a timeout claim the slot is freed.
+    function test_rateLimiting_slotFreedAfterTimeout() public {
+        usdc.mint(caller, PRICE * 11);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 11);
+
+        bytes32 firstCallId;
+        for (uint256 i; i < 10; i++) {
+            vm.prank(caller);
+            bytes32 cid = payPerCall.callService(providerId, keccak256(abi.encode("req-timeout", i)));
+            if (i == 0) firstCallId = cid;
+        }
+
+        // Warp past deadline + grace to allow timeout claim.
+        vm.warp(block.timestamp + MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
+
+        // Claim timeout for the first call.
+        payPerCall.claimTimeout(firstCallId);
+
+        // Slot is freed — new call succeeds.
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE);
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("new-after-timeout"));
+    }
+
+    /// @dev Provider can set a custom cap lower than the default.
+    function test_rateLimiting_customCap_respected() public {
+        // Register a provider with cap = 2.
+        address prov2 = address(0xBEEF22);
+        uint256 signer2pk = 0xBEEF2233;
+        address signer2 = vm.addr(signer2pk);
+        usdc.mint(prov2, STAKE);
+        vm.startPrank(prov2);
+        usdc.approve(address(registry), STAKE);
+        uint256 pid2 = registry.register(signer2, STAKE, PRICE, MAX_RESP, SLASH_BPS, 2, "https://custom-cap");
+        vm.stopPrank();
+
+        usdc.mint(caller, PRICE * 4);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 4);
+
+        // Two calls succeed.
+        vm.prank(caller);
+        payPerCall.callService(pid2, keccak256("cap2-1"));
+        vm.prank(caller);
+        payPerCall.callService(pid2, keccak256("cap2-2"));
+
+        // Third call reverts at cap = 2.
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.TooManyConcurrentCalls.selector);
+        payPerCall.callService(pid2, keccak256("cap2-3"));
+    }
+
+    /// @dev Different callers are tracked independently — one caller's cap does
+    ///      not affect another caller on the same provider.
+    function test_rateLimiting_independentPerCaller() public {
+        address caller2 = address(0xC0FFEE2);
+        usdc.mint(caller2, PRICE * 11);
+        vm.prank(caller2);
+        usdc.approve(address(payPerCall), PRICE * 11);
+
+        // Fill caller1's cap.
+        usdc.mint(caller, PRICE * 10);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 10);
+        for (uint256 i; i < 10; i++) {
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encode("rc1", i)));
+        }
+
+        // caller2 can still open calls independently.
+        vm.prank(caller2);
+        payPerCall.callService(providerId, keccak256("caller2-independent"));
+    }
+
+    /// @dev Verify openCallsPerCaller counter is tracked correctly.
+    function test_rateLimiting_counterTracked() public {
+        usdc.mint(caller, PRICE * 3);
+        vm.prank(caller);
+        usdc.approve(address(payPerCall), PRICE * 3);
+
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 0);
+
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("track-1"));
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 1);
+
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("track-2"));
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 2);
     }
 
     /// @dev Signs a Receipt with the given private key.

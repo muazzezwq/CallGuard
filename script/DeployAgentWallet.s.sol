@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../src/AgentWallet.sol";
+import "../contracts/AgentWallet.sol";
 
 contract DeployAgentWallet is Script {
     function run() external {
