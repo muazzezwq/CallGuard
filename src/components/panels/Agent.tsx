@@ -20,7 +20,7 @@ const AGENT_WALLET_ABI = [
   { name: "maxPerCall",       type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
 ] as const;
 
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn";
+// Subgraph URL is read from CONFIG.subgraphUrl via useSubgraph hook
 
 const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
@@ -176,7 +176,7 @@ export default function Agent() {
     setAutoRunning(true);
     setAutoResult("🔍 Querying subgraph for best providers…");
     try {
-      const res = await fetch(SUBGRAPH_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: `{ providers(first:50,where:{active:true}){ id pricePerCall completedCalls slashedCalls stake } }` }) });
+      const res = await fetch(CONFIG.subgraphUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: `{ providers(first:50,where:{active:true}){ id pricePerCall completedCalls slashedCalls stake } }` }) });
       const data = await res.json();
       const providers = (data.data?.providers ?? []) as Record<string, string>[];
       const maxPrice = parseFloat(autoMaxPrice);

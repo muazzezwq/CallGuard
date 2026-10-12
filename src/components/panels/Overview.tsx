@@ -46,18 +46,18 @@ const s = {
 
 const CONTRACTS = [
   { name:"ServiceRegistry", addr: CONFIG.registryAddress },
-  { name:"PayPerCall v3",   addr: CONFIG.ppcAddress },
-  { name:"DisputeQuality",  addr: "0x3c9bDc353861010A9ebfD8Ae5d31d44C5bb14725" },
-  { name:"SLAFutures",      addr: "0xa6f194c621eE67559aDcA883824e01F1828e887c" },
-  { name:"ReputationLoan",  addr: "0xE656dF6512e9d10e555518b7342fd8c81c42B8c0" },
-  { name:"SLABridge",       addr: "0x62a63a94a41601fdb8e9d60ed7e56b1e4c4c5da7" },
-  { name:"AgentWallet",     addr: "0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6" },
+  { name:"PayPerCall v5",   addr: CONFIG.ppcAddress },
+  { name:"DisputeQuality",  addr: CONFIG.disputeQualityAddress },
+  { name:"SLAFutures",      addr: CONFIG.slaFuturesAddress },
+  { name:"ReputationLoan",  addr: CONFIG.reputationLoanAddress },
+  { name:"SLABridge",       addr: CONFIG.slaAttestationBridge as `0x${string}` },
+  { name:"AgentWallet",     addr: CONFIG.agentWallet as `0x${string}` },
   { name:"USDC",            addr: CONFIG.usdcAddress },
 ];
 
 const SUBGRAPH = `{
-  calls(first:100,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
-  providers(first:10,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
+  calls(first:1000,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
+  providers(first:50,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
 }`;
 
 // Build 24h hourly buckets from subgraph calls
@@ -159,16 +159,16 @@ export default function Overview() {
     eventName: "CallStarted",
     onLogs: (logs) => logs.forEach(l => {
       const a = l.args as any;
-      pushEvent("🔵", `Call → Provider #${a.providerId}`, `${Number(a.amount || 0) / 1e6} USDC · ${String(a.callId || "").slice(0, 10)}…`);
+      pushEvent("🔵", `Call → Provider #${a.providerId}`, `${a.amount ? Number(formatUnits(BigInt(a.amount), 6)).toFixed(4) : "?"} USDC · ${String(a.callId || "").slice(0, 10)}…`);
     }),
   });
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
-    abi: [{ name: "ReceiptSubmitted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }] }],
+    abi: [{ name: "ReceiptSubmitted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "responseHash", type: "bytes32" }, { name: "respondedAt", type: "uint64" }] }],
     eventName: "ReceiptSubmitted",
     onLogs: (logs) => logs.forEach(l => {
       const a = l.args as any;
-      pushEvent("✅", `Receipt · Provider #${a.providerId}`, `callId: ${String(a.callId || "").slice(0, 10)}…`);
+      pushEvent("✅", `Receipt submitted`, `callId: ${String(a.callId || "").slice(0, 10)}…`);
     }),
   });
   useWatchContractEvent({

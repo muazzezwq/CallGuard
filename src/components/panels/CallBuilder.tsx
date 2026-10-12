@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-// simple toast fallback — avoids sonner module resolution issues
+// toast helper — logs to console until sonner is installed
 const toast = {
-  success: (m: string) => console.log("✓", m),
+  success: (m: string) => console.info("✓", m),
   error:   (m: string) => console.error("✗", m),
   warning: (m: string) => console.warn("⚠", m),
   info:    (m: string) => console.info("ℹ", m),

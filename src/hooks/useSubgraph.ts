@@ -14,7 +14,7 @@ export function useSubgraph<T = Record<string, unknown>>(
   options?: SubgraphOptions
 ) {
   const qc = useQueryClient();
-  const refetchInterval = options?.pollInterval ?? 15_000;
+  const refetchInterval = options?.pollInterval ?? 30_000;
   const enabled = options?.enabled !== false && !!query;
 
   const result = useQuery<T>({
@@ -32,7 +32,7 @@ export function useSubgraph<T = Record<string, unknown>>(
       return (json.data ?? {}) as T;
     },
     refetchInterval,
-    staleTime: Math.max(refetchInterval - 5_000, 5_000),
+    staleTime: Math.max(refetchInterval - 10_000, 15_000),
     enabled,
   });
 

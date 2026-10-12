@@ -14,7 +14,7 @@ export default function Payments() {
     address: CONFIG.usdcAddress as `0x${string}`,
     abi: USDC_ABI,
     functionName: "balanceOf",
-    args: [address as `0x${string}`],
+    args: address ? [address as `0x${string}`] : undefined,
     query: { enabled: !!address, refetchInterval: 10000 },
   });
 
@@ -53,7 +53,7 @@ export default function Payments() {
       });
       setStatus("Claimed!");
       void refetchClaimable();
-    } catch(e:any){ setStatus(e.shortMessage ?? (e instanceof Error ? e.message : String(e))); }
+    } catch(e:unknown){ const err = e as any; setStatus(err?.shortMessage || (err instanceof Error ? err.message : String(err)) || "Transaction failed"); }
   };
 
   const handleSend = async () => {
@@ -72,7 +72,7 @@ export default function Payments() {
       });
       setStatus("Sent!");
       setSendTo(""); setSendAmt("");
-    } catch(e:any){ setStatus(e.shortMessage ?? (e instanceof Error ? e.message : String(e))); }
+    } catch(e:unknown){ const err = e as any; setStatus(err?.shortMessage || (err instanceof Error ? err.message : String(err)) || "Transaction failed"); }
   };
 
   const balance = balanceData ? formatUnits(balanceData as bigint, 6) : "—";

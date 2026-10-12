@@ -76,7 +76,7 @@ export default function Register() {
   const [slaWindow, setSlaWindow] = useState("120");
   const [slashPct, setSlashPct] = useState("20");
   const [step, setStep] = useState<"idle"|"approving"|"registering"|"done">("idle");
-  const [endpoint, setEndpoint] = useState("https://callguard.vercel.app/provider");
+  const [endpoint, setEndpoint] = useState("https://your-provider-endpoint.com/api");
   const [v2Step, setV2Step] = useState<"idle"|"minting"|"approving"|"registering"|"done">("idle");
   const [v2Status, setV2Status] = useState<string | null>(null);
   const [nftId, setNftId] = useState<string | null>(() => localStorage.getItem("cgAgentNftId"));

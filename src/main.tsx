@@ -25,6 +25,7 @@ ReactDOM.createRoot(root).render(
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ConnectKitProvider
+          options={{ initialChainId: 5042002 }}
           theme="midnight"
           customTheme={{
             "--ck-accent-color": "#10b981",

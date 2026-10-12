@@ -71,7 +71,7 @@ async function gql(query: string) {
 export async function fetchProviders(): Promise<Provider[]> {
   const data = await gql(`{
     providers(first:100, orderBy:completedCalls, orderDirection:desc) {
-      id owner signer stake pricePerCall active
+      id signer stake pricePerCall active
       completedCalls slashedCalls totalSlashed
       createdAt updatedAt
     }
