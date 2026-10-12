@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
+import { useAppStore } from "../../store/useAppStore";
 
 export default function Receipts() {
   const { address } = useAccount();
   const [copied, setCopied] = useState<string|null>(null);
+  const openVerify = useAppStore(s => s.openVerify);
 
   const { data, loading, refetch } = useSubgraph<{calls:any[]}>(address ? `{
     calls(where:{caller:"${address.toLowerCase()}",status_in:["COMPLETED","SLASHED"]}
@@ -60,7 +62,11 @@ export default function Receipts() {
               <a href={`https://explorer.testnet.arc.io/tx/${r.id}`} target="_blank" rel="noreferrer" className="btn btn-sm">
                 View on ArcScan ↗
               </a>
-              <a href={`/app/?verify=${r.id}`} className="btn btn-sm">Verify ↗</a>
+              <button
+                className="btn btn-sm"
+                onClick={() => openVerify(r.id)}
+                title="Open in Verify Receipt panel"
+              >Verify ↗</button>
             </div>
           </div>
         ))}

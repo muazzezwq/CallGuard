@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { keccak256, toBytes } from "viem";
-// MEDIUM-09: PPC_ABI from config already includes submitReceipt with correct respondedAt
 import { CONFIG, PPC_ABI } from "../../lib/config";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
+import { useAppStore } from "../../store/useAppStore";
 
 // Alias for readability — same as PPC_ABI
 const SUBMIT_RECEIPT_ABI = PPC_ABI;
@@ -43,6 +43,10 @@ export default function Verify() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [shareLink, setShareLink] = useState("");
+
+  // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
+  const pendingVerify = useAppStore(s => s.pendingVerify);
+  const clearPendingVerify = useAppStore(s => s.clearPendingVerify);
 
   // EIP-712 Receipt Submit (Provider side)
   const [rcpCallId, setRcpCallId] = useState("");
@@ -104,7 +108,18 @@ export default function Verify() {
     if (rcpSuccess) setRcpStatus("✅ Receipt submitted — escrow released to provider");
   }, [rcpSuccess]);
 
-  // Auto-verify from URL param
+  // Auto-verify from store (set by Receipts "Verify ↗" button — SPA navigation, no page reload)
+  useEffect(() => {
+    if (pendingVerify) {
+      setInput(pendingVerify);
+      setResult(null);
+      clearPendingVerify();
+      setTimeout(() => handleVerify(pendingVerify), 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingVerify]);
+
+  // Auto-verify from URL param (fallback for direct links)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("verify");
@@ -112,6 +127,7 @@ export default function Verify() {
       setInput(v);
       setTimeout(() => handleVerify(v), 500);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleVerify(overrideInput?: string) {

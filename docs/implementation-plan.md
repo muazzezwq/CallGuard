@@ -1,42 +1,42 @@
-Kapsamlı panel testi başlatıyorum. Her panel dosyasını, panel ID mapping'ini ve AppShell'i paralel kontrol ediyorum. Plan modundayım. Sidebar'ı ve panel dosyalarını okuyarak test yapıyorum: Tam analiz tamamlandı. Şimdi kapsamlı test raporumu sunuyorum. Build moduna geçip düzeltiyorum:
+Receipts panelindeki "Verify ↗" butonunu ve Verify Receipt panelini okuyorum. **Sorun bulundu.** Receipts.tsx satır 63:
 
-**Test Raporu — 23 Panel**
+```tsx
+<a href={`/app/?verify=${r.id}`} className="btn btn-sm">Verify ↗</a>
+```
 
-| Panel | Sidebar ID | AppShell map | Sorun |
-|-------|-----------|--------------|-------|
-| Overview | `overview` | ✅ | — |
-| Call Builder | `calls` | ✅ | — |
-| Services | `marketplace` | ✅ | — |
-| Requests | `requests` | ✅ | — |
-| Providers | `providers` | ✅ | — |
-| Receipts | `receipts` | ✅ | — |
-| Payments | `payments` | ✅ | — |
-| Disputes | `disputes` | ✅ | — |
-| Quality | `quality` | ✅ | — |
-| Agent Loop | `agent` | ✅ | — |
-| RepFi Lending | `lending` | ✅ | — |
-| SLA Futures | `futures` | ✅ | — |
-| SLA Bridge | `attestation` | ✅ | — |
-| Subscriptions | `subscriptions` | ✅ | — |
-| **Claims** | `jobs` | ✅ | ⚠️ Sidebar label "Claims" ama panel `jobs` → Jobs içeriği, Claims değil |
-| API / MCP | `mcp` | ✅ | — |
-| Webhooks | `webhooks` | ✅ | — |
-| Notifications | `notifications` | ✅ | — |
-| Leaderboard | `leaderboard` | ✅ | — |
-| Tx History | `history` | ✅ | — |
-| API Docs | `apidocs` | ✅ | — |
-| Register | `register` | ✅ | — |
-| Verify Receipt | `verify` | ✅ | — |
-| Settings | `settings` | ✅ | — |
-| Admin Panel | `admin` | ✅ | — |
-| **Bulk Call** | `bulkcall` | ✅ | ⚠️ Sidebar'da görünmüyor |
-| **Analytics** | `analytics` | ✅ | ⚠️ Sidebar'da link yok |
-| **Bridge** | `bridge` | ✅ | ⚠️ Sidebar'da link yok |
+Bu bir `<a href>` — yani **hard navigation** yapıyor. `/app/?verify=0x...` adresine tam sayfa yüklemesi ile gidiyor. Ama uygulama SPA, `/app/` path'i `vercel.json`'da `/` redirect'e düştüğü için ana sayfaya atıyor.
 
-**4 sorun:**
-1. Sidebar "Claims" → `jobs` ID açıyor ama jobs paneli "ERC-8183 Jobs" içeriği gösteriyor, "Claims" değil
-2. `bulkcall` paneli AppShell'de var ama sidebar'da Operations grubunda görünmüyor
-3. `analytics` paneli var ama sidebar'da Developer altında link yok
-4. `bridge` paneli var ama sidebar'da link yok
+Ayrıca Verify paneli `?verify=` parametresini okuyup input'a otomatik dolduruyor mu kontrol edeyim: Tam resmi görüyorum. **Katmanlı analiz:**
 
-"Yap" dersen Build modunda hepsini düzeltiyorum.
+**Katman 1 — Hard navigation hatası (kök neden):**
+`Receipts.tsx:63` → `<a href="/app/?verify=...">` → hard page reload → `/app/` → `vercel.json` redirect `/` → CgLanding (landing page) gösteriyor
+
+**Katman 2 — URL param doğru ama panel açılmıyor:**
+`Verify.tsx:108` → `useEffect` `?verify=` parametresini okuyor ✓ ama `isConnected: false` olduğunda `App.tsx:12` CgLanding render ediyor → AppShell hiç mount edilmiyor → Verify paneli açılmıyor
+
+**Katman 3 — AppShell panel açma mekanizması:**
+AppShell içinde `useEffect` `?verify=` parametresini okuyup `setPanel("verify")` yapıyor mu? Kontrol edeyim: **Katman 3 teyit edildi:** AppShell, `?verify=` URL parametresini hiç okumuyor. Verify panelini otomatik açan kod yok.
+
+**Tam sorun zinciri:**
+
+```
+Kullanıcı "Verify ↗" tıklar
+  ↓
+<a href="/app/?verify=0x..."> → Hard navigation (SPA bozuluyor)
+  ↓
+/app/?verify=0x... → vercel.json redirect → /?verify=0x...
+  ↓
+App.tsx → isConnected=false → CgLanding render → Landing görünüyor
+  ↓ (veya isConnected=true ise)
+AppShell mount oluyor ama ?verify= parametresini hiç okumuyor
+  ↓
+Overview açılıyor (default panel), Verify paneli açılmıyor
+```
+
+**Çözüm 3 katman:**
+
+1. `Receipts.tsx` — `<a href>` → `<button onClick>` ile `setPanel("verify")` + `callId` store'a kaydet
+2. `useAppStore` — `pendingVerify` state ekle
+3. `AppShell` + `Verify.tsx` — `pendingVerify` store'dan oku, input'a otomatik doldur
+
+Build moduna geçersen hepsini uyguluyorum. "Yap" de.

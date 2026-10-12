@@ -27,6 +27,7 @@ interface AppState {
   onboardingDone: boolean;
   hintsSeen: string[];
   progressSteps: { id: string; done: boolean }[];
+  pendingVerify: string | null;           // callId to auto-verify when Verify panel opens
   setPanel: (panel: PanelId) => void;
   setMode: (mode: AppMode) => void;
   setTheme: (theme: "dark" | "light") => void;
@@ -35,6 +36,8 @@ interface AppState {
   setOnboardingDone: () => void;
   markHintSeen: (id: string) => void;
   markStep: (id: string) => void;
+  openVerify: (callId: string) => void;   // navigate to verify panel with pre-filled callId
+  clearPendingVerify: () => void;
 }
 
 const INIT_STEPS = [
@@ -55,6 +58,7 @@ export const useAppStore = create<AppState>()(
       onboardingDone: false,
       hintsSeen: [],
       progressSteps: INIT_STEPS,
+      pendingVerify: null,
       setPanel: (panel) => set({ activePanel: normalizePanel(panel) }),
       setMode: (mode) => set({ mode, advancedOpen: mode === "pro" }),
       setTheme: (theme) => set({ theme }),
@@ -62,15 +66,16 @@ export const useAppStore = create<AppState>()(
       setRole: (role) => set({ role }),
       setOnboardingDone: () => set({ onboardingDone: true }),
       markHintSeen: (id) => set((s) => {
-        if (s.hintsSeen.includes(id)) return s; // no-op
+        if (s.hintsSeen.includes(id)) return s;
         return { hintsSeen: [...s.hintsSeen, id] };
       }),
       markStep: (id) => set((s) => {
-        // Idempotent — only update if not already done to prevent re-render loops
         const step = s.progressSteps.find(st => st.id === id);
-        if (!step || step.done) return s; // no-op: return same state reference
+        if (!step || step.done) return s;
         return { progressSteps: s.progressSteps.map(st => st.id === id ? { ...st, done: true } : st) };
       }),
+      openVerify: (callId) => set({ pendingVerify: callId, activePanel: "verify" }),
+      clearPendingVerify: () => set({ pendingVerify: null }),
     }),
     {
       name: "cg-app-state-v2",
