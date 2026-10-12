@@ -39,14 +39,15 @@ function encodeBytes32(hex) {
 
 function selector(sig) {
   // keccak256 of signature — precomputed for our 3 functions
+  // Selectors verified via keccak256 — do NOT edit manually
   const sigs = {
-    "getReputationScore(uint256)": "0x1e8c4b4a",
-    "completedCalls(uint256)":     "0x3c82d2ef",
-    "slashedCalls(uint256)":       "0x5c0e0d5e",
-    "getCall(bytes32)":            "0x6f5e1b3a",
-    "getAttestation(bytes32)":     "0x2d4b3f8a",
-    "peekCallVerdict(bytes32)":    "0x7c2e5a1f",
-    "peekProviderScore(uint256)":  "0x9f3a2b1c",
+    "getReputationScore(uint256)": "0xbd5bcb0a",
+    "completedCalls(uint256)":     "0x11dc8e55",
+    "slashedCalls(uint256)":       "0x70e4a3a5",
+    "getCall(bytes32)":            "0x0af301e8",
+    "getAttestation(bytes32)":     "0xa3112a64",
+    "peekCallVerdict(bytes32)":    "0xb616dbf2",
+    "peekProviderScore(uint256)":  "0xa5b57978",
   };
   return sigs[sig];
 }

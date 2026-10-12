@@ -5,9 +5,11 @@ import { getDefaultConfig } from "connectkit";
 export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
-  // Arc Testnet: USDC is the native gas token — 6 decimals, NOT 18
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
-  rpcUrls: { default: { http: ["https://rpc.testnet.arc.network"] } },
+  // Arc Testnet: USDC is the native gas token.
+  // EVM gas layer uses 18 decimals (Arc native); ERC-20 decimals() returns 6.
+  // MetaMask reads nativeCurrency.decimals for gas display — must be 18.
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet.arc.io", "https://rpc.testnet.arc.network"] } },
   blockExplorers: { default: { name: "ArcScan", url: "https://explorer.testnet.arc.io" } },
 });
 

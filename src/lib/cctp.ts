@@ -15,7 +15,7 @@ export const CCTP_CONFIG = {
     sepolia: { chainId: 11155111, chainIdHex: "0xaa36a7", rpcUrl: "https://rpc.sepolia.org", name: "Ethereum Sepolia", explorer: "https://sepolia.etherscan.io" },
     base: { chainId: 84532, chainIdHex: "0x14a34", rpcUrl: "https://sepolia.base.org", name: "Base Sepolia", explorer: "https://sepolia.basescan.org" },
     amoy: { chainId: 80002, chainIdHex: "0x13882", rpcUrl: "https://rpc-amoy.polygon.technology", name: "Polygon Amoy", explorer: "https://amoy.polygonscan.com" },
-    arc: { chainId: 5042002, chainIdHex: "0x4CEF52", rpcUrl: "https://rpc.testnet.arc.io", name: "Arc Testnet", explorer: "https://explorer.testnet.arc.io" },
+    arc: { chainId: 5042002, chainIdHex: "0x4CEF52", rpcUrl: "https://rpc.testnet.arc.io", name: "Arc Testnet", explorer: "https://explorer.testnet.arc.io" }, // primary RPC per Arc docs
   } as Record<string, { chainId: number; chainIdHex: string; rpcUrl: string; name: string; explorer: string }>,
   irisApi: "https://iris-api-sandbox.circle.com/v2/messages",
   // CRITICAL-05 fix: v2 CrossChainReceiver address
@@ -37,8 +37,9 @@ export async function switchToChain(chainKey: string): Promise<void> {
           chainId: chain.chainIdHex,
           chainName: chain.name,
           rpcUrls: [chain.rpcUrl],
-          // CRITICAL-04 fix: Arc native USDC is 6 decimals, not 18
-          nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
+          // Arc EVM gas layer uses 18 decimals (native); ERC-20 returns 6.
+          // MetaMask requires 18 here for correct gas display.
+          nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
           blockExplorerUrls: [chain.explorer],
         }],
       });
