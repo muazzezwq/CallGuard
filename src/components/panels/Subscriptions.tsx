@@ -4,7 +4,15 @@ import { formatUnits, parseUnits } from 'viem'
 import { CONFIG, PPC_ABI } from '../../lib/config'
 import { useSubgraph } from '../../hooks/useSubgraph'
 
-const QUERY = `{ providers(first: 10, orderBy: completedCalls, orderDirection: desc) { id, pricePerCall, maxResponseTime, completedCalls, slashedCalls } }`
+// providers: for "subscribe" list — no maxResponseTime (not in schema)
+const QUERY = `{
+  providers(first: 20, orderBy: completedCalls, orderDirection: desc, where: { active: true }) {
+    id pricePerCall completedCalls slashedCalls stake
+  }
+  callSubscriptions(first: 50, orderBy: createdAt, orderDirection: desc) {
+    id subId subscriber providerId totalCalls remainingCalls expiresAt status createdAt
+  }
+}`
 const S = {
   wrap: { padding: '24px', maxWidth: '680px' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
@@ -83,7 +91,7 @@ export default function Subscriptions() {
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-3)', borderRadius: '8px', marginBottom: '8px' }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>Provider #{p.id}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{price} USDC/call · SLA {p.maxResponseTime}s</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{price} USDC/call · {p.completedCalls ?? 0} calls completed</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)', marginBottom: '4px' }}>{total} USDC total</div>

@@ -3,19 +3,23 @@ import { CONFIG } from "./config";
 // ── Real Goldsky schema types ────────────────────────────────
 export interface Provider {
   id: string;           // BigInt as string (provider numeric id)
-  owner: string;        // Bytes (address)
+  owner: string;        // Bytes (address) — confirmed in subgraph 3.0.0
   signer: string;       // Bytes (address)
   stake: string;        // BigInt as string (wei, 6 decimals USDC)
   pricePerCall: string; // BigInt as string
   active: boolean;
+  deactivatedAt?: string;
   completedCalls: number;
   slashedCalls: number;
   totalSlashed: string;
+  totalUnstaked?: string;
+  nftTokenId?: string;
+  nftBound?: boolean;
   createdAt: string;
   updatedAt: string;
   // Computed client-side
   reputation: number;
-  // Legacy fields (onchain contract returns these; not in subgraph)
+  // Legacy fields (onchain contract; not in subgraph — fetched via wagmi)
   maxResponseTime?: number;
   slashBps?: number;
   endpoint?: string;
@@ -71,8 +75,9 @@ async function gql(query: string) {
 export async function fetchProviders(): Promise<Provider[]> {
   const data = await gql(`{
     providers(first:100, orderBy:completedCalls, orderDirection:desc) {
-      id signer stake pricePerCall active
+      id owner signer stake pricePerCall active
       completedCalls slashedCalls totalSlashed
+      nftTokenId nftBound
       createdAt updatedAt
     }
   }`);
@@ -92,7 +97,11 @@ export async function fetchProviders(): Promise<Provider[]> {
       active:       Boolean(p.active),
       completedCalls: completed,
       slashedCalls:   slashed,
-      totalSlashed: String(p.totalSlashed ?? "0"),
+      totalSlashed:  String(p.totalSlashed ?? "0"),
+      totalUnstaked: String(p.totalUnstaked ?? "0"),
+      nftTokenId:   p.nftTokenId != null ? String(p.nftTokenId) : undefined,
+      nftBound:     Boolean(p.nftBound),
+      deactivatedAt: p.deactivatedAt ? String(p.deactivatedAt) : undefined,
       createdAt:    String(p.createdAt ?? "0"),
       updatedAt:    String(p.updatedAt ?? "0"),
       reputation,
@@ -126,6 +135,44 @@ export async function fetchNetworkStats(): Promise<NetworkStats> {
     honorRate,
     avgPrice,
   };
+}
+
+// ── Job type ─────────────────────────────────────────────────
+export interface SubgraphJob {
+  id: string;
+  jobId: string;
+  client: string;
+  provider: string;
+  evaluator: string;
+  description: string;
+  expiredAt: string;
+  status: string;
+  createdAt: string;
+  txHash: string;
+}
+
+// ── NFT Registration type ────────────────────────────────────
+export interface SubgraphNFTReg {
+  id: string;
+  provider: string;
+  providerId: string;
+  tokenId: string;
+  stakeAmount: string;
+  createdAt: string;
+}
+
+// ── CallSubscription type ────────────────────────────────────
+export interface SubgraphCallSub {
+  id: string;
+  subId: string;
+  subscriber: string;
+  providerId: string;
+  totalCalls: string;
+  remainingCalls: string;
+  expiresAt: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Recent activity (from calls entity) ─────────────────────
