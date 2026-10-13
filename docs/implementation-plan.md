@@ -1,28 +1,22 @@
-Kapsamlı kontrol yapıyorum — tüm 14 entegrasyonu kaynak kodda tek tek doğruluyorum. Büyük sorun var. Gerçek durumu görmek için deploy edilen v7 kontrat bytecode'larını ve tüm .sol dosyalarını kontrol ediyorum. Şimdi tam tabloyu gördüm. Kapsamlı değerlendirme: Tam analiz tamam. İşte gerçek durum:
+Frontend'i kontrol ediyorum. Durumu net gördüm. Şimdi 14 entegrasyonu sidebar'daki panellerle eşleştiriyorum:
 
----
+**Sidebar'da gözükenler (✅) vs gözükmeyenler (❌):**
 
-## 14 Entegrasyon — Gerçek Durum
-
-| # | Entegrasyon | Durum | Nerede |
+| # | Entegrasyon | Panel | Sidebar'da |
 |---|---|---|---|
-| 1 | **Per-provider rate limiting** | ✅ Tam | `PayPerCall._callServiceFor()` satır 357-361: `openCallsPerCaller` cap |
-| 2 | **Circle Agent Marketplace x402** | ✅ Tam | `X402Middleware.sol` + `api/marketplace.js` |
-| 3 | **Gateway Nanopayments (iki raylı)** | ✅ Tam | `api/nano-call.js` Rail 1 (Gateway) + Rail 2 (ERC-20) |
-| 4 | **Circle Refund Protocol** | ✅ Tam | `claimTimeout()` → `claimable[caller] += amount` pull pattern + `Dispute.sol` |
-| 5 | **ERC-8004 ReputationRegistry** | ✅ Tam | `PayPerCall.reputationRegistry` + `_recordReputation()` ±1 yazma |
-| 6 | **ERC-8183 Pipeline Hook** | ❌ Eksik | Kontrat kodunda yok — sadece `AgenticCommerce.sol` var (job creation), hook yok |
-| 7 | **Circle Modular Wallets** | ✅ Tam | `src/components/PasskeyWallet.tsx` + `usePasskeyWallet.ts` |
-| 8 | **Gateway Unified Balance** | ✅ Tam | `api/unified-balance.js` + `src/components/UnifiedBalance.tsx` |
-| 9 | **ERC-4626 Stake Vault** | ✅ Tam | `ReputationLoan.sol` satır 12-24: `IERC4626Vault` + `setYieldVault()` |
-| 10 | **StreamEscrow** | ✅ Tam | `Subscription.sol`: `subscribeStream()` + `claimStream()` + `NotStreamMode` error |
-| 11 | **Chainlink Data Feeds** | ✅ Tam | `SLAFutures.sol`: `setPriceFeed()` + `mintCapacity` USD cap |
-| 12 | **zkML Tier System** | ✅ Tam | `ServiceRegistry.setZkTier()` + `PayPerCall` cap×2 satır 360 |
-| 13 | **DePIN Oracle** | ✅ Tam | `ServiceRegistry.recordUptime()` + EIP-191 sig verify |
-| 14 | **EIP-5564 Stealth Addresses** | ✅ Tam | `PayPerCall.callServiceStealth()` + `stealthAnnouncer` |
+| 1 | Per-provider rate limiting | → Call Builder içinde | ✅ (calls) |
+| 2 | Circle Agent Marketplace x402 | Services / marketplace | ✅ (marketplace) |
+| 3 | Gateway Nanopayments | Payments | ✅ (payments) |
+| 4 | Circle Refund Protocol | Disputes/Receipts | ✅ (disputes, receipts) |
+| 5 | ERC-8004 ReputationRegistry | Providers | ✅ (providers) |
+| 6 | **ERC-8183 Pipeline Hook** | ❌ Yok | ❌ Panel yok |
+| 7 | Circle Modular Wallets | Passkey Wallet | ✅ (passkey) |
+| 8 | Gateway Unified Balance | Unified Balance | ✅ (balance) |
+| 9 | ERC-4626 Stake Vault | RepFi Lending | ✅ (lending) |
+| 10 | StreamEscrow | Subscriptions | ✅ (subscriptions) |
+| 11 | Chainlink Data Feeds | SLA Futures | ✅ (futures) |
+| 12 | zkML Tier System | Register / Providers | ✅ (register) |
+| 13 | DePIN Oracle | Providers | ✅ (providers) |
+| 14 | EIP-5564 Stealth Addresses | Call Builder içinde | ✅ (calls) |
 
----
-
-**Tek eksik: ERC-8183 Pipeline Hook (#6)**
-
-`AgenticCommerce.sol` var (job oluşturma), ama PayPerCall'da `beforeCall`/`afterCall` hook entegrasyonu yok. Ekleyeyim mi?
+**Tek eksik: ERC-8183 Pipeline Hook için bir panel yok.** Sidebar'a "Pipeline Hook" menü öğesi ve basit bir panel ekleyeyim mi? Kontratla bağlanacak — `setPipelineHook(address)` çağrısı + hook durumunu gösterecek.

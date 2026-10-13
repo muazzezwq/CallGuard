@@ -46,6 +46,7 @@ const panels = {
   bridge:        lazy(() => import("../panels/Bridge")),
   passkey:       lazy(() => import("../PasskeyWallet")),
   balance:       lazy(() => import("../UnifiedBalance")),
+  pipelinehook:  lazy(() => import("../panels/PipelineHook")),
 } as const;
 
 function PanelLoader() {
