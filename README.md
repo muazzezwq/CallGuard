@@ -2,7 +2,7 @@
 
 > Built by an Arc Architects program member.
 
-**Programmable service settlement for autonomous services — built on Arc.**
+**Programmable service settlement for autonomous agents — built on Arc.**
 
 Providers stake USDC and commit to a response-time SLA. Callers pay per request and get a signed receipt. Miss the deadline and the stake is slashed automatically — no court, no arbiter, no middleman.
 
@@ -38,8 +38,10 @@ No governance vote. No dispute arbitration. Just contract-defined outcomes.
 | **Finality** | Sub-second (Arc) | Minutes | Minutes | Minutes | Minutes |
 | **AI agent native** | Yes (MCP, x402, ERC-8004) | No | Partial | No | No |
 | **Cross-chain** | Yes (CCTP, 5 chains) | Yes | No | Partial | No |
-| **Reputation score** | Onchain Bayesian | No | No | No | No |
+| **Reputation score** | Onchain (ERC-8004) | No | No | No | No |
 | **SLA futures market** | Yes (ERC-1155) | No | No | No | No |
+| **Circle Refund Protocol** | Yes (DisputeQuality) | No | No | No | No |
+| **Per-caller rate limiting** | Yes (DoS protection) | No | No | No | No |
 
 CallGuard's core thesis: **financial skin-in-the-game enforces reliability better than reputation systems or legal contracts**. A provider who misses an SLA loses real money — automatically, trustlessly, instantly.
 
@@ -53,22 +55,31 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 
 | Contract | Address | Explorer |
 |---|---|---|
-| `ServiceRegistry` v5 | `0xc3ff2169...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xc3ff2169BE0E7a1f67d7D4B0a048Dbcd882e1CA9) |
-| `PayPerCall` v5 | `0x389b44b7...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x389b44b74CB8E05d5C4b8e87A2B9e30CfD41eDFE) |
-| `CrossChainReceiver` v2 | `0x760326de...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x760326dE5E50Af1CE89f3A3B8d7cE501e2bf6F8f) |
+| `ServiceRegistry` v5 | `0xc3ff2169...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4) |
+| `PayPerCall` v5 | `0x389b44b7...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x389b44b7ad68c9e661a9ef2625f958840c31b601) |
+| `CrossChainReceiver` v2 | `0x760326de...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x760326de3cba39994dfd81d2b71b072c0265601c) |
 | `USDC` | `0x360000...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) |
 
 ### v2 Protocol Contracts (October 2026)
 
 | Contract | Address | Purpose |
 |---|---|---|
-| `DisputeQuality` | `0x7e2771df...` | Verifiable AI output — community stake-weighted voting |
-| `SLAFutures` | `0x19d03ff1...` | Provider capacity tokenized as ERC-1155 NFTs |
-| `ReputationLoan` | `0x5a2f5455...` | Reputation-as-collateral USDC lending (RepFi) |
+| `DisputeQuality` v2 | `0x7e2771df...` | Verifiable AI output — community stake-weighted voting + Circle Refund Protocol |
+| `SLAFutures` v2 | `0x19d03ff1...` | Provider capacity tokenized as ERC-1155 NFTs |
+| `ReputationLoan` v2 | `0x5a2f5455...` | Reputation-as-collateral USDC lending (RepFi) |
 | `SLAAttestationBridge` | `0x62a63a94...` | Cross-protocol SLA oracle — onchain attestations |
-| `AgentWallet` | `0xf73f2Fc5...` | ERC-4337 smart wallet with daily spend limits |
+| `AgentWallet` | `0xf73f2Fc5...` | Smart wallet with daily spend limits + ERC-8183 Pipeline Hook |
 | `AgenticCommerce` | `0x0747EEf0...` | ERC-8183 Jobs — full agentic job lifecycle |
 | `RegisterWithNFT` | `0x8b8aC247...` | Mint ERC-8004 NFT + register in one transaction |
+
+### Third-Party Protocol Addresses (Arc Testnet)
+
+| Contract | Address | Standard |
+|---|---|---|
+| `IdentityRegistry` | `0x8004A818...` | ERC-8004 |
+| `ReputationRegistry` | `0x8004B663...` | ERC-8004 |
+| `ValidationRegistry` | `0x8004Cb1B...` | ERC-8004 |
+| `AgenticCommerce` | `0x0747EEf0...` | ERC-8183 |
 
 ---
 
@@ -82,6 +93,7 @@ sequenceDiagram
     participant USDC as USDC Token
     participant PPC as PayPerCall
     participant SR as ServiceRegistry
+    participant RR as ReputationRegistry (ERC-8004)
     actor Provider as Provider (AI Service)
     actor Anyone as Anyone
 
@@ -91,7 +103,7 @@ sequenceDiagram
     Caller->>USDC: approve(PayPerCall, amount)
     Caller->>PPC: callService(providerId, requestHash)
     PPC->>USDC: transferFrom(Caller, PPC, amount)
-    PPC->>SR: read provider info
+    PPC->>SR: read provider info, check rate limit
     PPC-->>Caller: callId, CallStarted event
 
     Provider->>Provider: process request off-chain
@@ -100,7 +112,8 @@ sequenceDiagram
     Provider->>PPC: submitReceipt(callId, responseHash, respondedAt, sig)
     PPC->>PPC: verify signature, check deadline
     PPC->>USDC: transfer(Provider, amount)
-    PPC->>SR: incCompleted(providerId) — reputation up
+    PPC->>SR: incCompleted(providerId)
+    PPC->>RR: record(providerId, +1, "callguard:success:...")
     end
 
     rect rgb(245, 180, 180)
@@ -110,8 +123,82 @@ sequenceDiagram
     PPC->>PPC: verify deadline expired
     PPC->>USDC: transfer(Caller, escrowed amount)
     PPC->>SR: slash(providerId, slashAmount, Caller)
-    PPC->>SR: incSlashed(providerId) — reputation down
+    PPC->>SR: incSlashed(providerId)
+    PPC->>RR: record(providerId, -1, "callguard:slash:...")
     end
+```
+
+---
+
+## v4.1 — What's new (October 2026)
+
+### Per-caller rate limiting (DoS protection)
+
+`ServiceRegistry` providers can now set `maxConcurrentCalls` (1–65535; default 10). `PayPerCall` enforces this per `(providerId, caller)` pair — a flooded caller cannot exhaust a provider's capacity.
+
+```solidity
+// ServiceRegistry — provider sets their cap
+registry.updateMaxConcurrentCalls(providerId, 5); // max 5 open calls per caller
+
+// PayPerCall — enforced automatically, reverts with TooManyConcurrentCalls
+error TooManyConcurrentCalls();
+mapping(uint256 => mapping(address => uint32)) public openCallsPerCaller;
+```
+
+### Circle Agent Marketplace — x402 Bazaar discovery
+
+`GET /api/marketplace` returns a full x402 Bazaar discovery document — `accepts` array, `inputSchema`, `outputSchema`, SLA metadata, and contract references. Any x402-aware agent can discover and pay for CallGuard services without reading documentation.
+
+```bash
+curl https://arcsla.vercel.app/api/marketplace
+# → { "x402Version": 1, "services": [...], "contracts": {...} }
+
+curl https://arcsla.vercel.app/api/marketplace/health
+# → { "providers": [{ "id": 1, "status": "ok", "latencyMs": 42 }] }
+```
+
+### Gateway Nanopayments — dual-rail architecture
+
+`POST /api/nano-call` now supports two payment rails:
+
+| Rail | Trigger | Settlement |
+|---|---|---|
+| Circle Gateway batching | `GATEWAY_BATCH_URL` env set | Sub-second, off-chain batched |
+| ERC-20 direct transfer | fallback (always available) | On-chain, ~0.5s on Arc |
+
+### Circle Refund Protocol (DisputeQuality)
+
+When a dispute resolves `CallerWins`, `DisputeQuality` emits `CircleRefundInitiated(disputeId, callId, caller, amount)`. An off-chain relayer (or `api/auto-receipt` with `event="circle.refund.initiate"`) calls the Circle Refund API to initiate a programmatic refund for the original payment amount.
+
+```solidity
+event CircleRefundInitiated(
+    uint256 indexed disputeId,
+    bytes32 indexed callId,
+    address indexed caller,
+    uint256 amount   // original USDC payment amount (6-decimal)
+);
+```
+
+### ERC-8004 ReputationRegistry — onchain reputation writes
+
+`PayPerCall` now writes reputation events directly to the Arc Testnet `ReputationRegistry` (`0x8004B663...`):
+
+- `submitReceipt` success: `record(providerId, +1, "callguard:success:<callId>")`
+- `claimTimeout` slash: `record(providerId, -1, "callguard:slash:<callId>")`
+
+Both calls are **best-effort** — a failing registry never reverts the main transaction. Enable via:
+
+```solidity
+payPerCall.setReputationRegistry(0x8004B663056A597Dffe9eCcC1965A193B7388713);
+```
+
+### ERC-8183 Pipeline Hook (AgentWallet)
+
+`AgentWallet` calls `IAgenticCommerce.onCallCompleted()` after every successful `agentCall()`. The hook notifies the Arc Testnet AgenticCommerce pipeline (`0x0747EEf0...`) that the agent completed a job step — enabling multi-step job tracking and automated next-step triggering.
+
+```solidity
+agentWallet.setAgenticCommerce(0x0747EEf0706327138c69792bF28Cd525089e4583);
+// → every agentCall() now fires onCallCompleted() on the pipeline
 ```
 
 ---
@@ -149,11 +236,11 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 - **Interactive canvas** — animated particle network in hero; mouse-repel effect; green SLA flow packets
 - **Scroll-reveal sections** — each landing section animates in with IntersectionObserver
 - **Live activity feed** — `CallStarted`, `ReceiptSubmitted`, `CallSlashed` events
-- **Provider browse** — full provider list with Bayesian honor scores; no wallet needed
+- **Provider browse** — full provider list with honor scores; no wallet needed
 
 ### Provider tools
 
-- **Register (v1)** — stake USDC, set price, SLA window, slash percentage
+- **Register (v1)** — stake USDC, set price, SLA window, slash percentage, concurrent call cap
 - **Register with NFT (v2)** — mint ERC-8004 AgentIdentity NFT + register in one transaction
 - **Provider dashboard** — live honor rate, recent calls, stake balance, earnings analytics
 - **Provider profile page** — shareable `?provider=N` URL; stats, earnings, call history
@@ -177,16 +264,16 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 ### Payment rails
 
 - **x402 (HTTP 402)** — EIP-3009 authorization off-chain (zero gas); facilitator calls `callServiceWithAuthorization()` onchain
-- **Circle Gateway Nanopayments** — gasless 0.001 USDC micro-payments; no MetaMask prompt
+- **Circle Gateway Nanopayments** — dual-rail: Gateway batching (< 500ms) or ERC-20 direct fallback
 - **CCTP multi-chain** — pay from Ethereum Sepolia, Base Sepolia, Polygon Amoy; CCTP V2 bridges to Arc
 - **Cross-chain pill** — Arc / Base / Ethereum / Polygon selector in Call Builder
 
 ### v2 Protocol Features
 
-- **Quality Disputes (DisputeQuality)** — response hash committed onchain; community vote; stake-weighted majority wins
+- **Quality Disputes (DisputeQuality)** — response hash committed onchain; community vote; stake-weighted majority wins; Circle Refund Protocol on `CallerWins`
 - **SLA Futures (SLAFutures)** — providers tokenize capacity as ERC-1155 NFTs; callers buy priority slots
 - **RepFi Lending (ReputationLoan)** — honor rate > 90%: borrow USDC against reputation; pool LPs earn APY
-- **Agent Loop (AgentWallet)** — ERC-4337 wallet with daily spend limit; any AI calls services via MCP + x402 autonomously
+- **Agent Loop (AgentWallet)** — smart wallet with daily spend limit; ERC-8183 pipeline hook; any AI calls services via MCP + x402 autonomously
 - **SLA Bridge (SLAAttestationBridge)** — any protocol queries CallGuard: "Did provider X honor call Y?"; REST API at `/api/attestation`
 
 ### Settlement and history
@@ -199,10 +286,10 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 
 ### Developer tools
 
-- **API Docs** — 9 REST endpoints with live "Try it" links, cURL / JS / Python examples
+- **API Docs** — 11 REST endpoints with live "Try it" links, cURL / JS / Python examples
 - **API / MCP panel** — 6 MCP tools for AI agents; live `list_providers` test in UI
 - **Analytics** — call volume charts, honor rate trends, provider activity (canvas SVG)
-- **Leaderboard** — top providers by Bayesian reputation; slash leaderboard
+- **Leaderboard** — top providers by reputation; slash leaderboard
 - **Webhooks** — configure endpoints; test with real `call.opened` payload
 - **Notifications** — live `CallStarted` + `ReceiptSubmitted` contract event feed
 - **Bridge** — CCTP cross-chain bridge panel
@@ -211,7 +298,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 ### UX features
 
 - **Light / Dark theme** — smooth CSS transition; default light; preference persisted
-- **Command palette** — `⌘K` / `Ctrl+K`; fuzzy search across all 25 panels; keyboard navigation
+- **Command palette** — `⌘K` / `Ctrl+K`; fuzzy search across all 25+ panels; keyboard navigation
 - **Sidebar collapsed mode** — desktop: icon-only mode; hover reveals label
 - **Mobile-first** — 320px–1440px; swipe-to-close sidebar; bottom nav bar
 - **Keyboard shortcuts** — `G+O` Overview, `G+C` Call Builder, `Esc` close sidebar
@@ -230,13 +317,14 @@ Base URL: `https://arcsla.vercel.app`
 | `/api/health` | GET | Facilitator health — RPC, signer, contract status |
 | `/api/attestation?providerId=N&type=score` | GET | Provider reputation score (no wallet needed) |
 | `/api/attestation?callId=0x...` | GET | Call receipt verification |
-| `/api/call-service` | POST | Facilitator-mediated call (x402 flow) |
-| `/api/nano-call` | POST | Gateway nanopayment call |
+| `/api/call-service` | POST | Facilitator-mediated call (x402 flow, full `accepts` array) |
+| `/api/nano-call` | POST | Gateway nanopayment call (dual-rail: Gateway + ERC-20 fallback) |
 | `/api/nano-balance` | GET | Nanopayment balance for an address |
-| `/api/auto-receipt` | POST | Provider auto-receipt webhook |
+| `/api/auto-receipt` | POST | Provider auto-receipt webhook + Circle Refund Protocol relay |
+| `/api/marketplace` | GET | x402 Bazaar discovery — service listing, schemas, SLA metadata |
+| `/api/marketplace/health` | GET | Live provider endpoint health check |
 | `/api/energy-data` | GET | x402 gated endpoint (demo) |
 | `/api/premium-report` | GET | x402 gated endpoint (demo) |
-| `/api/widget.js` | GET | Embed script for third-party sites |
 
 ---
 
@@ -262,11 +350,22 @@ CallGuard  → answers "what does the agent get?" (stake-backed SLA, verifiable 
 
 ```
 1. Agent  → GET /service  (no payment)
-2. Server → 402 Payment Required + payment requirements
+2. Server → 402 Payment Required + accepts array (x402Version: 1)
 3. Agent  → signs EIP-3009 TransferWithAuthorization off-chain (no gas)
 4. Facilitator → calls callServiceWithAuthorization() onchain
 5. SLA clock starts — USDC in escrow
 6. Provider delivers off-chain → submits EIP-712 receipt → gets paid
+7. ReputationRegistry records +1 score onchain (ERC-8004)
+```
+
+**Circle Agent Marketplace discovery:**
+
+```bash
+# Discover all CallGuard services (x402 Bazaar format)
+curl https://arcsla.vercel.app/api/marketplace
+
+# Check live provider health
+curl https://arcsla.vercel.app/api/marketplace/health
 ```
 
 **Start a provider server:**
@@ -308,12 +407,12 @@ bytes32 responseHash = keccak256(responseBytes);
 uint64 respondedAt = uint64(block.timestamp);
 bytes memory sig = providerSigner.signTypedData(domain, types, value);
 
-// 4. Provider submits the receipt — escrow releases, reputation increases
+// 4. Provider submits the receipt — escrow releases, +1 reputation recorded
 payPerCall.submitReceipt(callId, responseHash, respondedAt, sig);
 
-// 5. If the provider misses the deadline — anyone can slash
+// 5. If the provider misses the deadline — anyone can slash, -1 reputation recorded
 payPerCall.claimTimeout(callId);
-// → caller refunded + provider stake slashed + reputation decreases
+// → caller refunded + provider stake slashed + ERC-8004 reputation decreases
 ```
 
 ---
@@ -340,13 +439,13 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: **223 tests passed, 0 failed.**
+Expected: **229 tests passed, 0 failed.**
 
 ### Try the demo
 
 Open [arcsla.vercel.app](https://arcsla.vercel.app) with MetaMask — Arc Testnet is added automatically.
 
-Get free testnet USDC from the [Arc Testnet Faucet](https://faucet.testnet.arc.io) (also covers gas).
+Get free testnet USDC from the Arc Studio sidebar ("Get test USDC") or the [Arc Testnet Faucet](https://faucet.testnet.arc.io).
 
 ### Deploy your own copy
 
@@ -365,38 +464,58 @@ forge script script/Deploy.s.sol:Deploy \
 
 See [`DEPLOY.md`](./DEPLOY.md) for the full walkthrough.
 
+### Enable v4.1 features after deploy
+
+```bash
+# Enable ERC-8004 ReputationRegistry writes
+cast send $PAY_PER_CALL "setReputationRegistry(address)" \
+  0x8004B663056A597Dffe9eCcC1965A193B7388713 \
+  --account deployer --rpc-url arc_testnet
+
+# Enable ERC-8183 Pipeline Hook on AgentWallet
+cast send $AGENT_WALLET "setAgenticCommerce(address)" \
+  0x0747EEf0706327138c69792bF28Cd525089e4583 \
+  --account deployer --rpc-url arc_testnet
+
+# Set per-caller rate limit for a provider
+cast send $SERVICE_REGISTRY "updateMaxConcurrentCalls(uint256,uint32)" \
+  1 5 --account deployer --rpc-url arc_testnet
+```
+
 ---
 
 ## Project layout
 
 ```
 CallGuard/
-├── contracts/                        # Solidity source (src/ in earlier versions)
-│   ├── ServiceRegistry.sol           # provider registry, stake, ERC-8004 NFT, Bayesian reputation
-│   ├── PayPerCall.sol                # call escrow, EIP-712 receipt verification, timeout/slash
-│   ├── DisputeQuality.sol            # verifiable AI output — community stake-weighted voting
+├── contracts/                        # Solidity source
+│   ├── ServiceRegistry.sol           # provider registry, stake, ERC-8004 NFT, reputation, rate limiting
+│   ├── PayPerCall.sol                # call escrow, EIP-712 receipt, timeout/slash, ERC-8004 writes
+│   ├── DisputeQuality.sol            # verifiable AI output, community vote, Circle Refund Protocol
 │   ├── SLAFutures.sol                # provider capacity tokenized as ERC-1155 NFTs
 │   ├── ReputationLoan.sol            # reputation-as-collateral USDC lending (RepFi)
 │   ├── SLAAttestationBridge.sol      # cross-protocol SLA oracle, REST API
-│   ├── AgentWallet.sol               # ERC-4337 smart wallet, daily spend limit
+│   ├── AgentWallet.sol               # smart wallet with daily spend limits + ERC-8183 hook
 │   ├── Subscription.sol              # recurring payment model
 │   ├── Dispute.sol                   # dispute resolution with stake slashing
 │   ├── CrossChainReceiver.sol        # CCTP V2 — multi-chain USDC → callService()
 │   ├── RegisterWithNFT.sol           # mint ERC-8004 NFT + registerV2() in one tx
-│   └── X402Middleware.sol            # HTTP 402 / EIP-3009 → callService()
+│   ├── X402Middleware.sol            # HTTP 402 / EIP-3009 → callService()
+│   └── interfaces/
+│       ├── IServiceRegistry.sol      # IServiceRegistry + IERC8004ReputationRegistry
+│       └── IPayPerCall.sol
 ├── src/                              # React + Vite + TypeScript frontend
 │   ├── App.tsx                       # root — wallet gate (landing vs app shell)
-│   ├── lib/config.ts                 # contract addresses, ABIs, chain config
-│   ├── lib/subgraph.ts               # Goldsky GraphQL helpers
-│   ├── hooks/useSubgraph.ts          # React Query wrapper with polling
-│   ├── store/useAppStore.ts          # Zustand global state (theme, mode, panel)
 │   └── components/
-│       ├── layout/                   # AppShell, AppTopbar, Sidebar, LiveBar, Footer
-│       ├── landing/                  # CgLanding (disconnected view)
-│       └── panels/                   # 25 feature panels
-├── test/                             # 223 Foundry tests
+│       ├── Architecture.tsx          # architecture diagram panel
+│       └── CgLanding.tsx             # landing page (disconnected view)
+├── test/                             # 229 Foundry tests
 ├── script/                           # deploy scripts
 ├── api/                              # Vercel serverless functions
+│   ├── marketplace.js                # x402 Bazaar discovery endpoint (NEW)
+│   ├── call-service.js               # x402 facilitator (full accepts array)
+│   ├── nano-call.js                  # Gateway nanopayments (dual-rail)
+│   └── auto-receipt.js               # auto-receipt + Circle Refund Protocol relay
 ├── subgraph/                         # Goldsky subgraph (arcsla/3.0.0)
 ├── x402-facilitator/                 # x402 + Gateway facilitator server
 ├── AGENTS.md                         # deployed contract addresses (canonical source)
@@ -413,7 +532,8 @@ CallGuard/
 - **CCTP attestation takes 1–4 minutes.** Sepolia requires ~12–19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
 - **Subgraph covers first:1000 calls.** Very old calls beyond 1000 may not appear in some panels. Goldsky subgraph covers the full history.
 - **Testnet only.** All contracts are deployed on Arc Testnet. Mainnet deployment planned after independent audit.
-- **`evm_version = "paris"` required.** Arc Testnet does not support the `PUSH0` opcode introduced in Shanghai/Cancun. Contracts must be compiled with `evm_version = "paris"` in `foundry.toml`.
+- **ERC-8004 ReputationRegistry is best-effort.** If the registry reverts (e.g. permissions not granted), the main `submitReceipt` / `claimTimeout` still succeeds. Check `ReputationRecorded(success=false)` events.
+- **ERC-8183 hook is best-effort.** If `onCallCompleted()` reverts, `agentCall()` still succeeds. Check `PipelineHookCalled(success=false)` events.
 
 ---
 
@@ -434,31 +554,35 @@ CallGuard/
 - DisputeQuality — verifiable AI output, community stake-weighted arbitration
 - SLAFutures — provider capacity as tradeable ERC-1155 NFTs
 - ReputationLoan (RepFi) — reputation-as-collateral USDC lending
-- AgentWallet — ERC-4337 autonomous agent wallet with spend limits
+- AgentWallet — smart wallet with daily spend limits
 - SLAAttestationBridge — cross-protocol SLA oracle with REST API
+
+**v4.1 (Oct 2026)**
+- Per-caller rate limiting — `maxConcurrentCalls` per provider, DoS protection, `TooManyConcurrentCalls` error
+- Circle Agent Marketplace — x402 Bazaar discovery endpoint (`/api/marketplace`)
+- Gateway Nanopayments dual-rail — Circle Gateway batching + ERC-20 direct fallback
+- Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute; `api/auto-receipt` relay
+- ERC-8004 ReputationRegistry writes — `+1` on receipt, `-1` on slash, best-effort
+- ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call
+- 229/229 Foundry tests passing
 
 **Frontend Migration (Oct 2026)**
 - React 18 + Vite + TypeScript — migrated from single-file HTML/ethers.js
 - wagmi v2 + viem — replaces ethers.js for all contract interactions
-- ConnectKit — multi-wallet support (MetaMask, Coinbase, Rainbow, injected)
-- 25 feature panels — full parity with original HTML + new panels
-- Light/dark theme — smooth CSS transition, persisted in localStorage
-- Canvas animations — interactive particle network, sparkline, SLA flow diagram
-- Command palette `⌘K` — keyboard navigation across all panels
-- Role modal — first-connection onboarding with Caller/Provider choice
-- Progress tracker — 4-step sidebar completion indicator
-- Contextual hints — per-panel first-time tooltips
-- App footer — docs, tools, contract links
-- Verify Receipt deep-link — `Verify ↗` from Receipts panel navigates without page reload
-- `evm_version = "paris"` — foundry.toml updated for Arc compatibility
-- `nativeCurrency.decimals = 18` — corrected for MetaMask gas display
+- ConnectKit — multi-wallet support
+- 25+ feature panels — full parity with original HTML + new panels
+- Light/dark theme, command palette `⌘K`, role modal, progress tracker
 
 ### Planned
 
+- Circle Modular Wallets — passkey (WebAuthn) + Circle Gas Station paymaster
+- Gateway Unified Balance — < 500ms cross-chain USDC pooling
+- ERC-4626 Stake Vault — Aave Arc integration for staked USDC yield
+- StreamEscrow SLA — Subscription.sol stream-based payments
+- Chainlink Data Feeds + CCIP — price feeds for SLAFutures, cross-chain reputation
 - APS private SLA calls — when Arc Privacy Sector precompile API is public
-- EIP-1271 support for contract-wallet callers
-- Reputation-weighted routing contract
-- Mainnet deployment (after independent audit)
+- EIP-1271 support — contract-wallet callers
+- Mainnet deployment — after independent audit
 
 ---
 
