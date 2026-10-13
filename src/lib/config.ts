@@ -21,11 +21,11 @@ export const CONFIG = {
   eurcAddress: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as `0x${string}`,
   usyc: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C",
   usycAddress: "0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C" as `0x${string}`,
-  // Core contracts (v6 — Arc Studio deployer, 13 Oct 2026)
-  registry: "0xdb73903c904f83251bc345e591a769e0a4ca32d9",
-  registryAddress: "0xdb73903c904f83251bc345e591a769e0a4ca32d9" as `0x${string}`,
-  payPerCall: "0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a",
-  ppcAddress: "0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a" as `0x${string}`,
+  // Core contracts (v7 — admin=0xfbac99...06Da owner wallet, 13 Oct 2026)
+  registry: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333",
+  registryAddress: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333" as `0x${string}`,
+  payPerCall: "0xafb4829b79f6538456ccb40553cb04cae8b9b896",
+  ppcAddress: "0xafb4829b79f6538456ccb40553cb04cae8b9b896" as `0x${string}`,
   disputeQuality: "0x7e2771df71c30307a95f038c93077d5350e7789d",
   disputeQualityAddress: "0x7e2771df71c30307a95f038c93077d5350e7789d" as `0x${string}`,
   slaFutures: "0xcd57a9b924a565b12889277173b9ec06d4e10435",

@@ -1,10 +1,10 @@
 # CallGuard — Project State (Arc Testnet, chain ID 5042002)
 
-## Core Contracts — ACTIVE (v6 — Arc Studio deployer, 13 Oct 2026)
+## Core Contracts — ACTIVE (v7 — admin=owner wallet, 13 Oct 2026)
 | Contract | Address | Explorer |
 |---|---|---|
-| `ServiceRegistry` (v6) | `0xdb73903c904f83251bc345e591a769e0a4ca32d9` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xdb73903c904f83251bc345e591a769e0a4ca32d9) |
-| `PayPerCall` (v6) | `0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a) |
+| `ServiceRegistry` (v7) | `0x9ca97010464e8e6de6e27cf25eae9b939fbd7333` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x9ca97010464e8e6de6e27cf25eae9b939fbd7333) |
+| `PayPerCall` (v7) | `0xafb4829b79f6538456ccb40553cb04cae8b9b896` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xafb4829b79f6538456ccb40553cb04cae8b9b896) |
 | `ReputationLoan` (v3) | `0x9e0622828a03a578050e45ba2fde6b9140e676aa` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x9e0622828a03a578050e45ba2fde6b9140e676aa) |
 | `SLAFutures` (v3) | `0xcd57a9b924a565b12889277173b9ec06d4e10435` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xcd57a9b924a565b12889277173b9ec06d4e10435) |
 | `Subscription` (v2) | `0xc090ff2b856a5cc1bfe1137cf75ca566339f01db` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xc090ff2b856a5cc1bfe1137cf75ca566339f01db) |
