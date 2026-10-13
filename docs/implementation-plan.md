@@ -1,15 +1,8 @@
-Evet, Build modunda kontrat deploy edebilirim. Sana iki seçenek var:
+`widget.js`'yi okuyup birleştiriyorum. `widget.js`'ye `/health` path desteği ekleyip `health.js`'yi siliyorum. Aynı anda `vercel.json`'dan da kaldırıyorum. Plan moduna geçmişim. Build moduna geçmen gerekiyor.
 
-**Seçenek A — Mevcut kontratları Arc Testnet'e deploy et**
-`ServiceRegistry`, `PayPerCall`, `ReputationLoan`, `SLAFutures`, `Subscription`, `AgentWallet` — v4.3 kodunun tamamı zincire gider. `PRIVATE_KEY` env değişkenini `.env`'e eklemelisin.
+**Mode selector'dan Build moduna geç** → sonra bana "hazır" de, hepsini tek seferde uygularım:
 
-**Seçenek B — Yeni bir kontrat yaz**
-Farklı bir amaç için sıfırdan Solidity kontrat yazabilirim, test ederim, deploy ederim.
-
----
-
-Hangi yönde gitmek istediğini söyle:
-
-1. **"Mevcut kontratları deploy et"** — `.env`'deki `PRIVATE_KEY` değişkenini Arc Testnet cüzdanınla doldur, deploy script'ini çalıştırayım.
-2. **"Yeni kontrat yaz"** — Ne yapmasını istediğini anlat, tasarlayayım.
-3. **"Sadece merak ettim, deploy istemiyorum"** — Başka bir konuya geçelim.
+1. `api/widget.js` — başına health check path ekle
+2. `api/health.js` — sil
+3. `vercel.json` — `health.js` satırını kaldır (12 fonksiyona düşer)
+4. Commit + push → Vercel otomatik redeploy yapar

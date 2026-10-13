@@ -1,7 +1,22 @@
-// CallGuard embeddable widget
+// CallGuard embeddable widget + health check
 export default function handler(req, res) {
-  res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+
+  // Health check — GET /api/widget?health=1  (merged to stay within Hobby 12-fn limit)
+  if (req.query.health === '1') {
+    return res.status(200).json({
+      ok: true,
+      facilitator: 'Vercel Functions',
+      version: '1.0.0',
+      ts: Date.now(),
+      rpc: !!process.env.ARC_RPC_URL,
+      signer: !!process.env.SELLER_PRIVATE_KEY,
+      contract: process.env.VITE_PAY_PER_CALL || null
+    });
+  }
+
+  res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Cache-Control', 'public, max-age=3600');
 
   const { provider = '1', amount = '1', label = 'Pay with CallGuard' } = req.query;
