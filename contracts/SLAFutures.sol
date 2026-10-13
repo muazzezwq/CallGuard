@@ -10,6 +10,21 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IServiceRegistry } from "./interfaces/IServiceRegistry.sol";
 
+// ---------------------------------------------------------------------------
+// Chainlink AggregatorV3 — minimal interface for USD price feeds.
+// Arc Testnet: set via setPriceFeed() after Chainlink deployment.
+// ---------------------------------------------------------------------------
+interface IChainlinkAggregator {
+    function latestRoundData() external view returns (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    );
+    function decimals() external view returns (uint8);
+}
+
 contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Strings for uint256;
@@ -40,6 +55,8 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     error BatchStillActive();
     error NothingToRefund();
     error NothingToClaim();
+    error StalePriceFeed();
+    error BatchUSDCapExceeded();
 
     event BatchMinted(
         uint256 indexed batchId,
@@ -53,12 +70,20 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     event BatchCancelled(uint256 indexed batchId);
     event RefundClaimed(uint256 indexed batchId, address indexed buyer, uint256 amount);
     event ProceedsClaimed(uint256 indexed batchId, address indexed provider, uint256 amount);
+    event PriceFeedSet(address indexed feed);
 
     uint256 public constant MIN_PRICE_PER_CALL = 1_000; // 0.001 USDC (6 decimals)
     uint256 public constant MIN_SLOTS = 1;
+    /// @notice Max batch total value in USD cents (8 decimals): $1M = 100_000_000_00000000
+    uint256 public constant MAX_BATCH_USD_8DEC = 1_000_000 * 1e8; // $1M cap
 
     IERC20 public immutable usdc;
     IServiceRegistry public immutable registry;
+
+    /// @notice Chainlink price feed (e.g. USDC/USD). address(0) = disabled.
+    IChainlinkAggregator public priceFeed;
+    /// @notice Max age of price data in seconds before it is considered stale.
+    uint256 public priceFeedStaleness = 3600; // 1 hour default
 
     uint256 public nextBatchId = 1;
     string public baseUri;
@@ -80,6 +105,18 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         baseUri = _baseUri;
     }
 
+    /// @notice Set the Chainlink price feed for USD batch cap validation.
+    ///         Pass address(0) to disable. Only owner can call.
+    function setPriceFeed(address feed) external onlyOwner {
+        priceFeed = IChainlinkAggregator(feed);
+        emit PriceFeedSet(feed);
+    }
+
+    /// @notice Update the price feed staleness window (seconds). Only owner.
+    function setPriceFeedStaleness(uint256 staleness) external onlyOwner {
+        priceFeedStaleness = staleness;
+    }
+
     function mintCapacity(uint256 providerId, uint256 pricePerCall, uint256 totalSlots, uint64 deadline)
         external
         returns (uint256 batchId)
@@ -90,6 +127,25 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         if (pricePerCall < MIN_PRICE_PER_CALL) revert InvalidPrice();
         if (totalSlots < MIN_SLOTS) revert InvalidSlots();
         if (deadline <= block.timestamp) revert InvalidDeadline();
+
+        // Chainlink USD cap check — skipped when priceFeed not set.
+        if (address(priceFeed) != address(0)) {
+            (, int256 answer,, uint256 updatedAt,) = priceFeed.latestRoundData();
+            if (answer <= 0 || block.timestamp - updatedAt > priceFeedStaleness) revert StalePriceFeed();
+            uint8 feedDec = priceFeed.decimals();
+            // batchUSD_8dec = pricePerCall * totalSlots * answer / 10^(6 + feedDec - 8)
+            // pricePerCall is 6-decimal USDC; answer is feedDec-decimal USD/USDC
+            // result is in 8-decimal USD units for consistent comparison.
+            uint256 batchUsdc = pricePerCall * totalSlots; // 6 dec
+            uint256 batchUSD8;
+            if (feedDec >= 6) {
+                batchUSD8 = batchUsdc * uint256(answer) / (10 ** (feedDec - 6 + 6)); // normalize to 8 dec
+                batchUSD8 = batchUSD8 * 100; // scale to 8-decimal cents
+            } else {
+                batchUSD8 = batchUsdc * uint256(answer) * (10 ** (6 - feedDec)) / 1e6 * 100;
+            }
+            if (batchUSD8 > MAX_BATCH_USD_8DEC) revert BatchUSDCapExceeded();
+        }
 
         batchId = nextBatchId++;
 

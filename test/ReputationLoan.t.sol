@@ -62,7 +62,8 @@ contract MockRegistry is IServiceRegistry {
             maxResponseTime: 0,
             slashBps: 0,
             active: cfg.active,
-            maxConcurrentCalls: 0
+            maxConcurrentCalls: 0,
+            zkTier: 0
         });
     }
 
@@ -777,7 +778,8 @@ contract MockRegistryNoReputation is IServiceRegistry {
             maxResponseTime: 0,
             slashBps: 0,
             active: cfg.active,
-            maxConcurrentCalls: 0
+            maxConcurrentCalls: 0,
+            zkTier: 0
         });
     }
 

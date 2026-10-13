@@ -1,4 +1,6 @@
-# Implementation Plan: CallGuard — Top 3 Entegrasyon
+# Implementation Plan: CallGuard — Kalan 8 Entegrasyon (v4.2)
+
+> Önceki oturumda tamamlananlar (v4.1): rate limiting, x402 Marketplace, Gateway Nanopayments, Circle Refund Protocol, ERC-8004 yazma, ERC-8183 hook — 229/229 test, GitHub'a push edildi.
 
 ## Summary
 Araştırmada tespit edilen en kritik üç eksikliği kapatıyoruz: (1) SECURITY.md'de açık kalan DoS vektörünü kapatan per-provider rate limiting, (2) Circle Agent Marketplace uyumlu x402 discovery endpoint'i ve (3) Gateway Nanopayments tam entegrasyonu — tüm bunları mevcut kontrat ve API fonksiyonlarını kırmadan.

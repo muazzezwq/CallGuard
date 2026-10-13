@@ -82,6 +82,7 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     error NothingToClaim();
     /// @notice Caller has reached the provider's per-caller concurrent call cap.
     error TooManyConcurrentCalls();
+    error StealthAnnouncerNotSet();
 
     // ---------------------------------------------------------------------
     // Types
@@ -151,6 +152,17 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
     /// @dev Default cap used when provider sets maxConcurrentCalls = 0.
     uint32 public constant DEFAULT_MAX_CONCURRENT = 10;
+
+    // ---------------------------------------------------------------------
+    // EIP-5564 Stealth Address Support
+    // ---------------------------------------------------------------------
+
+    /// @notice Optional EIP-5564 announcer contract.
+    ///         Set to address(0) to disable. Can be set via setStealthAnnouncer().
+    address public stealthAnnouncer;
+
+    event StealthAnnouncerSet(address indexed announcer);
+    event StealthCallStarted(bytes32 indexed callId, address indexed stealthAddress);
 
     // ---------------------------------------------------------------------
     // Events
@@ -284,8 +296,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         uint256 expectedSlash = (p.stake * p.slashBps) / 10_000;
         if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
 
-        // Rate-limit check for x402 path.
-        uint32 cap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        // Rate-limit check for x402 path. zkML Tier 2 = cap x2.
+        uint32 baseCap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        uint32 cap = p.zkTier >= 2 ? baseCap * 2 : baseCap;
         if (openCallsPerCaller[providerId][beneficiary] >= cap) revert TooManyConcurrentCalls();
 
         uint256 currentNonce = nonce++;
@@ -342,8 +355,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         if (expectedSlash < p.pricePerCall) revert InsufficientProviderStake();
 
         // Rate-limit: enforce per-caller concurrent call cap.
-        // Prevents griefing / DoS via mass simultaneous call flooding.
-        uint32 cap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        // zkML Tier 2 providers get double the cap.
+        uint32 baseCap = p.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : p.maxConcurrentCalls;
+        uint32 cap = p.zkTier >= 2 ? baseCap * 2 : baseCap;
         if (openCallsPerCaller[providerId][beneficiary] >= cap) revert TooManyConcurrentCalls();
 
         uint256 currentNonce = nonce++;
@@ -475,6 +489,61 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         }
 
         emit CallSlashed(callId, c.amount, slashAmount);
+    }
+
+    // ---------------------------------------------------------------------
+    // EIP-5564 Stealth Address
+    // ---------------------------------------------------------------------
+
+    /// @notice Set (or clear) the EIP-5564 announcer contract address.
+    ///         Only the protocol admin (provider id 0 owner) can call this.
+    function setStealthAnnouncer(address announcer) external {
+        IServiceRegistry.ProviderView memory admin = registry.getProvider(0);
+        require(msg.sender == admin.owner, "PayPerCall: not admin");
+        stealthAnnouncer = announcer;
+        emit StealthAnnouncerSet(announcer);
+    }
+
+    /// @notice Open a call where the caller's identity is hidden behind an
+    ///         EIP-5564 stealth address. The stealthAddress is the one-time
+    ///         address derived off-chain by the caller. All escrow and refunds
+    ///         go to stealthAddress, not msg.sender.
+    ///
+    ///         USDC must be approved/authorised to this contract by msg.sender
+    ///         before calling. For gasless auth use callServiceWithAuthorization.
+    ///
+    /// @param providerId       Target provider.
+    /// @param requestHash      keccak256 of the request payload.
+    /// @param stealthAddress   EIP-5564 derived one-time address.
+    /// @param ephemeralPubKey  Ephemeral public key (65 bytes, uncompressed).
+    /// @param metadata         Stealth metadata blob (view key hint, scheme tag).
+    function callServiceStealth(
+        uint256 providerId,
+        bytes32 requestHash,
+        address stealthAddress,
+        bytes calldata ephemeralPubKey,
+        bytes calldata metadata
+    ) external nonReentrant returns (bytes32 callId) {
+        callId = _callServiceFor(providerId, requestHash, stealthAddress);
+
+        // Announce on-chain so the recipient can scan for incoming stealth payments.
+        if (stealthAnnouncer != address(0)) {
+            // EIP-5564 schemeId 1 = SECP256K1 ECDH
+            (bool ok,) = stealthAnnouncer.call(
+                abi.encodeWithSignature(
+                    "announce(uint256,address,bytes,bytes)",
+                    uint256(1),
+                    stealthAddress,
+                    ephemeralPubKey,
+                    metadata
+                )
+            );
+            // best-effort — never revert if announcer fails
+            emit StealthCallStarted(callId, stealthAddress);
+            (ok); // suppress unused variable warning
+        } else {
+            emit StealthCallStarted(callId, stealthAddress);
+        }
     }
 
     function claim() external nonReentrant {

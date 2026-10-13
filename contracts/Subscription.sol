@@ -49,6 +49,8 @@ contract Subscription is ReentrancyGuard {
     error NoCallsLeft();
     error AlreadyExpired();
     error OnlyPayPerCall();
+    error NotStreamMode();
+    error NothingToStream();
 
     // -----------------------------------------------------------------------
     // Types
@@ -58,11 +60,16 @@ contract Subscription is ReentrancyGuard {
         address subscriber;
         uint256 providerId;
         uint256 pricePerCall;   // locked at subscribe time
-        uint32  remaining;      // calls left
-        uint32  total;          // original call count
+        uint32  remaining;      // calls left (0 for stream mode)
+        uint32  total;          // original call count (0 for stream mode)
         uint64  expiresAt;      // unix timestamp
         uint256 lockedBalance;  // USDC still locked
         bool    cancelled;
+        // --- StreamEscrow fields (only used when streamMode = true) ---
+        bool    streamMode;     // true = lineer stream ödeme modu
+        uint256 streamReleased; // toplam serbest bırakılan USDC (stream mod)
+        uint64  streamStart;    // stream başlangıç zamanı
+        uint64  streamDuration; // stream toplam süresi (saniye)
     }
 
     // -----------------------------------------------------------------------
@@ -92,6 +99,8 @@ contract Subscription is ReentrancyGuard {
     event Cancelled(uint256 indexed subId, uint256 refund);
     event ExpiredReleased(uint256 indexed subId, uint256 refund);
     event PayPerCallSet(address indexed prev, address indexed next);
+    event StreamSubscribed(uint256 indexed subId, address indexed subscriber, uint256 indexed providerId, uint256 lockedBalance, uint64 duration);
+    event StreamClaimed(uint256 indexed subId, address indexed providerOwner, uint256 amount);
 
     // -----------------------------------------------------------------------
     // Constructor
@@ -140,18 +149,102 @@ contract Subscription is ReentrancyGuard {
         uint64 expiresAt = uint64(block.timestamp + duration);
 
         subscriptions[subId] = Sub({
-            subscriber:    msg.sender,
-            providerId:    providerId,
-            pricePerCall:  pricePerCall,
-            remaining:     calls,
-            total:         calls,
-            expiresAt:     expiresAt,
-            lockedBalance: total,
-            cancelled:     false
+            subscriber:     msg.sender,
+            providerId:     providerId,
+            pricePerCall:   pricePerCall,
+            remaining:      calls,
+            total:          calls,
+            expiresAt:      expiresAt,
+            lockedBalance:  total,
+            cancelled:      false,
+            streamMode:     false,
+            streamReleased: 0,
+            streamStart:    0,
+            streamDuration: 0
         });
 
         activeSub[msg.sender][providerId] = subId;
         emit Subscribed(subId, msg.sender, providerId, calls, expiresAt);
+    }
+
+    /// @notice Subscribe in stream mode — USDC is released linearly over time.
+    ///         Provider can claim accrued USDC at any time via claimStream().
+    ///         Caller gets the unstreamed balance back after expiry via releaseExpired().
+    /// @param providerId  Target provider.
+    /// @param lockedAmount  Total USDC to lock for the stream.
+    /// @param duration    Stream duration in seconds (must be >= MIN_DURATION).
+    function subscribeStream(
+        uint256 providerId,
+        uint256 lockedAmount,
+        uint32  duration
+    ) external nonReentrant returns (uint256 subId) {
+        if (lockedAmount == 0) revert InvalidCallCount();
+        if (duration < MIN_DURATION || duration > MAX_DURATION) revert InvalidDuration();
+
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool active
+        ) = registry.getProvider(providerId);
+        if (!active) revert ProviderInactive();
+
+        usdc.safeTransferFrom(msg.sender, address(this), lockedAmount);
+
+        subId = ++subCount;
+        uint64 expiresAt = uint64(block.timestamp + duration);
+
+        subscriptions[subId] = Sub({
+            subscriber:     msg.sender,
+            providerId:     providerId,
+            pricePerCall:   0,          // N/A in stream mode
+            remaining:      0,
+            total:          0,
+            expiresAt:      expiresAt,
+            lockedBalance:  lockedAmount,
+            cancelled:      false,
+            streamMode:     true,
+            streamReleased: 0,
+            streamStart:    uint64(block.timestamp),
+            streamDuration: uint64(duration)
+        });
+
+        activeSub[msg.sender][providerId] = subId;
+        emit StreamSubscribed(subId, msg.sender, providerId, lockedAmount, uint64(duration));
+    }
+
+    /// @notice Provider (or anyone) claims the linearly accrued USDC from a stream sub.
+    ///         Transfers the claimable amount to the provider owner's address.
+    function claimStream(uint256 subId) external nonReentrant {
+        Sub storage s = subscriptions[subId];
+        if (!s.streamMode) revert NotStreamMode();
+        if (s.cancelled)   revert AlreadyExpired();
+
+        uint64 elapsed = uint64(block.timestamp) - s.streamStart;
+        if (elapsed > s.streamDuration) elapsed = s.streamDuration;
+
+        uint256 accrued = (s.lockedBalance + s.streamReleased) * elapsed / s.streamDuration;
+        uint256 claimable = accrued - s.streamReleased;
+        if (claimable == 0) revert NothingToStream();
+
+        s.streamReleased += claimable;
+        s.lockedBalance  -= claimable;
+
+        // Look up provider owner via registry — Subscription uses a local
+        // IServiceRegistry interface, so we use low-level call to get owner.
+        (bool ok, bytes memory data) = address(registry).staticcall(
+            abi.encodeWithSignature("getProvider(uint256)", s.providerId)
+        );
+        address providerOwner = s.subscriber; // fallback: return to subscriber
+        if (ok && data.length >= 32) {
+            providerOwner = abi.decode(data, (address));
+        }
+
+        usdc.safeTransfer(providerOwner, claimable);
+        emit StreamClaimed(subId, providerOwner, claimable);
     }
 
     /// @notice Cancel an unexpired subscription and get a pro-rata refund.

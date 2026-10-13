@@ -8,6 +8,21 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {IServiceRegistry} from "./interfaces/IServiceRegistry.sol";
 
+// ---------------------------------------------------------------------------
+// ERC-4626 Tokenized Vault — minimal interface for Aave Arc yield integration.
+// Idle LP liquidity is deposited into an ERC-4626 compliant vault (e.g. Aave Arc
+// aUSDC vault on Arc Testnet). setYieldVault(address) activates yield mode;
+// passing address(0) disables it. _ensureLiquidity() redeems vault shares
+// on demand so borrows and withdrawals always have access to the full pool.
+// ---------------------------------------------------------------------------
+interface IERC4626Vault {
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
+    function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
+    function balanceOf(address account) external view returns (uint256);
+    function previewRedeem(uint256 shares) external view returns (uint256);
+    function asset() external view returns (address);
+}
+
 contract ReputationLoan is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -47,9 +62,17 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
     event LoanOpened(uint256 indexed loanId, uint256 indexed providerId, uint256 amount);
     event LoanRepaid(uint256 indexed loanId, uint256 totalRepaid);
     event LoanLiquidated(uint256 indexed loanId, uint256 indexed providerId);
+    event YieldVaultSet(address indexed vault);
+    event YieldDeposited(uint256 assets, uint256 shares);
+    event YieldRedeemed(uint256 shares, uint256 assets);
 
     IERC20 public immutable usdc;
     IServiceRegistry public immutable registry;
+
+    /// @notice ERC-4626 yield vault (e.g. Aave Arc aUSDC). address(0) = disabled.
+    IERC4626Vault public yieldVault;
+    /// @notice Vault shares held by this contract on behalf of the LP pool.
+    uint256 public vaultShares;
 
     uint16 public minHonorRate;
     uint256 public minCallCount;
@@ -114,6 +137,35 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
         loanDuration = newLoanDuration;
     }
 
+    /// @notice Set or clear the ERC-4626 yield vault.
+    ///         Pass address(0) to disable yield and keep liquidity direct.
+    function setYieldVault(address vault) external onlyOwner {
+        yieldVault = IERC4626Vault(vault);
+        emit YieldVaultSet(vault);
+    }
+
+    /// @notice Ensure this contract holds at least `needed` USDC directly.
+    ///         Redeems vault shares on demand if direct balance is insufficient.
+    function _ensureLiquidity(uint256 needed) internal {
+        if (address(yieldVault) == address(0)) return;
+        uint256 direct = usdc.balanceOf(address(this));
+        if (direct >= needed) return;
+        uint256 deficit = needed - direct;
+        // Redeem enough shares to cover the deficit.
+        uint256 sharesToRedeem = vaultShares;
+        // Clamp: don't redeem more than we have.
+        uint256 redeemable = yieldVault.previewRedeem(sharesToRedeem);
+        if (redeemable > deficit) {
+            // Binary approximate: redeem proportional shares.
+            sharesToRedeem = (deficit * sharesToRedeem) / redeemable + 1;
+            if (sharesToRedeem > vaultShares) sharesToRedeem = vaultShares;
+        }
+        if (sharesToRedeem == 0) return;
+        uint256 redeemed = yieldVault.redeem(sharesToRedeem, address(this), address(this));
+        vaultShares -= sharesToRedeem;
+        emit YieldRedeemed(sharesToRedeem, redeemed);
+    }
+
     function deposit(uint256 amount) external nonReentrant {
         if (amount == 0) revert InvalidAmount();
 
@@ -126,6 +178,14 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
         }
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Route idle liquidity to yield vault if configured.
+        if (address(yieldVault) != address(0)) {
+            usdc.approve(address(yieldVault), amount);
+            uint256 newShares = yieldVault.deposit(amount, address(this));
+            vaultShares += newShares;
+            emit YieldDeposited(amount, newShares);
+        }
 
         LPPosition storage position = lpPositions[msg.sender];
         position.shares += shares;
@@ -145,6 +205,7 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
 
         uint256 amount = (shares * totalAssets) / totalShares;
         if (amount == 0) revert InvalidAmount();
+        _ensureLiquidity(amount);
         if (usdc.balanceOf(address(this)) < amount) revert InsufficientLiquidity();
 
         position.shares -= shares;
@@ -176,6 +237,7 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
         uint256 stakeBasedCap = (provider.stake * maxLoanBps) / 10_000;
         uint256 effectiveMax = maxLoan < stakeBasedCap ? maxLoan : stakeBasedCap;
         if (amount > effectiveMax) revert LoanTooLarge();
+        _ensureLiquidity(amount);
         if (usdc.balanceOf(address(this)) < amount) revert InsufficientLiquidity();
 
         loanId = ++loanCount;

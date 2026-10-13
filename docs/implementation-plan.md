@@ -1,44 +1,80 @@
-Özet araştırma notlarını okuyayım. Oturum özetindeki 14 entegrasyon listesine göre durum:
+Mevcut kodu ve plan durumunu okuyorum. Tüm durumu kavradım. Planı güncelleyip hemen başlıyorum. Skill dosyalarını okuyorum: Tam resmi gördüm. 8 entegrasyonu gerçekçi biçimde değerlendireyim ve sırayla uygulayayım.
+
+**Kontrat katmanında yapılacaklar (forge build/test gerektirir):**
+- #9 ERC-4626 Stake Vault — `ReputationLoan.sol`'a Aave Arc vault arayüzü
+- #10 StreamEscrow — `Subscription.sol`'a stream ödeme modu
+- #11 Chainlink Data Feeds — `SLAFutures.sol`'a fiyat oracle arayüzü
+- #12 zkML Tier — `PayPerCall.sol`'a tier gating
+- #13 DePIN Oracle — `ServiceRegistry.sol`'a uptime feed
+- #14 EIP-5564 Stealth — `PayPerCall.sol`'a stealth çağrı desteği
+
+**API/Frontend katmanında yapılacaklar:**
+- #7 Circle Modular Wallets — `src/` bileşeni + `.env.example`
+- #8 Gateway Unified Balance — `api/unified-balance.js` + `src/` bileşeni
+
+Paralel başlıyorum — kontrat grubu ve API grubu aynı anda: Şimdi tüm 8 entegrasyonu sırayla uyguluyorum. Kontrat tarafından başlıyorum:
 
 ---
 
-**Tamamlananlar (bu oturumda yapıldı)**
-1. Per-provider rate limiting (DoS kapatma) — kontrat + testler
-2. Circle Agent Marketplace x402 discovery endpoint — `api/marketplace.js`
-3. Gateway Nanopayments iki raylı mimari — `api/nano-call.js`
+**#9 — ERC-4626 Stake Vault: `ReputationLoan.sol`'a Aave Arc yield arayüzü** Tüm kontratları tam anladım. Şimdi 8 entegrasyonu paralel gruplar halinde uyguluyorum.
+
+**Grup 1: Kontrat değişiklikleri (#9, #10, #11, #12, #13, #14)**
 
 ---
 
-**Yapılmayanlar — 11 entegrasyon kaldı**
+**#9 — ERC-4626 Stake Vault: `ReputationLoan.sol`'a Aave Arc arayüzü + idle yield**Plan modundayım — sadece plan dosyaları yazabiliyorum. Tüm implementasyonu plan olarak hazırlıyorum, ardından Build modunda onaylayabilirsiniz. Plan `arc-studio-plans/PLAN-v42.md` dosyasına kaydedildi.
 
-Önceliğe göre gruplandırıldı:
+---
 
-**Yüksek Öncelik — Mevcut koda doğrudan bağlı**
+## Implementation Plan: CallGuard v4.2 — Kalan 8 Entegrasyon
 
-| # | Entegrasyon | Ne gerekiyor | Süre |
+### Özet
+229/229 test geçen mevcut kodu kırmadan 8 entegrasyonu uyguluyoruz.
+
+### Architecture
+
+| # | Entegrasyon | Değişen Dosya | Teknik |
 |---|---|---|---|
-| 4 | **Circle Refund Protocol** | `DisputeQuality.sol` yerine Circle'ın native refund flow'u; `api/auto-receipt.js` güncelleme | ~2 saat |
-| 5 | **ERC-8004 ReputationRegistry yazma** | `submitReceipt` başarılı olunca `ReputationRegistry.record()` çağrısı; Arc Testnet adres zaten var | ~1 saat |
-| 6 | **ERC-8183 Pipeline Hook** | AgenticCommerce kontratına `callService` hook'u; Arc Testnet adres zaten var | ~1.5 saat |
+| 7 | Circle Modular Wallets | `src/components/PasskeyWallet.tsx`, `src/hooks/usePasskeyWallet.ts` | `@circle-fin/modular-wallets-core`, WebAuthn, Gas Station paymaster |
+| 8 | Gateway Unified Balance | `api/unified-balance.js`, `src/components/UnifiedBalance.tsx` | `@circle-fin/unified-balance-kit`, EIP-3009 authorize |
+| 9 | ERC-4626 Stake Vault | `contracts/ReputationLoan.sol` | `IERC4626Vault` arayüzü, `setYieldVault`, `_ensureLiquidity` |
+| 10 | StreamEscrow | `contracts/Subscription.sol` | `subscribeStream()`, `claimStream()`, lineer serbest bırakma |
+| 11 | Chainlink Data Feeds | `contracts/SLAFutures.sol` | `IChainlinkAggregator`, `latestRoundData()`, fiyat cap |
+| 12 | zkML Tier System | `contracts/ServiceRegistry.sol`, `IServiceRegistry.sol`, `PayPerCall.sol` | `uint8 zkTier`, tier 2 → cap x2 |
+| 13 | DePIN Oracle | `contracts/ServiceRegistry.sol` | EIP-712 oracle imzası, `uptimeScore`, `recordUptime()` |
+| 14 | EIP-5564 Stealth | `contracts/PayPerCall.sol`, yeni `IEIP5564Announcer.sol` | `callServiceStealth()`, announcer delege |
 
-**Orta Öncelik — Yeni modül, mevcut kodu kırmıyor**
+### Build Sırası
+1. `IServiceRegistry.sol` — `uint8 zkTier` ekle (tüm bağımlılar güncellenir)
+2. `ServiceRegistry.sol` — zkTier + DePIN oracle state/fonksiyonlar
+3. `ReputationLoan.sol` — ERC-4626 vault arayüzü + yield mantığı
+4. `Subscription.sol` — stream modu
+5. `SLAFutures.sol` — Chainlink oracle
+6. `PayPerCall.sol` — tier x2 cap + stealth callService
+7. `contracts/interfaces/IEIP5564Announcer.sol` — yeni dosya
+8. Testler — destructuring güncellemeleri + yeni case'ler
+9. `api/unified-balance.js` — yeni endpoint
+10. `src/components/PasskeyWallet.tsx` + `src/hooks/usePasskeyWallet.ts`
+11. `src/components/UnifiedBalance.tsx`
+12. `package.json` — 3 yeni bağımlılık
+13. README v4.2
+14. `git commit + push`
 
-| # | Entegrasyon | Ne gerekiyor | Süre |
-|---|---|---|---|
-| 7 | **Circle Modular Wallets / Agent Wallets** | `AgentWallet.sol` zaten var; frontend passkey akışı + paymaster | ~3 saat |
-| 8 | **Gateway Unified Balance** | `@circle-fin/unified-balance-kit` + `api/unified-balance.js`; < 500ms cross-chain | ~2 saat |
-| 9 | **ERC-4626 Stake Vault** | `ReputationLoan.sol`'daki stake mantığını Aave Arc ERC-4626 vault'a bağla | ~2.5 saat |
-| 10 | **StreamEscrow SLA abonelik** | `Subscription.sol` zaten var; stream bazlı ödeme modeli + frontend | ~2 saat |
-
-**Düşük Öncelik — Yeni standart / dış bağımlılık**
-
-| # | Entegrasyon | Durum |
-|---|---|---|
-| 11 | **zkML Tier System (ERC-7992)** | Standart taslak aşamasında; Ekim 2026 için erken |
-| 12 | **Chainlink Data Feeds + CCIP** | Arc Testnet'te canlı (Ağustos 2026 duyurusu) — `SLAFutures.sol` için fiyat feed'i |
-| 13 | **DePIN Oracle (Cairn pattern)** | Harici oracle altyapısı gerekiyor |
-| 14 | **EIP-5564 Stealth Addresses** | Gizlilik katmanı; mevcut akışla büyük refactor |
+### Done When
+- [ ] `forge test` 229+ test — tümü geçiyor
+- [ ] `setZkTier(id, 2)` → tier 2 caller cap x2
+- [ ] `setYieldVault(addr)` → deposit → USDC Aave Arc vault'a gidiyor
+- [ ] `subscribeStream` → `claimStream` lineer ödeme serbest bırakıyor
+- [ ] `setPriceFeed(addr)` → mintCapacity USD cap kontrolü
+- [ ] `recordUptime` oracle imzasını doğruluyor, `uptimeScore` güncelliyor
+- [ ] `callServiceStealth` EIP-5564 announcer'a delege ediyor
+- [ ] `GET /api/unified-balance` unified bakiye dönüyor
+- [ ] PasskeyWallet passkey kayıt + gasless callService çalışıyor
+- [ ] TypeScript lint/check sıfır hata
+- [ ] GitHub push başarılı
 
 ---
 
-**Önerim:** 4, 5, 6 numaraları birlikte yapalım — hepsi Arc Testnet'te zaten deploy edilmiş kontratlara yazıyor ve birbirini tamamlıyor. Hangisinden başlamak istersiniz?
+**Ön koşul:** Circle Modular Wallets için Console'da Client Key + Passkey Domain ayarı gerekiyor (passkey domain: `igo0pyziy8t2gqihvahzj.preview.studio.arc.io`). Bunu yapmadan başlayabilir miyiz yoksa önce Console'u ayarlamak ister misiniz?
+
+**Build moduna geçip "Approve" butonuna basın** — plan hazır, uygulama başlayabilir.

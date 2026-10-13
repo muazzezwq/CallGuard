@@ -16,6 +16,8 @@ interface IServiceRegistry {
         bool active;
         /// @notice Per-caller concurrent call cap (0 = use default of 10).
         uint32 maxConcurrentCalls;
+        /// @notice zkML tier: 0 = none, 1 = basic (stake -50%), 2 = full (cap x2).
+        uint8 zkTier;
     }
 
     function getProvider(uint256 providerId) external view returns (ProviderView memory);

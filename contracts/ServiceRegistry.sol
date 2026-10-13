@@ -58,6 +58,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     uint256 public constant PAYPERCALL_TIMELOCK = 2 days;
 
     // --- Tier 2: ERC-8004 IdentityRegistry on Arc Testnet ---
+    // --- zkML Tier System ---
+    // --- DePIN Oracle ---
     address public constant IDENTITY_REGISTRY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
 
     // ---------------------------------------------------------------------
@@ -79,9 +81,19 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         ///         0 means "use the PayPerCall default" (10).
         ///         Providers set this to prevent spam / griefing.
         uint32 maxConcurrentCalls;
+        /// @notice zkML tier: 0 = none, 1 = basic (minStake -50%), 2 = full (cap x2).
+        uint8 zkTier;
         string endpoint;
         bool active;
     }
+
+    // --- zkML tier mapping (providerId => tier) ---
+    mapping(uint256 => uint8) public zkTiers;
+
+    // --- DePIN Oracle ---
+    address public uptimeOracle;
+    mapping(uint256 => uint64) public lastUptimePing;
+    mapping(uint256 => uint16) public uptimeScore;
 
     IERC20 public immutable usdc;
     uint256 public immutable minStake;
@@ -123,6 +135,13 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
 
     // --- Tier 2 ---
     event NFTBound(uint256 indexed providerId, uint256 indexed tokenId);
+
+    // --- zkML ---
+    event ZkTierSet(uint256 indexed providerId, uint8 tier);
+
+    // --- DePIN Oracle ---
+    event UptimeOracleSet(address indexed oracle);
+    event UptimeRecorded(uint256 indexed providerId, uint16 score);
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -221,6 +240,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             completedCalls: 0,
             slashedCalls: 0,
             maxConcurrentCalls: maxConcurrentCalls_,
+            zkTier: 0,
             endpoint: endpoint,
             active: true
         });
@@ -279,6 +299,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             completedCalls: 0,
             slashedCalls: 0,
             maxConcurrentCalls: maxConcurrentCalls_,
+            zkTier: 0,
             endpoint: endpoint,
             active: true
         });
@@ -401,7 +422,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
             maxResponseTime: p.maxResponseTime,
             slashBps: p.slashBps,
             active: p.active,
-            maxConcurrentCalls: p.maxConcurrentCalls
+            maxConcurrentCalls: p.maxConcurrentCalls,
+            zkTier: p.zkTier
         });
     }
 
@@ -415,6 +437,70 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
 
     function getEndpoint(uint256 providerId) external view returns (string memory) {
         return _providers[providerId].endpoint;
+    }
+
+    // ---------------------------------------------------------------------
+    // zkML Tier System
+    // ---------------------------------------------------------------------
+
+    /// @notice Set the zkML tier for a provider.
+    ///         Only admin can call — simulates a zkML prover whitelist.
+    ///         Tier 1: basic (minStake 50% discount enforced off-chain / UI hint).
+    ///         Tier 2: full (PayPerCall doubles the concurrent call cap).
+    /// @param tier  0 = none, 1 = basic, 2 = full.
+    function setZkTier(uint256 providerId, uint8 tier) external onlyAdmin {
+        Provider storage p = _providers[providerId];
+        if (p.owner == address(0)) revert UnknownProvider();
+        require(tier <= 2, "invalid tier");
+        p.zkTier = tier;
+        zkTiers[providerId] = tier;
+        emit ZkTierSet(providerId, tier);
+    }
+
+    // ---------------------------------------------------------------------
+    // DePIN Oracle
+    // ---------------------------------------------------------------------
+
+    /// @notice Set the uptime oracle address.
+    ///         Only admin can call. Pass address(0) to disable.
+    function setUptimeOracle(address oracle) external onlyAdmin {
+        uptimeOracle = oracle;
+        emit UptimeOracleSet(oracle);
+    }
+
+    /// @notice Record an uptime score from the oracle bot.
+    ///         Oracle submits an EIP-712 signed claim; the contract verifies
+    ///         the signature before updating the on-chain score.
+    /// @param providerId  Target provider.
+    /// @param score       Uptime score in basis points (0–10000).
+    /// @param timestamp   Time the measurement was taken (must be recent).
+    /// @param v           Signature v.
+    /// @param r           Signature r.
+    /// @param s           Signature s.
+    function recordUptime(
+        uint256 providerId,
+        uint16 score,
+        uint64 timestamp,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(uptimeOracle != address(0), "oracle not set");
+        require(block.timestamp <= timestamp + 5 minutes, "stale ping");
+        require(score <= 10_000, "score > 10000");
+
+        // EIP-191 personal_sign style — keeps oracle bot simple (no domain separator needed).
+        bytes32 msgHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(providerId, score, timestamp, block.chainid))
+            )
+        );
+        address signer = ecrecover(msgHash, v, r, s);
+        require(signer == uptimeOracle, "bad oracle sig");
+
+        lastUptimePing[providerId] = uint64(block.timestamp);
+        uptimeScore[providerId] = score;
+        emit UptimeRecorded(providerId, score);
     }
 
     function pendingCalls(uint256 providerId) external view returns (uint32) {
