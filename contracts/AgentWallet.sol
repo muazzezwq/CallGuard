@@ -7,6 +7,22 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 
 import { IPayPerCall } from "./interfaces/IPayPerCall.sol";
 
+/// @notice ERC-8183 AgenticCommerce pipeline hook interface.
+///         Arc Testnet: 0x0747EEf0706327138c69792bF28Cd525089e4583
+interface IAgenticCommerce {
+    /// @notice Notify the pipeline that an agent completed a service call.
+    /// @param agentWallet  Address of the AgentWallet that made the call.
+    /// @param callId       PayPerCall callId.
+    /// @param providerId   Service provider ID.
+    /// @param amount       USDC amount spent (6-decimal).
+    function onCallCompleted(
+        address agentWallet,
+        bytes32 callId,
+        uint256 providerId,
+        uint256 amount
+    ) external;
+}
+
 contract AgentWallet is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -28,6 +44,10 @@ contract AgentWallet is ReentrancyGuard {
     event AgentUpdated(address newAgent);
     event Paused(address by);
     event Unpaused(address by);
+    /// @notice ERC-8183 pipeline hook address updated.
+    event AgenticCommerceSet(address indexed hook);
+    /// @notice ERC-8183 hook called after agent call (best-effort).
+    event PipelineHookCalled(bytes32 indexed callId, bool success);
 
     address public owner;
     address public agent;
@@ -40,6 +60,11 @@ contract AgentWallet is ReentrancyGuard {
     bool public paused;
     uint256 public totalSpent;
     uint256 public totalCalls;
+
+    /// @notice Optional ERC-8183 AgenticCommerce pipeline hook.
+    ///         Set via setAgenticCommerce(). address(0) = disabled.
+    ///         Arc Testnet: 0x0747EEf0706327138c69792bF28Cd525089e4583
+    address public agenticCommerce;
 
     mapping(uint256 => bool) public whitelistedProviders;
     uint256[] public whitelistIds;
@@ -127,6 +152,16 @@ contract AgentWallet is ReentrancyGuard {
 
         uint256 remainingToday = dailyLimit - spentToday;
         emit AgentCallMade(callId, providerId, actualSpent, remainingToday);
+
+        // ERC-8183 Pipeline Hook — best-effort, never reverts the call.
+        address hook = agenticCommerce;
+        if (hook != address(0)) {
+            try IAgenticCommerce(hook).onCallCompleted(address(this), callId, providerId, actualSpent) {
+                emit PipelineHookCalled(callId, true);
+            } catch {
+                emit PipelineHookCalled(callId, false);
+            }
+        }
     }
 
     function setAgent(address newAgent) external onlyOwner {
@@ -175,6 +210,13 @@ contract AgentWallet is ReentrancyGuard {
     function unpause() external onlyOwner {
         paused = false;
         emit Unpaused(msg.sender);
+    }
+
+    /// @notice Set (or clear) the ERC-8183 AgenticCommerce pipeline hook address.
+    ///         Pass address(0) to disable the hook.
+    function setAgenticCommerce(address hook) external onlyOwner {
+        agenticCommerce = hook;
+        emit AgenticCommerceSet(hook);
     }
 
     function getStats()

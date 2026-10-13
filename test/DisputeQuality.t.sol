@@ -166,7 +166,7 @@ contract DisputeQualityTest is Test {
     // =========================================================================
     function _openDispute(bytes32 id) internal returns (uint256 disputeId) {
         vm.prank(caller_);
-        dq.openDispute(id, PROVIDER_ID, settledAt, "ipfs://evidence");
+        dq.openDispute(id, PROVIDER_ID, settledAt, "ipfs://evidence", 0);
         disputeId = dq.disputeCount();
     }
 
@@ -188,7 +188,7 @@ contract DisputeQualityTest is Test {
         emit DisputeQuality.DisputeOpened(1, callId, caller_, PROVIDER_ID, 0, "ipfs://evidence");
 
         vm.prank(caller_);
-        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence");
+        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence", 0);
 
         // dispute count incremented
         assertEq(dq.disputeCount(), 1, "disputeCount should be 1");
@@ -206,7 +206,7 @@ contract DisputeQualityTest is Test {
             uint64  openedAt,
             uint64  votingEndsAt,
             uint256 bond,
-            ,,,,,
+            ,,,,,,
         ) = dq.disputes(1);
 
         assertEq(storedCallId,      callId,          "callId mismatch");
@@ -222,7 +222,7 @@ contract DisputeQualityTest is Test {
         vm.warp(block.timestamp + DISPUTE_WINDOW + 1);
         vm.prank(caller_);
         vm.expectRevert(DisputeQuality.DisputeWindowClosed.selector);
-        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence");
+        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence", 0);
     }
 
     function test_openDispute_windowNotStarted_reverts() public {
@@ -230,7 +230,7 @@ contract DisputeQualityTest is Test {
         uint64 futureSettled = uint64(block.timestamp + 100);
         vm.prank(caller_);
         vm.expectRevert(DisputeQuality.DisputeWindowNotStarted.selector);
-        dq.openDispute(callId, PROVIDER_ID, futureSettled, "ipfs://evidence");
+        dq.openDispute(callId, PROVIDER_ID, futureSettled, "ipfs://evidence", 0);
     }
 
     function test_openDispute_alreadyDisputed_reverts() public {
@@ -238,7 +238,7 @@ contract DisputeQualityTest is Test {
 
         vm.prank(caller_);
         vm.expectRevert(DisputeQuality.AlreadyDisputed.selector);
-        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence");
+        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence", 0);
     }
 
     function test_openDispute_insufficientAllowance_reverts() public {
@@ -248,7 +248,7 @@ contract DisputeQualityTest is Test {
         // No approval given.
         vm.prank(newCaller);
         vm.expectRevert();
-        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence");
+        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence", 0);
     }
 
     // =========================================================================
@@ -266,7 +266,7 @@ contract DisputeQualityTest is Test {
 
         // Read the responseUri via the public disputes mapping.
         // The struct has 12 fields; responseUri is at index 7 (0-based).
-        (,,,,,, string memory evUri, string memory respUri,,,,) = dq.disputes(disputeId);
+        (,,,,,, string memory evUri, string memory respUri,,,,,) = dq.disputes(disputeId);
         assertEq(respUri, "ipfs://response", "responseUri not stored");
         // evidenceUri should be unchanged.
         assertEq(evUri,   "ipfs://evidence", "evidenceUri changed");
@@ -393,7 +393,7 @@ contract DisputeQualityTest is Test {
         dq.finalize(disputeId);
 
         // Outcome stored
-        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
+        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized,) = dq.disputes(disputeId);
         assertEq(uint8(outcome),  uint8(DisputeQuality.Outcome.CallerWins), "outcome wrong");
         assertTrue(finalized,                                                "not finalized");
 
@@ -447,7 +447,7 @@ contract DisputeQualityTest is Test {
 
         dq.finalize(disputeId);
 
-        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
+        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized,) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.ProviderWins), "outcome wrong");
         assertTrue(finalized, "not finalized");
 
@@ -501,7 +501,7 @@ contract DisputeQualityTest is Test {
 
         dq.finalize(disputeId);
 
-        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
+        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized,) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.Tied), "outcome should be Tied");
         assertTrue(finalized, "not finalized");
 
@@ -560,7 +560,7 @@ contract DisputeQualityTest is Test {
 
         dq.finalize(disputeId);
 
-        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
+        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized,) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.Tied), "equal votes should be Tied");
         assertTrue(finalized);
 
@@ -621,7 +621,7 @@ contract DisputeQualityTest is Test {
         uint256 v3BalStart      = usdc.balanceOf(voter3);
 
         vm.prank(caller_);
-        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence-e2e");
+        dq.openDispute(callId, PROVIDER_ID, settledAt, "ipfs://evidence-e2e", 0);
 
         uint256 disputeId = dq.disputeCount();
         assertEq(disputeId, 1, "expected disputeId=1");
@@ -632,7 +632,7 @@ contract DisputeQualityTest is Test {
         // ── Step 2: Provider submits response evidence ───────────────────────
         vm.prank(provider1Owner);
         dq.submitResponseEvidence(disputeId, "ipfs://response-e2e");
-        (,,,,,, , string memory respUri,,,,) = dq.disputes(disputeId);
+        (,,,,,, , string memory respUri,,,,,) = dq.disputes(disputeId);
         assertEq(respUri, "ipfs://response-e2e", "response URI mismatch");
 
         // ── Step 3: Three voters vote ForCaller ──────────────────────────────
@@ -648,7 +648,7 @@ contract DisputeQualityTest is Test {
         assertEq(usdc.balanceOf(voter3), v3BalStart - VOTER_BOND, "voter3 bond not locked");
 
         // ── Step 4: Warp past voting window ──────────────────────────────────
-        (, , , , uint64 votingEndsAt, , , , , , ,) = dq.disputes(disputeId);
+        (, , , , uint64 votingEndsAt, , , , , , , ,) = dq.disputes(disputeId);
         vm.warp(uint256(votingEndsAt) + 1);
 
         // ── Step 5: Finalize ─────────────────────────────────────────────────
@@ -656,7 +656,7 @@ contract DisputeQualityTest is Test {
         dq.finalize(disputeId);
 
         // Verify outcome = CallerWins
-        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized) = dq.disputes(disputeId);
+        (,,,,,,,,,, DisputeQuality.Outcome outcome, bool finalized,) = dq.disputes(disputeId);
         assertEq(uint8(outcome), uint8(DisputeQuality.Outcome.CallerWins), "outcome should be CallerWins");
         assertTrue(finalized, "should be finalized");
 
@@ -805,7 +805,7 @@ contract DisputeQualityTest is Test {
         uint256 callerBalBefore = usdc.balanceOf(caller_);
 
         vm.prank(caller_);
-        dq.openDispute(fuzzCallId, PROVIDER_ID, fuzzSettled, "ipfs://fuzz");
+        dq.openDispute(fuzzCallId, PROVIDER_ID, fuzzSettled, "ipfs://fuzz", 0);
 
         assertEq(usdc.balanceOf(caller_), callerBalBefore - DISPUTE_BOND, "bond not transferred");
     }

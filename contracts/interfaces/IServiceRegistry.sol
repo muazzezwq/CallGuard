@@ -32,3 +32,16 @@ interface IServiceRegistry {
     /// @notice Called by PayPerCall when a call is slashed due to timeout.
     function incSlashed(uint256 providerId) external;
 }
+
+// ---------------------------------------------------------------------------
+// ERC-8004 ReputationRegistry — minimal write interface
+// Arc Testnet address: 0x8004B663056A597Dffe9eCcC1965A193B7388713
+// Used by PayPerCall to record reputation events on-chain.
+// ---------------------------------------------------------------------------
+interface IERC8004ReputationRegistry {
+    /// @notice Record a reputation event for an agent.
+    /// @param agentId  ERC-8004 identity token ID (matches providerId in ServiceRegistry).
+    /// @param score    Signed delta score (+1 for success, -1 for slash). Registry clamps.
+    /// @param eventUri IPFS / HTTPS URI with structured event metadata (callId, timestamp, etc).
+    function record(uint256 agentId, int8 score, string calldata eventUri) external;
+}

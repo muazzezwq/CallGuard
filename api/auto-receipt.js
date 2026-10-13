@@ -99,16 +99,70 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Circle Refund Protocol — initiated when DisputeQuality emits
+// CircleRefundInitiated(disputeId, callId, caller, amount).
+// The relayer (Vercel webhook or off-chain indexer) calls POST /api/auto-receipt
+// with event="circle.refund.initiate" to trigger the Circle Refund API.
+// ---------------------------------------------------------------------------
+const CIRCLE_REFUND_API = "https://api.circle.com/v2/transfers/refunds";
+const CIRCLE_API_KEY = process.env.CIRCLE_API_KEY || "";
+
+async function initiateCircleRefund({ disputeId, callId, caller, amount }) {
+  if (!CIRCLE_API_KEY) {
+    console.warn("[auto-receipt] CIRCLE_API_KEY not set — skipping Circle Refund API call");
+    return { ok: false, error: "CIRCLE_API_KEY not configured" };
+  }
+
+  // Circle Refund Protocol payload (Circle Transfers API v2 spec).
+  // amount is in USDC 6-decimal units; convert to string for the API.
+  const body = {
+    idempotencyKey: `callguard-refund-${callId}-${disputeId}`,
+    source: { type: "blockchain", callId, disputeId },
+    destination: { type: "blockchain", address: caller, chain: "ARC-TESTNET" },
+    amount: { amount: (Number(amount) / 1e6).toFixed(6), currency: "USD" },
+    metadata: { reason: "DisputeQuality:CallerWins", callId, disputeId },
+  };
+
+  try {
+    const resp = await fetch(CIRCLE_REFUND_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CIRCLE_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json().catch(() => ({}));
+    console.log(`[auto-receipt] Circle Refund API response: ${resp.status}`, data);
+    return { ok: resp.ok, status: resp.status, data };
+  } catch (err) {
+    console.error("[auto-receipt] Circle Refund API error:", err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const _key = process.env.SELLER_PRIVATE_KEY;
     const addr = _key ? new ethers.Wallet(_key).address : "not configured";
-    return res.json({ ok: true, service: "CallGuard auto-receipt", seller: addr });
+    return res.json({
+      ok: true,
+      service: "CallGuard auto-receipt",
+      seller: addr,
+      circleRefundEnabled: !!CIRCLE_API_KEY,
+    });
   }
 
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
-  const { event, callId, payload, providerId } = req.body || {};
+  const { event, callId, payload, providerId, disputeId, caller, amount } = req.body || {};
+
+  // ERC-8004 / Circle Refund Protocol: dispute resolved CallerWins
+  if (event === "circle.refund.initiate" && callId) {
+    const result = await initiateCircleRefund({ disputeId, callId, caller, amount });
+    return res.json({ received: true, event, callId, disputeId, result });
+  }
 
   if (event === "call.opened" && callId) {
     // Await the receipt submission BEFORE responding so Vercel keeps function alive

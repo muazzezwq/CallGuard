@@ -41,6 +41,10 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         uint256 votesForProvider;
         Outcome outcome;
         bool finalized;
+        /// @notice Original USDC amount paid for the call (for Circle Refund Protocol).
+        ///         Passed by the caller when opening the dispute so the refund event
+        ///         carries the exact payment amount, not the slash proxy.
+        uint256 originalAmount;
     }
 
     error InvalidAddress();
@@ -86,6 +90,20 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         uint256 slashAmount
     );
     event PayoutWithdrawn(address indexed account, uint256 amount);
+
+    /// @notice Emitted when a Circle Refund Protocol refund is initiated for
+    ///         a winning caller. Off-chain indexers and Circle webhooks listen
+    ///         to this event to trigger the Circle Refund API flow.
+    /// @param disputeId  The dispute that resolved CallerWins.
+    /// @param callId     Original PayPerCall callId for the Circle payment.
+    /// @param caller     Address that receives the refund.
+    /// @param amount     USDC amount to be refunded (6-decimal, same as USDC ERC-20).
+    event CircleRefundInitiated(
+        uint256 indexed disputeId,
+        bytes32 indexed callId,
+        address indexed caller,
+        uint256 amount
+    );
 
     IERC20 public immutable usdc;
     IServiceRegistry public immutable registry;
@@ -146,11 +164,20 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         disputeSlashBps = _disputeSlashBps;
     }
 
+    /// @notice Open a quality dispute for a completed call.
+    /// @param callId          The PayPerCall callId.
+    /// @param providerId      Provider that served the call.
+    /// @param settledAt       Timestamp when the call was settled (used for window check).
+    /// @param evidenceUri     IPFS / HTTPS URI pointing to dispute evidence.
+    /// @param originalAmount_ Original USDC amount paid for the call. Used by the
+    ///                        Circle Refund Protocol when the dispute resolves CallerWins.
+    ///                        Pass 0 if unknown; the refund event will fall back to slashAmount.
     function openDispute(
         bytes32 callId,
         uint256 providerId,
         uint64 settledAt,
-        string calldata evidenceUri
+        string calldata evidenceUri,
+        uint256 originalAmount_
     ) external nonReentrant {
         if (block.timestamp < settledAt) revert DisputeWindowNotStarted();
         if (block.timestamp > uint256(settledAt) + disputeWindow) revert DisputeWindowClosed();
@@ -177,7 +204,8 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
             votesForCaller: 0,
             votesForProvider: 0,
             outcome: Outcome.Pending,
-            finalized: false
+            finalized: false,
+            originalAmount: originalAmount_
         });
 
         emit DisputeOpened(disputeId, callId, msg.sender, providerId, votingEndsAt, evidenceUri);
@@ -262,6 +290,13 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
 
             uint256 spoils = bondsForProviderSide[disputeId] + slashAmount;
             _payoutWinningVoters(disputeId, Vote.ForCaller, d.votesForCaller, spoils);
+
+            // Circle Refund Protocol: emit event so off-chain relayer can
+            // call Circle's Refund API for the original payment amount.
+            // originalAmount is set by the caller when opening the dispute;
+            // fall back to slashAmount if not provided (originalAmount == 0).
+            uint256 refundAmount = d.originalAmount > 0 ? d.originalAmount : slashAmount;
+            emit CircleRefundInitiated(disputeId, d.callId, d.caller, refundAmount);
         } else {
             d.outcome = Outcome.ProviderWins;
 

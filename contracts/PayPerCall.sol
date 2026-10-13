@@ -8,7 +8,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-import { IServiceRegistry } from "./interfaces/IServiceRegistry.sol";
+import { IServiceRegistry, IERC8004ReputationRegistry } from "./interfaces/IServiceRegistry.sol";
 
 /// @dev Minimal EIP-3009 interface for USDC transferWithAuthorization.
 interface IUSDC {
@@ -130,6 +130,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     IERC20 public immutable usdc;
     IServiceRegistry public immutable registry;
 
+    /// @notice Optional ERC-8004 ReputationRegistry.
+    ///         Set to address(0) to disable. Can be set once via setReputationRegistry().
+    ///         Arc Testnet: 0x8004B663056A597Dffe9eCcC1965A193B7388713
+    IERC8004ReputationRegistry public reputationRegistry;
+
     mapping(bytes32 => Call) internal _calls;
     uint256 public nonce; // bumped on every call to keep callIds unique
 
@@ -162,6 +167,10 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     event ReceiptSubmitted(bytes32 indexed callId, bytes32 responseHash, uint64 respondedAt);
     event CallSlashed(bytes32 indexed callId, uint256 refunded, uint256 slashed);
     event Claimed(address indexed account, uint256 amount);
+    /// @notice ERC-8004 ReputationRegistry address updated.
+    event ReputationRegistrySet(address indexed registry_);
+    /// @notice Reputation event recorded on-chain (best-effort; not reverting on failure).
+    event ReputationRecorded(uint256 indexed providerId, int8 score, bool success);
 
     // ---------------------------------------------------------------------
     // Constructor
@@ -170,6 +179,32 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     constructor(IERC20 _usdc, IServiceRegistry _registry) EIP712("ArcSLA", "1") {
         usdc = _usdc;
         registry = _registry;
+    }
+
+    /// @notice Set (or clear) the ERC-8004 ReputationRegistry address.
+    ///         Only the ServiceRegistry owner can call this — enforced via
+    ///         `registry.getProvider(0)` owner check so no extra owner state is needed.
+    ///         Pass address(0) to disable reputation recording.
+    /// @dev    The first provider (id=0) is the protocol deployer — a sensible proxy
+    ///         for "admin" without adding an Ownable dependency.
+    function setReputationRegistry(address registry_) external {
+        // Caller must be the owner of provider id 0 (protocol admin).
+        IServiceRegistry.ProviderView memory admin = registry.getProvider(0);
+        require(msg.sender == admin.owner, "PayPerCall: not admin");
+        reputationRegistry = IERC8004ReputationRegistry(registry_);
+        emit ReputationRegistrySet(registry_);
+    }
+
+    /// @dev Internal helper — records a reputation event best-effort.
+    ///      Never reverts; a failing registry call only emits ReputationRecorded(false).
+    function _recordReputation(uint256 providerId, int8 score, string memory eventUri) internal {
+        IERC8004ReputationRegistry rep = reputationRegistry;
+        if (address(rep) == address(0)) return;
+        try rep.record(providerId, score, eventUri) {
+            emit ReputationRecorded(providerId, score, true);
+        } catch {
+            emit ReputationRecorded(providerId, score, false);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -391,6 +426,11 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
         registry.markCallFinished(c.providerId);
         registry.incCompleted(c.providerId); // bump reputation
+
+        // ERC-8004: record positive reputation event (+1) on-chain.
+        // eventUri encodes callId so the registry can deduplicate.
+        _recordReputation(c.providerId, 1, string(abi.encodePacked("callguard:success:", _bytes32ToHex(callId))));
+
         claimable[p.owner] += c.amount;
 
         emit ReceiptSubmitted(callId, responseHash, respondedAt);
@@ -423,6 +463,10 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         //   4. Slash stake into this contract and credit caller for pull withdrawal.
         registry.markCallFinished(c.providerId);
         registry.incSlashed(c.providerId);
+
+        // ERC-8004: record negative reputation event (-1) on-chain.
+        _recordReputation(c.providerId, -1, string(abi.encodePacked("callguard:slash:", _bytes32ToHex(callId))));
+
         claimable[c.caller] += c.amount;
 
         if (slashAmount > 0) {
@@ -449,5 +493,21 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
 
     function getCall(bytes32 callId) external view returns (Call memory) {
         return _calls[callId];
+    }
+
+    // ---------------------------------------------------------------------
+    // Internal utilities
+    // ---------------------------------------------------------------------
+
+    /// @dev Convert bytes32 to a lowercase hex string (without "0x" prefix).
+    ///      Used to build human-readable eventUri strings for ERC-8004.
+    function _bytes32ToHex(bytes32 b) internal pure returns (string memory) {
+        bytes memory hex_ = new bytes(64);
+        bytes memory alphabet = "0123456789abcdef";
+        for (uint256 i = 0; i < 32; i++) {
+            hex_[i * 2]     = alphabet[uint8(b[i] >> 4)];
+            hex_[i * 2 + 1] = alphabet[uint8(b[i] & 0x0f)];
+        }
+        return string(hex_);
     }
 }
