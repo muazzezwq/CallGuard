@@ -1,13 +1,20 @@
 {
-  "contractAddress": "0x19d03ff147816c97aad88f1275ad80855dcac9b2",
+  "contractAddress": "0xcd57a9b924a565b12889277173b9ec06d4e10435",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/SLAFutures.sol",
   "contract_compiled_code_path": "/home/user/app/out/SLAFutures.sol/SLAFutures.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x19d03ff147816c97aad88f1275ad80855dcac9b2"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xcd57a9b924a565b12889277173b9ec06d4e10435"
   },
   "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0xcd57a9b924a565b12889277173b9ec06d4e10435",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xcd57a9b924a565b12889277173b9ec06d4e10435",
+      "txHash": "0xbbad5560a0802c2cd8ff23e3b3854af36cc53b839e4eddb2d930bae46f60fae2",
+      "deployedAt": "2026-10-13T17:45:08.007Z"
+    },
     {
       "chain": "Arc Testnet",
       "address": "0x19d03ff147816c97aad88f1275ad80855dcac9b2",
@@ -42,6 +49,19 @@
         }
       ],
       "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "MAX_BATCH_USD_8DEC",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
     },
     {
       "type": "function",
@@ -340,6 +360,32 @@
     },
     {
       "type": "function",
+      "name": "priceFeed",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract IChainlinkAggregator"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "priceFeedStaleness",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "providerClaimable",
       "inputs": [
         {
@@ -542,6 +588,32 @@
     },
     {
       "type": "function",
+      "name": "setPriceFeed",
+      "inputs": [
+        {
+          "name": "feed",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setPriceFeedStaleness",
+      "inputs": [
+        {
+          "name": "staleness",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "supportsInterface",
       "inputs": [
         {
@@ -691,6 +763,19 @@
         },
         {
           "name": "newOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PriceFeedSet",
+      "inputs": [
+        {
+          "name": "feed",
           "type": "address",
           "indexed": true,
           "internalType": "address"
@@ -913,6 +998,11 @@
     },
     {
       "type": "error",
+      "name": "BatchUSDCapExceeded",
+      "inputs": []
+    },
+    {
+      "type": "error",
       "name": "ERC1155InsufficientBalance",
       "inputs": [
         {
@@ -1100,6 +1190,11 @@
           "internalType": "address"
         }
       ]
+    },
+    {
+      "type": "error",
+      "name": "StalePriceFeed",
+      "inputs": []
     },
     {
       "type": "error",

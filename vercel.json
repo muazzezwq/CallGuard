@@ -3,10 +3,19 @@
   "buildCommand": "bun run build",
   "framework": null,
   "functions": {
-    "api/auto-receipt.js":   { "maxDuration": 25 },
-    "api/call-service.js":   { "maxDuration": 25 },
-    "api/notify-provider.js":{ "maxDuration": 15 },
-    "api/attestation.js":    { "maxDuration": 30 }
+    "api/auto-receipt.js":      { "maxDuration": 25 },
+    "api/call-service.js":      { "maxDuration": 25 },
+    "api/notify-provider.js":   { "maxDuration": 15 },
+    "api/attestation.js":       { "maxDuration": 30 },
+    "api/marketplace.js":       { "maxDuration": 10 },
+    "api/unified-balance.js":   { "maxDuration": 10 },
+    "api/nano-call.js":         { "maxDuration": 15 },
+    "api/nano-balance.js":      { "maxDuration": 10 },
+    "api/energy-data.js":       { "maxDuration": 10 },
+    "api/ping-provider.js":     { "maxDuration": 10 },
+    "api/premium-report.js":    { "maxDuration": 15 },
+    "api/provider-page.js":     { "maxDuration": 15 },
+    "api/widget.js":            { "maxDuration": 10 }
   },
   "redirects": [
     { "source": "/app",  "destination": "/", "permanent": false },

@@ -8,11 +8,14 @@ import {
   SignerUpdated,
   ReputationUpdated,
   NFTBound,
+  ZkTierSet,
+  UptimeRecorded,
 } from "../generated/ServiceRegistry/ServiceRegistry";
 import {
   CallStarted,
   ReceiptSubmitted,
   CallSlashed,
+  StealthCallStarted,
 } from "../generated/PayPerCall/PayPerCall";
 import {
   CrossChainCallTriggered,
@@ -25,6 +28,9 @@ import {
   Call,
   CrossChainCall,
   NFTRegistration,
+  ZkTierUpdate,
+  UptimePing,
+  StealthCall,
 } from "../generated/schema";
 
 export function handleProviderRegistered(event: ProviderRegistered): void {
@@ -171,4 +177,53 @@ export function handleRegisteredWithNFT(event: RegisteredWithNFT): void {
   registration.providerAddress = event.params.provider;
   registration.createdAt = event.block.timestamp;
   registration.save();
+}
+
+// ---------------------------------------------------------------------------
+// zkML Tier System — ZkTierSet
+// ---------------------------------------------------------------------------
+
+export function handleZkTierSet(event: ZkTierSet): void {
+  let id = event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
+  let entity = new ZkTierUpdate(id);
+  entity.providerId = event.params.providerId;
+  entity.tier       = event.params.tier as i32;
+  entity.timestamp  = event.block.timestamp;
+  entity.txHash     = event.transaction.hash;
+  entity.save();
+
+  // Also update the Provider entity so queries can filter by current tier.
+  let provider = Provider.load(event.params.providerId.toString());
+  if (provider) {
+    provider.updatedAt = event.block.timestamp;
+    provider.save();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DePIN Oracle — UptimeRecorded
+// ---------------------------------------------------------------------------
+
+export function handleUptimeRecorded(event: UptimeRecorded): void {
+  let id = event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
+  let entity = new UptimePing(id);
+  entity.providerId = event.params.providerId;
+  entity.score      = event.params.score as i32;
+  entity.timestamp  = event.block.timestamp;
+  entity.txHash     = event.transaction.hash;
+  entity.save();
+}
+
+// ---------------------------------------------------------------------------
+// EIP-5564 Stealth Addresses — StealthCallStarted
+// ---------------------------------------------------------------------------
+
+export function handleStealthCallStarted(event: StealthCallStarted): void {
+  let id = event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
+  let entity = new StealthCall(id);
+  entity.callId        = event.params.callId;
+  entity.stealthAddress = event.params.stealthAddress;
+  entity.timestamp     = event.block.timestamp;
+  entity.txHash        = event.transaction.hash;
+  entity.save();
 }

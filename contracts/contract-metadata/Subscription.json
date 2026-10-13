@@ -1,13 +1,20 @@
 {
-  "contractAddress": "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
+  "contractAddress": "0xc090ff2b856a5cc1bfe1137cf75ca566339f01db",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/Subscription.sol",
   "contract_compiled_code_path": "/home/user/app/out/Subscription.sol/Subscription.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xef7d56390f86a5cecc05f75e265859a1c79cefe6"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xc090ff2b856a5cc1bfe1137cf75ca566339f01db"
   },
   "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0xc090ff2b856a5cc1bfe1137cf75ca566339f01db",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xc090ff2b856a5cc1bfe1137cf75ca566339f01db",
+      "txHash": "0x5cb15d88aa37cdeee30fb55501624b8ce67a03b4b02b5553d330bf44b99cf9e3",
+      "deployedAt": "2026-10-13T17:45:18.151Z"
+    },
     {
       "chain": "Arc Testnet",
       "address": "0xef7d56390f86a5cecc05f75e265859a1c79cefe6",
@@ -129,6 +136,19 @@
     },
     {
       "type": "function",
+      "name": "claimStream",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "getActiveSub",
       "inputs": [
         {
@@ -206,6 +226,26 @@
               "name": "cancelled",
               "type": "bool",
               "internalType": "bool"
+            },
+            {
+              "name": "streamMode",
+              "type": "bool",
+              "internalType": "bool"
+            },
+            {
+              "name": "streamReleased",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "streamStart",
+              "type": "uint64",
+              "internalType": "uint64"
+            },
+            {
+              "name": "streamDuration",
+              "type": "uint64",
+              "internalType": "uint64"
             }
           ]
         }
@@ -327,6 +367,35 @@
     },
     {
       "type": "function",
+      "name": "subscribeStream",
+      "inputs": [
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "lockedAmount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "duration",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "subscriptions",
       "inputs": [
         {
@@ -375,6 +444,26 @@
           "name": "cancelled",
           "type": "bool",
           "internalType": "bool"
+        },
+        {
+          "name": "streamMode",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "streamReleased",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "streamStart",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "streamDuration",
+          "type": "uint64",
+          "internalType": "uint64"
         }
       ],
       "stateMutability": "view"
@@ -489,6 +578,68 @@
     },
     {
       "type": "event",
+      "name": "StreamClaimed",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "providerOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "StreamSubscribed",
+      "inputs": [
+        {
+          "name": "subId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "subscriber",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "providerId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "lockedBalance",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "duration",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
       "name": "Subscribed",
       "inputs": [
         {
@@ -546,7 +697,17 @@
     },
     {
       "type": "error",
+      "name": "NotStreamMode",
+      "inputs": []
+    },
+    {
+      "type": "error",
       "name": "NotSubscriber",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NothingToStream",
       "inputs": []
     },
     {
