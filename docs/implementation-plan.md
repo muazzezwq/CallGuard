@@ -1,8 +1,13 @@
-`widget.js`'yi okuyup birleştiriyorum. `widget.js`'ye `/health` path desteği ekleyip `health.js`'yi siliyorum. Aynı anda `vercel.json`'dan da kaldırıyorum. Plan moduna geçmişim. Build moduna geçmen gerekiyor.
+Hâlâ aynı hata — demek ki `api/` klasöründe hâlâ 13+ dosya var. Gerçek sayıyı kontrol ediyorum. Sandbox'ta tam olarak **13 dosya** var. `health.js` silindi ama Vercel hâlâ 13 sayıyor — demek ki Vercel bu push'tan önceki cache'i kullanıyor ya da başka bir `api/` route var.
 
-**Mode selector'dan Build moduna geç** → sonra bana "hazır" de, hepsini tek seferde uygularım:
+Aslında sayım doğru: 13 dosya = 13 serverless function. Bir tane daha birleştirmem gerekiyor.
 
-1. `api/widget.js` — başına health check path ekle
-2. `api/health.js` — sil
-3. `vercel.json` — `health.js` satırını kaldır (12 fonksiyona düşer)
-4. Commit + push → Vercel otomatik redeploy yapar
+**En iyi aday:** `api/nano-balance.js` → `api/nano-call.js` içine birleştir.
+
+Bu ikisi aynı nano-payment sistemine ait:
+- `nano-call.js` — nano ödeme çağrısı yapar
+- `nano-balance.js` — nano bakiye sorgular
+
+`nano-call.js`'ye `?action=balance` parametresi ekleyip `nano-balance.js`'yi sileceğim. **12'ye düşer.**
+
+Onaylıyor musun?

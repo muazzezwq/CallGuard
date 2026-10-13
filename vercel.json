@@ -10,7 +10,6 @@
     "api/marketplace.js":       { "maxDuration": 10 },
     "api/unified-balance.js":   { "maxDuration": 10 },
     "api/nano-call.js":         { "maxDuration": 15 },
-    "api/nano-balance.js":      { "maxDuration": 10 },
     "api/energy-data.js":       { "maxDuration": 10 },
     "api/ping-provider.js":     { "maxDuration": 10 },
     "api/premium-report.js":    { "maxDuration": 15 },

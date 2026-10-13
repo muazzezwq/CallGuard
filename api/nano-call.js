@@ -93,12 +93,35 @@ function getRpcUrl() {
   return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL;
 }
 
+const USDC_ABI_BALANCE = ["function balanceOf(address) view returns (uint256)"];
+const USDC_ADDR = process.env.VITE_USDC_ADDRESS || process.env.USDC_ADDRESS;
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Api-Key");
 
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // GET /api/nano-call?balance=1&address=0x...  (merged from nano-balance to stay within Hobby 12-fn limit)
+  if (req.method === "GET" && req.query.balance === "1") {
+    const address = req.query.address;
+    if (!address || !ethers.isAddress(address))
+      return res.status(400).json({ error: "?address=0x... required" });
+    const rpcUrl = getRpcUrl();
+    if (!rpcUrl) return res.status(500).json({ error: "No RPC URL configured" });
+    if (!USDC_ADDR) return res.status(500).json({ error: "VITE_USDC_ADDRESS not configured" });
+    try {
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI_BALANCE, provider);
+      const raw = await usdc.balanceOf(address);
+      const formatted = ethers.formatUnits(raw, 6);
+      return res.json({ address, raw: raw.toString(), formatted, symbol: "USDC" });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
   if (req.method !== "POST") return res.status(405).json({ error: "POST required" });
 
   // Auth check
