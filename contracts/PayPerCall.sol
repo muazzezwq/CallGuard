@@ -10,6 +10,21 @@ import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IServiceRegistry, IERC8004ReputationRegistry } from "./interfaces/IServiceRegistry.sol";
 
+/// @notice ERC-8183 Pipeline Hook — called before/after each service call.
+///         Allows the AgenticCommerce job pipeline to track SLA lifecycle events.
+///         Both hooks are best-effort: a reverting hook never blocks the call.
+interface IERC8183Hook {
+    /// @param jobId      ERC-8183 job identifier (keccak of callId for ArcSLA).
+    /// @param providerId ServiceRegistry provider id.
+    /// @param caller     Address opening the call.
+    /// @param amount     USDC amount locked in escrow.
+    function beforeCall(bytes32 jobId, uint256 providerId, address caller, uint256 amount) external;
+
+    /// @param jobId    ERC-8183 job identifier.
+    /// @param success  true = receipt submitted (SLA met), false = timeout/slash.
+    function afterCall(bytes32 jobId, bool success) external;
+}
+
 /// @dev Minimal EIP-3009 interface for USDC transferWithAuthorization.
 interface IUSDC {
     function transferWithAuthorization(
@@ -154,6 +169,17 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     uint32 public constant DEFAULT_MAX_CONCURRENT = 10;
 
     // ---------------------------------------------------------------------
+    // ERC-8183 Pipeline Hook
+    // ---------------------------------------------------------------------
+
+    /// @notice Optional ERC-8183 AgenticCommerce pipeline hook.
+    ///         Set to address(0) to disable. Both hooks are best-effort (try/catch).
+    IERC8183Hook public pipelineHook;
+
+    event PipelineHookSet(address indexed hook);
+    event PipelineHookCalled(bytes32 indexed jobId, bool before, bool success);
+
+    // ---------------------------------------------------------------------
     // EIP-5564 Stealth Address Support
     // ---------------------------------------------------------------------
 
@@ -191,6 +217,39 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     constructor(IERC20 _usdc, IServiceRegistry _registry) EIP712("ArcSLA", "1") {
         usdc = _usdc;
         registry = _registry;
+    }
+
+    /// @notice Set (or clear) the ERC-8183 pipeline hook address.
+    ///         Only the ServiceRegistry admin (owner of provider id 1) can call.
+    ///         Pass address(0) to disable hooks.
+    function setPipelineHook(address hook) external {
+        IServiceRegistry.ProviderView memory adm = registry.getProvider(1);
+        require(adm.owner != address(0), "PayPerCall: no provider registered");
+        require(msg.sender == adm.owner, "PayPerCall: not admin");
+        pipelineHook = IERC8183Hook(hook);
+        emit PipelineHookSet(hook);
+    }
+
+    /// @dev Internal helper — fires ERC-8183 beforeCall hook best-effort.
+    function _hookBefore(bytes32 callId, uint256 providerId, address caller, uint256 amount) internal {
+        IERC8183Hook h = pipelineHook;
+        if (address(h) == address(0)) return;
+        try h.beforeCall(callId, providerId, caller, amount) {
+            emit PipelineHookCalled(callId, true, true);
+        } catch {
+            emit PipelineHookCalled(callId, true, false);
+        }
+    }
+
+    /// @dev Internal helper — fires ERC-8183 afterCall hook best-effort.
+    function _hookAfter(bytes32 callId, bool success) internal {
+        IERC8183Hook h = pipelineHook;
+        if (address(h) == address(0)) return;
+        try h.afterCall(callId, success) {
+            emit PipelineHookCalled(callId, false, true);
+        } catch {
+            emit PipelineHookCalled(callId, false, false);
+        }
     }
 
     /// @notice Set (or clear) the ERC-8004 ReputationRegistry address.
@@ -388,6 +447,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         openCallsPerCaller[providerId][beneficiary]++;
 
         emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
+
+        // ERC-8183 Pipeline Hook — best-effort beforeCall notification.
+        _hookBefore(callId, providerId, beneficiary, p.pricePerCall);
     }
 
     // ---------------------------------------------------------------------
@@ -448,6 +510,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         claimable[p.owner] += c.amount;
 
         emit ReceiptSubmitted(callId, responseHash, respondedAt);
+
+        // ERC-8183 Pipeline Hook — afterCall(success=true).
+        _hookAfter(callId, true);
     }
 
     // ---------------------------------------------------------------------
@@ -489,6 +554,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         }
 
         emit CallSlashed(callId, c.amount, slashAmount);
+
+        // ERC-8183 Pipeline Hook — afterCall(success=false).
+        _hookAfter(callId, false);
     }
 
     // ---------------------------------------------------------------------

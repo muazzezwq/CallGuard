@@ -1,13 +1,20 @@
 {
-  "contractAddress": "0xafb4829b79f6538456ccb40553cb04cae8b9b896",
+  "contractAddress": "0x5fb41dd22c44e1de08f37d98c2995a62d6220540",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/PayPerCall.sol",
   "contract_compiled_code_path": "/home/user/app/out/PayPerCall.sol/PayPerCall.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xafb4829b79f6538456ccb40553cb04cae8b9b896"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x5fb41dd22c44e1de08f37d98c2995a62d6220540"
   },
   "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0x5fb41dd22c44e1de08f37d98c2995a62d6220540",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x5fb41dd22c44e1de08f37d98c2995a62d6220540",
+      "txHash": "0xa5db2f12efa1d80fca1532d0a041c2ce612eb086680912c569c3c081c3055079",
+      "deployedAt": "2026-10-13T19:46:32.464Z"
+    },
     {
       "chain": "Arc Testnet",
       "address": "0xafb4829b79f6538456ccb40553cb04cae8b9b896",
@@ -482,6 +489,19 @@
     },
     {
       "type": "function",
+      "name": "pipelineHook",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract IERC8183Hook"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "registry",
       "inputs": [],
       "outputs": [
@@ -505,6 +525,19 @@
         }
       ],
       "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "setPipelineHook",
+      "inputs": [
+        {
+          "name": "hook",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
     },
     {
       "type": "function",
@@ -696,6 +729,44 @@
       "type": "event",
       "name": "EIP712DomainChanged",
       "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PipelineHookCalled",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "before",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        },
+        {
+          "name": "success",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PipelineHookSet",
+      "inputs": [
+        {
+          "name": "hook",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
       "anonymous": false
     },
     {

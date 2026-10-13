@@ -4,7 +4,7 @@
 | Contract | Address | Explorer |
 |---|---|---|
 | `ServiceRegistry` (v7) | `0x9ca97010464e8e6de6e27cf25eae9b939fbd7333` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x9ca97010464e8e6de6e27cf25eae9b939fbd7333) |
-| `PayPerCall` (v7) | `0xafb4829b79f6538456ccb40553cb04cae8b9b896` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xafb4829b79f6538456ccb40553cb04cae8b9b896) |
+| `PayPerCall` (v7.1 — ERC-8183 hook) | `0x5fb41dd22c44e1de08f37d98c2995a62d6220540` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x5fb41dd22c44e1de08f37d98c2995a62d6220540) |
 | `ReputationLoan` (v3) | `0x9e0622828a03a578050e45ba2fde6b9140e676aa` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x9e0622828a03a578050e45ba2fde6b9140e676aa) |
 | `SLAFutures` (v3) | `0xcd57a9b924a565b12889277173b9ec06d4e10435` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xcd57a9b924a565b12889277173b9ec06d4e10435) |
 | `Subscription` (v2) | `0xc090ff2b856a5cc1bfe1137cf75ca566339f01db` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xc090ff2b856a5cc1bfe1137cf75ca566339f01db) |

@@ -24,8 +24,8 @@ export const CONFIG = {
   // Core contracts (v7 — admin=0xfbac99...06Da owner wallet, 13 Oct 2026)
   registry: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333",
   registryAddress: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333" as `0x${string}`,
-  payPerCall: "0xafb4829b79f6538456ccb40553cb04cae8b9b896",
-  ppcAddress: "0xafb4829b79f6538456ccb40553cb04cae8b9b896" as `0x${string}`,
+  payPerCall: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540",
+  ppcAddress: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540" as `0x${string}`,
   disputeQuality: "0x7e2771df71c30307a95f038c93077d5350e7789d",
   disputeQualityAddress: "0x7e2771df71c30307a95f038c93077d5350e7789d" as `0x${string}`,
   slaFutures: "0xcd57a9b924a565b12889277173b9ec06d4e10435",

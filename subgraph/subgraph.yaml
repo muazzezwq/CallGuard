@@ -45,7 +45,7 @@ dataSources:
     name: PayPerCall
     network: arc-testnet
     source:
-      address: "0xafb4829b79f6538456ccb40553cb04cae8b9b896"
+      address: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540"
       abi: PayPerCall
       startBlock: 19100000
     mapping:
