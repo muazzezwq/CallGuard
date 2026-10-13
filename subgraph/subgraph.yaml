@@ -6,9 +6,9 @@ dataSources:
     name: ServiceRegistry
     network: arc-testnet
     source:
-      address: "0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4"
+      address: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333"
       abi: ServiceRegistry
-      startBlock: 55000000
+      startBlock: 19100000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -45,9 +45,9 @@ dataSources:
     name: PayPerCall
     network: arc-testnet
     source:
-      address: "0x389b44b7ad68c9e661a9ef2625f958840c31b601"
+      address: "0xafb4829b79f6538456ccb40553cb04cae8b9b896"
       abi: PayPerCall
-      startBlock: 55000000
+      startBlock: 19100000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -161,9 +161,9 @@ dataSources:
     name: Subscription
     network: arc-testnet
     source:
-      address: "0xef7d56390f86a5cecc05f75e265859a1c79cefe6"
+      address: "0xc090ff2b856a5cc1bfe1137cf75ca566339f01db"
       abi: Subscription
-      startBlock: 50334164
+      startBlock: 19100000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
