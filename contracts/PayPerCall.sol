@@ -496,10 +496,12 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------------
 
     /// @notice Set (or clear) the EIP-5564 announcer contract address.
-    ///         Only the protocol admin (provider id 0 owner) can call this.
+    ///         Only the first registered provider's owner (protocol admin) can call.
+    ///         Provider id 1 is always the first registration.
     function setStealthAnnouncer(address announcer) external {
-        IServiceRegistry.ProviderView memory admin = registry.getProvider(0);
-        require(msg.sender == admin.owner, "PayPerCall: not admin");
+        IServiceRegistry.ProviderView memory adminProv = registry.getProvider(1);
+        require(adminProv.owner != address(0), "PayPerCall: no provider registered");
+        require(msg.sender == adminProv.owner, "PayPerCall: not admin");
         stealthAnnouncer = announcer;
         emit StealthAnnouncerSet(announcer);
     }

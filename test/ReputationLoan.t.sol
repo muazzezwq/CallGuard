@@ -751,6 +751,121 @@ contract ReputationLoanTest is Test {
 }
 
 // ---------------------------------------------------------------------------
+// ERC-4626 Vault Tests
+// ---------------------------------------------------------------------------
+
+// Minimal mock ERC-4626 vault for testing yield integration
+contract MockVault {
+    IERC20 public immutable asset;
+    mapping(address => uint256) public balanceOf;
+    uint256 public totalShares;
+    uint256 public totalAssets;
+
+    constructor(address asset_) { asset = IERC20(asset_); }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        shares = totalShares == 0 ? assets : (assets * totalShares) / totalAssets;
+        asset.transferFrom(msg.sender, address(this), assets);
+        balanceOf[receiver] += shares;
+        totalShares += shares;
+        totalAssets += assets;
+    }
+
+    function redeem(uint256 shares, address receiver, address /*owner*/) external returns (uint256 assets) {
+        assets = totalShares == 0 ? shares : (shares * totalAssets) / totalShares;
+        balanceOf[msg.sender] -= shares;
+        totalShares -= shares;
+        totalAssets -= assets;
+        asset.transfer(receiver, assets);
+    }
+
+    function previewRedeem(uint256 shares) external view returns (uint256) {
+        return totalShares == 0 ? shares : (shares * totalAssets) / totalShares;
+    }
+}
+
+contract ReputationLoanVaultTest is Test {
+    ReputationLoan internal pool;
+    MockRegistry   internal reg;
+    MockUSDC       internal usdc;
+    MockVault      internal vault;
+
+    address internal owner   = address(0xAB);
+    address internal lp      = address(0xCD);
+    address internal borrower = address(0xEF);
+    uint256 internal pid     = 1;
+
+    function setUp() public {
+        usdc  = new MockUSDC();
+        reg   = new MockRegistry();
+        vault = new MockVault(address(usdc));
+        pool  = new ReputationLoan(address(usdc), address(reg), owner, 0, 0, 0, 0, 0);
+
+        reg.setProvider(pid, borrower, 500e6, true);
+        reg.setCompletedCalls(pid, 20);
+        reg.setSlashedCalls(pid, 0);
+
+        usdc.mint(lp, 1_000e6);
+        vm.prank(lp);
+        usdc.approve(address(pool), type(uint256).max);
+
+        // vault needs pool approval to pull USDC
+        usdc.mint(address(pool), 0); // ensure pool has USDC slot
+    }
+
+    function test_vault_depositRoutesToVault() public {
+        vm.prank(owner);
+        pool.setYieldVault(address(vault));
+
+        vm.prank(lp);
+        pool.deposit(100e6);
+
+        // vault should hold the USDC
+        assertGt(vault.balanceOf(address(pool)), 0, "vault shares > 0");
+        assertEq(pool.vaultShares(), vault.balanceOf(address(pool)), "vaultShares tracked");
+    }
+
+    function test_vault_setVaultEmitsEvent() public {
+        vm.prank(owner);
+        vm.expectEmit(true, false, false, false);
+        emit ReputationLoan.YieldVaultSet(address(vault));
+        pool.setYieldVault(address(vault));
+    }
+
+    function test_vault_onlyOwnerCanSet() public {
+        vm.prank(lp);
+        vm.expectRevert();
+        pool.setYieldVault(address(vault));
+    }
+
+    function test_vault_disabledByDefault() public {
+        vm.prank(lp);
+        pool.deposit(100e6);
+        // no vault configured — USDC stays in pool directly
+        assertEq(pool.vaultShares(), 0, "no vault shares without vault");
+        assertEq(usdc.balanceOf(address(pool)), 100e6, "USDC stays in pool");
+    }
+
+    function test_vault_withdrawRedeemFromVault() public {
+        vm.prank(owner);
+        pool.setYieldVault(address(vault));
+
+        vm.prank(lp);
+        pool.deposit(100e6);
+
+        // LP should be able to withdraw even though funds are in vault
+        (uint256 sharesLP,) = _getLpShares();
+        vm.prank(lp);
+        pool.withdraw(sharesLP);
+        assertEq(usdc.balanceOf(lp), 1_000e6, "LP gets full balance back");
+    }
+
+    function _getLpShares() internal view returns (uint256 shares, uint256 depositTime) {
+        (shares, depositTime) = pool.lpPositions(lp);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // MockRegistryNoReputation — registry that does NOT expose completedCalls /
 // slashedCalls, so ReputationLoan's staticcall returns empty data and triggers
 // the ReputationUnavailable error path.

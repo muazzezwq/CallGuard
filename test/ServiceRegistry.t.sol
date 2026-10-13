@@ -582,4 +582,138 @@ contract ServiceRegistryTest is Test {
         vm.prank(provider1);
         id = registry.register(provider1Signer, STAKE, PRICE, MAX_RESP, SLASH_BPS, 0, "https://api");
     }
+
+    // ------------------------------------------------------------------
+    // zkML Tier System
+    // ------------------------------------------------------------------
+
+    function test_zkTier_defaultIsZero() public {
+        uint256 id = _registerDefault();
+        IServiceRegistry.ProviderView memory p = registry.getProvider(id);
+        assertEq(p.zkTier, 0, "default zkTier should be 0");
+    }
+
+    function test_zkTier_adminCanSetTier1() public {
+        uint256 id = _registerDefault();
+        vm.prank(admin);
+        registry.setZkTier(id, 1);
+        IServiceRegistry.ProviderView memory p = registry.getProvider(id);
+        assertEq(p.zkTier, 1, "zkTier should be 1 after admin set");
+    }
+
+    function test_zkTier_adminCanSetTier2() public {
+        uint256 id = _registerDefault();
+        vm.prank(admin);
+        registry.setZkTier(id, 2);
+        IServiceRegistry.ProviderView memory p = registry.getProvider(id);
+        assertEq(p.zkTier, 2, "zkTier should be 2 after admin set");
+    }
+
+    function test_zkTier_nonAdminReverts() public {
+        uint256 id = _registerDefault();
+        vm.prank(provider1);
+        vm.expectRevert();
+        registry.setZkTier(id, 1);
+    }
+
+    function test_zkTier_emitsEvent() public {
+        uint256 id = _registerDefault();
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit ServiceRegistry.ZkTierSet(id, 2);
+        registry.setZkTier(id, 2);
+    }
+
+    function test_zkTier_canResetToZero() public {
+        uint256 id = _registerDefault();
+        vm.startPrank(admin);
+        registry.setZkTier(id, 2);
+        registry.setZkTier(id, 0);
+        vm.stopPrank();
+        IServiceRegistry.ProviderView memory p = registry.getProvider(id);
+        assertEq(p.zkTier, 0, "zkTier should reset to 0");
+    }
+
+    // ------------------------------------------------------------------
+    // DePIN Oracle — recordUptime
+    // ------------------------------------------------------------------
+
+    function test_depin_setUptimeOracle() public {
+        address oracle = address(0xDE01);
+        vm.prank(admin);
+        registry.setUptimeOracle(oracle);
+        assertEq(registry.uptimeOracle(), oracle);
+    }
+
+    function test_depin_uptimeScore_defaultZero() public {
+        uint256 id = _registerDefault();
+        assertEq(registry.uptimeScore(id), 0);
+    }
+
+    function test_depin_recordUptime_validSig() public {
+        uint256 id = _registerDefault();
+        // Generate oracle keypair
+        (address oracle, uint256 oracleKey) = makeAddrAndKey("oracle");
+        vm.prank(admin);
+        registry.setUptimeOracle(oracle);
+
+        uint16 score = 9500; // 95%
+        uint64 timestamp = uint64(block.timestamp);
+
+        // Build message hash matching ServiceRegistry.recordUptime
+        bytes32 msgHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(id, score, timestamp, block.chainid))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(oracleKey, msgHash);
+
+        registry.recordUptime(id, score, timestamp, v, r, s);
+
+        assertEq(registry.uptimeScore(id), score);
+        assertEq(registry.lastUptimePing(id), uint64(block.timestamp));
+    }
+
+    function test_depin_recordUptime_wrongSig_reverts() public {
+        uint256 id = _registerDefault();
+        (address oracle,) = makeAddrAndKey("oracle");
+        vm.prank(admin);
+        registry.setUptimeOracle(oracle);
+
+        (, uint256 wrongKey) = makeAddrAndKey("attacker");
+        uint16 score = 9500;
+        uint64 timestamp = uint64(block.timestamp);
+        bytes32 msgHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(id, score, timestamp, block.chainid))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wrongKey, msgHash);
+
+        vm.expectRevert("bad oracle sig");
+        registry.recordUptime(id, score, timestamp, v, r, s);
+    }
+
+    function test_depin_recordUptime_stale_reverts() public {
+        uint256 id = _registerDefault();
+        (address oracle, uint256 oracleKey) = makeAddrAndKey("oracle2");
+        vm.prank(admin);
+        registry.setUptimeOracle(oracle);
+
+        // Warp forward so we can safely use a past timestamp
+        vm.warp(block.timestamp + 1 hours);
+
+        uint16 score = 8000;
+        uint64 timestamp = uint64(block.timestamp - 10 minutes); // stale (> 5 min ago)
+
+        bytes32 msgHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(id, score, timestamp, block.chainid))
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(oracleKey, msgHash);
+
+        vm.expectRevert("stale ping");
+        registry.recordUptime(id, score, timestamp, v, r, s);
+    }
 }  

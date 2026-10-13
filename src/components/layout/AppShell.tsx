@@ -44,6 +44,8 @@ const panels = {
   nano:          lazy(() => import("../panels/Nano")),
   privacy:       lazy(() => import("../panels/Privacy")),
   bridge:        lazy(() => import("../panels/Bridge")),
+  passkey:       lazy(() => import("../PasskeyWallet")),
+  balance:       lazy(() => import("../UnifiedBalance")),
 } as const;
 
 function PanelLoader() {
@@ -72,6 +74,7 @@ const PANEL_LABELS: Record<string, string> = {
   analytics:"Analytics", notifications:"Notifications", settings:"Settings",
   jobs:"Claims", bulkcall:"Bulk Call", register:"Register", nano:"Receipts",
   privacy:"Privacy", bridge:"Bridge",
+  passkey:"Passkey Wallet", balance:"Unified Balance",
 };
 
 export default function AppShell() {

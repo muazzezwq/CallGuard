@@ -7,7 +7,8 @@ export type PanelId =
   | "lending" | "futures" | "attestation" | "subscriptions" | "jobs"
   | "mcp" | "webhooks" | "leaderboard" | "history" | "apidocs"
   | "verify" | "provprofile" | "analytics" | "notifications" | "settings"
-  | "nano" | "privacy" | "register" | "bulkcall" | "bridge" | "admin";
+  | "nano" | "privacy" | "register" | "bulkcall" | "bridge" | "admin"
+  | "passkey" | "balance";
 
 /** HTML'de x402 = Call Builder, calls = Requests — her iki ID'yi normalize et */
 export function normalizePanel(p: PanelId): PanelId {

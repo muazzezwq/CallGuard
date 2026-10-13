@@ -117,6 +117,14 @@ const DEVELOPER: NavItem[] = [
     id: "bridge", simple: "Bridge", pro: "Bridge",
     icon: "refresh",
   },
+  {
+    id: "passkey", simple: "Passkey", pro: "Passkey Wallet",
+    icon: "key",
+  },
+  {
+    id: "balance", simple: "Balance", pro: "Unified Balance",
+    icon: "wallet",
+  },
 ];
 
 const SYSTEM: NavItem[] = [

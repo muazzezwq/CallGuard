@@ -781,4 +781,50 @@ contract SLAFuturesTest is Test {
 
         assertEq(sla.uri(batchId), custom);
     }
+
+    // ---------------------------------------------------------------------------
+    // Chainlink Price Feed (inside SLAFuturesTest)
+    // ---------------------------------------------------------------------------
+
+    function test_chainlink_setPriceFeed() public {
+        address feed = address(0xFE10);
+        vm.prank(admin);
+        sla.setPriceFeed(feed);
+        assertEq(address(sla.priceFeed()), feed);
+    }
+
+    function test_chainlink_setPriceFeed_onlyOwner_reverts() public {
+        vm.prank(provider);
+        vm.expectRevert();
+        sla.setPriceFeed(address(0xFE10));
+    }
+
+    function test_chainlink_emitsEvent() public {
+        address feed = address(0xFE20);
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit SLAFutures.PriceFeedSet(feed);
+        sla.setPriceFeed(feed);
+    }
+
+    function test_chainlink_mintCapacity_noFeed_succeeds() public {
+        // No feed set — USD cap check skipped, normal mintCapacity works
+        vm.prank(provider);
+        uint256 batchId = sla.mintCapacity(providerId, PRICE, SLOTS, uint64(block.timestamp + 1 days));
+        assertGt(batchId, 0);
+    }
+
+    function test_chainlink_clearFeed() public {
+        vm.startPrank(admin);
+        sla.setPriceFeed(address(0xFE10));
+        sla.setPriceFeed(address(0)); // clear
+        vm.stopPrank();
+        assertEq(address(sla.priceFeed()), address(0));
+    }
+
+    function test_chainlink_staleness_setter() public {
+        vm.prank(admin);
+        sla.setPriceFeedStaleness(7200);
+        assertEq(sla.priceFeedStaleness(), 7200);
+    }
 }

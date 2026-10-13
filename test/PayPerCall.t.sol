@@ -727,4 +727,107 @@ contract PayPerCallTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
     }
+
+    // ------------------------------------------------------------------
+    // zkML Tier 2 — cap x2
+    // ------------------------------------------------------------------
+
+    function test_zkml_tier2_doublesCap() public {
+        // Set zkTier=2 for the provider
+        vm.prank(admin);
+        registry.setZkTier(providerId, 2);
+
+        // With default cap=10 and tier2, effective cap = 20.
+        // Fill 11 slots (would fail without tier2).
+        for (uint256 i = 0; i < 11; i++) {
+            usdc.mint(caller, PRICE);
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encodePacked("zkml", i)));
+        }
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 11);
+    }
+
+    function test_zkml_tier2_cap20_reverts_at_21() public {
+        vm.prank(admin);
+        registry.setZkTier(providerId, 2);
+
+        for (uint256 i = 0; i < 20; i++) {
+            usdc.mint(caller, PRICE);
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encodePacked("zkml20", i)));
+        }
+
+        usdc.mint(caller, PRICE);
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.TooManyConcurrentCalls.selector);
+        payPerCall.callService(providerId, keccak256("zkml-overflow"));
+    }
+
+    function test_zkml_tier0_normalCap() public {
+        // tier=0 → normal default cap of 10
+        vm.prank(admin);
+        registry.setZkTier(providerId, 0);
+
+        for (uint256 i = 0; i < 10; i++) {
+            usdc.mint(caller, PRICE);
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encodePacked("tier0", i)));
+        }
+
+        usdc.mint(caller, PRICE);
+        vm.prank(caller);
+        vm.expectRevert(PayPerCall.TooManyConcurrentCalls.selector);
+        payPerCall.callService(providerId, keccak256("tier0-overflow"));
+    }
+
+    // ------------------------------------------------------------------
+    // EIP-5564 Stealth Address
+    // ------------------------------------------------------------------
+
+    function test_stealth_setAnnouncer() public {
+        // setStealthAnnouncer requires caller == getProvider(1).owner.
+        // provider1 registered providerId=1 in setUp, so they are the admin.
+        address ann = address(0x5564);
+        vm.prank(provider1);
+        payPerCall.setStealthAnnouncer(ann);
+        assertEq(payPerCall.stealthAnnouncer(), ann);
+    }
+
+    function test_stealth_callServiceStealth_noAnnouncer() public {
+        // Works even without announcer (best-effort).
+        address stealthAddr = address(0x5EEE);
+        bytes32 reqHash = keccak256("stealth-req");
+
+        usdc.mint(stealthAddr, PRICE);
+        vm.prank(stealthAddr);
+        usdc.approve(address(payPerCall), type(uint256).max);
+
+        vm.prank(stealthAddr);
+        bytes32 callId = payPerCall.callServiceStealth(
+            providerId,
+            reqHash,
+            stealthAddr,
+            hex"deadbeef",
+            hex"cafebabe"
+        );
+        assertTrue(callId != bytes32(0), "callId non-zero");
+    }
+
+    function test_stealth_callServiceStealth_emitsEvent() public {
+        address stealthAddr = address(0x5EE2);
+        usdc.mint(stealthAddr, PRICE);
+        vm.prank(stealthAddr);
+        usdc.approve(address(payPerCall), type(uint256).max);
+
+        vm.prank(stealthAddr);
+        vm.expectEmit(false, true, false, false);
+        emit PayPerCall.StealthCallStarted(bytes32(0), stealthAddr);
+        payPerCall.callServiceStealth(
+            providerId,
+            keccak256("stealth-req2"),
+            stealthAddr,
+            hex"aabb",
+            hex"ccdd"
+        );
+    }
 }

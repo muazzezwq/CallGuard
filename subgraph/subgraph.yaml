@@ -35,6 +35,10 @@ dataSources:
           handler: handleReputationUpdated
         - event: NFTBound(indexed uint256,indexed uint256)
           handler: handleNFTBound
+        - event: ZkTierSet(indexed uint256,uint8)
+          handler: handleZkTierSet
+        - event: UptimeRecorded(indexed uint256,uint16)
+          handler: handleUptimeRecorded
       file: ./src/mapping.ts
 
   - kind: ethereum
@@ -61,6 +65,8 @@ dataSources:
           handler: handleReceiptSubmitted
         - event: CallSlashed(indexed bytes32,uint256,uint256)
           handler: handleCallSlashed
+        - event: StealthCallStarted(indexed bytes32,indexed address)
+          handler: handleStealthCallStarted
       file: ./src/mapping.ts
 
   - kind: ethereum
@@ -176,4 +182,8 @@ dataSources:
           handler: handleCancelled
         - event: ExpiredReleased(indexed uint256,uint256)
           handler: handleExpiredReleased
+        - event: StreamSubscribed(indexed uint256,indexed address,indexed uint256,uint256,uint64)
+          handler: handleStreamSubscribed
+        - event: StreamClaimed(indexed uint256,indexed address,uint256)
+          handler: handleStreamClaimed
       file: ./src/subscription.ts
