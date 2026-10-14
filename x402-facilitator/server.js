@@ -147,7 +147,7 @@ function buildNanoRequirements(priceUsdc = "0.001") {
     network: ARC_TESTNET_NETWORK,
     asset: ARC_TESTNET_USDC,
     amount,
-    payTo: payTo,
+    payTo: PAY_TO,
     maxTimeoutSeconds: 604800,
     extra: {
       name: "GatewayWalletBatched",
@@ -271,7 +271,7 @@ app.post("/nano/call", async (req, res) => {
       network: "eip155:5042002",
       asset: "0x3600000000000000000000000000000000000000",
       amount: "1000",
-      payTo: payTo,
+      payTo: providerOwner,
       maxTimeoutSeconds: 604800,
       extra: {
         name: "GatewayWalletBatched",
@@ -291,7 +291,7 @@ app.post("/nano/call", async (req, res) => {
         network: "eip155:5042002",
         asset: "0x3600000000000000000000000000000000000000",
         amount: "1000",
-        payTo: payTo,
+        payTo: providerOwner,
         maxTimeoutSeconds: 604800,
         extra: {
           name: "GatewayWalletBatched",

@@ -158,12 +158,14 @@ export default function Verify() {
             args: [val as `0x${string}`],
           }) as unknown as any[];
 
-          if (data && data[0]) {
-            const status = ["NONE","OPEN","COMPLETED","REFUNDED","CANCELLED"][Number(data[3])] || "UNKNOWN";
+          if (data && data[0] !== undefined) {
+            // calls() returns [providerId, caller, amount, startedAt, deadline, requestHash, responseHash, status]
+            // CallStatus: 0=None, 1=Pending, 2=Completed, 3=Slashed (see PayPerCall.sol)
+            const status = ["NONE","PENDING","COMPLETED","SLASHED"][Number(data[7])] || "UNKNOWN";
             setResult({
               ok: status === "COMPLETED",
               status,
-              providerId: Number(data[1]),
+              providerId: Number(data[0]),
               callId: val,
               amount: (Number(data[2]) / 1e6).toFixed(4),
             });
@@ -194,7 +196,7 @@ export default function Verify() {
   }
 
   function copyShareLink() {
-    if (shareLink) navigator.clipboard.writeText(shareLink);
+    if (shareLink) navigator.clipboard?.writeText(shareLink).catch(() => {});
   }
 
   return (

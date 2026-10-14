@@ -10,8 +10,9 @@
 
 import { useState } from "react";
 import { usePasskeyWallet } from "../hooks/usePasskeyWallet";
+import { CONFIG } from "../lib/config";
 
-const PAY_PER_CALL_ADDR = (import.meta.env.VITE_PAY_PER_CALL_ADDRESS ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
+const PAY_PER_CALL_ADDR = ((import.meta.env.VITE_PAY_PER_CALL as string | undefined) ?? CONFIG.payPerCall) as `0x${string}`;
 
 const PAY_PER_CALL_ABI: unknown[] = [
   {

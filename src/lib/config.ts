@@ -55,7 +55,7 @@ export const CONFIG = {
   explorerBase: "https://explorer.testnet.arc.io",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
-  rpcUrl: "https://rpc.testnet.arc.network",
+  rpcUrl: "https://rpc.testnet.arc.io",
   chainId: 5042002,
   chainName: "Arc Testnet",
   usdcDecimals: 6,
@@ -222,7 +222,7 @@ export const REPUTATION_LOAN_ABI = [
     outputs: [{name:"shares",type:"uint256"},{name:"depositTime",type:"uint256"}] },
 ] as const;
 
-// HIGH-11 fix: synced with AgentWallet.sol — agentCall() not execute()
+// Synced with AgentWallet.sol — setDailyLimit / setMaxPerCall / getStats (no setLimits on-chain)
 export const AGENT_WALLET_ABI = [
   { name: "deposit",   type: "function", stateMutability: "nonpayable",
     inputs: [{name:"amount",type:"uint256"}], outputs: [] },
@@ -238,9 +238,13 @@ export const AGENT_WALLET_ABI = [
     inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
   { name: "removeFromWhitelist", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
-  { name: "setLimits", type: "function", stateMutability: "nonpayable",
-    inputs: [{name:"dailyLimit",type:"uint256"},{name:"maxPerCall",type:"uint256"}], outputs: [] },
+  { name: "setDailyLimit", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"limit",type:"uint256"}], outputs: [] },
+  { name: "setMaxPerCall", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"max",type:"uint256"}], outputs: [] },
   // Views
+  { name: "getStats", type: "function", stateMutability: "view", inputs: [],
+    outputs: [{name:"balance",type:"uint256"},{name:"spentToday",type:"uint256"},{name:"remainingToday",type:"uint256"},{name:"totalSpent",type:"uint256"},{name:"totalCalls",type:"uint256"}] },
   { name: "spentToday",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
   { name: "dailyLimit",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
   { name: "maxPerCall",  type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
@@ -260,7 +264,7 @@ export const REGISTRY_ABI = [
              {name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},
              {name:"slashBps",type:"uint32"},{name:"endpoint",type:"string"}],
     outputs: [{type:"uint256"}] },
-  // getProvider returns a ProviderView tuple — 7 fields (owner,signer,stake,pricePerCall,maxResponseTime,slashBps,active)
+  // getProvider returns a ProviderView tuple — 9 fields matching ServiceRegistry.sol
   { name: "getProvider", type: "function", stateMutability: "view",
     inputs: [{name:"id",type:"uint256"}],
     outputs: [{name:"", type:"tuple", components: [
@@ -268,6 +272,8 @@ export const REGISTRY_ABI = [
       {name:"stake",type:"uint256"}, {name:"pricePerCall",type:"uint256"},
       {name:"maxResponseTime",type:"uint32"}, {name:"slashBps",type:"uint32"},
       {name:"active",type:"bool"},
+      {name:"maxConcurrentCalls",type:"uint32"},
+      {name:"zkTier",type:"uint8"},
     ]}] },
   { name: "getReputationScore", type: "function", stateMutability: "view",
     inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint256"}] },
@@ -295,7 +301,7 @@ export const wagmiConfig = createConfig(
   getDefaultConfig({
     chains: [arcTestnet],
     transports: {
-      [arcTestnet.id]: http("https://rpc.testnet.arc.network", {
+      [arcTestnet.id]: http("https://rpc.testnet.arc.io", {
         timeout: 10_000,
         retryCount: 2,
         retryDelay: 1_000,

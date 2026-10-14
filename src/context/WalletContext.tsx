@@ -17,7 +17,7 @@ interface WalletContextValue extends WalletState {
 }
 
 const ARC_TESTNET = {
-  chainId: "0x4CE512", // 5042002
+  chainId: "0x4CEF52", // 5042002
   chainName: "Arc Testnet",
   rpcUrls: ["https://rpc.testnet.arc.io"],
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },

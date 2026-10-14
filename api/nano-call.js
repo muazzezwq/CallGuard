@@ -134,7 +134,7 @@ export default async function handler(req, res) {
 
   // Rate limit by IP
   const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
-  if (!checkRateLimit(ip)) {
+  if (!(await checkRateLimit(ip))) {
     return res.status(429).json({ ok: false, error: "Rate limit exceeded — max 5 calls per minute" });
   }
 
@@ -149,10 +149,10 @@ export default async function handler(req, res) {
   const rpcUrl = getRpcUrl();
   if (!rpcUrl) return res.status(503).json({ ok: false, error: "No RPC URL configured" });
 
-  // Amount validation — only 0.001 USDC allowed
+  // Amount validation — only 0.001 USDC allowed (must be positive)
   const { amount } = req.body || {};
   const parsedAmount = parseFloat(amount);
-  if (amount !== undefined && (isNaN(parsedAmount) || parsedAmount > 0.001)) {
+  if (amount !== undefined && (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 0.001)) {
     return res.status(400).json({ ok: false, error: "Amount exceeds max 0.001 USDC" });
   }
 

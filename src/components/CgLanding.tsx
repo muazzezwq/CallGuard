@@ -818,16 +818,16 @@ export default function CgLanding() {
           <h2 className="cg-h2" style={{textAlign:"center",marginBottom:24}}>Everything on-chain.</h2>
           <div className="cg-contracts-grid">
             {[
-              ["ServiceRegistry","0xc3ff216999de24a4de8B7626DaFB0e0E4bf38CB"],
-              ["PayPerCall","0x389b44b72f502A0dF9b7a4cCAeBC79dDef97Fd4"],
-              ["USDC","0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"],
-              ["CrossChainReceiver","0x2b6e...a5c"],
-              ["RegisterWithNFT","0x8a3bC...287"],
-              ["AgenticCommerce","0x6bf7...583"],
+              ["ServiceRegistry","0x9ca97010464e8e6de6e27cf25eae9b939fbd7333"],
+              ["PayPerCall","0x5fb41dd22c44e1de08f37d98c2995a62d6220540"],
+              ["USDC","0x3600000000000000000000000000000000000000"],
+              ["CrossChainReceiver","0x760326de3cba39994dfd81d2b71b072c0265601c"],
+              ["AgentWallet","0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5"],
+              ["AgenticCommerce","0x0747EEf0706327138c69792bF28Cd525089e4583"],
             ].map(([name,addr],i)=>(
               <div key={i} className="cg-contract-row">
                 <span className="cg-contract-name">{name}</span>
-                <a className="cg-contract-addr" href={`https://testnet.arcscan.net/address/${addr}`} target="_blank" rel="noreferrer">
+                <a className="cg-contract-addr" href={`https://explorer.testnet.arc.io/address/${addr}`} target="_blank" rel="noreferrer">
                   {addr.slice(0,10)}…{addr.slice(-4)}
                 </a>
               </div>
@@ -864,8 +864,8 @@ export default function CgLanding() {
             </div>
             <div>
               <div className="cg-footer-col-title">TESTNET TOOLS</div>
-              <a href="https://faucet.circle.com" target="_blank" rel="noreferrer">Arc Testnet Faucet</a>
-              <a href="https://testnet.arcscan.net" target="_blank" rel="noreferrer">ArcScan Testnet</a>
+              <a href="https://faucet.testnet.arc.io" target="_blank" rel="noreferrer">Arc Testnet Faucet</a>
+              <a href="https://explorer.testnet.arc.io" target="_blank" rel="noreferrer">ArcScan Testnet</a>
             </div>
             <div>
               <div className="cg-footer-col-title">PROJECT</div>
@@ -878,8 +878,8 @@ export default function CgLanding() {
         <div className="cg-footer-bottom">
           <span>⚡ CallGuard · built on Arc Testnet</span>
           <div className="cg-footer-links">
-            <a href="https://testnet.arcscan.net/address/0xc3ff216999de24a4de8B7626DaFB0e0E4bf38CB" target="_blank" rel="noreferrer">Registry ↗</a>
-            <a href="https://testnet.arcscan.net/address/0x389b44b72f502A0dF9b7a4cCAeBC79dDef97Fd4" target="_blank" rel="noreferrer">PayPerCall ↗</a>
+            <a href="https://explorer.testnet.arc.io/address/0x9ca97010464e8e6de6e27cf25eae9b939fbd7333" target="_blank" rel="noreferrer">Registry ↗</a>
+            <a href="https://explorer.testnet.arc.io/address/0x5fb41dd22c44e1de08f37d98c2995a62d6220540" target="_blank" rel="noreferrer">PayPerCall ↗</a>
             <a href="https://github.com/muazzezwq/CallGuard/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a>
           </div>
         </div>

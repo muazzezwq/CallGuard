@@ -45,13 +45,15 @@ export default function ProviderProfile() {
     address: REGISTRY,
     abi: REGISTRY_ABI,
     functionName: 'getProvider',
-    args: [BigInt(queried)],
+    args: [/^\d+$/.test(queried) && queried !== '' ? BigInt(queried) : BigInt(0)],
+    query: { enabled: /^\d+$/.test(queried) && queried !== '' },
   })
 
   const p = provider as any
-  const stake = p?.stake ? formatUnits(p.stake, 6) : '0'
-  const price = p?.pricePerCall ? formatUnits(p.pricePerCall, 6) : '0'
-  const slaWindow = p?.maxResponseTime ? Number(p.maxResponseTime) : 0
+  // viem decodes tuples as array + named object; support both shapes
+  const stake = p?.stake ?? p?.[2] ? formatUnits((p?.stake ?? p[2]) as bigint, 6) : '0'
+  const price = p?.pricePerCall ?? p?.[3] ? formatUnits((p?.pricePerCall ?? p[3]) as bigint, 6) : '0'
+  const slaWindow = Number(p?.maxResponseTime ?? p?.[4] ?? 0)
   const completed = p?.completedCalls ? Number(p.completedCalls) : 0
   const slashed = p?.slashedCalls ? Number(p.slashedCalls) : 0
   const total = completed + slashed
@@ -60,7 +62,7 @@ export default function ProviderProfile() {
 
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/?provider=${queried}` : ''
   const handleCopy = () => {
-    navigator.clipboard?.writeText(shareUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    navigator.clipboard?.writeText(shareUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {});
   }
 
   return (

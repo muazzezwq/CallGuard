@@ -23,7 +23,7 @@
   "rewrites": [
     { "source": "/callService",       "destination": "/api/call-service" },
     { "source": "/nano/call",         "destination": "/api/nano-call" },
-    { "source": "/nano/balance",      "destination": "/api/nano-balance" },
+    { "source": "/nano/balance",      "destination": "/api/nano-call?balance=1" },
     { "source": "/sitemap.xml",       "destination": "/api/provider-page?sitemap=1" },
     { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
     { "source": "/(.*)",              "destination": "/index.html" }
