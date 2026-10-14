@@ -1,10 +1,10 @@
-Frontend'i kontrol ediyorum. Durumu net gördüm. Şimdi 14 entegrasyonu sidebar'daki panellerle eşleştiriyorum:
+Frontend'i kontrol ediyorum. Durumu net gordum. Simdi 14 entegrasyonu sidebar'daki panellerle eslestiriyorum:
 
-**Sidebar'da gözükenler (✅) vs gözükmeyenler (❌):**
+**Sidebar'da gozukenler (✅) vs gozukmeyenler (❌):**
 
 | # | Entegrasyon | Panel | Sidebar'da |
 |---|---|---|---|
-| 1 | Per-provider rate limiting | → Call Builder içinde | ✅ (calls) |
+| 1 | Per-provider rate limiting | → Call Builder icinde | ✅ (calls) |
 | 2 | Circle Agent Marketplace x402 | Services / marketplace | ✅ (marketplace) |
 | 3 | Gateway Nanopayments | Payments | ✅ (payments) |
 | 4 | Circle Refund Protocol | Disputes/Receipts | ✅ (disputes, receipts) |
@@ -17,6 +17,6 @@ Frontend'i kontrol ediyorum. Durumu net gördüm. Şimdi 14 entegrasyonu sidebar
 | 11 | Chainlink Data Feeds | SLA Futures | ✅ (futures) |
 | 12 | zkML Tier System | Register / Providers | ✅ (register) |
 | 13 | DePIN Oracle | Providers | ✅ (providers) |
-| 14 | EIP-5564 Stealth Addresses | Call Builder içinde | ✅ (calls) |
+| 14 | EIP-5564 Stealth Addresses | Call Builder icinde | ✅ (calls) |
 
-**Tek eksik: ERC-8183 Pipeline Hook için bir panel yok.** Sidebar'a "Pipeline Hook" menü öğesi ve basit bir panel ekleyeyim mi? Kontratla bağlanacak — `setPipelineHook(address)` çağrısı + hook durumunu gösterecek.
+**Tek eksik: ERC-8183 Pipeline Hook icin bir panel yok.** Sidebar'a "Pipeline Hook" menu ogesi ve basit bir panel ekleyeyim mi? Kontratla baglanacak — `setPipelineHook(address)` cagrisi + hook durumunu gosterecek.

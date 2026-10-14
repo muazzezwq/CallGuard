@@ -70,10 +70,10 @@ contract Subscription is ReentrancyGuard {
         uint256 lockedBalance;  // USDC still locked
         bool    cancelled;
         // --- StreamEscrow fields (only used when streamMode = true) ---
-        bool    streamMode;     // true = lineer stream ödeme modu
-        uint256 streamReleased; // toplam serbest bırakılan USDC (stream mod)
-        uint64  streamStart;    // stream başlangıç zamanı
-        uint64  streamDuration; // stream toplam süresi (saniye)
+        bool    streamMode;     // true = lineer stream odeme modu
+        uint256 streamReleased; // toplam serbest birakilan USDC (stream mod)
+        uint64  streamStart;    // stream baslangic zamani
+        uint64  streamDuration; // stream toplam suresi (saniye)
     }
 
     // -----------------------------------------------------------------------

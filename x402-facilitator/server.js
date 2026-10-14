@@ -248,7 +248,7 @@ app.get("/", (_, res) => res.json({
   endpoints: ["/health", "/api/service", "/verify", "/settle", "/callService", "/nano/service"],
 }));
 
-// ---- /nano/call — facilitator GatewayClient ile odemeyı yapar ----
+// ---- /nano/call — facilitator GatewayClient ile odemeyi yapar ----
 app.post("/nano/call", async (req, res) => {
   try {
     const { providerId } = req.body;

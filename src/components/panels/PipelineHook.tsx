@@ -29,7 +29,7 @@ export default function PipelineHook() {
   if (isMining && txState !== "mining") setTxState("mining");
   if (isSuccess && txState === "mining") {
     setTxState("success");
-    toast.success("Pipeline hook güncellendi");
+    toast.success("Pipeline hook guncellendi");
     refetch();
   }
 
@@ -37,7 +37,7 @@ export default function PipelineHook() {
 
   function handleSet() {
     if (!hookInput || !/^0x[0-9a-fA-F]{40}$/.test(hookInput)) {
-      toast.error("Geçerli bir adres girin");
+      toast.error("Gecerli bir adres girin");
       return;
     }
     setTxState("pending");
@@ -78,8 +78,8 @@ export default function PipelineHook() {
         <div>
           <h2 className="panel-title">ERC-8183 Pipeline Hook</h2>
           <p className="panel-subtitle">
-            AgenticCommerce job pipeline'ına SLA lifecycle event'leri bildiren hook kontratı.
-            Her <code>callService</code> öncesinde <code>beforeCall</code>, kapanışında <code>afterCall</code> tetiklenir.
+            AgenticCommerce job pipeline'ina SLA lifecycle event'leri bildiren hook kontrati.
+            Her <code>callService</code> oncesinde <code>beforeCall</code>, kapanisinda <code>afterCall</code> tetiklenir.
           </p>
         </div>
         <span
@@ -92,7 +92,7 @@ export default function PipelineHook() {
           }}
         >
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: isZero ? "#ef4444" : "#10b981", display: "inline-block" }} />
-          {isZero ? "Devre dışı" : "Aktif"}
+          {isZero ? "Devre disi" : "Aktif"}
         </span>
       </div>
 
@@ -100,7 +100,7 @@ export default function PipelineHook() {
       <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 11, color: "#8899b4", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Mevcut Hook Adresi</div>
         <div style={{ fontFamily: "JetBrains Mono, Menlo, monospace", fontSize: 13, color: isZero ? "#8899b4" : "#e8edf5", wordBreak: "break-all" }}>
-          {isZero ? "Ayarlanmadı (0x000...000)" : currentHook}
+          {isZero ? "Ayarlanmadi (0x000...000)" : currentHook}
         </div>
         {!isZero && (
           <a
@@ -109,19 +109,19 @@ export default function PipelineHook() {
             rel="noopener noreferrer"
             style={{ fontSize: 11, color: "#3b82f6", marginTop: 6, display: "inline-block" }}
           >
-            ArcScan'da Görüntüle ↗
+            ArcScan'da Goruntule ↗
           </a>
         )}
       </div>
 
       {/* How it works */}
       <div style={{ background: "rgba(59,130,246,.08)", border: "1px solid rgba(59,130,246,.2)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 10 }}>Nasıl Çalışır</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 10 }}>Nasil Calisir</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
-            { step: "1", label: "callService() çağrılır", desc: "PayPerCall hook kontratına beforeCall(jobId, providerId, caller, amount) gönderir" },
-            { step: "2", label: "SLA süresi işler", desc: "Provider response sağlar veya deadline geçer" },
-            { step: "3", label: "Çağrı kapanır", desc: "submitReceipt veya claimTimeout → afterCall(jobId, success) tetiklenir" },
+            { step: "1", label: "callService() cagrilir", desc: "PayPerCall hook kontratina beforeCall(jobId, providerId, caller, amount) gonderir" },
+            { step: "2", label: "SLA suresi isler", desc: "Provider response saglar veya deadline gecer" },
+            { step: "3", label: "Cagri kapanir", desc: "submitReceipt veya claimTimeout → afterCall(jobId, success) tetiklenir" },
           ].map(({ step, label, desc }) => (
             <div key={step} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
               <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(59,130,246,.2)", color: "#93c5fd", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
@@ -140,14 +140,14 @@ export default function PipelineHook() {
       <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 12 }}>Hook Adresini Ayarla</div>
         {!isConnected ? (
-          <div style={{ fontSize: 13, color: "#8899b4" }}>Bu işlemi yapmak için cüzdanınızı bağlayın.</div>
+          <div style={{ fontSize: 13, color: "#8899b4" }}>Bu islemi yapmak icin cuzdaninizi baglayin.</div>
         ) : (
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <input
                 value={hookInput}
                 onChange={e => setHookInput(e.target.value)}
-                placeholder="0x... (IERC8183Hook arayüzünü implement eden kontrat)"
+                placeholder="0x... (IERC8183Hook arayuzunu implement eden kontrat)"
                 style={{
                   flex: 1, background: "rgba(255,255,255,.04)", border: "1px solid #1f2d42",
                   borderRadius: 8, padding: "9px 12px", color: "#e8edf5", fontSize: 12,
@@ -164,7 +164,7 @@ export default function PipelineHook() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {txState === "pending" ? "Bekliyor..." : txState === "mining" ? "Yazılıyor..." : "Ayarla"}
+                {txState === "pending" ? "Bekliyor..." : txState === "mining" ? "Yaziliyor..." : "Ayarla"}
               </button>
             </div>
             {!isZero && (
@@ -177,12 +177,12 @@ export default function PipelineHook() {
                   border: "1px solid rgba(239,68,68,.3)", cursor: "pointer",
                 }}
               >
-                Hook'u Devre Dışı Bırak
+                Hook'u Devre Disi Birak
               </button>
             )}
             {txState === "success" && (
               <div style={{ marginTop: 10, fontSize: 12, color: "#10b981" }}>
-                Hook başarıyla güncellendi.{" "}
+                Hook basariyla guncellendi.{" "}
                 {txHash && (
                   <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6" }}>
                     Tx ↗
@@ -191,7 +191,7 @@ export default function PipelineHook() {
               </div>
             )}
             {txState === "error" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#ef4444" }}>İşlem başarısız oldu. Lütfen tekrar deneyin.</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#ef4444" }}>Islem basarisiz oldu. Lutfen tekrar deneyin.</div>
             )}
           </>
         )}
@@ -199,7 +199,7 @@ export default function PipelineHook() {
 
       {/* Interface spec */}
       <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 10 }}>IERC8183Hook Arayüzü</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 10 }}>IERC8183Hook Arayuzu</div>
         <pre style={{ fontFamily: "JetBrains Mono, Menlo, monospace", fontSize: 11, color: "#93c5fd", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
 {`interface IERC8183Hook {
   function beforeCall(
@@ -216,7 +216,7 @@ export default function PipelineHook() {
 }`}
         </pre>
         <div style={{ marginTop: 10, fontSize: 11, color: "#8899b4" }}>
-          Her iki hook da <strong>best-effort</strong> çağrılır — hook kontratı revert etse bile PayPerCall işlemi devam eder.
+          Her iki hook da <strong>best-effort</strong> cagrilir — hook kontrati revert etse bile PayPerCall islemi devam eder.
           <br />PayPerCall v7.1: <span style={{ fontFamily: "monospace", color: "#e8edf5" }}>{CONFIG.ppcAddress}</span>
         </div>
       </div>

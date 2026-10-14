@@ -47,23 +47,23 @@ function truncateAddress(addr) {
 }
 
 function getStatusColor(status) {
-  if (status === "COMPLETED") return "#10b981"; // Yeşil
-  if (status === "SLASHED") return "#ef4444";  // Kırmızı
-  return "#f59e0b"; // Sarı (Started)
+  if (status === "COMPLETED") return "#10b981"; // Yesil
+  if (status === "SLASHED") return "#ef4444";  // Kirmizi
+  return "#f59e0b"; // Sari (Started)
 }
 
-// Bu fonksiyonu HTML içinde çağıracaksınız
+// Bu fonksiyonu HTML icinde cagiracaksiniz
 async function loadSubgraphUI() {
   try {
-    console.log("Subgraph'a bağlanılıyor...");
+    console.log("Subgraph'a baglaniliyor...");
     const data = await fetchSubgraph();
     
-    // 1. GENEL İSTATİSTİKLER
+    // 1. GENEL ISTATISTIKLER
     const totalProviders = data.providers.length;
     const totalCalls = data.calls.length;
     const totalSlashed = data.slashed.length;
     
-    // Eğer sayfada bu ID'lere sahip elementler varsa içlerini doldur
+    // Eger sayfada bu ID'lere sahip elementler varsa iclerini doldur
     const elProviders = document.getElementById("sg-providers");
     const elCalls = document.getElementById("sg-calls");
     const elSlashes = document.getElementById("sg-slashes");
@@ -72,7 +72,7 @@ async function loadSubgraphUI() {
     if(elCalls) elCalls.innerText = totalCalls;
     if(elSlashes) elSlashes.innerText = totalSlashed;
 
-    // 2. SON İŞLEMLER (AKTİVİTE AKIŞI)
+    // 2. SON ISLEMLER (AKTIVITE AKISI)
     const feedContainer = document.getElementById("sg-activity-feed");
     if (feedContainer) {
       feedContainer.innerHTML = ""; // Eski verileri temizle
@@ -90,7 +90,7 @@ async function loadSubgraphUI() {
       });
     }
 
-    // 3. LİDERLİK TABLOSU
+    // 3. LIDERLIK TABLOSU
     const leaderboardContainer = document.getElementById("sg-leaderboard");
     if (leaderboardContainer) {
       leaderboardContainer.innerHTML = ""; // Eski verileri temizle
@@ -108,15 +108,15 @@ async function loadSubgraphUI() {
       });
     }
 
-    console.log(`Subgraph güncellendi: ${totalProviders} Provider, ${totalCalls} Call`);
+    console.log(`Subgraph guncellendi: ${totalProviders} Provider, ${totalCalls} Call`);
   } catch (err) {
-    console.error("Subgraph Hatası:", err);
+    console.error("Subgraph Hatasi:", err);
   }
 }
 
-// Sayfa yüklendiğinde otomatik çalışması için
+// Sayfa yuklendiginde otomatik calismasi icin
 window.addEventListener("DOMContentLoaded", () => {
   loadSubgraphUI();
-  // Her 15 saniyede bir güncelle (Opsiyonel)
+  // Her 15 saniyede bir guncelle (Opsiyonel)
   setInterval(loadSubgraphUI, 15000);
 });

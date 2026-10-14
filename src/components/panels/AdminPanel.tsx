@@ -14,8 +14,8 @@ type TxStatus = "idle" | "pending" | "mining" | "success" | "error";
 function StatusBadge({ status, error }: { status: TxStatus; error?: string }) {
   if (status === "idle")    return null;
   if (status === "pending") return <span className="admin-badge pending">Bekliyor...</span>;
-  if (status === "mining")  return <span className="admin-badge mining">Zincire yazılıyor...</span>;
-  if (status === "success") return <span className="admin-badge success">Başarılı!</span>;
+  if (status === "mining")  return <span className="admin-badge mining">Zincire yaziliyor...</span>;
+  if (status === "success") return <span className="admin-badge success">Basarili!</span>;
   return <span className="admin-badge error">{error ?? "Hata"}</span>;
 }
 
@@ -101,7 +101,7 @@ export default function AdminPanel() {
 
   function doSetPayPerCall() {
     if (!/^0x[0-9a-fA-F]{40}$/.test(setPPCInput)) {
-      setSetPPCError("Geçersiz adres"); setSetPPCStatus("error"); return;
+      setSetPPCError("Gecersiz adres"); setSetPPCStatus("error"); return;
     }
     setSetPPCStatus("pending");
     setSetPPCError(undefined);
@@ -129,7 +129,7 @@ export default function AdminPanel() {
 
   function doPropose() {
     if (!/^0x[0-9a-fA-F]{40}$/.test(proposeInput)) {
-      setProposeError("Geçersiz adres"); setProposeStatus("error"); return;
+      setProposeError("Gecersiz adres"); setProposeStatus("error"); return;
     }
     setProposeStatus("pending"); setProposeError(undefined);
     writePropose({
@@ -182,7 +182,7 @@ export default function AdminPanel() {
   if (!isConnected) {
     return (
       <div className="admin-panel">
-        <div className="admin-empty">Lütfen cüzdanını bağla.</div>
+        <div className="admin-empty">Lutfen cuzdanini bagla.</div>
       </div>
     );
   }
@@ -191,7 +191,7 @@ export default function AdminPanel() {
     <div className="admin-panel">
       <div className="admin-header">
         <h2 className="admin-title">Admin Panel</h2>
-        <span className="admin-subtitle">ServiceRegistry v4 yönetim işlemleri</span>
+        <span className="admin-subtitle">ServiceRegistry v4 yonetim islemleri</span>
       </div>
 
       {/* Status cards */}
@@ -206,36 +206,36 @@ export default function AdminPanel() {
             {currentPPC ? (currentPPC as string).slice(0,10) + "…" : "—"}
           </span>
           {currentPPC === CONFIG.payPerCall
-            ? <span className="admin-ok">Doğru adres</span>
-            : <span className="admin-warn">v4 adresi ayarlanmadı</span>}
+            ? <span className="admin-ok">Dogru adres</span>
+            : <span className="admin-warn">v4 adresi ayarlanmadi</span>}
         </div>
         <div className="admin-status-card">
           <span className="admin-status-label">Owner</span>
           <span className={`admin-status-value mono ${isOwner ? "text-green-400" : "text-red-400"}`}>
             {registryOwner ? (registryOwner as string).slice(0,10) + "…" : "—"}
           </span>
-          {isOwner ? <span className="admin-ok">Bağlı cüzdan owner</span>
-                   : <span className="admin-warn">Owner değilsin</span>}
+          {isOwner ? <span className="admin-ok">Bagli cuzdan owner</span>
+                   : <span className="admin-warn">Owner degilsin</span>}
         </div>
       </div>
 
       {!isOwner && (
         <div className="admin-alert">
-          Bu işlemleri yapmak için ServiceRegistry owner cüzdanıyla bağlanman gerekiyor.
+          Bu islemleri yapmak icin ServiceRegistry owner cuzdaniyla baglanman gerekiyor.
           Owner: <span className="mono">{registryOwner as string}</span>
         </div>
       )}
 
       <div className="admin-section">
-        <h3 className="admin-section-title">İlk Kurulum — setPayPerCall</h3>
+        <h3 className="admin-section-title">Ilk Kurulum — setPayPerCall</h3>
         <p className="admin-section-desc">
-          Yeni deploy edilen ServiceRegistry v4'e PayPerCall v4 adresini bir kez bağlar.
-          Daha önce hiç çağrılmadıysa bu yolu kullan.
+          Yeni deploy edilen ServiceRegistry v4'e PayPerCall v4 adresini bir kez baglar.
+          Daha once hic cagrilmadiysa bu yolu kullan.
         </p>
         <AdminRow
           label="setPayPerCall"
-          description="Yalnızca payPerCall = address(0) olduğunda çalışır."
-          buttonLabel="Çağır"
+          description="Yalnizca payPerCall = address(0) oldugunda calisir."
+          buttonLabel="Cagir"
           buttonColor="green"
           onAction={doSetPayPerCall}
           status={setPPCStatus}
@@ -252,14 +252,14 @@ export default function AdminPanel() {
       </div>
 
       <div className="admin-section">
-        <h3 className="admin-section-title">Timelock ile Güncelleme (2 gün)</h3>
+        <h3 className="admin-section-title">Timelock ile Guncelleme (2 gun)</h3>
         <p className="admin-section-desc">
-          PayPerCall adresini değiştirmek için önce öner, 2 gün sonra uygula.
+          PayPerCall adresini degistirmek icin once oner, 2 gun sonra uygula.
         </p>
         <AdminRow
           label="proposePayPerCall"
-          description="Yeni adresi öner — 2 günlük timelock başlar."
-          buttonLabel="Öner"
+          description="Yeni adresi oner — 2 gunluk timelock baslar."
+          buttonLabel="Oner"
           buttonColor="orange"
           onAction={doPropose}
           status={proposeStatus}
@@ -277,12 +277,12 @@ export default function AdminPanel() {
         <div className="admin-timelock-info">
           <span>Bekleyen adres: <span className="mono">{pendingPPC ? (pendingPPC as string) : "—"}</span></span>
           <span>Uygulanabilir: <span className="mono">{timelockStr}</span></span>
-          {timelockReady && <span className="admin-ok">Timelock geçti — execute çağrılabilir.</span>}
+          {timelockReady && <span className="admin-ok">Timelock gecti — execute cagrilabilir.</span>}
         </div>
 
         <AdminRow
           label="executePayPerCall"
-          description="Timelock süresi dolduktan sonra değişikliği uygula."
+          description="Timelock suresi dolduktan sonra degisikligi uygula."
           buttonLabel="Uygula"
           buttonColor="blue"
           onAction={doExecute}
@@ -294,7 +294,7 @@ export default function AdminPanel() {
       </div>
 
       <div className="admin-section">
-        <h3 className="admin-section-title">Doğru Adresler</h3>
+        <h3 className="admin-section-title">Dogru Adresler</h3>
         <div className="admin-addr-list">
           {[
             ["ServiceRegistry v4", CONFIG.registry],

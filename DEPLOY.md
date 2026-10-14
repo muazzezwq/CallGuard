@@ -1,85 +1,86 @@
-# Deploy — Adım 4 kılavuzu
+# Deploy — Step 4 Guide
 
-Arc Testnet'e kontratları deploy ediyoruz. Hibrit yaklaşım:
+We are deploying contracts to Arc Testnet using a hybrid approach:
 
-- **Ana cüzdan** → deploy eden (kontrat sahibi), şifreli keystore'da
-- **Throwaway cüzdan** → sonraki test/dev için, `.env`'de
-
----
-
-## 1. Ana cüzdana USDC al
-
-Deploy işlemi gas için USDC tüketir (Arc'ta USDC = native gas).
-
-Ana cüzdan adresini [faucet.circle.com](https://faucet.circle.com)'a git, **Arc Testnet** seç, adresi yapıştır, 20 USDC al.
-
-Gerekli: ~1 USDC (gas). 20 USDC fazlasıyla yeter.
+- **Main wallet** → deployer (contract owner), encrypted keystore
+- **Throwaway wallet** → for subsequent test/dev, in `.env`
 
 ---
 
-## 2. Ana cüzdanı Foundry keystore'a import et (tek seferlik)
+## 1. Get USDC for Main Wallet
 
-Bu işlem ana cüzdan private key'ini **şifreli** olarak `~/.foundry/keystores/main` dosyasına kaydeder. `.env`'de plain text olarak asla bulunmaz.
+Deployment consumes gas (on Arc, USDC = native gas).
+
+Get your main wallet address, go to [faucet.circle.com](https://faucet.circle.com), select **Arc Testnet**, paste address, get 20 USDC.
+
+Required: ~1 USDC (gas). 20 USDC is plenty.
+
+---
+
+## 2. Import Main Wallet into Foundry Keystore (One-time)
+
+This operation encrypts the main wallet's private key and saves it to `~/.foundry/keystores/main`. It never appears as plain text in `.env`.
 
 ```bash
 cast wallet import main --interactive
 ```
 
-Sorduğu şeyler:
-1. **Private key** — Metamask'tan ana cüzdanın private key'ini al, yapıştır (görünmez, terminal echo etmiyor)
-2. **Password** — güçlü bir parola belirle. Her deploy'da bunu soracak. Unutma, geri alınamaz.
+It will ask:
 
-Çıktı:
+1. **Private key** — copy your main wallet's private key from Metamask, paste (no echo in terminal)
+2. **Password** — set a strong password. You'll be prompted for this on every deploy. Don't forget, cannot be recovered.
+
+Output:
 
 ```
 `main` keystore was saved successfully. Address: 0x...
 ```
 
-Görünen adres ana cüzdanının adresi olmalı. Kontrol et.
+Verify the displayed address matches your main wallet.
 
-**Şifreli key konumu:** `~/.foundry/keystores/main` (WSL'de). Bu dosyayı asla kimseyle paylaşma, ama plain key'den çok daha güvenli.
+**Encrypted key location:** `~/.foundry/keystores/main` (WSL). Never share this file — it's much more secure than plain private key.
 
-**İptal etmek istersen:** `rm ~/.foundry/keystores/main`
+**To undo:** `rm ~/.foundry/keystores/main`
 
 ---
 
-## 3. `.env`'yi deploy için güncelle
+## 3. Update `.env` for Deployment
 
-`.env` dosyasını aç, şu satırların olduğundan emin ol:
+Open `.env` file and ensure these lines exist:
 
 ```bash
-# Deploy için gerekli
+# Required for deployment
 USDC_ADDRESS=0x3600000000000000000000000000000000000000
 ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
 
-# Sonraki adımlar için throwaway key (Adım 2'de eklemiştin)
+# For subsequent steps (throwaway key added in Step 2)
 PRIVATE_KEY=0x...throwaway...
 
-# Deploy sonrası doldurulacak
+# To fill after deployment
 SERVICE_REGISTRY_ADDRESS=
 PAY_PER_CALL_ADDRESS=
 ```
 
-`USDC_ADDRESS` Arc'ın native USDC sistem kontratı. `.env.example`'da zaten default değeriyle geliyor.
+`USDC_ADDRESS` is Arc's native USDC system contract. `.env.example` already has the default value.
 
 ---
 
-## 4. Dry-run (zorunlu değil ama önerim)
+## 4. Dry-run (Optional but Recommended)
 
-Deploy'u gerçekten yapmadan önce simüle et — ne olacağını gör, gas tahminini al:
+Before actually deploying, simulate — see what will happen, get gas estimate:
 
 ```bash
 source .env
 
 forge script script/Deploy.s.sol:Deploy \
   --account main \
-  --sender <ANA_CÜZDAN_ADRESİN> \
+  --sender <MAIN_WALLET_ADDRESS> \
   --rpc-url arc_testnet
 ```
 
-`<ANA_CÜZDAN_ADRESİN>` yerine adresini yaz (`0x` ile başlayan). `cast wallet import` çıktısında göstermişti.
+Replace `<MAIN_WALLET_ADDRESS>` with your address (starting with `0x`). This is what `cast wallet import` showed.
 
-`--broadcast` bayrağı olmadığı için gerçek tx yollanmaz. Parola sorar (simülasyon için gerekli), sonra konsola şunu yazar:
+Without `--broadcast`, no real tx is sent. It will ask for password (needed for simulation), then console will show:
 
 ```
 == Logs ==
@@ -91,42 +92,42 @@ forge script script/Deploy.s.sol:Deploy \
   Wired PayPerCall -> ServiceRegistry
 ```
 
-**Yeşil ışık kriterleri:**
+**Green light criteria:**
 
-- Deployer adresi doğru mu? (ana cüzdan)
-- USDC adresi doğru mu? (`0x3600...0000`)
-- "Wired..." satırını görüyor musun?
+- Is deployer address correct? (main wallet)
+- Is USDC address correct? (`0x3600...0000`)
+- Do you see the "Wired..." line?
 
-Her şey iyiyse bir sonraki adıma geç.
+If all good, proceed to next step.
 
 ---
 
-## 5. Gerçek deploy
+## 5. Actual Deployment
 
-`--broadcast` ekleyerek gerçek tx'leri yolla:
+Add `--broadcast` to send real txs:
 
 ```bash
 forge script script/Deploy.s.sol:Deploy \
   --account main \
-  --sender <ANA_CÜZDAN_ADRESİN> \
+  --sender <MAIN_WALLET_ADDRESS> \
   --rpc-url arc_testnet \
   --broadcast
 ```
 
-Parola sorar. 3 tx yollanır:
+It will ask for password. 3 txs are sent:
 
 1. `ServiceRegistry` deploy
 2. `PayPerCall` deploy
-3. `registry.setPayPerCall(payPerCall)` çağrısı
+3. `registry.setPayPerCall(payPerCall)` call
 
-Arc'ın sub-saniye finalitesi sayesinde 3-5 saniyede biter. Çıktıdaki kontrat adreslerini **kopyala** ve `.env`'ye yaz:
+Thanks to Arc's sub-second finality, this finishes in 3-5 seconds. **Copy** the contract addresses from output and write them to `.env`:
 
 ```bash
 SERVICE_REGISTRY_ADDRESS=0x...
 PAY_PER_CALL_ADDRESS=0x...
 ```
 
-Ayrıca `broadcast/` klasörünün altında tx hash'leri otomatik kaydedilir — hepsini Arcscan'de görebilirsin:
+Also, the `broadcast/` directory will automatically save tx hashes — view them on Arcscan:
 
 ```
 https://testnet.arcscan.app/tx/<TX_HASH>
@@ -135,44 +136,43 @@ https://testnet.arcscan.app/address/<CONTRACT_ADDRESS>
 
 ---
 
-## 6. Deploy sonrası doğrulama
+## 6. Post-deployment Verification
 
-WSL'de hızlı bir `cast` komutu ile kontratın düzgün çalıştığını doğrula:
+In WSL, run a quick `cast` command to verify contract works:
 
 ```bash
 source .env
 
-# ServiceRegistry'nin admin'i ana cüzdanın mı?
+# Is ServiceRegistry's admin the main wallet?
 cast call $SERVICE_REGISTRY_ADDRESS "admin()(address)" --rpc-url arc_testnet
 
-# payPerCall doğru set edilmiş mi?
+# Is payPerCall correctly set?
 cast call $SERVICE_REGISTRY_ADDRESS "payPerCall()(address)" --rpc-url arc_testnet
 
-# PayPerCall'ın registry'si doğru mu?
+# Is PayPerCall's registry correct?
 cast call $PAY_PER_CALL_ADDRESS "registry()(address)" --rpc-url arc_testnet
 ```
 
-Beklenen sonuçlar:
-- İlk çıktı = ana cüzdan adresin
-- İkinci çıktı = `PAY_PER_CALL_ADDRESS`
-- Üçüncü çıktı = `SERVICE_REGISTRY_ADDRESS`
+Expected results:
 
-Üçü de doğruysa **deploy başarılı**.
+- First output = your main wallet address
+- Second output = `PAY_PER_CALL_ADDRESS`
+- Third output = `SERVICE_REGISTRY_ADDRESS`
 
----
-
-## Sorun giderme
-
-**`Error: signer is not authorized`** → `--sender` adresi `main` keystore'daki adresle eşleşmiyor. `cast wallet list` ile kontrol et.
-
-**`Error: insufficient funds`** → Ana cüzdanda yeterli USDC yok. Faucet'ten daha fazla al.
-
-**`Error: no such keystore`** → Adım 2'yi atladın, `cast wallet import main --interactive` ile ekle.
-
-**`EvmError: InvalidFEOpcode`** → Solidity 0.8.24 Arc tarafından desteklenmiyor olabilir. `foundry.toml`'da `solc_version = "0.8.20"` olarak değiştir, `forge clean && forge build` ile yeniden derle.
-
-**Dry-run başarılı ama `--broadcast` ile takılıyor** → RPC endpoint yavaş olabilir. 30 saniye bekle, Ctrl+C ile kapat, tekrar dene.
+If all three are correct, **deployment succeeded**.
 
 ---
 
-Deploy başarılı olduğunda bana **kontrat adreslerini** yaz, **Adım 5**'e geçeriz: demo HTML + ilk canlı test (provider register → callService → submitReceipt akışı).
+## 7. Troubleshooting
+
+- **`Error: signer is not authorized`** → `--sender` address doesn't match the address in `main` keystore. Check with `cast wallet list`.
+- **`Error: insufficient funds`** → Main wallet lacks USDC. Get more from faucet.
+- **`Error: no such keystore`** → You skipped Step 2; add with `cast wallet import main --interactive`.
+- **`EvmError: InvalidFEOpcode`** → Arc may not support Solidity 0.8.24. Change `foundry.toml` to `solc_version = "0.8.20"`, then `forge clean && forge build`.
+- **Dry-run works but hangs with `--broadcast`** → RPC endpoint may be slow. Wait 30 seconds, Ctrl+C, retry.
+
+---
+
+## 8. Once Deployment Succeeds
+
+Send me the **contract addresses**, then we proceed to **Step 5**: demo HTML + first live test (provider register → callService → submitReceipt flow).

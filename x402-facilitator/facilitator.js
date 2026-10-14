@@ -93,7 +93,7 @@ export function makeFacilitator(env) {
     return { success: true, txHash: tx.hash, blockNumber: rc.blockNumber };
   }
 
-  // ---- /callService : facilitator kendi cuzdanindan callServiceWithAuthorization cagirır ----
+  // ---- /callService : facilitator kendi cuzdanindan callServiceWithAuthorization cagirir ----
   async function callService({ providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s }) {
     const payPerCall = new ethers.Contract(env.PAY_PER_CALL, PAY_ABI, wallet);
     const tx = await payPerCall.callServiceWithAuthorization(

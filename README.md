@@ -135,35 +135,35 @@ sequenceDiagram
 ### 7. Circle Modular Wallets (ERC-4337 + Passkey)
 
 `src/components/PasskeyWallet.tsx` ve `src/hooks/usePasskeyWallet.ts` eklendi.
-Agent'lar bir kullanıcı adı ile passkey (WebAuthn) kaydedip Circle Gas Station ile gasless `callService` çağrısı yapabilir. Ön koşul: Circle Console'da Client Key + Passkey Domain ayarı.
+Agent'lar bir kullanici adi ile passkey (WebAuthn) kaydedip Circle Gas Station ile gasless `callService` cagrisi yapabilir. On kosul: Circle Console'da Client Key + Passkey Domain ayari.
 
 ```bash
-# .env dosyasına ekle
+# .env dosyasina ekle
 VITE_CLIENT_KEY=TEST_API_KEY:...
 VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```
 
 ### 8. Gateway Unified Balance
 
-`api/unified-balance.js` eklendi: `GET /api/unified-balance?address=0x...` tüm zincirlerdeki USDC'yi tek bir bakiye olarak döner (Kit Key gerektirmez).
-`src/components/UnifiedBalance.tsx` — bağlı cüzdanın cross-chain USDC dağılımını gösterir.
+`api/unified-balance.js` eklendi: `GET /api/unified-balance?address=0x...` tum zincirlerdeki USDC'yi tek bir bakiye olarak doner (Kit Key gerektirmez).
+`src/components/UnifiedBalance.tsx` — bagli cuzdanin cross-chain USDC dagilimini gosterir.
 
 ### 9. ERC-4626 Stake Vault (Aave Arc Yield)
 
-`ReputationLoan.sol`'a `IERC4626Vault` arayüzü eklendi. `setYieldVault(address)` ile aktifleştirilir; LP'lerin yatırdığı USDC atıl beklemek yerine Aave Arc vault'unda faiz kazanır. `_ensureLiquidity()` borrow/withdraw öncesinde vault'tan gerektiği kadar geri çeker.
+`ReputationLoan.sol`'a `IERC4626Vault` arayuzu eklendi. `setYieldVault(address)` ile aktiflestirilir; LP'lerin yatirdigi USDC atil beklemek yerine Aave Arc vault'unda faiz kazanir. `_ensureLiquidity()` borrow/withdraw oncesinde vault'tan gerektigi kadar geri ceker.
 
 ```solidity
-// Deploy sonrası:
+// Deploy sonrasi:
 reputationLoan.setYieldVault(AAVE_ARC_AUSDC_VAULT);
 ```
 
 ### 10. StreamEscrow (Subscription.sol)
 
-`subscribeStream(providerId, lockedAmount, duration)` — USDC'yi belirli bir süre boyunca kilitler, provider lineer olarak `claimStream(subId)` ile birikmiş tutarı çekebilir. Klasik çağrı-bazlı abonelikten farklı olarak süreye dayalı SaaS modelini destekler.
+`subscribeStream(providerId, lockedAmount, duration)` — USDC'yi belirli bir sure boyunca kilitler, provider lineer olarak `claimStream(subId)` ile birikmis tutari cekebilir. Klasik cagri-bazli abonelikten farkli olarak sureye dayali SaaS modelini destekler.
 
 ### 11. Chainlink Data Feeds (SLAFutures)
 
-`SLAFutures.sol`'a `IChainlinkAggregator` arayüzü eklendi. `setPriceFeed(address)` ile Chainlink USDC/USD feed aktifleştirilir; `mintCapacity()` toplu batch değerini $1M USD cap'e göre kontrol eder. Feed ayarlanmazsa mevcut manuel fiyat korunur.
+`SLAFutures.sol`'a `IChainlinkAggregator` arayuzu eklendi. `setPriceFeed(address)` ile Chainlink USDC/USD feed aktiflestirilir; `mintCapacity()` toplu batch degerini $1M USD cap'e gore kontrol eder. Feed ayarlanmazsa mevcut manuel fiyat korunur.
 
 ```solidity
 slaFutures.setPriceFeed(CHAINLINK_USDC_USD_FEED); // Arc Testnet
@@ -171,7 +171,7 @@ slaFutures.setPriceFeed(CHAINLINK_USDC_USD_FEED); // Arc Testnet
 
 ### 12. zkML Tier System
 
-`ServiceRegistry.sol`'a `setZkTier(providerId, tier)` eklendi (yalnızca admin). `tier=2` olan provider'lar için `PayPerCall` cap'i x2 uygular. ERC-7992 standardı taslak aşamasında olduğundan tam ZK kanıt doğrulaması gelecek versiyona bırakıldı; şimdi admin whitelist simülasyonu olarak çalışır.
+`ServiceRegistry.sol`'a `setZkTier(providerId, tier)` eklendi (yalnizca admin). `tier=2` olan provider'lar icin `PayPerCall` cap'i x2 uygular. ERC-7992 standardi taslak asamasinda oldugundan tam ZK kanit dogrulamasi gelecek versiyona birakildi; simdi admin whitelist simulasyonu olarak calisir.
 
 ```solidity
 serviceRegistry.setZkTier(providerId, 2); // tier 2 = cap x2
@@ -179,29 +179,29 @@ serviceRegistry.setZkTier(providerId, 2); // tier 2 = cap x2
 
 ### 13. DePIN Oracle (ServiceRegistry uptime feed)
 
-`ServiceRegistry.sol`'a `setUptimeOracle(address)` ve `recordUptime(providerId, score, timestamp, v, r, s)` eklendi. Oracle bot EIP-191 imzalı mesaj ile uptime skoru (0–10000 bps) yazar; `uptimeScore[providerId]` ve `lastUptimePing[providerId]` on-chain güncellenir.
+`ServiceRegistry.sol`'a `setUptimeOracle(address)` ve `recordUptime(providerId, score, timestamp, v, r, s)` eklendi. Oracle bot EIP-191 imzali mesaj ile uptime skoru (0–10000 bps) yazar; `uptimeScore[providerId]` ve `lastUptimePing[providerId]` on-chain guncellenir.
 
 ### 14. EIP-5564 Stealth Addresses
 
-`PayPerCall.sol`'a `callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` eklendi. Caller'ın kimliğini tek kullanımlık stealth adresinin arkasına saklar; opsiyonel `stealthAnnouncer` contract'ına delege ederek alıcının taramasını mümkün kılar.
+`PayPerCall.sol`'a `callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` eklendi. Caller'in kimligini tek kullanimlik stealth adresinin arkasina saklar; opsiyonel `stealthAnnouncer` contract'ina delege ederek alicinin taramasini mumkun kilar.
 
 ```solidity
 payPerCall.setStealthAnnouncer(EIP5564_ANNOUNCER_ADDR);
 ```
 
-### v4.2 sonrası deploy kurulumu
+### v4.2 sonrasi deploy kurulumu
 
 ```bash
 # zkML tier ayarla
 cast send $SERVICE_REGISTRY "setZkTier(uint256,uint8)" $PROVIDER_ID 2
 
-# Aave Arc yield aktifleştir
+# Aave Arc yield aktiflestir
 cast send $REPUTATION_LOAN "setYieldVault(address)" $AAVE_ARC_AUSDC_VAULT
 
 # DePIN oracle ayarla
 cast send $SERVICE_REGISTRY "setUptimeOracle(address)" $ORACLE_BOT_ADDRESS
 
-# Chainlink feed ayarla (Arc Testnet feed address Chainlink'ten alınmalı)
+# Chainlink feed ayarla (Arc Testnet feed address Chainlink'ten alinmali)
 cast send $SLA_FUTURES "setPriceFeed(address)" $CHAINLINK_USDC_USD
 
 # EIP-5564 announcer ayarla

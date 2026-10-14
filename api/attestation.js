@@ -1,5 +1,5 @@
 /**
- * /api/attestation — Cross-Protocol SLA Attestation API (Öneri 5: SLA Bridge)
+ * /api/attestation — Cross-Protocol SLA Attestation API (Suggestion 5: SLA Bridge)
  *
  * GET  /api/attestation?providerId=1&type=score → provider reputation score
  * GET  /api/attestation?callId=0x...            → call verdict

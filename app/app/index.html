@@ -63,7 +63,7 @@
 
       /* ══════════════════════════════════════════════
          DEVRIMSEL REDESIGN — Dark Arc Theme
-         Tüm değişiklikler CSS-only, JS/HTML dokunulmadı
+         Tum degisiklikler CSS-only, JS/HTML dokunulmadi
          ══════════════════════════════════════════════ */
 
       /* Global arka plan animasyonu */
@@ -3968,7 +3968,7 @@
       .status-rejected, .status-expired { background: var(--danger-bg); color: var(--danger); }
 
       /* ============================================================
-         SLA COUNTDOWN BANNER — sabit üst şerit, açık call varsa görünür
+         SLA COUNTDOWN BANNER — sabit ust serit, acik call varsa gorunur
          ============================================================ */
       #slaBanner {
         display: none;
@@ -4265,7 +4265,7 @@
       .wizard-btn-next:hover { background: #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.4); }
 
       /* ============================================================
-         OVERVIEW DASHBOARD — canlı stats grid
+         OVERVIEW DASHBOARD — canli stats grid
          ============================================================ */
       .overview-grid {
         display: grid;
@@ -4364,7 +4364,7 @@
         opacity: 0.55;
       }
       body > *:not(#cgCanvas):not(#confettiCanvas):not(#mouseSpotlight):not(#cgTicker):not(.hero-orb):not(.cmd-overlay):not(.help-fab):not(.help-panel):not(.wizard-overlay):not(#disputeOverlay):not(#subOverlay):not(#firstCallOverlay):not(#wrongNetBanner):not(#provProfileOverlay):not(#walletConnectModal):not(#confirmTxOverlay):not(#spendLimitBanner):not(#costCalcModal):not(#sdkModal):not(#revenueModal):not(#bulkCallModal):not(#callProgressOverlay):not(#roleModal):not(#nextStepModal):not(#roleChoiceModal):not(#modalRoot):not(#providerChecklistModal):not(#autoReceiptSetupModal) { position: relative; z-index: 1; }
-      /* ── Z-INDEX HİYERARŞİSİ ──
+      /* ── Z-INDEX HIYERARSISI ──
          10     sticky banners (wrongNetBanner)
          100    topbar
          200    sidebar
@@ -4996,7 +4996,7 @@
     @media (max-width: 768px) {
       .mob-nav-wrapper { display: flex; }
     }
-    /* Mode bar — nav içinde pill olarak */
+    /* Mode bar — nav icinde pill olarak */
     .mob-mode-bar {
       display: flex;
       align-items: center;
@@ -5058,7 +5058,7 @@
     .mob-nav-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
     .mob-nav-item.on { color: var(--accent); font-weight: 600; }
     .mob-nav-item.on svg.mn-icon { stroke: var(--accent); }
-    /* Footer boş alan kaldır */
+    /* Footer bos alan kaldir */
     .app-footer, footer { margin-bottom: 0 !important; padding-bottom: 0 !important; }
     @media (max-width: 768px) {
       .app-footer, footer { padding-bottom: 64px !important; }
@@ -5084,7 +5084,7 @@
       .modal, [class*="overlay"] > div { max-width: calc(100vw - 16px) !important; margin: 8px !important; }
       /* Card grid tek kolon */
       .builder-grid, .metric-grid, .action-grid { grid-template-columns: 1fr !important; }
-      /* Ticker kısa tut */
+      /* Ticker kisa tut */
       #cgTicker span { display: none; }
       #cgTicker span:nth-child(-n+4) { display: inline; }
     }
@@ -5932,7 +5932,7 @@
        Breakpoints: mobile ≤768, desktop ≥769
     ══════════════════════════════════════════════════════════ */
 
-    /* Global: hiçbir şey yatay taşmasın */
+    /* Global: hicbir sey yatay tasmasin */
     html, body { overflow-x: hidden !important; max-width: 100vw !important; }
     * { box-sizing: border-box !important; }
 
@@ -5971,7 +5971,7 @@
       .provider-card { padding: 14px !important; }
       .prov-actions { flex-wrap: wrap !important; gap: 6px !important; }
 
-      /* ── Modals — tam ekran değil, padding ile ── */
+      /* ── Modals — tam ekran degil, padding ile ── */
       .modal-box, .modal-content { max-width: calc(100vw - 24px) !important; width: calc(100vw - 24px) !important; margin: 0 12px !important; max-height: 90vh !important; overflow-y: auto !important; }
 
       /* ── Footer ── */
@@ -7445,8 +7445,8 @@
       };
     })();
   </script>
-  <!-- WalletConnect QR kütüphanesi -->
-  <!-- process + global polyfill — WalletConnect CDN bağımlılığı için gerekli -->
+  <!-- WalletConnect QR kutuphanesi -->
+  <!-- process + global polyfill — WalletConnect CDN bagimliligi icin gerekli -->
   <script>
     if (typeof process === 'undefined') {
       window.process = { env: {}, browser: true, version: '', versions: {}, nextTick: function(fn){ setTimeout(fn,0); } };
@@ -7494,20 +7494,20 @@
     <div id="walletConnectModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
       <div style="background:var(--bg-1,#fff);border-radius:16px;padding:24px;max-width:360px;width:calc(100%-32px);margin:16px;box-shadow:0 24px 64px rgba(0,0,0,0.3);position:relative;">
         <button onclick="document.getElementById('walletConnectModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted,#888);">×</button>
-        <h3 style="margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text,#111);">Cüzdanını bağla</h3>
-        <p style="margin:0 0 20px;font-size:13px;color:var(--text-muted,#888);">Bir yöntem seç</p>
+        <h3 style="margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text,#111);">Cuzdanini bagla</h3>
+        <p style="margin:0 0 20px;font-size:13px;color:var(--text-muted,#888);">Bir yontem sec</p>
 
-        <!-- MetaMask seçeneği — masaüstü extension veya mobil deep link -->
+        <!-- MetaMask secenegi — masaustu extension veya mobil deep link -->
         <button id="wcOptMetaMask" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--accent,#16a34a);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;margin-bottom:10px;transition:all .2s;">
           <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:36px;height:36px;" />
           <div style="text-align:left;">
             <div style="font-weight:700;font-size:15px;color:var(--text,#111);">MetaMask</div>
-            <div id="mmSubtitle" style="font-size:12px;color:var(--text-muted,#888);">Bağlanmak için tıkla</div>
+            <div id="mmSubtitle" style="font-size:12px;color:var(--text-muted,#888);">Baglanmak icin tikla</div>
           </div>
           <div style="margin-left:auto;font-size:18px;">→</div>
         </button>
 
-        <!-- WalletConnect QR seçeneği -->
+        <!-- WalletConnect QR secenegi -->
         <button id="wcOptWC" onclick="connectWithWalletConnect()" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--bg-0,#f9fafb);cursor:pointer;transition:all .2s;">
           <img src="https://avatars.githubusercontent.com/u/37784886" style="width:36px;height:36px;border-radius:8px;" />
           <div style="text-align:left;">
@@ -7516,11 +7516,11 @@
           </div>
         </button>
 
-        <!-- WC QR görüntüleme alanı -->
+        <!-- WC QR goruntuleme alani -->
         <div id="wcQrArea" style="display:none;margin-top:16px;text-align:center;">
-          <p style="font-size:12px;color:var(--text-muted,#888);margin:0 0 12px;">MetaMask veya başka bir cüzdan uygulamasıyla tara</p>
+          <p style="font-size:12px;color:var(--text-muted,#888);margin:0 0 12px;">MetaMask veya baska bir cuzdan uygulamasiyla tara</p>
           <canvas id="wcQrCanvas" style="border-radius:8px;max-width:200px;"></canvas>
-          <p id="wcStatus" style="font-size:12px;color:var(--accent,#16a34a);margin:8px 0 0;">Bağlantı bekleniyor...</p>
+          <p id="wcStatus" style="font-size:12px;color:var(--accent,#16a34a);margin:8px 0 0;">Baglanti bekleniyor...</p>
         </div>
       </div>
     </div>
@@ -10655,9 +10655,9 @@ curl -X POST https://arcsla.vercel.app/api/service \
       // ================================================================
       let _isConnecting = false;
       async function connect() {
-        if (_isConnecting) return; // -32002 önlemi: çift tıklama koruması
+        if (_isConnecting) return; // -32002 onlemi: cift tiklama korumasi
         if (!window.ethereum) {
-          // showWalletModal farklı script bloğunda — güvenli çağır
+          // showWalletModal farkli script blogunda — guvenli cagir
           if (typeof window.showWalletModal === 'function') window.showWalletModal();
           return;
         }
@@ -10735,10 +10735,10 @@ curl -X POST https://arcsla.vercel.app/api/service \
           toast({ kind: "err", title: "Connect failed", detail: msg });
         } finally {
           setLoading(false);
-          _isConnecting = false; // lock serbest bırak
+          _isConnecting = false; // lock serbest birak
         }
       }
-      // connect'i global scope'a bağla — connectWithMetaMask ve onclick'ler erişebilsin
+      // connect'i global scope'a bagla — connectWithMetaMask ve onclick'ler erisebilsin
       window.connect = connect;
 
       // -------- Listener cleanup --------
@@ -10812,12 +10812,12 @@ curl -X POST https://arcsla.vercel.app/api/service \
         const _mn = document.getElementById("mobileNavWrapper");
         if (_mn) _mn.style.display = "";
         startLiveClock();
-        // İlk bağlanmada rol seçim ekranı göster
+        // Ilk baglanmada rol secim ekrani goster
         if (!localStorage.getItem("cg_role_chosen")) {
           const roleModal = document.getElementById("roleChoiceModal");
           if (roleModal) roleModal.style.display = "flex";
         }
-        // Önceki oturumdan ERC-8004 NFT ID'yi restore et
+        // Onceki oturumdan ERC-8004 NFT ID'yi restore et
         const savedNft = localStorage.getItem("cgAgentNftId");
         if (savedNft) {
           if (window.state) window.state.agentNftId = savedNft;
@@ -11018,7 +11018,7 @@ curl -X POST https://arcsla.vercel.app/api/service \
                       }
                     }
 
-                    // totalSec: provider SLA'sından al, fallback 120
+                    // totalSec: provider SLA'sindan al, fallback 120
                     let totalSec = 120;
                     if (deadline && startedAt) totalSec = deadline - startedAt;
                     if (!totalSec || totalSec <= 0) {
@@ -11274,7 +11274,7 @@ async function refreshBalance() {
 
       window.claimAllTimeouts = async function() {
         if (!window._stuckCallIds?.length) return;
-        const ids = window._stuckCallIds.slice(0, 5); // max 5 aynı anda
+        const ids = window._stuckCallIds.slice(0, 5); // max 5 ayni anda
         toast({ kind: 'info', title: `Claiming ${ids.length} timeout(s)...` });
         let ok = 0, fail = 0;
         for (const callId of ids) {
@@ -11294,7 +11294,7 @@ async function refreshBalance() {
       async function refreshHero() {
         try {
           if (CONFIG.subgraphUrl) {
-            // Eğer allProviders zaten yüklendiyse tekrar fetch etme
+            // Eger allProviders zaten yuklendiyse tekrar fetch etme
             if (state.allProviders && state.allProviders.length > 0) {
               if(window.animCount){window.animCount($("heroProviders"),parseInt(state.allProviders.length.toString())||0)}else{$("heroProviders").textContent=state.allProviders.length.toString()};
               return;
@@ -11314,7 +11314,7 @@ async function refreshBalance() {
 
             if (count > 0) {
               if(window.animCount){window.animCount($("heroProviders"),parseInt(count.toString())||0)}else{$("heroProviders").textContent=count.toString()};
-              // Hero slash sayısını da güncelle (gerçek tüm-zaman toplamı)
+              // Hero slash sayisini da guncelle (gercek tum-zaman toplami)
               const totalSlashes = ps.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
               if(window.animCount){window.animCount($("heroSlashes"),parseInt(String(totalSlashes))||0)}else{$("heroSlashes").textContent=String(totalSlashes)};
               // console.log("[HERO] providers:", count, "slashes:", totalSlashes);
@@ -11513,11 +11513,11 @@ async function refreshBalance() {
           }
           $("statSlashedSub").textContent = `${state.networkStats.slashed} slash${state.networkStats.slashed === 1 ? "" : "es"} (recent)`;
 
-          // Hero güncelle — slashes için providers toplamını kullan (daha doğru)
+          // Hero guncelle — slashes icin providers toplamini kullan (daha dogru)
           if(window.animCount){window.animCount($("heroCalls"),parseInt(state.networkStats.calls.toString())||0)}else{$("heroCalls").textContent=state.networkStats.calls.toString()};
-          // heroSlashes: boot'ta Phase 1'de tüm providers.slashedCalls toplamı atandı.
-          // refreshNetworkStats'taki slashed sadece son 1000 call'dan, daha az doğru.
-          // Sadece Phase 1 değeri yoksa (0 veya —) güncelle.
+          // heroSlashes: boot'ta Phase 1'de tum providers.slashedCalls toplami atandi.
+          // refreshNetworkStats'taki slashed sadece son 1000 call'dan, daha az dogru.
+          // Sadece Phase 1 degeri yoksa (0 veya —) guncelle.
           const heroSlashEl = $("heroSlashes");
           const heroSlashCurrent = heroSlashEl ? heroSlashEl.textContent : "0";
           if (!heroSlashCurrent || heroSlashCurrent === "—" || heroSlashCurrent === "0") {
@@ -11562,7 +11562,7 @@ async function refreshBalance() {
 
           const repColor = rep >= 80 ? "var(--accent)" : rep >= 50 ? "var(--warn)" : "var(--danger)";
 
-          // Subgraph'tan bu provider'ın son call'larını çek
+          // Subgraph'tan bu provider'in son call'larini cek
           let recentProvCalls = [];
           if (CONFIG.subgraphUrl) {
             try {
@@ -12716,7 +12716,7 @@ async function refreshBalance() {
               warning: priceNum >= 1 ? `${priceNum} USDC will be locked in escrow until the provider responds or the SLA is breached.` : null,
             });
           } else {
-            // confirmTx henüz yüklenmediyse native confirm ile fallback
+            // confirmTx henuz yuklenmediyse native confirm ile fallback
             confirmed = window.confirm(`Call Provider #${idStr} for ${priceNum} USDC?\n\nSLA: ${slaDisplay} response time\nSlash: ${slashPct}% if missed`);
           }
           if (!confirmed) throw new Error("user cancelled");
@@ -13766,8 +13766,8 @@ async function refreshBalance() {
       }
 
       // -------- Button wiring --------
-      // connectBtn listener'ları showWalletModal (satır 17250) tarafından yönetiliyor.
-      // Burada ikinci listener EKLEME — çift tetikleme -32002 pending hatası yaratır.
+      // connectBtn listener'lari showWalletModal (satir 17250) tarafindan yonetiliyor.
+      // Burada ikinci listener EKLEME — cift tetikleme -32002 pending hatasi yaratir.
 
       $("btnRegister").addEventListener("click", doRegister);
       $("btnRegisterV2").addEventListener("click", doRegisterV2);
@@ -13789,7 +13789,7 @@ async function refreshBalance() {
       async function fetchNanoBalance() {
         try {
           const _nAddr = window.state?.address || window.state?.account || '';
-          // Cüzdan bağlı değilse veya geçersiz adresse çağırma
+          // Cuzdan bagli degilse veya gecersiz adresse cagirma
           if (!_nAddr || !_nAddr.startsWith('0x') || _nAddr.length !== 42) return;
           const _nUrl = '/api/nano-balance?address=' + _nAddr;
           const res = await fetch(_nUrl);
@@ -14012,7 +14012,7 @@ async function refreshBalance() {
             }).join("") || '<div class="empty-state" style="font-size:12px">No call data yet</div>';
           }
 
-          // Recent calls — status rengi + ago formatı
+          // Recent calls — status rengi + ago formati
           const recentEl = $("anRecentCalls");
           if (recentEl) {
             const nowTs = Math.floor(Date.now() / 1000);
@@ -14072,12 +14072,12 @@ async function refreshBalance() {
 
       // ---- Sidebar navigation ----
       function showCategory(cat) {
-        // Tüm panelleri gizle
+        // Tum panelleri gizle
         document.querySelectorAll("[data-category]").forEach(el => {
           el.classList.remove("cat-visible");
           el.style.display = "none";
         });
-        // Seçili kategorinin panellerini göster
+        // Secili kategorinin panellerini goster
         document.querySelectorAll("[data-category]").forEach(el => {
           const cats = el.getAttribute("data-category").split(" ");
           if (cats.includes(cat)) {
@@ -14085,13 +14085,13 @@ async function refreshBalance() {
             el.classList.add("cat-visible");
           }
         });
-        // Sidebar item'ları güncelle
+        // Sidebar item'lari guncelle
         document.querySelectorAll(".sb-item").forEach(el => {
           el.classList.toggle("on", el.dataset.nav === cat);
         });
         // Aktif kategoriyi kaydet
         window._activeCat = cat;
-        // Paneller açıldığında veri yükle
+        // Paneller acildiginda veri yukle
         if (cat === "analytics") loadAnalytics();
         if (cat === "overview") refreshOverviewDashboard();
         if (cat === "providers") { refreshAllProviders().catch(()=>{}); refreshLeaderboard().catch(()=>{}); }
@@ -14116,7 +14116,7 @@ async function refreshBalance() {
       document.querySelectorAll(".sb-item").forEach(el => {
         el.addEventListener("click", () => {
           showCategory(el.dataset.nav);
-          // Mobilde sidebar'ı kapat
+          // Mobilde sidebar'i kapat
           const _sb = document.getElementById("appSidebar");
           const _ov = document.getElementById("sidebarOverlay");
           if (_sb && _sb.classList.contains("open")) {
@@ -14126,7 +14126,7 @@ async function refreshBalance() {
         });
       });
 
-      // Başlangıçta overview göster
+      // Baslangicta overview goster
       showCategory("overview");
 
       // ================================================================
@@ -14153,12 +14153,12 @@ async function refreshBalance() {
         goStep(1);
         document.querySelectorAll(".wizard-btn-next").forEach(btn => {
           btn.addEventListener("click", () => {
-            // Step 1'den step 2'ye geçmek için cüzdan bağlı olmalı
+            // Step 1'den step 2'ye gecmek icin cuzdan bagli olmali
             if (step === 1) {
               if (!window.state?.signer) {
-                // Cüzdan bağlı değil — modal aç, wizard'ı kapat
+                // Cuzdan bagli degil — modal ac, wizard'i kapat
                 if (typeof window.showWalletModal === 'function') window.showWalletModal();
-                // Bağlanınca wizard'ı step 2'ye ilerlet
+                // Baglaninca wizard'i step 2'ye ilerlet
                 const checkConn = setInterval(() => {
                   if (window.state?.signer) {
                     clearInterval(checkConn);
@@ -14307,7 +14307,7 @@ async function refreshBalance() {
         } catch(e) { console.warn("[overview dashboard]", e.message); }
       }
 
-      // Overview'e geçince veya boot'ta yükle
+      // Overview'e gecince veya boot'ta yukle
       refreshOverviewDashboard();
 
       $("btnNanoCall").addEventListener("click", () => doNanoCall());
@@ -14346,7 +14346,7 @@ async function refreshBalance() {
         fetchNanoBalance();
         toast({ kind: "ok", title: "Balance refreshed", timeout: 2000 });
       });
-      // Sayfa açılışında bakiye çek
+      // Sayfa acilisinda bakiye cek
       fetchNanoBalance();
 
       // ERC-8183 Jobs
@@ -14507,10 +14507,10 @@ console.log("call opened:", tx.hash);`;
         }
       }
 
-      // Provider tablosu sıralama durumu
+      // Provider tablosu siralama durumu
       if (!window._provSort) window._provSort = { col: "rep", dir: -1 };
 
-      // Filtre checkbox değişince yeniden render
+      // Filtre checkbox degisince yeniden render
       document.addEventListener("change", (e) => {
         if (e.target.id === "filterActiveOnly") renderAllProvidersFiltered();
       });
@@ -14532,7 +14532,7 @@ console.log("call opened:", tx.hash);`;
           ? state.allProviders.filter(p => p.active)
           : state.allProviders;
 
-        // Sıralama
+        // Siralama
         const sorted = [...filtered].sort((a, b) => {
           let va, vb;
           if (sort.col === "rep")    { va = a.reputation ?? 0;                     vb = b.reputation ?? 0; }
@@ -14614,7 +14614,7 @@ console.log("call opened:", tx.hash);`;
             </div>`;
         }).join("");
 
-        // Sıralama butonları
+        // Siralama butonlari
         const sortBtns = [
           { col: "rep", label: "Rep" }, { col: "price", label: "Price" },
           { col: "stake", label: "Stake" }, { col: "calls", label: "Calls" }
@@ -14686,7 +14686,7 @@ console.log("call opened:", tx.hash);`;
           // loaded after connect by refreshBalance().
           const safeDecimals = state.usdcDecimals || 6;
 
-          // Hero stats — gerçek zincir verisi, cüzdan olmadan
+          // Hero stats — gercek zincir verisi, cuzdan olmadan
           if (CONFIG.subgraphUrl) {
             try {
               const stats = await fetch(CONFIG.subgraphUrl, {
@@ -14714,7 +14714,7 @@ console.log("call opened:", tx.hash);`;
                 const ps = data.data.providers || [];
                 const cs = data.data.calls || [];
 
-                // Provider sayısı
+                // Provider sayisi
                 if(window.animCount){window.animCount($("heroProviders"),parseInt(String(ps.length))||0)}else{$("heroProviders").textContent=String(ps.length)};
 
                 // Toplam call (calls listesi)
@@ -14722,11 +14722,11 @@ console.log("call opened:", tx.hash);`;
                   ? cs.length + "+"
                   : String(cs.length);
 
-                // Toplam slash — providers'ın slashedCalls toplamı (gerçek tüm-zaman verisi)
+                // Toplam slash — providers'in slashedCalls toplami (gercek tum-zaman verisi)
                 const totalSlashes = ps.reduce((sum, p) => sum + Number(p.slashedCalls || 0), 0);
                 if(window.animCount){window.animCount($("heroSlashes"),parseInt(String(totalSlashes))||0)}else{$("heroSlashes").textContent=String(totalSlashes)};
 
-                // Honor rate gauge (disconnected ekranda görünmez ama hesapla)
+                // Honor rate gauge (disconnected ekranda gorunmez ama hesapla)
                 const totalCompleted = ps.reduce((sum, p) => sum + Number(p.completedCalls || 0), 0);
                 const totalClosed = totalCompleted + totalSlashes;
                 if (totalClosed > 0) {
@@ -14738,7 +14738,7 @@ console.log("call opened:", tx.hash);`;
               }
             } catch (e) {
               console.warn("[Goldsky hero stats failed]", e.message);
-              // RPC fallback: sadece provider sayısını çek
+              // RPC fallback: sadece provider sayisini cek
               try {
                 const rpcBody = JSON.stringify({
                   jsonrpc: "2.0", id: 1, method: "eth_call",
@@ -14839,8 +14839,8 @@ console.log("call opened:", tx.hash);`;
                   }
                 }
 
-                // heroSlashes Phase 1'de provider.slashedCalls toplamından hesaplandı.
-                // Burada sadece son 20 event'teki slash görünür — onu ezmiyoruz.
+                // heroSlashes Phase 1'de provider.slashedCalls toplamindan hesaplandi.
+                // Burada sadece son 20 event'teki slash gorunur — onu ezmiyoruz.
               }
             } catch (e) {
               console.warn("[Goldsky landing activity failed]", e.message);
@@ -15779,7 +15779,7 @@ console.log("call opened:", tx.hash);`;
 
       // ── QUALITY DISPUTE FUNCTIONS ─────────────────────────────────────────
 
-      // DisputeQuality kontrat adresi — deploy sonrası güncellenecek
+      // DisputeQuality kontrat adresi — deploy sonrasi guncellenecek
       const QUALITY_DISPUTE_ADDRESS = CONFIG.qualityDispute || null;
       const QUALITY_DISPUTE_ABI = [
         "function openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri) external",
@@ -17071,7 +17071,7 @@ console.log("call opened:", tx.hash);`;
           const data = top3.map(row => {
             const rank = row.querySelector(".lb-rank")?.textContent?.trim() || "";
             const owner = row.querySelector(".lb-owner")?.childNodes[0]?.textContent?.trim() || "";
-            // lb-score'un sadece ilk text node'unu al (% span'ı hariç)
+            // lb-score'un sadece ilk text node'unu al (% span'i haric)
             const scoreEl = row.querySelector(".lb-score");
             const score = scoreEl ? (scoreEl.childNodes[0]?.textContent?.trim() || scoreEl.textContent?.trim().split(/\s/)[0] || "0") : "0";
             const isSelf = row.classList.contains("is-self");
@@ -17185,15 +17185,15 @@ console.log("call opened:", tx.hash);`;
     });
     document.getElementById("mktSort")?.addEventListener("change", e => { _mktSort = e.target.value; renderMarketplace(); });
     document.getElementById("mktSearch")?.addEventListener("input", renderMarketplace);
-    // Marketplace paneli her açıldığında yükle
+    // Marketplace paneli her acildiginda yukle
     document.addEventListener("categoryChanged", e => {
       if (e.detail === "marketplace") loadMarketplace();
     });
-    // Sidebar "marketplace" tıklandığında da tetikle
+    // Sidebar "marketplace" tiklandiginda da tetikle
     document.querySelectorAll('[data-nav="marketplace"],[data-cat="marketplace"]').forEach(el => {
       el.addEventListener("click", () => setTimeout(loadMarketplace, 100));
     });
-    // Sayfa açılırken zaten marketplace sekmesi aktifse yükle
+    // Sayfa acilirken zaten marketplace sekmesi aktifse yukle
     setTimeout(() => {
       const panel = document.getElementById("catMarketplace");
       if (panel && panel.style.display !== "none") loadMarketplace();
@@ -17290,7 +17290,7 @@ console.log("call opened:", tx.hash);`;
         <span>Account</span>
       </div>
     `;
-    // Mode toggle'ı nav'ın içine son item olarak ekle
+    // Mode toggle'i nav'in icine son item olarak ekle
     const savedMode = localStorage.getItem('cg_mode') || 'pro';
     const modeBar = document.createElement('div');
     modeBar.className = 'mob-mode-bar';
@@ -17310,24 +17310,24 @@ console.log("call opened:", tx.hash);`;
     wrapper.className = 'mob-nav-wrapper';
     wrapper.id = 'mobileNavWrapper';
     wrapper.appendChild(nav);
-    // Cüzdan bağlı değilken gizle
+    // Cuzdan bagli degilken gizle
     wrapper.style.display = 'none';
     document.body.appendChild(wrapper);
 
-    // setAppMode gelince mode bar'ı senkronize et — lazy patch
+    // setAppMode gelince mode bar'i senkronize et — lazy patch
     function _syncModeBar(mode) {
       const s = document.getElementById('mobBtnSimple');
       const p = document.getElementById('mobBtnPro');
       if (s) s.className = mode === 'simple' ? 'active' : '';
       if (p) p.className = mode === 'pro' ? 'active' : '';
     }
-    // setAppMode tanımlandıktan sonra patch et
+    // setAppMode tanimlandiktan sonra patch et
     const _patchInterval = setInterval(() => {
       if (typeof window.setAppMode === 'function') {
         clearInterval(_patchInterval);
         const _orig = window.setAppMode;
         window.setAppMode = function(mode) { _orig(mode); _syncModeBar(mode); };
-        // İlk yüklemede sync et
+        // Ilk yuklemede sync et
         _syncModeBar(localStorage.getItem('cg_mode') || 'pro');
       }
     }, 50);
@@ -17348,7 +17348,7 @@ console.log("call opened:", tx.hash);`;
         else if (typeof showCategory === "function") showCategory(cat);
       });
     });
-    // Sidebar tıklamalarıyla senkronize et
+    // Sidebar tiklamalariyla senkronize et
     document.querySelectorAll(".sb-item").forEach(sb => {
       sb.addEventListener("click", () => {
         const cat = sb.dataset.nav;
@@ -17405,7 +17405,7 @@ console.log("call opened:", tx.hash);`;
     });
 
     window.openProviderModal = function(p) {
-      // Sayısal ID veya string gelirse allProviders'dan objeye çevir
+      // Sayisal ID veya string gelirse allProviders'dan objeye cevir
       if (typeof p === "number" || typeof p === "string") {
         const pid = Number(p);
         const found = (window.state?.allProviders || []).find(x => Number(x.id) === pid);
@@ -17474,7 +17474,7 @@ console.log("call opened:", tx.hash);`;
     return scored[0];
   };
 
-  // Auto-router butonuna bağla — seçim gerekçesini göster
+  // Auto-router butonuna bagla — secim gerekcesini goster
   const btnAutoRoute = document.getElementById("btnAutoRoute");
   if (btnAutoRoute) {
     btnAutoRoute.addEventListener("click", () => {
@@ -17535,7 +17535,7 @@ console.log("call opened:", tx.hash);`;
   // Eski notifyWebhook'u override et
   window.notifyWebhook = window.notifyWebhookWithRetry;
 
-  // ── MARKETPLACE - Provider Modal bağlantısı ──
+  // ── MARKETPLACE - Provider Modal baglantisi ──
   document.addEventListener("categoryChanged", e => {
     if (e.detail !== "marketplace") return;
     setTimeout(() => {
@@ -17572,7 +17572,7 @@ console.log("call opened:", tx.hash);`;
         <div class="wizard-step-dot"><div class="ws-circle" id="wsC4">4</div></div>
       </div>
       <div class="wizard-body">
-        <!-- Step 1: Provider seç -->
+        <!-- Step 1: Provider sec -->
         <div class="wizard-pane active" id="wizPane1">
           <h3>Select a Provider</h3>
           <p class="hint">Choose the provider you want to call. Sorted by Auto-Router score (honor × rep ÷ price).</p>
@@ -17590,7 +17590,7 @@ console.log("call opened:", tx.hash);`;
           <p class="hint">Review the call details before submitting. USDC will be escrowed in the contract.</p>
           <div id="wizConfirmDetails"></div>
         </div>
-        <!-- Step 4: Sonuç -->
+        <!-- Step 4: Sonuc -->
         <div class="wizard-pane" id="wizPane4">
           <div class="wiz-success">
             <div class="wiz-success-icon">✅</div>
@@ -17670,20 +17670,20 @@ console.log("call opened:", tx.hash);`;
     document.getElementById("roleChoiceCaller")?.addEventListener("click", function() {
       localStorage.setItem("cg_role_chosen", "caller");
       closeRoleModal();
-      // Marketplace'e yönlendir
+      // Marketplace'e yonlendir
       document.querySelector('[data-nav="marketplace"]')?.click();
     });
     document.getElementById("roleChoiceProvider")?.addEventListener("click", function() {
       localStorage.setItem("cg_role_chosen", "provider");
       closeRoleModal();
-      // Register'a yönlendir
+      // Register'a yonlendir
       document.querySelector('[data-nav="register"]')?.click();
     });
     document.getElementById("roleChoiceSkip")?.addEventListener("click", function() {
       localStorage.setItem("cg_role_chosen", "skipped");
       closeRoleModal();
     });
-    // Dışarı tıklayınca kapat
+    // Disari tiklayinca kapat
     document.getElementById("roleChoiceModal")?.addEventListener("click", function(e) {
       if (e.target === this) { localStorage.setItem("cg_role_chosen", "skipped"); closeRoleModal(); }
     });
@@ -17906,7 +17906,7 @@ console.log("call opened:", tx.hash);`;
       }
     });
 
-    // Wizard'ı "Call a service" butonuna bağla
+    // Wizard'i "Call a service" butonuna bagla
     document.addEventListener("click", e => {
       const btn = e.target.closest("[data-open-wizard]");
       if (btn) { e.preventDefault(); window.openCallWizard(); }
@@ -18021,7 +18021,7 @@ console.log("call opened:", tx.hash);`;
       }
     });
 
-    // Subscriptions panelini yükle
+    // Subscriptions panelini yukle
     window.refreshSubscriptions = function() {
       const subs = JSON.parse(localStorage.getItem("cgSubscriptions") || "[]");
       const el = document.getElementById("subListBox");
@@ -18568,7 +18568,7 @@ console.log("call opened:", tx.hash);`;
     const _fco2 = document.getElementById("firstCallOverlay");
     _fco2.classList.remove("visible");
     setTimeout(() => _fco2.classList.remove("open"), 200);
-    setProgress("called"); // ilk çağrı onaylandı — bir daha sorma
+    setProgress("called"); // ilk cagri onaylandi — bir daha sorma
     if (typeof doCall === "function" && window._pendingCallProviderId) {
       doCall(window._pendingCallProviderId);
       window._pendingCallProviderId = null;
@@ -18735,7 +18735,7 @@ console.log("call opened:", tx.hash);`;
   const savedRole = localStorage.getItem('cg_role');
   if (savedRole) updateSidebarForRole(savedRole);
 
-  // ── TX sonrası otomatik navigate ─────────────────────────────────
+  // ── TX sonrasi otomatik navigate ─────────────────────────────────
   document.addEventListener('cg:txSuccess', (e) => {
     const { type } = e.detail || {};
     if (type === 'call' && window.showCategory) {
@@ -18925,7 +18925,7 @@ console.log("call opened:", tx.hash);`;
     .spend-limit-warn { background:#fef3c7;border-color:#f59e0b }
     .spend-limit-danger { background:#fef2f2;border-color:#ef4444 }
 
-    /* ── Mobil modal düzeltmeleri ── */
+    /* ── Mobil modal duzeltmeleri ── */
     @media (max-width: 600px) {
       #disputeOverlay .modal-box,
       #subOverlay .modal-box,
@@ -19412,7 +19412,7 @@ console.log("call opened:", tx.hash);`;
       const startTs = Date.now();
       const deadlineMs = deadlineSec * 1000;
       let pollTimer, tickTimer;
-      // Shared provider — tek instance, her poll'da yeni açılmıyor (listener leak önlenir)
+      // Shared provider — tek instance, her poll'da yeni acilmiyor (listener leak onlenir)
       const _watchProvider = new ethers.JsonRpcProvider(ARC_RPC);
       _watchProvider.setMaxListeners(3);
       const _watchContract = new ethers.Contract(
@@ -20488,12 +20488,12 @@ console.log("call opened:", tx.hash);`;
           results.push({ provider: r.provider_id, payload: r.payload, status: 'failed', error: e.message });
           failed++;
         }
-        // Sonuç tablosunu güncelle
+        // Sonuc tablosunu guncelle
         const summary = document.getElementById('bulkSummary');
         if (summary) summary.textContent = `${success} sent · ${failed} failed · ${rows.length - i - 1} remaining`;
         await new Promise(res => setTimeout(res, 800));
       }
-      // Sonuç tablosu
+      // Sonuc tablosu
       const preview = document.getElementById('bulkPreview');
       if (preview) {
         const tableRows = results.map(r => `<tr><td style="padding:4px 8px">#${r.provider}</td><td style="padding:4px 8px;font-size:11px;color:var(--text-faint)">${r.payload.slice(0,20)}</td><td style="padding:4px 8px;color:${r.status==='ok'?'var(--accent)':'var(--danger)'}">${r.status==='ok'?'✓ sent':'✗ '+r.error?.slice(0,30)}</td></tr>`).join('');
@@ -20893,12 +20893,12 @@ console.log("call opened:", tx.hash);`;
         document.body.classList.add('simple-mode');
         document.body.classList.remove('pro-mode');
         injectSimpleOverview();
-        // Simple modda Advanced accordion'ı kapat
+        // Simple modda Advanced accordion'i kapat
         if (typeof window._applyAdvancedState === 'function') window._applyAdvancedState(false);
       } else {
         document.body.classList.remove('simple-mode');
         document.body.classList.add('pro-mode');
-        // Pro modda Advanced accordion'ı aç
+        // Pro modda Advanced accordion'i ac
         if (typeof window._applyAdvancedState === 'function') window._applyAdvancedState(true);
       }
     }
@@ -20982,11 +20982,11 @@ console.log("call opened:", tx.hash);`;
       }
     });
 
-    // Init on load — her zaman apply et, bağlantı bekleme
+    // Init on load — her zaman apply et, baglanti bekleme
     const saved = localStorage.getItem(STORAGE_KEY) || 'pro';
     applyMode(saved);
 
-    // modeToggle topbar butonlarını aktif/pasif göster
+    // modeToggle topbar butonlarini aktif/pasif goster
     const modeToggle = document.getElementById('modeToggle');
     function syncToggleBtns(mode) {
       const sBtn = document.getElementById('btnSimpleMode');
@@ -21049,9 +21049,9 @@ console.log("call opened:", tx.hash);`;
   </script>
 
   <script>
-  // ── Window exports: fonksiyonlar farklı script scope'unda tanımlı,
-  //    onclick="doCall()" global scope'ta bulamıyor. DOMContentLoaded
-  //    sonrası export ediyoruz.
+  // ── Window exports: fonksiyonlar farkli script scope'unda tanimli,
+  //    onclick="doCall()" global scope'ta bulamiyor. DOMContentLoaded
+  //    sonrasi export ediyoruz.
   // BigInt JSON.stringify fix — global replacer
   const _origStringify = JSON.stringify;
   JSON.stringify = function(val, replacer, space) {
@@ -21062,8 +21062,8 @@ console.log("call opened:", tx.hash);`;
     return _origStringify(val, safeReplacer, space);
   };
 
-  // DOMContentLoaded bekleme — fonksiyonlar zaten global scope'ta tanımlı
-  // Hem inline hem de DOMContentLoaded sonrası çağrılabilir
+  // DOMContentLoaded bekleme — fonksiyonlar zaten global scope'ta tanimli
+  // Hem inline hem de DOMContentLoaded sonrasi cagrilabilir
   window.doCall        = doCall;
   window.doX402Call    = doX402Call;
   window.doReceipt     = doReceipt;
@@ -21079,8 +21079,8 @@ console.log("call opened:", tx.hash);`;
   window.builderTimeout  = builderTimeout;
   window.syncBuilderInputs = syncBuilderInputs;
 
-  // ── Builder butonları: sync + direkt window fonksiyon çağrısı
-  //    (.click() accordion kapalıysa çalışmaz)
+  // ── Builder butonlari: sync + direkt window fonksiyon cagrisi
+  //    (.click() accordion kapaliysa calismaz)
   function _waitForFn(name, cb, retries) {
     if (retries === undefined) retries = 20;
     if (typeof window[name] === 'function') { cb(); return; }
@@ -21115,8 +21115,8 @@ console.log("call opened:", tx.hash);`;
     _waitForFn('doTimeout', function(){ window.doTimeout(); });
   }
 
-  // ── Mobil bottom nav: Simple/Pro toggle buraya taşındı
-  //    Topbar'da yer olmadığında Settings panelinde de görünür
+  // ── Mobil bottom nav: Simple/Pro toggle buraya tasindi
+  //    Topbar'da yer olmadiginda Settings panelinde de gorunur
   document.addEventListener('DOMContentLoaded', () => {
 
     // Settings paneline de ekle
@@ -21145,18 +21145,18 @@ console.log("call opened:", tx.hash);`;
 
   <!-- WalletConnect + Modal JS -->
   <script>
-  // ── Wallet modal aç/kapat ──────────────────────────────────────────
+  // ── Wallet modal ac/kapat ──────────────────────────────────────────
   window.showWalletModal = function showWalletModal() {
     const m = document.getElementById('walletConnectModal');
     m.style.display = 'flex';
     document.getElementById('wcQrArea').style.display = 'none';
-    // Alt yazıyı cihaza göre güncelle
+    // Alt yaziyi cihaza gore guncelle
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const sub = document.getElementById('mmSubtitle');
     if (sub) {
       sub.textContent = isMobile
-        ? 'MetaMask uygulamasında aç →'
-        : (window.ethereum ? 'Extension ile bağlan →' : 'MetaMask yükle veya uygulamayı aç');
+        ? 'MetaMask uygulamasinda ac →'
+        : (window.ethereum ? 'Extension ile baglan →' : 'MetaMask yukle veya uygulamayi ac');
     }
   };
   window.hideWalletModal = function hideWalletModal() {
@@ -21167,20 +21167,20 @@ console.log("call opened:", tx.hash);`;
     // No additional listener is required here.
 
 
-  // ── 1. MetaMask — masaüstü extension varsa kullan, yoksa deep link ─
+  // ── 1. MetaMask — masaustu extension varsa kullan, yoksa deep link ─
   window.connectWithMetaMask = async function connectWithMetaMask() {
     hideWalletModal();
 
-    // Önce mevcut injected MetaMask provider'ını kullan.
-    // Bu özellikle Android/Mises gibi ortamlarda önemlidir:
-    // window.ethereum zaten MetaMask ise gereksiz deep-link açma.
+    // Once mevcut injected MetaMask provider'ini kullan.
+    // Bu ozellikle Android/Mises gibi ortamlarda onemlidir:
+    // window.ethereum zaten MetaMask ise gereksiz deep-link acma.
     if (window.ethereum?.isMetaMask && typeof window.connect === 'function') {
       // console.log('[CallGuard] MetaMask provider detected — connecting...');
       await window.connect();
       return;
     }
 
-    // Injected MetaMask provider yoksa MetaMask uygulamasını aç.
+    // Injected MetaMask provider yoksa MetaMask uygulamasini ac.
     const host = window.location.host;
     const path = window.location.pathname || '/';
     const search = window.location.search || '';
@@ -21195,8 +21195,8 @@ console.log("call opened:", tx.hash);`;
   };
 
 
-  // Mises/Android dahil MetaMask butonunu programatik olarak bağla.
-  // Inline onclick yerine addEventListener kullanılır.
+  // Mises/Android dahil MetaMask butonunu programatik olarak bagla.
+  // Inline onclick yerine addEventListener kullanilir.
   const metaMaskButton = document.getElementById('wcOptMetaMask');
   if (metaMaskButton) {
     metaMaskButton.addEventListener('click', async function () {
@@ -21208,7 +21208,7 @@ console.log("call opened:", tx.hash);`;
     });
   }
 
-  // connectMetaMaskMobile kaldırıldı — connectWithMetaMask zaten isMobile kontrolü içeriyor.
+  // connectMetaMaskMobile kaldirildi — connectWithMetaMask zaten isMobile kontrolu iceriyor.
 
   // ── 3. WalletConnect v2 QR ────────────────────────────────────────
   let wcProvider = null;
@@ -21216,13 +21216,13 @@ console.log("call opened:", tx.hash);`;
     const qrArea = document.getElementById('wcQrArea');
     const status = document.getElementById('wcStatus');
     qrArea.style.display = 'block';
-    status.textContent = 'Başlatılıyor...';
+    status.textContent = 'Baslatiliyor...';
 
     try {
       // WalletConnect EthereumProvider — UMD build window.EthereumProvider olarak gelir
       const WCProvider = window.EthereumProvider || (window.WalletConnect && window.WalletConnect.EthereumProvider);
       if (!WCProvider) {
-        status.textContent = 'WalletConnect yüklenemedi. Sayfayı yenileyin.';
+        status.textContent = 'WalletConnect yuklenemedi. Sayfayi yenileyin.';
         return;
       }
 
@@ -21230,7 +21230,7 @@ console.log("call opened:", tx.hash);`;
         projectId: '906d74b7a179fb568a768f000dd7105c',
         chains: [5042002], // Arc Testnet chain ID
         optionalChains: [1],
-        showQrModal: false, // kendi QR'ımızı çizeceğiz
+        showQrModal: false, // kendi QR'imizi cizecegiz
         metadata: {
           name: 'CallGuard',
           description: 'On-chain SLA marketplace on Arc',
@@ -21239,9 +21239,9 @@ console.log("call opened:", tx.hash);`;
         }
       });
 
-      // QR URI gelince çiz
+      // QR URI gelince ciz
       wcProvider.on('display_uri', function(uri) {
-        status.textContent = 'Cüzdanınla tara →';
+        status.textContent = 'Cuzdaninla tara →';
         const canvas = document.getElementById('wcQrCanvas');
         if (window.QRCode && canvas) {
           QRCode.toCanvas(canvas, uri, {
@@ -21251,14 +21251,14 @@ console.log("call opened:", tx.hash);`;
             if (err) status.innerHTML = '<small style="word-break:break-all">' + uri + '</small>';
           });
         } else {
-          // QRCode kütüphanesi yoksa URI göster
+          // QRCode kutuphanesi yoksa URI goster
           status.innerHTML = '<small style="word-break:break-all">' + uri + '</small>';
         }
       });
 
-      // Bağlantı kurulunca
+      // Baglanti kurulunca
       wcProvider.on('connect', async function() {
-        status.textContent = '✓ Bağlandı! Yükleniyor...';
+        status.textContent = '✓ Baglandi! Yukleniyor...';
         try {
           window.ethereum = wcProvider;
           if (typeof window.connect === 'function') await window.connect();
@@ -21275,7 +21275,7 @@ console.log("call opened:", tx.hash);`;
 
       await wcProvider.connect();
     } catch(e) {
-      status.textContent = 'Bağlantı hatası: ' + (e.message || e);
+      status.textContent = 'Baglanti hatasi: ' + (e.message || e);
       console.warn('WalletConnect error:', e);
     }
   }
@@ -22005,7 +22005,7 @@ console.log("call opened:", tx.hash);`;
     "use strict";
 
     /* ── 1. SIDEBAR ACCORDION ──────────────────────────────────────── */
-    // Pro modda default açık; Simple modda default kapalı
+    // Pro modda default acik; Simple modda default kapali
     var _savedAdv = localStorage.getItem("cg_adv_open");
     var _currentMode = localStorage.getItem("cg_mode") || "pro";
     var _advOpen = _savedAdv !== null ? _savedAdv === "1" : _currentMode !== "simple";
@@ -22168,7 +22168,7 @@ window._applyAdvancedState = function(open) { _advOpen = open; applyAdvancedStat
       setTimeout(function() { clearInterval(check); }, 15000);
     })();
 
-    /* ── 5. LANDING: cüzdansız provider browse ─────────────────────── */
+    /* ── 5. LANDING: cuzdansiz provider browse ─────────────────────── */
     // Show a read-only provider list on the landing page before connect
     (function initLandingProviders() {
       var landing = document.getElementById("landingView");

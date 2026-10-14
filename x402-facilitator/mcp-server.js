@@ -133,7 +133,7 @@ server.tool(
   }
 );
 
-// Tool 6: auto_route — best provider seç + otonom call yap
+// Tool 6: auto_route — best provider sec + otonom call yap
 server.tool(
   "auto_route",
   "Automatically select the best CallGuard provider by reputation+price score and make a service call. Fully autonomous — no human approval needed. Requires AGENT_WALLET_ADDRESS and AGENT_PRIVATE_KEY env vars.",

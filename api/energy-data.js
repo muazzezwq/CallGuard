@@ -1,11 +1,10 @@
 /**
  * /api/energy-data — Arkreen Energy Data Provider Endpoint
  *
- * CallGuard provider endpoint'i. TLAY makinalarının SLA garantili
- * enerji verisi satın almasını sağlar.
+ * CallGuard provider endpoint for SLA-guaranteed energy data.
  *
- * x402 ödeme doğrulaması: X-Payment header kontrol edilir.
- * Arkreen API'sinden gerçek kWh verisi çeker (veya testnet mock döner).
+ * x402 odeme dogrulamasi: X-Payment header kontrol edilir.
+ * Arkreen API'sinden gercek kWh verisi ceker (veya testnet mock doner).
  */
 
 // LOW-02: prefer unprefixed env vars server-side

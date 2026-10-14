@@ -1,10 +1,10 @@
 /**
  * PasskeyWallet
  *
- * Circle Modular Wallets passkey demo bileşeni.
- * Passkey kayıt, giriş ve gasless callService akışını gösterir.
+ * Circle Modular Wallets passkey demo bileseni.
+ * Passkey kayit, giris ve gasless callService akisini gosterir.
  *
- * Ön koşul: VITE_CLIENT_KEY ve VITE_CLIENT_URL .env dosyasında tanımlı olmalı.
+ * On kosul: VITE_CLIENT_KEY ve VITE_CLIENT_URL .env dosyasinda tanimli olmali.
  * Bkz. src/hooks/usePasskeyWallet.ts
  */
 
@@ -51,7 +51,7 @@ export default function PasskeyWallet() {
         </div>
         <div>
           <h3 className="text-white font-semibold text-sm">Circle Modular Wallets</h3>
-          <p className="text-xs text-zinc-400">Passkey kimlik doğrulama + gasless işlem</p>
+          <p className="text-xs text-zinc-400">Passkey kimlik dogrulama + gasless islem</p>
         </div>
         <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${
           status === "ready"
@@ -66,15 +66,15 @@ export default function PasskeyWallet() {
 
       {!clientKeySet && (
         <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-300 space-y-1">
-          <p className="font-semibold">VITE_CLIENT_KEY ayarlanmamış</p>
-          <p>Circle Console → Keys → Client Keys → key oluştur, ardından .env dosyasına ekle.</p>
+          <p className="font-semibold">VITE_CLIENT_KEY ayarlanmamis</p>
+          <p>Circle Console → Keys → Client Keys → key olustur, ardindan .env dosyasina ekle.</p>
         </div>
       )}
 
       {status === "idle" || status === "error" ? (
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Kullanıcı adı (kayıt için)</label>
+            <label className="text-xs text-zinc-400">Kullanici adi (kayit icin)</label>
             <input
               type="text"
               value={username}
@@ -89,14 +89,14 @@ export default function PasskeyWallet() {
               disabled={!clientKeySet || !username}
               className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 px-4 py-2 text-sm font-medium text-white transition-colors"
             >
-              Passkey Kayıt
+              Passkey Kayit
             </button>
             <button
               onClick={login}
               disabled={!clientKeySet}
               className="flex-1 rounded-xl bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 px-4 py-2 text-sm font-medium text-white transition-colors"
             >
-              Giriş Yap
+              Giris Yap
             </button>
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
@@ -123,22 +123,22 @@ export default function PasskeyWallet() {
             onClick={reset}
             className="w-full rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-2 text-xs text-zinc-400 transition-colors"
           >
-            Bağlantıyı kes
+            Baglantiyi kes
           </button>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-zinc-400">
           <div className="w-3 h-3 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-          {status === "registering" && "Passkey oluşturuluyor..."}
-          {status === "logging-in" && "Giriş yapılıyor..."}
-          {status === "sending" && "İşlem gönderiliyor..."}
+          {status === "registering" && "Passkey olusturuluyor..."}
+          {status === "logging-in" && "Giris yapiliyor..."}
+          {status === "sending" && "Islem gonderiliyor..."}
         </div>
       )}
 
       <div className="border-t border-white/5 pt-3">
         <p className="text-xs text-zinc-500">
-          Gas Station ile sponsorlu — kullanıcı sıfır gas öder.
-          ERC-4337 + ERC-6900 MSCA altyapısı.
+          Gas Station ile sponsorlu — kullanici sifir gas oder.
+          ERC-4337 + ERC-6900 MSCA altyapisi.
         </p>
       </div>
     </div>

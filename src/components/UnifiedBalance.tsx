@@ -2,7 +2,7 @@
  * UnifiedBalance
  *
  * Circle Gateway Unified Balance paneli.
- * Bağlı cüzdanın tüm zincirlerdeki USDC bakiyesini tek bir görünümde gösterir.
+ * Bagli cuzdanin tum zincirlerdeki USDC bakiyesini tek bir gorunumde gosterir.
  *
  * @circle-fin/unified-balance-kit (Kit Key gerektirmez)
  */
@@ -45,7 +45,7 @@ export default function UnifiedBalance() {
   if (!isConnected) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <p className="text-xs text-zinc-500 text-center">Cüzdan bağlayın — Unified Balance görmek için</p>
+        <p className="text-xs text-zinc-500 text-center">Cuzdan baglayin — Unified Balance gormek icin</p>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function UnifiedBalance() {
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">Gateway Unified Balance</h3>
-            <p className="text-xs text-zinc-400">Tüm zincirlerde USDC — tek bakiye</p>
+            <p className="text-xs text-zinc-400">Tum zincirlerde USDC — tek bakiye</p>
           </div>
         </div>
         <button
@@ -67,7 +67,7 @@ export default function UnifiedBalance() {
           disabled={loading}
           className="rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1.5 text-xs font-medium text-white transition-colors"
         >
-          {loading ? "Yükleniyor..." : "Getir"}
+          {loading ? "Yukleniyor..." : "Getir"}
         </button>
       </div>
 
@@ -88,7 +88,7 @@ export default function UnifiedBalance() {
 
           {data.chains && data.chains.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500 font-medium">Zincir Dağılımı</p>
+              <p className="text-xs text-zinc-500 font-medium">Zincir Dagilimi</p>
               {data.chains.map((c, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                   <span className="text-xs text-zinc-400">
@@ -106,13 +106,13 @@ export default function UnifiedBalance() {
 
       {!data && !loading && !error && (
         <p className="text-xs text-zinc-500 text-center py-2">
-          "Getir" butonuna basarak bakiyenizi görün.
+          "Getir" butonuna basarak bakiyenizi gorun.
         </p>
       )}
 
       <div className="border-t border-white/5 pt-3">
         <p className="text-xs text-zinc-500">
-          Circle Gateway — cross-chain USDC birleşik bakiye. Kit Key gerektirmez.
+          Circle Gateway — cross-chain USDC birlesik bakiye. Kit Key gerektirmez.
         </p>
       </div>
     </div>
