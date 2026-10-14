@@ -11,6 +11,8 @@
 const USDC_ADDR   = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS || '';
 const FACILITATOR = process.env.FACILITATOR_ADDRESS  || '';
 const SELLER      = process.env.SELLER_ADDRESS       || '';
+const CHAIN_ID    = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || '5042002');
+const PRICE_ATOMIC = '10000'; // 0.01 USDC in 6-decimal units
 
 const PAYMENT_TERMS = {
   accepts: [
@@ -69,13 +71,32 @@ async function fetchArkreenData(minerAddr) {
   };
 }
 
-function verifyPaymentHeader(req) {
+async function verifyPaymentHeader(req) {
   const xPayment = req.headers['x-payment'];
   if (!xPayment) return false;
   try {
     const decoded = Buffer.from(xPayment, 'base64').toString('utf8');
     const payment = JSON.parse(decoded);
-    return !!(payment.from && payment.nonce && (payment.signature || payment.v));
+    const auth = payment.authorization || payment;
+    if (!auth?.from || !auth?.to || !auth?.value || !auth?.nonce) return false;
+    const sigBytes = payment.signature;
+    if (!sigBytes || !USDC_ADDR || !FACILITATOR) return false;
+
+    // Real EIP-3009 verification — recipient, amount and expiry enforced.
+    const { ethers } = await import('ethers');
+    const domain = { name: 'USDC', version: '2', chainId: CHAIN_ID, verifyingContract: USDC_ADDR };
+    const types = { TransferWithAuthorization: [
+      { name: 'from', type: 'address' }, { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' }, { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' }, { name: 'nonce', type: 'bytes32' },
+    ]};
+    const recovered = ethers.verifyTypedData(domain, types, auth, sigBytes);
+    if (recovered.toLowerCase() !== String(auth.from).toLowerCase()) return false;
+    if (String(auth.to).toLowerCase() !== FACILITATOR.toLowerCase()) return false;
+    if (BigInt(auth.value) < BigInt(PRICE_ATOMIC)) return false;
+    const now = Math.floor(Date.now() / 1000);
+    if (Number(auth.validAfter) > now || Number(auth.validBefore) < now) return false;
+    return true;
   } catch {
     return false;
   }

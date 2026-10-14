@@ -67,7 +67,7 @@ async function runHappyPath() {
     const responseHash = ethers.keccak256(ethers.toUtf8Bytes("pong"));
     const respondedAt = Math.floor(Date.now() / 1000);
     const ppcProvider = ppc.connect(providerWallet);
-    const domain = { name: "ArcSLA", version: "v1", chainId: (await provider.getNetwork()).chainId, verifyingContract: PPC_ADDR };
+    const domain = { name: "ArcSLA", version: "1", chainId: (await provider.getNetwork()).chainId, verifyingContract: PPC_ADDR };
     const types = { Receipt: [{ name: "callId", type: "bytes32" }, { name: "responseHash", type: "bytes32" }, { name: "respondedAt", type: "uint64" }] };
     const value = { callId, responseHash, respondedAt };
     const sig = await providerWallet.signTypedData(domain, types, value);
@@ -76,7 +76,7 @@ async function runHappyPath() {
     ok(`submitReceipt tx: ${receiptTx.hash}`);
 
     // 4. verify status
-    const call = await ppc.calls(callId);
+    const call = await ppc.getCall(callId);
     if (call.status === 2n) ok("Call status: COMPLETED");
     else fail(`Unexpected status: ${call.status}`);
 

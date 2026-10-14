@@ -24,7 +24,11 @@ const registryAbi = [
 ];
 const registryContract = new ethers.Contract(SERVICE_REGISTRY, registryAbi, _rpcProvider);
 
-// Post-quantum SLH-DSA-SHA2-128s (Arc 0x1800..0004 precompile compatible)
+// Post-quantum SLH-DSA-SHA2-128s — EXPERIMENTAL, NOT a trust anchor.
+// The seed below is derived from a PUBLIC constant, so anyone can reproduce
+// the same keypair. pqSign/pqSignature prove nothing about origin; they exist
+// only for pipeline-format experimentation. Do NOT gate payments on them.
+// To make PQ signatures meaningful, load the seed from a SECRET env var.
 const _pqSeed = new Uint8Array(48);
 const _seedBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes("callguard-pq-seed-v1")));
 _pqSeed.set(_seedBytes.slice(0, 32));
@@ -383,9 +387,9 @@ async function autoSubmitReceipt({ callId, requestHash, payload, providerId }) {
     const responseHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(responseData)));
     const respondedAt = BigInt(Math.floor(Date.now() / 1000));
 
-    // EIP-712 sign
+    // EIP-712 sign — domain MUST match PayPerCall constructor EIP712("ArcSLA","1")
     const chainId = env.VITE_CHAIN_ID ? parseInt(env.VITE_CHAIN_ID) : 5042002;
-    const domain = { name: "CallGuard", version: "2", chainId, verifyingContract: PAY_PER_CALL_ADDR };
+    const domain = { name: "ArcSLA", version: "1", chainId, verifyingContract: PAY_PER_CALL_ADDR };
     const types = {
       Receipt: [
         { name: "callId", type: "bytes32" },
@@ -422,7 +426,7 @@ app.get("/health", async (_, res) => {
       buyerAddr = acc.address;
     }
   } catch(e) { buyerAddr = "error: " + e.message; }
-  res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr, pqPublicKey: PQ_PUBLIC_KEY, pqAlgorithm: "SLH-DSA-SHA2-128s" });
+  res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr, pqPublicKey: PQ_PUBLIC_KEY, pqAlgorithm: "SLH-DSA-SHA2-128s (experimental, untrusted)" });
 });
 
 // MCP SSE endpoints

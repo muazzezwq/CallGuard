@@ -52,11 +52,12 @@ export default function Nano() {
     setLoading(true)
     setOutput('⚡ Initiating nanopayment call...')
     try {
-      // MEDIUM-09: include X-Api-Key if configured via VITE_NANO_API_KEY env
-      const nanoKey = import.meta.env.VITE_NANO_API_KEY as string | undefined;
+      // NOTE: no client-side API key — shared secrets must never ship in the
+      // bundle (VITE_* is public). The backend gates /api/nano-call with
+      // server-side NANO_API_KEY; 401/503 here means it isn't configured.
       const res = await fetch('/api/nano-call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(nanoKey ? { 'X-Api-Key': nanoKey } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caller: address, providerId: nanoPId, payload: 'nano-ping', amount: '0.001' })
       })
       const data = await res.json()

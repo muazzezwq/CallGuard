@@ -248,7 +248,8 @@ contract Subscription is ReentrancyGuard {
         );
         address providerOwner = s.subscriber; // fallback: return to subscriber
         if (ok && data.length >= 32) {
-            providerOwner = abi.decode(data, (address));
+            address decoded = abi.decode(data, (address));
+            if (decoded != address(0)) providerOwner = decoded;
         }
 
         usdc.safeTransfer(providerOwner, claimable);
@@ -256,9 +257,12 @@ contract Subscription is ReentrancyGuard {
     }
 
     /// @notice Cancel an unexpired subscription and get a pro-rata refund.
+    /// @dev Stream-mode subs cannot be cancelled here — use claimStream /
+    ///      releaseExpired so locked stream funds are never wiped.
     function cancel(uint256 subId) external nonReentrant {
         Sub storage s = subscriptions[subId];
         if (s.subscriber != msg.sender)    revert NotSubscriber();
+        if (s.streamMode)                   revert NotStreamMode();
         if (block.timestamp >= s.expiresAt) revert SubscriptionExpired();
         if (s.cancelled)                    revert AlreadyExpired();
 

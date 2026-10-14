@@ -217,6 +217,46 @@ contract ServiceRegistryTest is Test {
     }
 
     // ------------------------------------------------------------------
+    // authorized slashers (dispute contracts)
+    // ------------------------------------------------------------------
+
+    function test_authorizeSlasher_allowsSlash() public {
+        uint256 id = _registerDefault();
+        address dispute = address(0xD15);
+        uint256 amount = 20e6;
+
+        vm.prank(admin);
+        registry.authorizeSlasher(dispute);
+
+        uint256 balBefore = usdc.balanceOf(user);
+        vm.prank(dispute);
+        registry.slash(id, amount, user);
+
+        assertEq(usdc.balanceOf(user), balBefore + amount);
+        assertEq(registry.getProvider(id).stake, STAKE - amount);
+    }
+
+    function test_revokeSlasher_blocksSlash() public {
+        uint256 id = _registerDefault();
+        address dispute = address(0xD15);
+
+        vm.prank(admin);
+        registry.authorizeSlasher(dispute);
+        vm.prank(admin);
+        registry.revokeSlasher(dispute);
+
+        vm.expectRevert(ServiceRegistry.OnlyPayPerCall.selector);
+        vm.prank(dispute);
+        registry.slash(id, 1e6, user);
+    }
+
+    function test_authorizeSlasher_nonAdmin_reverts() public {
+        vm.expectRevert(ServiceRegistry.NotOwner.selector);
+        vm.prank(user);
+        registry.authorizeSlasher(address(0xD15));
+    }
+
+    // ------------------------------------------------------------------
     // markCallStarted / markCallFinished hooks
     // ------------------------------------------------------------------
 

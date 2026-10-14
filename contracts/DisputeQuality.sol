@@ -90,6 +90,8 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
         uint256 slashAmount
     );
     event PayoutWithdrawn(address indexed account, uint256 amount);
+    event WindowChanged(uint32 newWindow);
+    event VotingWindowChanged(uint32 newWindow);
 
     /// @notice Emitted when a Circle Refund Protocol refund is initiated for
     ///         a winning caller. Off-chain indexers and Circle webhooks listen
@@ -309,10 +311,12 @@ contract DisputeQuality is ReentrancyGuard, Ownable {
 
     function changeWindow(uint32 newWindow) external onlyOwner {
         disputeWindow = newWindow;
+        emit WindowChanged(newWindow);
     }
 
     function changeVotingWindow(uint32 newWindow) external onlyOwner {
         votingWindow = newWindow;
+        emit VotingWindowChanged(newWindow);
     }
 
     function getDisputeVoters(uint256 disputeId) external view returns (address[] memory) {

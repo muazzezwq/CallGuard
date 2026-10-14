@@ -22,6 +22,8 @@ interface IServiceRegistry {
 
     function getProvider(uint256 providerId) external view returns (ProviderView memory);
 
+    function admin() external view returns (address);
+
     function slash(uint256 providerId, uint256 amount, address recipient) external;
 
     function markCallStarted(uint256 providerId) external;

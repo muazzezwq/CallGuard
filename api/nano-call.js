@@ -13,12 +13,12 @@
  *
  * Security:
  *   - Rate limit: 5 req/min per IP (Upstash Redis if configured, else in-memory)
- *   - API key auth: X-Api-Key header required when NANO_API_KEY is set
+ *   - API key auth: X-Api-Key header required (fail-closed; NANO_API_KEY must be set)
  *
  * Env vars:
  *   BUYER_PRIVATE_KEY       — wallet that funds the transfer (Rail 2)
  *   SELLER_ADDRESS          — recipient of the nano-payment
- *   NANO_API_KEY            — optional, gates the endpoint with an API key
+ *   NANO_API_KEY            — required, gates the endpoint with an API key (fail-closed)
  *   GATEWAY_BATCH_URL       — Circle Gateway batching endpoint (enables Rail 1)
  *   GATEWAY_BATCH_API_KEY   — API key for the Gateway batching endpoint
  *   USDC_ADDRESS / VITE_USDC_ADDRESS — USDC contract on Arc Testnet
@@ -124,8 +124,12 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).json({ error: "POST required" });
 
-  // Auth check
-  if (NANO_API_KEY) {
+  // Auth check — fail CLOSED. This endpoint spends BUYER_PRIVATE_KEY funds,
+  // so an unauthenticated POST is a direct drain. Set NANO_API_KEY in env.
+  if (!NANO_API_KEY) {
+    return res.status(503).json({ ok: false, error: "NANO_API_KEY not configured — endpoint disabled" });
+  }
+  {
     const provided = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
     if (!provided || provided !== NANO_API_KEY) {
       return res.status(401).json({ ok: false, error: "Unauthorized — X-Api-Key required" });

@@ -18,6 +18,7 @@ interface IServiceRegistry {
         uint256 pricePerCall,
         uint32 maxResponseTime,
         uint32 slashBps,
+        uint32 maxConcurrentCalls,
         string calldata endpoint
     ) external returns (uint256 providerId);
 }
@@ -43,7 +44,7 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
         0x8004A818BFB912233c491871b3d84c89A494BD9e;
 
     address public constant SERVICE_REGISTRY =
-        0x0FbC2841d0d56a57C3967472DDCaef825a38de02;
+        0x9ca97010464e8e6de6e27cf25eae9b939fbd7333;
 
     IERC20 public constant USDC =
         IERC20(0x3600000000000000000000000000000000000000);
@@ -70,11 +71,16 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
     }
 
     /// @notice Mint NFT + register as ArcSLA v2 provider in one tx.
+    /// @dev The NFT is minted to this contract so registerV2's
+    ///      ownerOf(tokenId) == msg.sender check passes (msg.sender is this
+    ///      contract at that point), then forwarded to the caller.
+    ///      NOTE: identity guarantee is helper-scoped, not user-scoped.
     function registerAndBind(
         uint256 stakeAmount,
         uint256 pricePerCall,
         uint32  maxResponseTime,
         uint32  slashBps,
+        uint32  maxConcurrentCalls,
         address signer,
         string calldata endpoint
     ) external nonReentrant returns (uint256 tokenId, uint256 providerId) {
@@ -102,6 +108,7 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
             pricePerCall,
             maxResponseTime,
             slashBps,
+            maxConcurrentCalls,
             endpoint
         );
 

@@ -4,15 +4,13 @@ export default function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
   // Health check — GET /api/widget?health=1  (merged to stay within Hobby 12-fn limit)
+  // NOTE: deliberately minimal — no rpc/signer booleans (operational fingerprinting).
   if (req.query.health === '1') {
     return res.status(200).json({
       ok: true,
       facilitator: 'Vercel Functions',
       version: '1.0.0',
       ts: Date.now(),
-      rpc: !!process.env.ARC_RPC_URL,
-      signer: !!process.env.SELLER_PRIVATE_KEY,
-      contract: process.env.VITE_PAY_PER_CALL || null
     });
   }
 
@@ -20,6 +18,10 @@ export default function handler(req, res) {
   res.setHeader('Cache-Control', 'public, max-age=3600');
 
   const { provider = '1', amount = '1', label = 'Pay with CallGuard' } = req.query;
+  // XSS-safe: JSON-encode all query params before interpolating into JS.
+  const jsProvider = JSON.stringify(String(provider).slice(0, 32));
+  const jsAmount = JSON.stringify(String(amount).slice(0, 32));
+  const jsLabel = JSON.stringify(String(label).slice(0, 120));
 
   const script = `
 (function() {
@@ -51,9 +53,9 @@ export default function handler(req, res) {
   document.head.appendChild(styleEl);
 
   document.querySelectorAll('[data-callguard-provider]').forEach(btn => {
-    const pid = btn.dataset.callguardProvider || '${provider}';
-    const amt = btn.dataset.callguardAmount || '${amount}';
-    const lbl = btn.dataset.callguardLabel || '${label}';
+    const pid = btn.dataset.callguardProvider || ${jsProvider};
+    const amt = btn.dataset.callguardAmount || ${jsAmount};
+    const lbl = btn.dataset.callguardLabel || ${jsLabel};
 
     btn.innerHTML = \`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>\${lbl}\`;
     btn.className += ' cg-widget-btn';

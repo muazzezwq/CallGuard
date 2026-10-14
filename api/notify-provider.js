@@ -32,6 +32,16 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Webhook auth — enforced when PROVIDER_WEBHOOK_SECRET / AUTO_RECEIPT_SECRET
+  // is configured. Prevents external gas-drain via the auto-receipt fallback.
+  const WEBHOOK_SECRET = process.env.PROVIDER_WEBHOOK_SECRET || process.env.AUTO_RECEIPT_SECRET || "";
+  if (WEBHOOK_SECRET) {
+    const got = req.headers["x-webhook-secret"] || "";
+    if (got !== WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized webhook" });
+  } else {
+    console.warn("[notify-provider] PROVIDER_WEBHOOK_SECRET not set — webhook auth disabled");
+  }
+
   if (!RPC_URL) return res.status(500).json({ error: "ARC_RPC_URL not configured" });
   if (!SERVICE_REGISTRY) return res.status(500).json({ error: "VITE_SERVICE_REGISTRY not configured" });
   if (!PAY_PER_CALL) return res.status(500).json({ error: "VITE_PAY_PER_CALL not configured" });
@@ -82,7 +92,11 @@ export default async function handler(req, res) {
       try {
         const r = await fetch(autoReceiptUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            // Forward the webhook secret so the auto-receipt leg passes its own check.
+            ...(WEBHOOK_SECRET ? { "x-webhook-secret": WEBHOOK_SECRET } : {}),
+          },
           body: JSON.stringify({ event: "call.opened", callId, payload: payload || "", providerId }),
         });
         const d = await r.json().catch(() => ({}));

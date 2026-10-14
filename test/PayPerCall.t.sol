@@ -785,12 +785,44 @@ contract PayPerCallTest is Test {
     // ------------------------------------------------------------------
 
     function test_stealth_setAnnouncer() public {
-        // setStealthAnnouncer requires caller == getProvider(1).owner.
-        // provider1 registered providerId=1 in setUp, so they are the admin.
+        // setStealthAnnouncer requires caller == registry admin.
         address ann = address(0x5564);
-        vm.prank(provider1);
+        vm.prank(admin);
         payPerCall.setStealthAnnouncer(ann);
         assertEq(payPerCall.stealthAnnouncer(), ann);
+    }
+
+    function test_stealth_setAnnouncer_nonAdmin_reverts() public {
+        address ann = address(0x5564);
+        vm.prank(provider1);
+        vm.expectRevert("PayPerCall: not admin");
+        payPerCall.setStealthAnnouncer(ann);
+    }
+
+    function test_admin_setReputationRegistry() public {
+        address rr = address(0x8004);
+        vm.prank(admin);
+        payPerCall.setReputationRegistry(rr);
+        assertEq(address(payPerCall.reputationRegistry()), rr);
+    }
+
+    function test_admin_setReputationRegistry_nonAdmin_reverts() public {
+        vm.prank(provider1);
+        vm.expectRevert("PayPerCall: not admin");
+        payPerCall.setReputationRegistry(address(0x8004));
+    }
+
+    function test_admin_setPipelineHook() public {
+        address hook = address(0x8183);
+        vm.prank(admin);
+        payPerCall.setPipelineHook(hook);
+        assertEq(address(payPerCall.pipelineHook()), hook);
+    }
+
+    function test_admin_setPipelineHook_nonAdmin_reverts() public {
+        vm.prank(provider1);
+        vm.expectRevert("PayPerCall: not admin");
+        payPerCall.setPipelineHook(address(0x8183));
     }
 
     function test_stealth_callServiceStealth_noAnnouncer() public {

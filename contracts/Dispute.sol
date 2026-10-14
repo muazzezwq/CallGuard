@@ -23,7 +23,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 ///         settled by PayPerCall.  It only controls the reputation slash.
 
 interface IServiceRegistry {
-    function slash(uint256 providerId, uint256 amount) external;
+    function slash(uint256 providerId, uint256 amount, address recipient) external;
     function getProvider(uint256 providerId) external view returns (
         address owner,
         address signer,
@@ -31,7 +31,9 @@ interface IServiceRegistry {
         uint256 pricePerCall,
         uint32 maxResponseTime,
         uint32 slashBps,
-        bool active
+        bool active,
+        uint32 maxConcurrentCalls,
+        uint8 zkTier
     );
 }
 
@@ -44,6 +46,7 @@ contract Dispute is ReentrancyGuard {
 
     error NotCaller();
     error WindowClosed();
+    error WindowNotStarted();
     error AlreadyDisputed();
     error NotArbiter();
     error AlreadyResolved();
@@ -136,6 +139,7 @@ contract Dispute is ReentrancyGuard {
         uint64  settledAt,
         string  calldata evidenceUri
     ) external nonReentrant {
+        if (settledAt > block.timestamp) revert WindowNotStarted();
         if (block.timestamp > settledAt + disputeWindow) revert WindowClosed();
         if (disputeIdByCallId[callId] != 0)              revert AlreadyDisputed();
 
@@ -181,11 +185,12 @@ contract Dispute is ReentrancyGuard {
             // Return bond to caller
             if (d.bond > 0) usdc.safeTransfer(d.caller, d.bond);
 
-            // Slash provider additional bps
-            (, , uint256 stake, , , , ) = registry.getProvider(d.providerId);
+            // Slash provider additional bps — requires this contract to be
+            // authorized via ServiceRegistry.authorizeSlasher().
+            (, , uint256 stake, , , , , , ) = registry.getProvider(d.providerId);
             slashAmount = stake * disputeSlashBps / 10000;
             if (slashAmount > 0) {
-                registry.slash(d.providerId, slashAmount);
+                registry.slash(d.providerId, slashAmount, d.caller);
             }
         } else {
             d.status = Status.Rejected;
@@ -203,6 +208,7 @@ contract Dispute is ReentrancyGuard {
 
     function setArbiter(address next) external {
         if (msg.sender != arbiter) revert NotArbiter();
+        require(next != address(0), "zero arbiter");
         emit ArbiterChanged(arbiter, next);
         arbiter = next;
     }

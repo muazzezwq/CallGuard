@@ -9,6 +9,22 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 interface IPayPerCall {
     function callService(uint256 providerId, bytes32 requestHash)
         external returns (bytes32 callId);
+    function callServiceFor(uint256 providerId, bytes32 requestHash, address beneficiary)
+        external returns (bytes32 callId);
+}
+
+interface IServiceRegistryView {
+    function getProvider(uint256 providerId) external view returns (
+        address owner,
+        address signer,
+        uint256 stake,
+        uint256 pricePerCall,
+        uint32 maxResponseTime,
+        uint32 slashBps,
+        bool active,
+        uint32 maxConcurrentCalls,
+        uint8 zkTier
+    );
 }
 
 /// @title X402Middleware
@@ -36,13 +52,20 @@ contract X402Middleware is Ownable, ReentrancyGuard {
 
     IERC20  public immutable usdc;
     IPayPerCall public immutable payPerCall;
+    /// @notice Optional registry for exact-price checks. address(0) = skip.
+    IServiceRegistryView public registry;
 
     // ----------------------------------------------------------------
     // State
     // ----------------------------------------------------------------
 
-    /// @notice Maps requestHash → callId for off-chain lookup
+    /// @notice Maps requestHash → callId for off-chain lookup (legacy, global).
     mapping(bytes32 => bytes32) public callIdByRequest;
+
+    /// @notice Scoped idempotency key: keccak(providerId, requestHash, caller) → callId.
+    /// @dev Prevents cross-caller requestHash squatting — an attacker cannot
+    ///      block a victim's hash because the caller address is in the key.
+    mapping(bytes32 => bytes32) public callIdByScopedRequest;
 
     /// @notice Maps callId → original caller (agent address)
     mapping(bytes32 => address) public callerByCallId;
@@ -89,14 +112,23 @@ contract X402Middleware is Ownable, ReentrancyGuard {
     /// @param amount       USDC amount (must match provider's pricePerCall)
     ///
     /// @return callId      On-chain call ID (use to submit receipt or claim timeout)
+    /// @dev Refunds on timeout accrue to the agent (beneficiary), NOT to this
+    ///      contract — the agent calls PayPerCall.claim() directly.
     function executePayment(
         uint256 providerId,
         bytes32 requestHash,
         uint256 amount
     ) external nonReentrant returns (bytes32 callId) {
-        // Prevent duplicate requests (idempotency)
-        if (callIdByRequest[requestHash] != bytes32(0)) {
+        // Scoped idempotency — key includes caller so no cross-caller squatting.
+        bytes32 scopeKey = keccak256(abi.encode(providerId, requestHash, msg.sender));
+        if (callIdByScopedRequest[scopeKey] != bytes32(0)) {
             revert DuplicateRequest(requestHash);
+        }
+
+        // Exact-price check when registry is wired — prevents surplus lockup.
+        if (address(registry) != address(0)) {
+            (, , , uint256 pricePerCall, , , , , ) = registry.getProvider(providerId);
+            if (amount != pricePerCall) revert InsufficientPayment(pricePerCall, amount);
         }
 
         // Pull USDC from agent
@@ -105,14 +137,21 @@ contract X402Middleware is Ownable, ReentrancyGuard {
         // Approve PayPerCall to pull USDC from this contract
         usdc.forceApprove(address(payPerCall), amount);
 
-        // Open ArcSLA call — SLA clock starts here
-        callId = payPerCall.callService(providerId, requestHash);
+        // Open ArcSLA call with the AGENT as beneficiary so timeout refunds
+        // and slash bonuses accrue to the agent, not to this contract.
+        callId = payPerCall.callServiceFor(providerId, requestHash, msg.sender);
 
-        // Store mapping for off-chain lookup
+        // Store mappings for off-chain lookup
         callIdByRequest[requestHash] = callId;
+        callIdByScopedRequest[scopeKey] = callId;
         callerByCallId[callId] = msg.sender;
 
         emit X402CallOpened(callId, providerId, msg.sender, requestHash, amount);
+    }
+
+    /// @notice Wire (or clear) the registry used for exact-price checks. Owner only.
+    function setRegistry(address _registry) external onlyOwner {
+        registry = IServiceRegistryView(_registry);
     }
 
     // ----------------------------------------------------------------

@@ -72,6 +72,9 @@ contract MockRegistry is IServiceRegistry {
     function markCallFinished(uint256) external override {}
     function incCompleted(uint256) external override {}
     function incSlashed(uint256) external override {}
+    function admin() external view override returns (address) {
+        return address(0xAD);
+    }
 
     // -----------------------------------------------------------------------
     // Reputation accessors — called by ReputationLoan via staticcall
@@ -903,6 +906,9 @@ contract MockRegistryNoReputation is IServiceRegistry {
     function markCallFinished(uint256) external override {}
     function incCompleted(uint256) external override {}
     function incSlashed(uint256) external override {}
+    function admin() external view override returns (address) {
+        return address(0xAD);
+    }
 
     // Intentionally NO completedCalls() / slashedCalls() — triggers ReputationUnavailable
 }

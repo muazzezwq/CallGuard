@@ -32,6 +32,11 @@ const USDC_ABI = [
   "function balanceOf(address) view returns (uint256)",
 ];
 
+const REGISTRY_ABI = [
+  "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
+];
+const REGISTRY = process.env.SERVICE_REGISTRY || process.env.VITE_SERVICE_REGISTRY || "";
+
 function getRpcUrl() {
   const base = process.env.RPC_PROXY_BASE_URL;
   const token = process.env.RPC_PROXY_TOKEN;
@@ -129,18 +134,37 @@ export default async function handler(req, res) {
       return res.status(402).json({ error: "Signature mismatch" });
 
     const now = Math.floor(Date.now() / 1000);
+    if (Number(authorization.validAfter) > now)
+      return res.status(402).json({ error: "Authorization not yet valid" });
     if (Number(authorization.validBefore) < now)
       return res.status(402).json({ error: "Authorization expired" });
+
+    // to/value checks — authorization must target this settlement contract
+    // for exactly the provider's price. Prevents underpayment / misdirected auths.
+    if (CONTRACT && authorization.to?.toLowerCase() !== CONTRACT.toLowerCase())
+      return res.status(402).json({ error: "Authorization 'to' must be the PayPerCall contract" });
+    if (REGISTRY) {
+      try {
+        const reg = new ethers.Contract(REGISTRY, REGISTRY_ABI, rpcProvider);
+        const p = await reg.getProvider(providerId);
+        if (!p.active) return res.status(402).json({ error: "Provider not active" });
+        if (BigInt(authorization.value) !== BigInt(p.pricePerCall))
+          return res.status(402).json({ error: "Authorization value must equal provider pricePerCall" });
+      } catch (e) {
+        console.warn("[x402/call-service] registry price check skipped:", e.message);
+      }
+    }
 
     const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, rpcProvider);
     const nonceUsed = await usdc.authorizationState(authorization.from, authorization.nonce);
     if (nonceUsed) return res.status(402).json({ error: "Nonce already used" });
 
-    // Demo mode
+    // Demo mode — NO on-chain settlement. Explicit flags so callers
+    // cannot mistake this for a paid call.
     if (!process.env.FACILITATOR_PRIVATE_KEY) {
       const mockCallId = ethers.keccak256(ethers.toUtf8Bytes(requestHash + Date.now()));
-      return res.json({ success: true, callId: mockCallId, txHash: null, demo: true,
-        message: "Signature verified — demo mode (no on-chain call)" });
+      return res.json({ success: true, callId: mockCallId, txHash: null, demo: true, settled: false,
+        message: "Signature verified — demo mode (NO on-chain call was made)" });
     }
 
     // Real settlement

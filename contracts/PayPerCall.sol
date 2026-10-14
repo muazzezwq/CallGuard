@@ -220,12 +220,10 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     }
 
     /// @notice Set (or clear) the ERC-8183 pipeline hook address.
-    ///         Only the ServiceRegistry admin (owner of provider id 1) can call.
+    ///         Only the ServiceRegistry admin can call.
     ///         Pass address(0) to disable hooks.
     function setPipelineHook(address hook) external {
-        IServiceRegistry.ProviderView memory adm = registry.getProvider(1);
-        require(adm.owner != address(0), "PayPerCall: no provider registered");
-        require(msg.sender == adm.owner, "PayPerCall: not admin");
+        require(msg.sender == registry.admin(), "PayPerCall: not admin");
         pipelineHook = IERC8183Hook(hook);
         emit PipelineHookSet(hook);
     }
@@ -253,15 +251,10 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     }
 
     /// @notice Set (or clear) the ERC-8004 ReputationRegistry address.
-    ///         Only the ServiceRegistry owner can call this — enforced via
-    ///         `registry.getProvider(0)` owner check so no extra owner state is needed.
+    ///         Only the ServiceRegistry admin can call.
     ///         Pass address(0) to disable reputation recording.
-    /// @dev    The first provider (id=0) is the protocol deployer — a sensible proxy
-    ///         for "admin" without adding an Ownable dependency.
     function setReputationRegistry(address registry_) external {
-        // Caller must be the owner of provider id 0 (protocol admin).
-        IServiceRegistry.ProviderView memory admin = registry.getProvider(0);
-        require(msg.sender == admin.owner, "PayPerCall: not admin");
+        require(msg.sender == registry.admin(), "PayPerCall: not admin");
         reputationRegistry = IERC8004ReputationRegistry(registry_);
         emit ReputationRegistrySet(registry_);
     }
@@ -397,6 +390,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         openCallsPerCaller[providerId][beneficiary]++;
 
         emit CallStarted(callId, providerId, beneficiary, p.pricePerCall, requestHash, deadline);
+
+        // ERC-8183 Pipeline Hook — best-effort beforeCall notification (x402 path).
+        _hookBefore(callId, providerId, beneficiary, p.pricePerCall);
     }
 
     function _callServiceFor(uint256 providerId, bytes32 requestHash, address beneficiary)
@@ -564,12 +560,9 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------------
 
     /// @notice Set (or clear) the EIP-5564 announcer contract address.
-    ///         Only the first registered provider's owner (protocol admin) can call.
-    ///         Provider id 1 is always the first registration.
+    ///         Only the ServiceRegistry admin can call.
     function setStealthAnnouncer(address announcer) external {
-        IServiceRegistry.ProviderView memory adminProv = registry.getProvider(1);
-        require(adminProv.owner != address(0), "PayPerCall: no provider registered");
-        require(msg.sender == adminProv.owner, "PayPerCall: not admin");
+        require(msg.sender == registry.admin(), "PayPerCall: not admin");
         stealthAnnouncer = announcer;
         emit StealthAnnouncerSet(announcer);
     }

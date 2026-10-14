@@ -108,6 +108,14 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
 const CIRCLE_REFUND_API = "https://api.circle.com/v2/transfers/refunds";
 const CIRCLE_API_KEY = process.env.CIRCLE_API_KEY || "";
 
+// Format 6-decimal USDC atomic units as a decimal string without float loss.
+function formatUsdc6(amount) {
+  const v = BigInt(amount || 0);
+  const whole = v / 1000000n;
+  const frac = (v % 1000000n).toString().padStart(6, "0");
+  return `${whole}.${frac}`;
+}
+
 async function initiateCircleRefund({ disputeId, callId, caller, amount }) {
   if (!CIRCLE_API_KEY) {
     console.warn("[auto-receipt] CIRCLE_API_KEY not set — skipping Circle Refund API call");
@@ -115,12 +123,12 @@ async function initiateCircleRefund({ disputeId, callId, caller, amount }) {
   }
 
   // Circle Refund Protocol payload (Circle Transfers API v2 spec).
-  // amount is in USDC 6-decimal units; convert to string for the API.
+  // amount is in USDC 6-decimal units; format via BigInt to avoid float precision loss.
   const body = {
     idempotencyKey: `callguard-refund-${callId}-${disputeId}`,
     source: { type: "blockchain", callId, disputeId },
     destination: { type: "blockchain", address: caller, chain: "ARC-TESTNET" },
-    amount: { amount: (Number(amount) / 1e6).toFixed(6), currency: "USD" },
+    amount: { amount: formatUsdc6(amount), currency: "USD" },
     metadata: { reason: "DisputeQuality:CallerWins", callId, disputeId },
   };
 
@@ -134,7 +142,7 @@ async function initiateCircleRefund({ disputeId, callId, caller, amount }) {
       body: JSON.stringify(body),
     });
     const data = await resp.json().catch(() => ({}));
-    console.log(`[auto-receipt] Circle Refund API response: ${resp.status}`, data);
+    console.log(`[auto-receipt] Circle Refund API status: ${resp.status}`);
     return { ok: resp.ok, status: resp.status, data };
   } catch (err) {
     console.error("[auto-receipt] Circle Refund API error:", err.message);
@@ -156,12 +164,27 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
+  // Webhook auth — enforced when WEBHOOK_SECRET is configured.
+  // Set PROVIDER_WEBHOOK_SECRET (or AUTO_RECEIPT_SECRET) in Vercel env and
+  // configure the provider backend to send it as x-webhook-secret.
+  const WEBHOOK_SECRET = process.env.PROVIDER_WEBHOOK_SECRET || process.env.AUTO_RECEIPT_SECRET || "";
+  if (WEBHOOK_SECRET) {
+    const got = req.headers["x-webhook-secret"] || "";
+    if (got !== WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized webhook" });
+  } else {
+    console.warn("[auto-receipt] PROVIDER_WEBHOOK_SECRET not set — webhook auth disabled");
+  }
+
   const { event, callId, payload, providerId, disputeId, caller, amount } = req.body || {};
 
-  // ERC-8004 / Circle Refund Protocol: dispute resolved CallerWins
+  // ERC-8004 / Circle Refund Protocol: dispute resolved CallerWins.
+  // Financial action — requires webhook secret to be configured AND valid.
   if (event === "circle.refund.initiate" && callId) {
+    if (!WEBHOOK_SECRET) return res.status(403).json({ error: "refund path disabled: webhook secret not configured" });
+    if (!caller || !/^0x[0-9a-fA-F]{40}$/.test(caller)) return res.status(400).json({ error: "invalid caller" });
     const result = await initiateCircleRefund({ disputeId, callId, caller, amount });
-    return res.json({ received: true, event, callId, disputeId, result });
+    // Never log the full upstream response (may contain sensitive metadata).
+    return res.json({ received: true, event, callId, disputeId, result: { ok: result.ok, status: result.status } });
   }
 
   if (event === "call.opened" && callId) {

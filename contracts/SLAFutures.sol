@@ -57,6 +57,7 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     error NothingToClaim();
     error StalePriceFeed();
     error BatchUSDCapExceeded();
+    error RefundGraceNotElapsed();
 
     event BatchMinted(
         uint256 indexed batchId,
@@ -71,9 +72,15 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     event RefundClaimed(uint256 indexed batchId, address indexed buyer, uint256 amount);
     event ProceedsClaimed(uint256 indexed batchId, address indexed provider, uint256 amount);
     event PriceFeedSet(address indexed feed);
+    event PriceFeedStalenessSet(uint256 staleness);
+    event BatchURISet(uint256 indexed batchId);
+    /// @notice Permissionless expiry cancellation after provider abandonment.
+    event BatchExpiredCancelled(uint256 indexed batchId);
 
     uint256 public constant MIN_PRICE_PER_CALL = 1_000; // 0.001 USDC (6 decimals)
     uint256 public constant MIN_SLOTS = 1;
+    /// @notice Grace period after deadline before anyone can cancel an abandoned batch.
+    uint256 public constant REFUND_GRACE = 1 days;
     /// @notice Max batch total value in USD cents (8 decimals): $1M = 100_000_000_00000000
     uint256 public constant MAX_BATCH_USD_8DEC = 1_000_000 * 1e8; // $1M cap
 
@@ -115,6 +122,7 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
     /// @notice Update the price feed staleness window (seconds). Only owner.
     function setPriceFeedStaleness(uint256 staleness) external onlyOwner {
         priceFeedStaleness = staleness;
+        emit PriceFeedStalenessSet(staleness);
     }
 
     function mintCapacity(uint256 providerId, uint256 pricePerCall, uint256 totalSlots, uint64 deadline)
@@ -218,6 +226,27 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         emit BatchCancelled(batchId);
     }
 
+    /// @notice Permissionless cancellation of an abandoned batch.
+    ///         If the provider never calls cancelBatch, anyone can open the
+    ///         refund path once deadline + REFUND_GRACE has passed.
+    function cancelExpiredBatch(uint256 batchId) external nonReentrant {
+        Batch storage b = batches[batchId];
+        if (b.provider == address(0)) revert UnknownBatch();
+        if (!b.active) revert BatchInactive();
+        if (block.timestamp <= b.deadline + REFUND_GRACE) revert RefundGraceNotElapsed();
+
+        b.active = false;
+
+        uint256 refundableSlots = b.soldSlots - b.usedSlots;
+        if (refundableSlots > 0) {
+            uint256 refundReserve = refundableSlots * b.pricePerCall;
+            providerClaimable[batchId] -= refundReserve;
+        }
+
+        emit BatchCancelled(batchId);
+        emit BatchExpiredCancelled(batchId);
+    }
+
     function claimProceeds(uint256 batchId) external nonReentrant {
         Batch storage b = batches[batchId];
         if (b.provider == address(0)) revert UnknownBatch();
@@ -238,8 +267,11 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         if (b.provider == address(0)) revert UnknownBatch();
         if (b.active) revert BatchStillActive();
 
+        uint256 totalPurchased = purchased[batchId][msg.sender];
+        uint256 alreadyRefunded = refunded[batchId][msg.sender];
+        if (alreadyRefunded > totalPurchased) revert NothingToRefund();
+        uint256 refundablePurchased = totalPurchased - alreadyRefunded;
         uint256 buyerBalance = balanceOf(msg.sender, batchId);
-        uint256 refundablePurchased = purchased[batchId][msg.sender] - refunded[batchId][msg.sender];
 
         uint256 amount = buyerBalance < refundablePurchased ? buyerBalance : refundablePurchased;
         if (amount == 0) revert NothingToRefund();
@@ -259,13 +291,41 @@ contract SLAFutures is ERC1155, Ownable, ReentrancyGuard {
         if (msg.sender != b.provider) revert NotBatchProvider();
 
         _batchUris[batchId] = newUri;
+        emit BatchURISet(batchId);
     }
 
     function setBaseURI(string calldata newBaseUri) external onlyOwner {
         baseUri = newBaseUri;
     }
 
+    /// @notice Keep refund credit attached to the token on secondary transfers.
+    /// @dev Moves min(transferAmount, senderRefundable) of `purchased` credit
+    ///      from sender to receiver so claimRefund works for the new holder.
+    ///      Mint (from=0) and burn (to=0) paths are skipped.
+    function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
+        internal
+        override
+    {
+        if (from != address(0) && to != address(0)) {
+            for (uint256 i = 0; i < ids.length; i++) {
+                uint256 id = ids[i];
+                uint256 amt = values[i];
+                if (amt == 0) continue;
+                uint256 senderTotal = purchased[id][from];
+                uint256 senderRef = refunded[id][from];
+                uint256 senderRefundable = senderTotal > senderRef ? senderTotal - senderRef : 0;
+                uint256 move = amt < senderRefundable ? amt : senderRefundable;
+                if (move > 0) {
+                    purchased[id][from] -= move;
+                    purchased[id][to] += move;
+                }
+            }
+        }
+        super._update(from, to, ids, values);
+    }
+
     function uri(uint256 id) public view override returns (string memory) {
+
         string memory batchUri = _batchUris[id];
         if (bytes(batchUri).length != 0) {
             return batchUri;

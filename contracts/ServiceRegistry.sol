@@ -106,6 +106,8 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     mapping(uint256 => Provider) internal _providers;
     mapping(address => uint256) public providerIdOf; // owner => id, 0 = none
     uint256 public nextProviderId = 1;
+    /// @notice Dispute contracts authorized to slash (in addition to payPerCall).
+    mapping(address => bool) public authorizedSlashers;
 
     // --- Tier 2: NFT identity binding ---
     // providerId => ERC-8004 tokenId (0 = no NFT bound, i.e. v1 registration)
@@ -130,8 +132,11 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     event ProviderSlashed(uint256 indexed providerId, uint256 amount, address recipient);
     event PriceUpdated(uint256 indexed providerId, uint256 newPrice);
     event SignerUpdated(uint256 indexed providerId, address newSigner);
+    event MaxConcurrentCallsUpdated(uint256 indexed providerId, uint32 newCap);
     event PayPerCallSet(address indexed payPerCall);
     event PayPerCallProposed(address indexed proposed, uint256 executeAt);
+    event SlasherAuthorized(address indexed slasher);
+    event SlasherRevoked(address indexed slasher);
     event ReputationUpdated(uint256 indexed providerId, uint64 completedCalls, uint64 slashedCalls);
 
     // --- Tier 2 ---
@@ -150,6 +155,12 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
 
     modifier onlyPayPerCall() {
         if (msg.sender != payPerCall) revert OnlyPayPerCall();
+        _;
+    }
+
+    /// @notice PayPerCall or an admin-authorized dispute contract.
+    modifier onlySlasher() {
+        if (msg.sender != payPerCall && !authorizedSlashers[msg.sender]) revert OnlyPayPerCall();
         _;
     }
 
@@ -206,6 +217,20 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         payPerCallChangeAt = 0;
 
         emit PayPerCallSet(nextPayPerCall);
+    }
+
+    /// @notice Authorize a dispute contract to call `slash`.
+    ///         Only admin. Emits event for indexer visibility.
+    function authorizeSlasher(address slasher) external onlyAdmin {
+        require(slasher != address(0), "zero slasher");
+        authorizedSlashers[slasher] = true;
+        emit SlasherAuthorized(slasher);
+    }
+
+    /// @notice Revoke a previously authorized dispute contract.
+    function revokeSlasher(address slasher) external onlyAdmin {
+        authorizedSlashers[slasher] = false;
+        emit SlasherRevoked(slasher);
     }
 
     // ---------------------------------------------------------------------
@@ -349,7 +374,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     // PayPerCall hooks
     // ---------------------------------------------------------------------
 
-    function slash(uint256 providerId, uint256 amount, address recipient) external onlyPayPerCall nonReentrant {
+    function slash(uint256 providerId, uint256 amount, address recipient) external onlySlasher nonReentrant {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
         if (amount == 0) revert ZeroAmount();
@@ -435,6 +460,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
         Provider storage p = _providers[providerId];
         if (p.owner != msg.sender) revert NotOwner();
         p.maxConcurrentCalls = newCap;
+        emit MaxConcurrentCallsUpdated(providerId, newCap);
     }
 
     function getEndpoint(uint256 providerId) external view returns (string memory) {

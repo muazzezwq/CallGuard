@@ -247,15 +247,13 @@ contract SubscriptionStreamTest is Test {
         sub.claimStream(subId);
     }
 
-    function test_subscribeStream_cancelled_claimReverts() public {
+    function test_subscribeStream_cancel_reverts() public {
         vm.prank(subscriber);
         uint256 subId = sub.subscribeStream(pid, 100e6, uint32(1 days));
 
+        // Stream subs cannot be cancelled — cancel() would wipe lockedBalance.
         vm.prank(subscriber);
+        vm.expectRevert(Subscription.NotStreamMode.selector);
         sub.cancel(subId);
-
-        vm.warp(block.timestamp + 12 hours);
-        vm.expectRevert();
-        sub.claimStream(subId);
     }
 }
