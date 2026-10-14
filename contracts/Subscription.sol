@@ -21,6 +21,8 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 ///         releaseExpired(subscriptionId)
 ///           → after expiry, unused balance returned to subscriber
 
+// FIXED: Updated to match ServiceRegistry.ProviderView (9 fields).
+// Old interface had 7 fields — ABI decoding would fail against the real registry.
 interface IServiceRegistry {
     function getProvider(uint256 providerId) external view returns (
         address owner,
@@ -29,7 +31,9 @@ interface IServiceRegistry {
         uint256 pricePerCall,
         uint32  maxResponseTime,
         uint32  slashBps,
-        bool    active
+        bool    active,
+        uint32  maxConcurrentCalls,
+        uint8   zkTier
     );
 }
 
@@ -137,7 +141,9 @@ contract Subscription is ReentrancyGuard {
             uint256 pricePerCall,
             ,
             ,
-            bool active
+            bool active,
+            ,
+            
         ) = registry.getProvider(providerId);
 
         if (!active) revert ProviderInactive();
@@ -188,7 +194,9 @@ contract Subscription is ReentrancyGuard {
             ,
             ,
             ,
-            bool active
+            bool active,
+            ,
+            
         ) = registry.getProvider(providerId);
         if (!active) revert ProviderInactive();
 

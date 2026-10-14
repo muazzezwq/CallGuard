@@ -43,6 +43,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     error OnlyPayPerCall();
     error UnknownProvider();
     error InsufficientStake();
+    error ZeroAmount();
     error NotNFTOwner(); // Tier 2: caller does not own the ERC-8004 identity NFT
     error InvalidPayPerCall();
     error PayPerCallTimelockNotElapsed();
@@ -351,6 +352,7 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
     function slash(uint256 providerId, uint256 amount, address recipient) external onlyPayPerCall nonReentrant {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
+        if (amount == 0) revert ZeroAmount();
         if (p.stake < amount) revert InsufficientStake();
 
         p.stake -= amount;
@@ -495,6 +497,11 @@ contract ServiceRegistry is IServiceRegistry, ReentrancyGuard {
                 keccak256(abi.encodePacked(providerId, score, timestamp, block.chainid))
             )
         );
+        // FIX: ecrecover returns address(0) on invalid signature; also enforce
+        // canonical s (EIP-2) and v ∈ {27,28} to prevent signature malleability.
+        if (v != 27 && v != 28) revert("invalid v");
+        // secp256k1 half curve order = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) revert("invalid s");
         address signer = ecrecover(msgHash, v, r, s);
         require(signer == uptimeOracle, "bad oracle sig");
 

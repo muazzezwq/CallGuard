@@ -594,6 +594,8 @@ contract PayPerCall is ReentrancyGuard, EIP712 {
         bytes calldata ephemeralPubKey,
         bytes calldata metadata
     ) external nonReentrant returns (bytes32 callId) {
+        // FIX: validate stealthAddress is not address(0)
+        if (stealthAddress == address(0)) revert InvalidBeneficiary();
         callId = _callServiceFor(providerId, requestHash, stealthAddress);
 
         // Announce on-chain so the recipient can scan for incoming stealth payments.

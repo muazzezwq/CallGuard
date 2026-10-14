@@ -15,12 +15,14 @@ const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY;
 // LOW-02: prefer unprefixed env vars server-side
 const PAY_PER_CALL = process.env.PAY_PER_CALL || process.env.VITE_PAY_PER_CALL;
 
+// FIXED: ABI must match the actual ServiceRegistry.ProviderView (9 fields)
+// including maxConcurrentCalls and zkTier, and PayPerCall.Call struct.
 const registryAbi = [
-  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active))",
+  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))",
 ];
 
 const payPerCallAbi = [
-  "function getCall(bytes32 callId) view returns (tuple(address caller,uint256 providerId,bytes32 requestHash,uint256 escrow,uint32 deadline,bool settled,bool slashed))",
+  "function getCall(bytes32 callId) view returns (tuple(uint256 providerId,address caller,uint256 amount,uint32 startedAt,uint32 deadline,bytes32 requestHash,bytes32 responseHash,uint8 status))",
 ];
 
 export default async function handler(req, res) {

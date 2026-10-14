@@ -141,6 +141,10 @@ export default async function handler(req, res) {
   // Validate required env
   if (!BUYER_KEY) return res.status(503).json({ ok: false, error: "BUYER_PRIVATE_KEY not configured" });
   if (!SELLER)   return res.status(503).json({ ok: false, error: "SELLER_ADDRESS not configured" });
+  // FIX: validate SELLER is a well-formed EVM address
+  if (!/^0x[0-9a-fA-F]{40}$/.test(SELLER)) {
+    return res.status(503).json({ ok: false, error: "SELLER_ADDRESS is not a valid EVM address" });
+  }
 
   const rpcUrl = getRpcUrl();
   if (!rpcUrl) return res.status(503).json({ ok: false, error: "No RPC URL configured" });

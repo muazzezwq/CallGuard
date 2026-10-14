@@ -23,6 +23,7 @@ contract SubMockRegistry {
     }
 
     // Subscription.sol calls registry.getProvider() with the OLD tuple return
+    // Updated to match the new interface with 9 fields (maxConcurrentCalls and zkTier added).
     function getProvider(uint256 id) external view returns (
         address owner,
         address signer,
@@ -30,10 +31,12 @@ contract SubMockRegistry {
         uint256 pricePerCall,
         uint32  maxResponseTime,
         uint32  slashBps,
-        bool    active
+        bool    active,
+        uint32  maxConcurrentCalls,
+        uint8   zkTier
     ) {
         Entry storage e = entries[id];
-        return (e.owner, address(0), 0, e.pricePerCall, 30, 0, e.active);
+        return (e.owner, address(0), 0, e.pricePerCall, 30, 0, e.active, 0, 0);
     }
 }
 
