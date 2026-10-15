@@ -32,7 +32,7 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 280 tests, 9 test contracts
+forge test -vv       # 300 tests, 11 test suites
 forge build
 forge script script/Deploy.s.sol:Deploy --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -67,7 +67,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   (not `providerCount`). `src/lib/config.ts` ABIs already reflect these fixes — trust it.
 - Receipts are **EIP-712** (domain name `"ArcSLA"`, version `"1"`, includes `respondedAt`).
   `ARCHITECTURE.md` §4 still describes the old EIP-191 `personal_sign` scheme — **stale**.
-- README says "229 tests"; actual is **280** (7 test files in `test/`, 9 test contracts).
+- README says "229 tests"; actual is **300** (9 test files in `test/`, 11 suites).
 - The subgraph deploy script deploys `arcsla/1.1.7`, while the canonical query URL used by
   the frontend is `callguard-v7/1.0.0` (see `src/lib/config.ts`).
 
