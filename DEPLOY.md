@@ -163,6 +163,26 @@ If all three are correct, **deployment succeeded**.
 
 ---
 
+## 6b. Auxiliary contract deploys
+
+The per-feature contracts have their own scripts under `script/`:
+
+- `DeployReputationLoan.s.sol`, `DeploySLAFutures.s.sol`, `DeployAgentWallet.s.sol`,
+  `DeployQuality.s.sol` (DisputeQuality), `DeploySLABridge.s.sol`.
+- `DeployDispute.s.sol` — base `Dispute` arbitration. It deploys the contract **and**
+  calls `setPayPerCall(PAY_PER_CALL)` in the same run (arbiter = `DEPLOYER` wallet).
+  This wiring is **required**: without it `openDispute` reverts, since disputes must
+  bind to a verified on-chain call.
+
+```bash
+PAY_PER_CALL=$PAY_PER_CALL_ADDRESS DEPLOYER=$MAIN_WALLET_ADDRESS \
+  forge script script/DeployDispute.s.sol:DeployDispute \
+  --account main --sender $MAIN_WALLET_ADDRESS \
+  --rpc-url arc_testnet --broadcast
+```
+
+---
+
 ## 7. Troubleshooting
 
 - **`Error: signer is not authorized`** → `--sender` address doesn't match the address in `main` keystore. Check with `cast wallet list`.
