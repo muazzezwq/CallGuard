@@ -33,6 +33,14 @@ interface AnalyticsData {
   updatedAt: string;
 }
 
+/* Canvas can't parse CSS custom properties — resolve var(--x) to a real hex. */
+function resolveColor(color: string): string {
+  if (!color.startsWith("var(")) return color;
+  const name = color.slice(4, color.lastIndexOf(")")).trim();
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || "#10b981";
+}
+
 /* ── Mini sparkline canvas ───────────────────────────── */
 function MiniChart({ values, color = "#10b981", height = 48 }: { values: number[]; color?: string; height?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -49,15 +57,16 @@ function MiniChart({ values, color = "#10b981", height = 48 }: { values: number[
       x: pad + (i / (values.length - 1 || 1)) * (W - pad * 2),
       y: H - pad - ((v - mn) / (mx - mn || 1)) * (H - pad * 2),
     }));
+    const stroke = resolveColor(color);
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, color + "40"); grad.addColorStop(1, color + "00");
+    grad.addColorStop(0, stroke + "40"); grad.addColorStop(1, stroke + "00");
     ctx.beginPath();
     pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.lineTo(pts[pts.length - 1].x, H); ctx.lineTo(pts[0].x, H); ctx.closePath();
     ctx.fillStyle = grad; ctx.fill();
     ctx.beginPath();
     pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
   }, [values, color, height]);
   return <canvas ref={ref} style={{ width: "100%", height, display: "block" }} />;
 }

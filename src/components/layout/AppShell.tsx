@@ -10,6 +10,7 @@ import RoleModal from "./RoleModal";
 import UsdcBanner from "./UsdcBanner";
 import ContextualHint from "./ContextualHint";
 import ProgressTracker from "./ProgressTracker";
+import ErrorBoundary from "../ErrorBoundary";
 import { initTabTitleCounter } from "../../lib/utils";
 
 const panels = {
@@ -189,9 +190,11 @@ export default function AppShell() {
       <main className="main-content">
         <LiveBar />
         <UsdcBanner />
-        <Suspense fallback={<PanelLoader />}>
-          {ActivePanel ? <ActivePanel /> : <PanelLoader />}
-        </Suspense>
+        <ErrorBoundary resetKey={activePanel}>
+          <Suspense fallback={<PanelLoader />}>
+            {ActivePanel ? <ActivePanel /> : <PanelLoader />}
+          </Suspense>
+        </ErrorBoundary>
         <AppFooter />
       </main>
 

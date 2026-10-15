@@ -70,7 +70,7 @@ export default function CallBuilder() {
   const chainInfo = CHAINS.find(c => c.value === chain)!;
   const providerIdNum = parseInt(providerId) || 0;
 
-  const { data: providerData } = useReadContract({
+  const { data: providerData, isError: providerError, isFetched: providerFetched, isLoading: providerLoading } = useReadContract({
     address: CONFIG.registryAddress as `0x${string}`,
     abi: REGISTRY_ABI,
     functionName: "getProvider",
@@ -82,11 +82,18 @@ export default function CallBuilder() {
   // HIGH-01 fix: getProvider returns 7-field indexed tuple, not named struct
   // [0]=owner [1]=signer [2]=stake [3]=pricePerCall [4]=maxResponseTime [5]=slashBps [6]=active
   const raw = providerData as readonly [string, string, bigint, bigint, number, number, boolean] | undefined;
+  const owner     = raw?.[0];
   const price     = raw?.[3]  ?? BigInt(0);
   const slaWindow = raw?.[4]  ?? 0;
   const slashBps  = raw?.[5]  ?? 0;
   const active    = raw?.[6]  ?? false;
   const stake     = raw?.[2]  ?? BigInt(0);
+  // getProvider reverts for unknown ids, so a settled query with no usable owner means
+  // the id doesn't exist on the live registry — surface that instead of loading forever.
+  const providerNotFound = providerIdNum > 0 && (
+    providerError ||
+    (providerFetched && !providerLoading && (!owner || owner === "0x0000000000000000000000000000000000000000"))
+  );
 
   // HIGH-03 fix: completedCalls/slashedCalls are separate reads (not in getProvider tuple)
   const { data: completedCallsRaw } = useReadContract({
@@ -120,7 +127,7 @@ export default function CallBuilder() {
   const [gasError, setGasError] = useState(false);
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
   useEffect(() => {
-    if (chain !== "arc" || !isConnected || !address || !active || providerIdNum <= 0 || !publicClient) return;
+    if (chain !== "arc" || !isConnected || !address || !active || providerIdNum <= 0 || !publicClient || providerNotFound) return;
     const reqH = keccak256(stringToBytes(payload || "ping")) as `0x${string}`;
     publicClient.estimateContractGas({
       address: CONFIG.payPerCall as `0x${string}`,
@@ -130,7 +137,7 @@ export default function CallBuilder() {
       account: address as `0x${string}`,
     }).then(g => { setGasEstimate(g); setGasError(false); }).catch(() => { setGasEstimate(null); setGasError(true); });
     publicClient.getGasPrice().then(p => setGasPrice(p)).catch(() => setGasPrice(null));
-  }, [chain, isConnected, address, active, providerIdNum, payload, publicClient]);
+  }, [chain, isConnected, address, active, providerIdNum, payload, publicClient, providerNotFound]);
 
   useEffect(() => {
     if (txConfirmed && txHash) {
@@ -605,12 +612,17 @@ export default function CallBuilder() {
               <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"block" }} />
               <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--accent)",fontWeight:700 }}>Execution Summary</span>
             </div>
+            {providerNotFound && (
+              <div style={{ display:"flex",gap:8,alignItems:"flex-start",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"9px 11px",fontSize:11.5,color:"#fbbf24",marginBottom:12 }}>
+                <span>Provider #{providerIdNum} was not found on the Arc Testnet registry. Pick an existing provider id.</span>
+              </div>
+            )}
             {[
-              { label:"Provider",    value: providerIdNum ? `#${providerIdNum}` : "—",      highlight: !!providerIdNum },
+              { label:"Provider",    value: providerIdNum ? (providerNotFound ? `#${providerIdNum} · not found` : `#${providerIdNum}`) : "—",      highlight: !!providerIdNum && !providerNotFound },
               { label:"Price",       value: price ? `${formatUnits(price,6)} USDC` : "—",   highlight: !!price },
               { label:"SLA window",  value: slaWindow ? `${slaWindow}s` : "—",              highlight: false },
               { label:"Slash %",     value: slashBps ? `${slashBps/100}%` : "—",            highlight: false },
-              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (gasError || !isConnected ? "—" : (chain === "arc" ? "estimating…" : "—")), highlight: false },
+              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (gasError || providerNotFound || !isConnected ? "—" : (chain === "arc" ? "estimating…" : "—")), highlight: false },
               { label:"Network",     value: isCCTP ? `${chainInfo.label}` : "Arc Testnet",  highlight: false },
               { label:"Settlement",  value: "Arc Testnet (on-chain)",                       highlight: false },
               { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009",               highlight: true },

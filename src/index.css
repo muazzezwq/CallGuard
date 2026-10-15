@@ -1391,7 +1391,7 @@ select.input { cursor: pointer; }
   border-radius: 16px;
   max-width: 680px;
   width: 100%;
-  max-height: 86vh;
+  max-height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -3443,13 +3443,12 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .cg-tab:hover { color: var(--text); }
 .cg-tab.active { background: var(--accent); color: #fff; }
 
-/* ── Dynamic-viewport heights (avoid mobile browser chrome clipping) ── */
-.app-shell { height: 100vh; height: 100dvh; }
+/* ── Full-viewport shell ──────────────────────────────────────────────
+   Use fixed positioning instead of 100vh/100dvh: viewport units collapse to 0
+   in some in-app webviews, which blanked the whole dashboard. inset:0 always
+   tracks the real viewport. (Also avoids mobile browser chrome clipping.) */
+.app-shell { position: fixed; inset: 0; height: auto; }
 .cg-landing { min-height: 100vh; min-height: 100dvh; }
-.modal { max-height: 86vh; max-height: 86dvh; }
-@supports (height: 100dvh) {
-  .sidebar { height: calc(100dvh - var(--topbar-h)); }
-}
 
 /* ── Topbar: shrink instead of clip ── */
 .tb-left, .tb-right { min-width: 0; }
