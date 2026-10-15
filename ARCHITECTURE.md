@@ -120,18 +120,24 @@ The nonce and timestamp ensure two identical requests from the same caller produ
 
 ## 4. Receipt signing scheme
 
-### EIP-191 prefixed message
+### EIP-712 typed data
 
 ```solidity
-bytes32 inner = keccak256(abi.encodePacked(callId, responseHash));
-bytes32 digest = keccak256(
-    abi.encodePacked("\x19Ethereum Signed Message:\n32", inner)
+bytes32 digest = _hashTypedDataV4(
+    keccak256(abi.encode(
+        RECEIPT_TYPEHASH, // keccak256("Receipt(bytes32 callId,bytes32 responseHash,uint64 respondedAt)")
+        callId,
+        responseHash,
+        respondedAt
+    ))
 );
 ```
 
-This is the format produced by `wallet.signMessage()` (personal_sign) in MetaMask and ethers.js. Matching the wallet default means providers can sign receipts from a browser extension, a Node.js backend, or any other standard Ethereum signer without protocol-specific tooling.
+The EIP-712 domain is `{ name: "ArcSLA", version: "1", chainId, verifyingContract }` (see `PayPerCall`'s `EIP712("ArcSLA", "1")` constructor). Providers sign this structured receipt off-chain and submit it via `submitReceipt(callId, responseHash, respondedAt, signature)`.
 
-EIP-712 would have been more principled (structured data, no manual `abi.encodePacked` coupling). It was rejected for Faz 1 because personal_sign is universally supported and the signed payload is simple enough that EIP-712's benefits (human-readable signing UI for complex structures) don't apply.
+EIP-712 is used instead of the older EIP-191 `personal_sign` scheme for two reasons: the receipt is structured data that wallets can render with a human-readable preview, and the domain separator binds the signature to this specific chain and contract — giving cross-chain and cross-contract replay protection for free.
+
+> Note: the separate uptime-oracle path (`recordUptime`) still uses an EIP-191 signed message; it is not the receipt scheme.
 
 ### Why `(callId, responseHash)` and not just `callId`
 

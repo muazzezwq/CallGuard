@@ -520,7 +520,7 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: **229 tests passed, 0 failed.**
+Expected: **280 tests passed, 0 failed.**
 
 ### Try the demo
 
@@ -590,7 +590,7 @@ CallGuard/
 │   └── components/
 │       ├── Architecture.tsx          # architecture diagram panel
 │       └── CgLanding.tsx             # landing page (disconnected view)
-├── test/                             # 229 Foundry tests
+├── test/                             # 280 Foundry tests
 ├── script/                           # deploy scripts
 ├── api/                              # Vercel serverless functions
 │   ├── marketplace.js                # x402 Bazaar discovery endpoint (NEW)
@@ -645,7 +645,7 @@ CallGuard/
 - Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute; `api/auto-receipt` relay
 - ERC-8004 ReputationRegistry writes — `+1` on receipt, `-1` on slash, best-effort
 - ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call
-- 229/229 Foundry tests passing
+- 280/280 Foundry tests passing
 
 **Frontend Migration (Oct 2026)**
 - React 18 + Vite + TypeScript — migrated from single-file HTML/ethers.js
