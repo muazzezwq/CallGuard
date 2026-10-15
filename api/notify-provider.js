@@ -3,6 +3,15 @@
 // with the call details so they can respond and submit a receipt automatically.
 
 import { ethers } from "ethers";
+import { timingSafeEqual, createHash } from "node:crypto";
+
+// Constant-time secret comparison (hash first so lengths always match).
+function secretEquals(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b) return false;
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
 
 // RPC via proxy when available, else env-configured public endpoint
 const proxyChains = (process.env.RPC_PROXY_CHAINS || "").split(",");
@@ -32,15 +41,14 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Webhook auth — enforced when PROVIDER_WEBHOOK_SECRET / AUTO_RECEIPT_SECRET
-  // is configured. Prevents external gas-drain via the auto-receipt fallback.
+  // Webhook auth — fail closed. Without a configured secret this endpoint
+  // could be used to drain gas via the auto-receipt fallback, so refuse.
   const WEBHOOK_SECRET = process.env.PROVIDER_WEBHOOK_SECRET || process.env.AUTO_RECEIPT_SECRET || "";
-  if (WEBHOOK_SECRET) {
-    const got = req.headers["x-webhook-secret"] || "";
-    if (got !== WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized webhook" });
-  } else {
-    console.warn("[notify-provider] PROVIDER_WEBHOOK_SECRET not set — webhook auth disabled");
+  if (!WEBHOOK_SECRET) {
+    return res.status(503).json({ error: "webhook authentication not configured" });
   }
+  const got = req.headers["x-webhook-secret"] || "";
+  if (!secretEquals(got, WEBHOOK_SECRET)) return res.status(401).json({ error: "unauthorized webhook" });
 
   if (!RPC_URL) return res.status(500).json({ error: "ARC_RPC_URL not configured" });
   if (!SERVICE_REGISTRY) return res.status(500).json({ error: "VITE_SERVICE_REGISTRY not configured" });

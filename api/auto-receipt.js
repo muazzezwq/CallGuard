@@ -3,6 +3,15 @@
 // Set PROVIDER_1_WEBHOOK=https://arcsla.vercel.app/api/auto-receipt in Vercel env
 
 import { ethers } from "ethers";
+import { timingSafeEqual, createHash } from "node:crypto";
+
+// Constant-time secret comparison (hash first so lengths always match).
+function secretEquals(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b) return false;
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
 
 // HIGH-08 fix: fallback chain for multiple RPC env var names
 const RPC_URL = process.env.ARC_RPC_URL || process.env.ARC_TESTNET_RPC_URL || process.env.RPC_URL;
@@ -164,16 +173,16 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
-  // Webhook auth — enforced when WEBHOOK_SECRET is configured.
-  // Set PROVIDER_WEBHOOK_SECRET (or AUTO_RECEIPT_SECRET) in Vercel env and
-  // configure the provider backend to send it as x-webhook-secret.
+  // Webhook auth — fail closed. Set PROVIDER_WEBHOOK_SECRET (or
+  // AUTO_RECEIPT_SECRET) in Vercel env and configure the provider backend to
+  // send it as x-webhook-secret. Without a configured secret, this endpoint
+  // would let anyone trigger gas-spending receipt submissions, so we refuse.
   const WEBHOOK_SECRET = process.env.PROVIDER_WEBHOOK_SECRET || process.env.AUTO_RECEIPT_SECRET || "";
-  if (WEBHOOK_SECRET) {
-    const got = req.headers["x-webhook-secret"] || "";
-    if (got !== WEBHOOK_SECRET) return res.status(401).json({ error: "unauthorized webhook" });
-  } else {
-    console.warn("[auto-receipt] PROVIDER_WEBHOOK_SECRET not set — webhook auth disabled");
+  if (!WEBHOOK_SECRET) {
+    return res.status(503).json({ error: "webhook authentication not configured" });
   }
+  const got = req.headers["x-webhook-secret"] || "";
+  if (!secretEquals(got, WEBHOOK_SECRET)) return res.status(401).json({ error: "unauthorized webhook" });
 
   const { event, callId, payload, providerId, disputeId, caller, amount } = req.body || {};
 

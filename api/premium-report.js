@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { settleEip3009 } from "./_settle.js";
 
 const USDC_ADDR = process.env.USDC_ADDRESS || "0x3600000000000000000000000000000000000000";
 const CHAIN_ID = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "5042002");
@@ -6,10 +7,6 @@ const CHAIN_ID = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "50
 function getRpcUrl() {
   return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL || null;
 }
-
-const USDC_ABI = [
-  "function authorizationState(address authorizer, bytes32 nonce) external view returns (bool)",
-];
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -77,17 +74,13 @@ export default async function handler(req, res) {
       if (Number(auth.validAfter) > now || Number(auth.validBefore) < now) {
         return res.status(402).json({ error: "Authorization not currently valid" });
       }
+      // Consume the nonce by settling on-chain. Without this a single signed
+      // authorization could be replayed for unlimited reports.
       const rpcUrl = getRpcUrl();
-      if (rpcUrl) {
-        try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, provider);
-          if (await usdc.authorizationState(auth.from, auth.nonce)) {
-            return res.status(402).json({ error: "Nonce already used" });
-          }
-        } catch (e) {
-          console.warn("[premium] nonce check skipped:", e.message);
-        }
+      const settlement = await settleEip3009({ auth, signature: paymentSig, usdcAddress: USDC_ADDR, rpcUrl });
+      if (!settlement.ok) {
+        console.error("[premium] settlement failed:", settlement.error);
+        return res.status(503).json({ error: "Payment settlement unavailable" });
       }
 
       // CoinGecko'dan veri al
@@ -114,17 +107,15 @@ export default async function handler(req, res) {
           ethereum: toM("ethereum"),
           solana: toM("solana")
         },
-        // NOTE: settlement for this endpoint is off-chain (x402 to facilitator).
-        // No on-chain txHash is produced here — callers must not treat this
-        // report as an on-chain settlement receipt.
-        payment: { from: auth.from, to: auth.to, value: String(auth.value), settled: "off-chain" }
+        payment: { from: auth.from, to: auth.to, value: String(auth.value), settled: "on-chain", txHash: settlement.txHash }
       };
 
       console.log("[premium] Report generated for:", auth.from);
       return res.json(report);
     } catch(e) {
-      console.error("[premium] Error:", e.message);
-      return res.status(500).json({ error: e.message });
+      // Never leak provider error messages (may embed the RPC URL + token).
+      console.error("[premium] Error:", e.shortMessage || e.reason || e.name || "error");
+      return res.status(500).json({ error: "Internal error" });
     }
   }
 

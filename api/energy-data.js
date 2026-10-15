@@ -7,6 +7,8 @@
  * Fetches real kWh data from the Arkreen API (or returns a testnet mock).
  */
 
+import { settleEip3009, getRpcUrl } from './_settle.js';
+
 // LOW-02: prefer unprefixed env vars server-side
 const USDC_ADDR   = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS || '';
 const FACILITATOR = process.env.FACILITATOR_ADDRESS  || '';
@@ -18,7 +20,7 @@ const PAYMENT_TERMS = {
   accepts: [
     {
       scheme:   'exact',
-      network:  'arc-testnet',
+      network:  'eip155:5042002',
       asset:    USDC_ADDR,
       payTo:    FACILITATOR,
       maxAmountRequired: '10000', // 0.01 USDC in 6-decimal units
@@ -41,7 +43,9 @@ const PAYMENT_TERMS = {
 
 async function fetchArkreenData(minerAddr) {
   const ARKREEN_API = process.env.ARKREEN_API_URL;
-  if (ARKREEN_API && minerAddr) {
+  // Validate the miner address before interpolating it into the upstream URL
+  // to prevent path/query injection into the Arkreen API.
+  if (ARKREEN_API && minerAddr && /^0x[0-9a-fA-F]{40}$/.test(minerAddr)) {
     try {
       const res = await fetch(`${ARKREEN_API}/miner/${minerAddr}/latest`);
       if (res.ok) return await res.json();
@@ -73,14 +77,14 @@ async function fetchArkreenData(minerAddr) {
 
 async function verifyPaymentHeader(req) {
   const xPayment = req.headers['x-payment'];
-  if (!xPayment) return false;
+  if (!xPayment) return { ok: false };
   try {
     const decoded = Buffer.from(xPayment, 'base64').toString('utf8');
     const payment = JSON.parse(decoded);
     const auth = payment.authorization || payment;
-    if (!auth?.from || !auth?.to || !auth?.value || !auth?.nonce) return false;
+    if (!auth?.from || !auth?.to || !auth?.value || !auth?.nonce) return { ok: false };
     const sigBytes = payment.signature;
-    if (!sigBytes || !USDC_ADDR || !FACILITATOR) return false;
+    if (!sigBytes || !USDC_ADDR || !FACILITATOR) return { ok: false };
 
     // Real EIP-3009 verification — recipient, amount and expiry enforced.
     const { ethers } = await import('ethers');
@@ -91,14 +95,14 @@ async function verifyPaymentHeader(req) {
       { name: 'validBefore', type: 'uint256' }, { name: 'nonce', type: 'bytes32' },
     ]};
     const recovered = ethers.verifyTypedData(domain, types, auth, sigBytes);
-    if (recovered.toLowerCase() !== String(auth.from).toLowerCase()) return false;
-    if (String(auth.to).toLowerCase() !== FACILITATOR.toLowerCase()) return false;
-    if (BigInt(auth.value) < BigInt(PRICE_ATOMIC)) return false;
+    if (recovered.toLowerCase() !== String(auth.from).toLowerCase()) return { ok: false };
+    if (String(auth.to).toLowerCase() !== FACILITATOR.toLowerCase()) return { ok: false };
+    if (BigInt(auth.value) < BigInt(PRICE_ATOMIC)) return { ok: false };
     const now = Math.floor(Date.now() / 1000);
-    if (Number(auth.validAfter) > now || Number(auth.validBefore) < now) return false;
-    return true;
+    if (Number(auth.validAfter) > now || Number(auth.validBefore) < now) return { ok: false };
+    return { ok: true, auth, signature: sigBytes };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
 
@@ -118,12 +122,26 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!verifyPaymentHeader(req)) {
+  const verification = await verifyPaymentHeader(req);
+  if (!verification.ok) {
     return res.status(402).json({
       ...PAYMENT_TERMS,
       error:   'Invalid Payment',
       message: 'X-Payment header missing or malformed.',
     });
+  }
+
+  // Consume the nonce by settling on-chain — without this the same signed
+  // authorization could be replayed for unlimited data.
+  const settlement = await settleEip3009({
+    auth: verification.auth,
+    signature: verification.signature,
+    usdcAddress: USDC_ADDR,
+    rpcUrl: getRpcUrl(),
+  });
+  if (!settlement.ok) {
+    console.error('[energy-data] settlement failed:', settlement.error);
+    return res.status(503).json({ error: 'Payment settlement unavailable' });
   }
 
   const body      = req.body || {};
@@ -148,6 +166,7 @@ export default async function handler(req, res) {
     meta: {
       machineId,
       payload,
+      settlementTx: settlement.txHash,
       callguardContract: process.env.VITE_PAY_PER_CALL,
     }
   });

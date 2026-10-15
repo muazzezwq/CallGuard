@@ -53,14 +53,15 @@ export default async function handler(req, res) {
     return (await r.json()).result;
   }
 
+  // keccak selectors: getProvider(uint256)=0x5c42d079, getReputationScore(uint256)=0xbd5bcb0a
   function encodeGetProvider(id) {
     const hex = Number(id).toString(16).padStart(64, '0');
-    return '0x9a86139b' + hex;
+    return '0x5c42d079' + hex;
   }
 
   function encodeGetScore(id) {
     const hex = Number(id).toString(16).padStart(64, '0');
-    return '0x5a3b7e42' + hex;
+    return '0xbd5bcb0a' + hex;
   }
 
   let provider = { stake: '0', price: '1.00', active: true, score: 50 };
@@ -71,9 +72,12 @@ export default async function handler(req, res) {
       rpcCall('eth_call', [{ to: registryAddr, data: encodeGetScore(id) }, 'latest'])
     ]);
     if (raw && raw !== '0x') {
-      const stake = BigInt('0x' + raw.slice(66, 130));
-      const price = BigInt('0x' + raw.slice(130, 194));
-      const active = raw.slice(194, 258) !== '0'.repeat(64);
+      // ProviderView words: 0 owner, 1 signer, 2 stake, 3 pricePerCall,
+      // 4 maxResponseTime, 5 slashBps, 6 active, 7 maxConcurrentCalls, 8 zkTier.
+      const word = (i) => raw.slice(2 + i * 64, 2 + (i + 1) * 64);
+      const stake = BigInt('0x' + word(2));
+      const price = BigInt('0x' + word(3));
+      const active = word(6) !== '0'.repeat(64);
       provider.stake = (Number(stake) / 1e6).toFixed(2);
       provider.price = (Number(price) / 1e6).toFixed(2);
       provider.active = active;

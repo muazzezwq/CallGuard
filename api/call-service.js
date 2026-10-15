@@ -42,7 +42,7 @@ function getRpcUrl() {
   const token = process.env.RPC_PROXY_TOKEN;
   const chains = (process.env.RPC_PROXY_CHAINS || "").split(",");
   if (base && chains.includes("Arc_Testnet")) {
-    return `${base}/api/rpc/Arc_Testnet?_rpc_token=${token}`;
+    return `${base}/api/rpc/Arc_Testnet?_rpc_token=${encodeURIComponent(token || "")}`;
   }
   return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL;
 }
@@ -102,7 +102,12 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const { providerId, requestHash, authorization, signature } = req.body || {};
-  if (!providerId || !requestHash || !authorization || !signature) {
+  const validAuth = authorization
+    && /^0x[0-9a-fA-F]{40}$/.test(authorization.from || "")
+    && authorization.to
+    && /^0x[0-9a-fA-F]{64}$/.test(authorization.nonce || "");
+  if (!providerId || !/^0x[0-9a-fA-F]{64}$/.test(requestHash || "") ||
+      !validAuth || !/^0x[0-9a-fA-F]{130}$/.test(signature || "")) {
     res.setHeader("Content-Type", "application/json");
     return res.status(402).json(paymentRequired());
   }
@@ -141,18 +146,26 @@ export default async function handler(req, res) {
 
     // to/value checks — authorization must target this settlement contract
     // for exactly the provider's price. Prevents underpayment / misdirected auths.
+    // Fail closed: if settlement is enabled but we cannot verify, refuse.
+    const realSettlement = !!process.env.FACILITATOR_PRIVATE_KEY;
+    if (realSettlement && !CONTRACT)
+      return res.status(503).json({ error: "PAY_PER_CALL not configured" });
     if (CONTRACT && authorization.to?.toLowerCase() !== CONTRACT.toLowerCase())
       return res.status(402).json({ error: "Authorization 'to' must be the PayPerCall contract" });
     if (REGISTRY) {
+      let provider;
       try {
         const reg = new ethers.Contract(REGISTRY, REGISTRY_ABI, rpcProvider);
-        const p = await reg.getProvider(providerId);
-        if (!p.active) return res.status(402).json({ error: "Provider not active" });
-        if (BigInt(authorization.value) !== BigInt(p.pricePerCall))
-          return res.status(402).json({ error: "Authorization value must equal provider pricePerCall" });
+        provider = await reg.getProvider(providerId);
       } catch (e) {
-        console.warn("[x402/call-service] registry price check skipped:", e.message);
+        console.error("[x402/call-service] registry read failed:", e.shortMessage || e.name || "error");
+        return res.status(502).json({ error: "Unable to verify provider — try again later" });
       }
+      if (!provider.active) return res.status(402).json({ error: "Provider not active" });
+      if (BigInt(authorization.value) !== BigInt(provider.pricePerCall))
+        return res.status(402).json({ error: "Authorization value must equal provider pricePerCall" });
+    } else if (realSettlement) {
+      return res.status(503).json({ error: "SERVICE_REGISTRY not configured" });
     }
 
     const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, rpcProvider);
@@ -194,7 +207,8 @@ export default async function handler(req, res) {
     return res.json({ success: true, callId, txHash: receipt.hash, blockNumber: receipt.blockNumber });
 
   } catch (e) {
-    console.error("[x402/call-service] error:", e.message);
-    return res.status(500).json({ error: e.message });
+    // Log only non-sensitive fields — e.message may embed the RPC URL + token.
+    console.error("[x402/call-service] error:", e.shortMessage || e.reason || e.name || "error");
+    return res.status(500).json({ error: "Internal settlement error" });
   }
 }

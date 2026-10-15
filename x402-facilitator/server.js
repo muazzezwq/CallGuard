@@ -2,13 +2,117 @@ import { slh_dsa_sha2_128s } from "@noble/post-quantum/slh-dsa.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import crypto from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { makeFacilitator } from "./facilitator.js";
 
 dotenv.config();
 const env = process.env;
 const app = express();
-app.use(cors());
+
+// CORS: restrict to an explicit allowlist when ALLOWED_ORIGINS is set
+// (comma-separated). Falls back to same-origin-only (no ACAO header) when
+// unset, instead of the previous wide-open `cors()`.
+const ALLOWED_ORIGINS = (env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // server-to-server / same-origin
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+}));
 app.use(express.json());
+
+// -------------------------------------------------------------------------
+// Admin auth for endpoints that spend the server's own wallets or sign
+// on its behalf. These were previously unauthenticated: anyone could drain
+// the buyer wallet (/nano/call), make the facilitator settle (/settle), or
+// forge provider receipts (/callguard-hook → SELLER_PRIVATE_KEY signing).
+// Fail closed: if no token is configured the endpoints return 503.
+// -------------------------------------------------------------------------
+const ADMIN_TOKEN = env.FACILITATOR_ADMIN_TOKEN || env.ADMIN_TOKEN || "";
+
+function safeEqual(a, b) {
+  const ab = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_TOKEN) {
+    return res.status(503).json({ error: "Admin API disabled: FACILITATOR_ADMIN_TOKEN not configured" });
+  }
+  const provided = req.headers["x-admin-token"] || "";
+  if (!safeEqual(provided, ADMIN_TOKEN)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// -------------------------------------------------------------------------
+// SSRF guard for /ping — mirrors api/ping-provider.js.
+// -------------------------------------------------------------------------
+function ipToLong(ip) {
+  const p = ip.split(".").map(Number);
+  if (p.length !== 4 || p.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return null;
+  return (((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3]) >>> 0;
+}
+
+function isPrivateIp(ip) {
+  const v = isIP(ip);
+  if (v === 4) {
+    const n = ipToLong(ip);
+    if (n === null) return true;
+    const inRange = (base, bits) => (n >>> (32 - bits)) === (ipToLong(base) >>> (32 - bits));
+    return (
+      inRange("0.0.0.0", 8) ||
+      inRange("10.0.0.0", 8) ||
+      inRange("100.64.0.0", 10) ||
+      inRange("127.0.0.0", 8) ||
+      inRange("169.254.0.0", 16) ||
+      inRange("172.16.0.0", 12) ||
+      inRange("192.0.0.0", 24) ||
+      inRange("192.168.0.0", 16) ||
+      inRange("198.18.0.0", 15) ||
+      inRange("224.0.0.0", 4) ||
+      inRange("240.0.0.0", 4)
+    );
+  }
+  if (v === 6) {
+    const low = ip.toLowerCase();
+    if (low === "::1" || low === "::") return true;
+    if (low.startsWith("fe80") || low.startsWith("fc") || low.startsWith("fd")) return true;
+    if (low.startsWith("::ffff:")) {
+      const mapped = low.slice(7);
+      if (isIP(mapped) === 4) return isPrivateIp(mapped);
+    }
+    return false;
+  }
+  return true;
+}
+
+async function isPublicHost(hostnameRaw) {
+  let hostname = (hostnameRaw || "").toLowerCase();
+  if (hostname.endsWith(".")) hostname = hostname.slice(0, -1);
+  if (hostname.startsWith("[") && hostname.endsWith("]")) hostname = hostname.slice(1, -1);
+  if (!hostname) return false;
+  if (isIP(hostname)) return !isPrivateIp(hostname);
+  if (/^\d+$/.test(hostname) || /^0x[0-9a-f.]+$/i.test(hostname) || /^(0\d+\.)+\d+$/.test(hostname)) {
+    return false;
+  }
+  try {
+    const addrs = await lookup(hostname, { all: true });
+    if (!addrs.length) return false;
+    return addrs.every((a) => !isPrivateIp(a.address));
+  } catch {
+    return false;
+  }
+}
 
 const fac = makeFacilitator(env);
 console.log("Facilitator wallet:", fac.facilitatorAddress);
@@ -48,7 +152,7 @@ const PAY_TO = fac.facilitatorAddress;
 function paymentRequirements() {
   return {
     scheme: "exact",
-    network: "arc-testnet",
+    network: "eip155:5042002",
     maxAmountRequired: PRICE,
     asset: env.USDC_ADDRESS,
     payTo: PAY_TO,
@@ -76,23 +180,24 @@ app.get("/api/service", async (req, res) => {
     res.setHeader("X-PAYMENT-RESPONSE", Buffer.from(JSON.stringify(s)).toString("base64"));
     return res.json({ ok: true, data: "pong", payment: s });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error("[/api/service]", e.message);
+    return res.status(500).json({ error: "service failed" });
   }
 });
 
 // ---- Facilitator API ----
-app.post("/verify", async (req, res) => {
+app.post("/verify", requireAdmin, async (req, res) => {
   try { res.json(await fac.verify(req.body.payment, req.body.requirements)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  catch (e) { console.error("[verify]", e.message); res.status(500).json({ error: "verify failed" }); }
 });
 
-app.post("/settle", async (req, res) => {
+app.post("/settle", requireAdmin, async (req, res) => {
   try { res.json(await fac.settle(req.body.payment)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  catch (e) { console.error("[settle]", e.message); res.status(500).json({ error: "settle failed" }); }
 });
 
 // ---- callServiceWithAuthorization ----
-app.post("/callService", async (req, res) => {
+app.post("/callService", requireAdmin, async (req, res) => {
   try {
     const { providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s: sig } = req.body;
     if (!providerId || !requestHash || !from || !v || !r || !sig) {
@@ -136,7 +241,7 @@ app.post("/callService", async (req, res) => {
       result.pqAlgorithm = "SLH-DSA-SHA2-128s";
     }
     res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error("[callService]", e.message); res.status(500).json({ error: "callService failed" }); }
 });
 
 // ---- Circle Gateway Nanopayments ----
@@ -208,7 +313,8 @@ app.get("/nano/service", async (req, res) => {
 
     return res.json({ ok: true, data: "pong", payer, tx: settleResult.transaction });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error("[nano/service GET]", e.message);
+    return res.status(500).json({ error: "nano service failed" });
   }
 });
 
@@ -240,7 +346,8 @@ app.post("/nano/service", async (req, res) => {
     })).toString("base64"));
     return res.json({ ok: true, data: "pong", payer: settleResult.payer, tx: settleResult.transaction });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error("[nano/service POST]", e.message);
+    return res.status(500).json({ error: "nano service failed" });
   }
 });
 
@@ -253,7 +360,7 @@ app.get("/", (_, res) => res.json({
 }));
 
 // ---- /nano/call — facilitator pays via GatewayClient ----
-app.post("/nano/call", async (req, res) => {
+app.post("/nano/call", requireAdmin, async (req, res) => {
   try {
     const { providerId } = req.body;
 
@@ -326,7 +433,8 @@ app.post("/nano/call", async (req, res) => {
     const result = { formattedAmount: "0.001" };
     res.json({ ok: true, amount: result.formattedAmount, result });
   } catch (e) {
-    res.status(500).json({ error: e.message, detail: e.stack });
+    console.error("[nano/call]", e.message);
+    res.status(500).json({ error: "nano call failed" });
   }
 });
 
@@ -349,23 +457,45 @@ app.get("/nano/balance", async (req, res) => {
       pendingBatch: bal.pendingBatch || "0",
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error("[nano/balance]", e.message);
+    res.status(500).json({ error: "balance lookup failed" });
   }
 });
 
 app.get("/ping", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ ok: false, error: "url required" });
+
+  let target;
+  try {
+    target = new URL(String(url));
+  } catch {
+    return res.status(400).json({ ok: false, error: "invalid url" });
+  }
+
+  // SSRF guard: http/https only, host must resolve to a public IP, and
+  // redirects are never followed (rebinding / redirect-to-internal defence).
+  if (target.protocol !== "http:" && target.protocol !== "https:") {
+    return res.status(400).json({ ok: false, error: "only http/https allowed" });
+  }
+  if (!(await isPublicHost(target.hostname))) {
+    return res.status(400).json({ ok: false, error: "private addresses not allowed" });
+  }
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     const start = Date.now();
-    const r = await fetch(url, { method: "GET", signal: controller.signal });
+    const r = await fetch(target.toString(), {
+      method: "GET",
+      signal: controller.signal,
+      redirect: "manual",
+    });
     clearTimeout(timeout);
     const ms = Date.now() - start;
     res.json({ ok: r.ok || r.status < 500, status: r.status, ms });
   } catch (e) {
-    res.json({ ok: false, error: e.message, ms: null });
+    res.json({ ok: false, error: e.name === "AbortError" ? "timeout" : "ping failed", ms: null });
   }
 });
 
@@ -409,7 +539,7 @@ async function autoSubmitReceipt({ callId, requestHash, payload, providerId }) {
   }
 }
 
-app.post("/callguard-hook", async (req, res) => {
+app.post("/callguard-hook", requireAdmin, async (req, res) => {
   const { event, callId, requestHash, payload, providerId, deadline } = req.body;
   console.log(`[hook] ${event} callId=${callId} provider=${providerId}`);
   res.json({ received: true, callId }); // respond immediately
@@ -426,7 +556,7 @@ app.get("/health", async (_, res) => {
       const acc = privateKeyToAccount(env.BUYER_PRIVATE_KEY);
       buyerAddr = acc.address;
     }
-  } catch(e) { buyerAddr = "error: " + e.message; }
+  } catch(e) { console.error("[health]", e.message); buyerAddr = "error"; }
   res.json({ ok: true, facilitator: fac.facilitatorAddress, buyer: buyerAddr, pqPublicKey: PQ_PUBLIC_KEY, pqAlgorithm: "SLH-DSA-SHA2-128s (experimental, untrusted)" });
 });
 

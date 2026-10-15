@@ -1,5 +1,68 @@
 // api/ping-provider.js — serverless endpoint to ping a provider's webhook/API URL
 // GET /api/ping-provider?url=https://...
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
+function ipToLong(ip) {
+  const p = ip.split(".").map(Number);
+  if (p.length !== 4 || p.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return null;
+  return (((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3]) >>> 0;
+}
+
+function isPrivateIp(ip) {
+  const v = isIP(ip);
+  if (v === 4) {
+    const n = ipToLong(ip);
+    if (n === null) return true;
+    const inRange = (base, bits) => (n >>> (32 - bits)) === (ipToLong(base) >>> (32 - bits));
+    return (
+      inRange("0.0.0.0", 8) ||        // "this" network
+      inRange("10.0.0.0", 8) ||       // private
+      inRange("100.64.0.0", 10) ||    // CGNAT
+      inRange("127.0.0.0", 8) ||      // loopback
+      inRange("169.254.0.0", 16) ||   // link-local / cloud metadata
+      inRange("172.16.0.0", 12) ||    // private
+      inRange("192.0.0.0", 24) ||     // IETF protocol assignments
+      inRange("192.168.0.0", 16) ||   // private
+      inRange("198.18.0.0", 15) ||    // benchmarking
+      inRange("224.0.0.0", 4) ||      // multicast
+      inRange("240.0.0.0", 4)         // reserved
+    );
+  }
+  if (v === 6) {
+    const low = ip.toLowerCase();
+    if (low === "::1" || low === "::") return true;
+    if (low.startsWith("fe80") || low.startsWith("fc") || low.startsWith("fd")) return true;
+    if (low.startsWith("::ffff:")) {
+      const mapped = low.slice(7);
+      if (isIP(mapped) === 4) return isPrivateIp(mapped);
+    }
+    return false;
+  }
+  return true; // not a parseable IP → treat as unsafe
+}
+
+// Resolve the hostname and reject any private/loopback/link-local/metadata
+// address. Also rejects decimal/hex/octal IP obfuscations and blocks DNS
+// rebinding by validating every returned address.
+async function isPublicHost(hostnameRaw) {
+  let hostname = (hostnameRaw || "").toLowerCase();
+  if (hostname.endsWith(".")) hostname = hostname.slice(0, -1);
+  if (hostname.startsWith("[") && hostname.endsWith("]")) hostname = hostname.slice(1, -1);
+  if (!hostname) return false;
+  if (isIP(hostname)) return !isPrivateIp(hostname);
+  if (/^\d+$/.test(hostname) || /^0x[0-9a-f.]+$/i.test(hostname) || /^(0\d+\.)+\d+$/.test(hostname)) {
+    return false; // obfuscated IP literals
+  }
+  try {
+    const addrs = await lookup(hostname, { all: true });
+    if (!addrs.length) return false;
+    return addrs.every((a) => !isPrivateIp(a.address));
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   const { url } = req.query;
@@ -12,54 +75,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "invalid url" });
   }
 
-  // Block internal IPs for security (including IPv6 localhost).
-  // Also block: cloud metadata (169.254.169.254), decimal/hex/octal IP
-  // spellings (2130706433, 0x7f.0.0.1), and trailing-dot bypass (127.0.0.1.).
+  // SSRF guard: only http/https, and only hosts that resolve to public IPs.
   // Redirects are NOT followed (redirect: manual) to stop DNS-rebinding /
   // redirect-to-internal attacks.
   if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
     return res.status(400).json({ ok: false, error: "only http/https allowed" });
   }
-  const rawHost = targetUrl.hostname.toLowerCase();
-  const hostname = rawHost.endsWith(".") ? rawHost.slice(0, -1) : rawHost;
-  const isDecimalIp = /^\d+$/.test(hostname);
-  const looksLikeIp = isDecimalIp
-    || /^0x[0-9a-f.]+$/i.test(hostname)
-    || /^[0-9a-f:]+$/i.test(hostname) && hostname.includes(":")
-    || /^(0\d+\.)+\d+$/.test(hostname)
-    || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
-  if (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "2130706433" || // 127.0.0.1 as decimal
-    hostname === "::1" ||
-    hostname === "[::1]" ||
-    hostname.startsWith("169.254.") || // cloud metadata
-    hostname === "169.254.169.254" ||
-    isDecimalIp || // any all-digit host = obfuscated IP
-    hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.") ||
-    hostname.startsWith("172.16.") ||
-    hostname.startsWith("172.17.") ||
-    hostname.startsWith("172.18.") ||
-    hostname.startsWith("172.19.") ||
-    hostname.startsWith("172.20.") ||
-    hostname.startsWith("172.21.") ||
-    hostname.startsWith("172.22.") ||
-    hostname.startsWith("172.23.") ||
-    hostname.startsWith("172.24.") ||
-    hostname.startsWith("172.25.") ||
-    hostname.startsWith("172.26.") ||
-    hostname.startsWith("172.27.") ||
-    hostname.startsWith("172.28.") ||
-    hostname.startsWith("172.29.") ||
-    hostname.startsWith("172.30.") ||
-    hostname.startsWith("172.31.") ||
-    hostname.startsWith("fc") ||
-    hostname.startsWith("fd") ||
-    hostname.startsWith("fe80") ||
-    hostname === "0.0.0.0"
-  ) {
+  if (!(await isPublicHost(targetUrl.hostname))) {
     return res.status(400).json({ ok: false, error: "private addresses not allowed" });
   }
 
