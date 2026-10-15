@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useModal } from "connectkit";
+import { toast } from "sonner";
 import { useSubgraph } from "../hooks/useSubgraph";
 import { useAppStore } from "../store/useAppStore";
 
@@ -886,7 +887,7 @@ export default function CgLanding() {
       </footer>
 
       {/* Help FAB */}
-      <button className="help-fab" onClick={()=>alert("CallGuard docs: https://github.com/muazzezwq/CallGuard")}>?</button>
+      <button className="help-fab" onClick={()=>toast.info("Docs & source: github.com/muazzezwq/CallGuard")}>?</button>
     </div>
   );
 }

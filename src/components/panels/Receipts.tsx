@@ -18,7 +18,7 @@ export default function Receipts() {
 
   const receipts = data?.calls ?? [];
 
-  const copy = (txt: string) => { navigator.clipboard.writeText(txt); setCopied(txt); setTimeout(()=>setCopied(null),2000); };
+  const copy = (txt: string) => { navigator.clipboard?.writeText(txt).catch(()=>{}); setCopied(txt); setTimeout(()=>setCopied(null),2000); };
 
   return (
     <div className="cg-panel">
@@ -59,9 +59,11 @@ export default function Receipts() {
               </div>
             </div>
             <div className="receipt-actions">
-              <a href={`https://explorer.testnet.arc.io/tx/${r.id}`} target="_blank" rel="noreferrer" className="btn btn-sm">
-                View on ArcScan ↗
-              </a>
+              <button
+                className="btn btn-sm"
+                onClick={() => copy(r.id)}
+                title="Copy call ID"
+              >{copied===r.id ? "✓ Copied" : "Copy call ID ⎘"}</button>
               <button
                 className="btn btn-sm"
                 onClick={() => openVerify(r.id)}

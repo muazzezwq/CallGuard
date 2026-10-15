@@ -178,14 +178,12 @@ export default function History() {
                     {!!c.completedAt  && <span>completedAt: {new Date(Number(c.completedAt)*1000).toLocaleString()}</span>}
                     {!!c.refunded && <span style={{color:"var(--accent)"}}>✓ Refunded</span>}
                     {!!c.slashed  && <span style={{color:"var(--danger,#ef4444)"}}>⚡ Slashed</span>}
-                    <a
-                      href={`https://explorer.testnet.arc.io/tx/${id}`}
-                      target="_blank" rel="noreferrer"
-                      style={{ color:"var(--accent)", marginTop:2 }}
-                      onClick={e => e.stopPropagation()}
+                    <button
+                      onClick={e => { e.stopPropagation(); navigator.clipboard?.writeText(id).catch(()=>{}); }}
+                      style={{ background:"none", border:"none", padding:0, color:"var(--accent)", marginTop:2, cursor:"pointer", fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}
                     >
-                      View on ArcScan ↗
-                    </a>
+                      Copy call ID ⎘
+                    </button>
                   </div>
                 )}
               </div>

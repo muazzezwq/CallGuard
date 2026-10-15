@@ -4,7 +4,6 @@ import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
 import { CONFIG } from "../../lib/config";
 const SUBGRAPH_URL = CONFIG.subgraphUrl;
-const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
@@ -242,10 +241,6 @@ export default function Analytics() {
             <span style={{ color: statusColor(c.status), flexShrink: 0 }}>{String(c.status).toLowerCase()}</span>
             <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{(Number(c.amount || 0) / 1e6).toFixed(3)} USDC</span>
             <span style={{ marginLeft: "auto", color: "var(--text-faint)", whiteSpace: "nowrap" }}>{ago(c.createdAt)}</span>
-            <a
-              href={`${ARCSCAN}/tx/${c.id}`} target="_blank" rel="noreferrer"
-              style={{ color: "var(--accent)", fontSize: 10, textDecoration: "none", marginLeft: 4 }}
-            >↗</a>
           </div>
         )) : (
           <div style={{ fontSize: 12, color: "var(--text-faint)" }}>No recent calls</div>

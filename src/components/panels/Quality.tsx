@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { toast } from 'sonner'
 import { CONFIG, DISPUTE_QUALITY_ABI } from '../../lib/config'
 
 const ADDR = CONFIG.disputeQualityAddress as `0x${string}`
@@ -35,10 +36,10 @@ export default function Quality() {
 
   // CRITICAL-04 fix: openDispute(bytes32, uint256, uint64, string)
   async function openDispute() {
-    if (!ENABLED) { alert("Quality Disputes are disabled — the contract is retired."); return }
-    if (!callId || !evidence) return
+    if (!ENABLED) { toast.error("Quality Disputes are disabled — the contract is retired."); return }
+    if (!callId || !evidence) { toast.error("Enter a call ID and evidence."); return }
     if (!/^0x[0-9a-fA-F]{64}$/.test(callId)) {
-      alert("Call ID must be a 0x-prefixed 32-byte hex (66 chars)"); return;
+      toast.error("Call ID must be a 0x-prefixed 32-byte hex (66 chars)"); return;
     }
     try {
       const now = BigInt(Math.floor(Date.now() / 1000));
@@ -49,13 +50,13 @@ export default function Quality() {
         args: [callId as `0x${string}`, BigInt(1), now - 1n, evidence],
       })
       setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? e.message : String(e))) }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)) }
   }
 
   // CRITICAL-04 fix: vote(uint256, uint8) — 1=ForCaller, 2=ForProvider
   async function voteOnDispute() {
-    if (!ENABLED) { alert("Quality Disputes are disabled — the contract is retired."); return }
-    if (!disputeId) return
+    if (!ENABLED) { toast.error("Quality Disputes are disabled — the contract is retired."); return }
+    if (!disputeId) { toast.error("Enter a dispute ID."); return }
     try {
       const choice = voteSupport ? 1 : 2; // true = ForCaller
       const hash = await writeContractAsync({
@@ -65,12 +66,12 @@ export default function Quality() {
         args: [BigInt(disputeId), choice],
       })
       setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? e.message : String(e))) }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)) }
   }
 
   // stakeAsArbiter: not a contract function; show informational message only
   async function stakeAsArbiter() {
-    alert("Becoming an arbiter requires holding USDC and participating in vote windows. Call the vote() function when a dispute is open.");
+    toast.info("Becoming an arbiter requires holding USDC and participating in vote windows. Call the vote() function when a dispute is open.");
   }
 
   const tabs = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]

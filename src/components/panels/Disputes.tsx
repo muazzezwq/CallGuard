@@ -49,8 +49,10 @@ export default function Disputes() {
       id callId caller providerId status slashAmount openedAt resolvedAt txHash
     }
   }`;
+  // Gate history queries while DisputeQuality is retired (the deployed subgraph
+  // has no DisputeRecord entity, so querying it only produces errors).
   const { data: historyData, loading: historyLoading, refetch: refetchHistory } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
-    historyQuery, { pollInterval: 30000 }
+    historyQuery, { pollInterval: 30000, enabled: dqEnabled }
   );
 
   // MEDIUM-13: My disputes — filtered by connected address
@@ -60,7 +62,7 @@ export default function Disputes() {
     }
   }` : "";
   const { data: myDisputesData, loading: myDisputesLoading, refetch: refetchMine } = useSubgraph<{ disputeRecords: SubgraphDispute[] }>(
-    myDisputesQuery, { enabled: !!address, pollInterval: 30000 }
+    myDisputesQuery, { enabled: !!address && dqEnabled, pollInterval: 30000 }
   );
 
   // HIGH-04: pendingWithdrawals from DisputeQuality pull model

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient } from 'wagmi'
+import { toast } from 'sonner'
 import { CONFIG } from '../../lib/config'
 
 const BRIDGE_ADDR = CONFIG.slaAttestationBridge as `0x${string}`
@@ -31,10 +32,13 @@ export default function Attestation() {
   const [lookupId, setLookupId] = useState('')
   const [peekResult, setPeekResult] = useState<any>(null)
   const [peekLoading, setPeekLoading] = useState(false)
+  const [lookupResult, setLookupResult] = useState<any>(null)
+  const [lookupLoading, setLookupLoading] = useState(false)
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
 
   const { writeContractAsync, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+  const publicClient = usePublicClient()
 
   async function peek() {
     setPeekLoading(true)
@@ -45,11 +49,33 @@ export default function Attestation() {
         : `?callId=${callId}`
       const res = await fetch(`/api/attestation${params}`)
       const data = await res.json()
+      if (!res.ok) { toast.error(data?.error || `Request failed (${res.status})`); setPeekResult({ error: data?.error || `HTTP ${res.status}` }); return }
       setPeekResult(data)
-    } catch (e) {
+    } catch {
+      toast.error("Attestation request failed")
       setPeekResult({ error: 'Request failed' })
     } finally {
       setPeekLoading(false)
+    }
+  }
+
+  async function lookup() {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(lookupId)) { toast.error("Attestation ID must be 0x + 64 hex chars"); return }
+    if (!publicClient) { toast.error("No RPC client available"); return }
+    setLookupLoading(true)
+    setLookupResult(null)
+    try {
+      const res = await publicClient.readContract({
+        address: BRIDGE_ADDR,
+        abi: ATTESTATION_ABI,
+        functionName: 'getAttestation',
+        args: [lookupId as `0x${string}`],
+      })
+      setLookupResult(res)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Lookup failed")
+    } finally {
+      setLookupLoading(false)
     }
   }
 
@@ -62,7 +88,7 @@ export default function Attestation() {
         args: [BigInt(providerId), BigInt(50)],
       })
       setTxHash(hash)
-    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)) }
   }
 
   const tabs = [{ id: 'peek', label: 'Peek (Free)' }, { id: 'issue', label: 'Issue On-chain' }, { id: 'lookup', label: 'Lookup' }]
@@ -135,7 +161,15 @@ export default function Attestation() {
         <div style={S.card}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Lookup Attestation by ID</div>
           <div style={{ marginBottom: '16px' }}><div style={S.label}>Attestation ID (bytes32)</div><input style={S.input} value={lookupId} onChange={e => setLookupId(e.target.value)} placeholder="0x..." /></div>
-          <div style={{ fontSize: '13px', color: 'var(--text-dim)' }}>Use the attestation ID returned after issuing an on-chain attestation to retrieve its full record.</div>
+          <button style={S.btn} onClick={lookup} disabled={lookupLoading}>
+            {lookupLoading ? 'Looking up...' : 'Lookup →'}
+          </button>
+          {lookupResult && (
+            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              {JSON.stringify(lookupResult, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2)}
+            </div>
+          )}
+          <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-dim)' }}>Use the attestation ID returned after issuing an on-chain attestation to retrieve its full record.</div>
         </div>
       )}
 

@@ -24,7 +24,7 @@ interface Sub { providerId: string; name: string; callsLeft: number; pricePerCal
 
 export default function Subscriptions() {
   const { address } = useAccount()
-  const { data } = useSubgraph(QUERY)
+  const { data, loading } = useSubgraph(QUERY)
   const [subs] = useState<Sub[]>([])
   const [subscribing] = useState<string | null>(null)
   const [callsToPreBuy, setCallsToPreBuy] = useState(10)
@@ -69,7 +69,7 @@ export default function Subscriptions() {
         </div>
 
         {providers.length === 0
-          ? <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '24px' }}>Loading providers...</div>
+          ? <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '24px' }}>{loading ? 'Loading providers…' : 'No active providers indexed yet.'}</div>
           : providers.map((p: any) => {
             const price = Number(formatUnits(BigInt(p.pricePerCall || '0'), 6))
             const total = (price * callsToPreBuy).toFixed(2)

@@ -39,7 +39,7 @@ export default function Mcp() {
   const [x402Status, setX402Status]     = useState<string|null>(null)
   const [x402Loading, setX402Loading]   = useState(false)
 
-  const { data } = useSubgraph(QUERY)
+  const { data, loading } = useSubgraph(QUERY)
   const providers = (data as { providers?: Record<string,unknown>[] })?.providers ?? []
 
   async function runMcpTest() {
@@ -224,7 +224,7 @@ export default function Mcp() {
           <div style={S.card}>
             <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>Live Providers (Goldsky)</div>
             {providers.length === 0
-              ? <div style={{ color:'var(--text-dim)', textAlign:'center', padding:16 }}>Loading…</div>
+              ? <div style={{ color:'var(--text-dim)', textAlign:'center', padding:16 }}>{loading ? 'Loading…' : 'No providers indexed yet.'}</div>
               : providers.map(p => (
                 <div key={String(p.id)} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
                   <span>Provider #{String(p.id)}</span>

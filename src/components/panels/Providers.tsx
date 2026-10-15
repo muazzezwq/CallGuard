@@ -108,7 +108,7 @@ export default function Providers() {
     setUptimeDetail(r.detail);
   }, [lookupId]);
 
-  const { data: provData } = useReadContract({
+  const { data: provData, isLoading: provLoading, isError: provError } = useReadContract({
     address: CONFIG.registryAddress as `0x${string}`,
     abi: REGISTRY_ABI,
     functionName: "getProvider",
@@ -184,8 +184,12 @@ export default function Providers() {
               </a>
             </div>
           </div>
+        ) : provError ? (
+          <div style={{ color:"var(--danger,#ef4444)",fontSize:12 }}>Provider #{lookupId} not found.</div>
         ) : (
-          <div style={{ color:"var(--text-faint)",fontSize:12 }}>Loading provider #{lookupId}…</div>
+          <div style={{ color:"var(--text-faint)",fontSize:12 }}>
+            {provLoading ? `Loading provider #${lookupId}…` : "Enter a provider ID to inspect its on-chain record."}
+          </div>
         )}
       </div>
 
