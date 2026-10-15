@@ -212,7 +212,7 @@ export default function Agent() {
 
       {/* Stats */}
       {st && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
           {[
             ["Balance", formatUnits(BigInt(st.balance ?? 0), 6) + " USDC"],
             ["Spent Today", formatUnits(BigInt(st.spentToday ?? 0), 6) + " USDC"],

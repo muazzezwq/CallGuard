@@ -465,7 +465,7 @@ export default function CallBuilder() {
         </div>
       </div>
 
-      <div style={{ display:"grid",gridTemplateColumns:"1fr 320px",gap:16 }}>
+      <div className="cg-split-rail" style={{ display:"grid",gap:16 }}>
         {/* Left: form */}
         <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:12,padding:24 }}>
           {/* Gas-free info */}

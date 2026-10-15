@@ -72,11 +72,12 @@ export default function OnboardingWizard() {
   const s = {
     overlay: {
       position: "fixed" as const,
-      bottom: 24,
       right: 24,
       zIndex: 8888,
       width: 340,
       maxWidth: "calc(100vw - 32px)",
+      maxHeight: "calc(100vh - 96px)",
+      overflowY: "auto" as const,
     } as React.CSSProperties,
     card: {
       background: "var(--bg-1)",
@@ -88,8 +89,10 @@ export default function OnboardingWizard() {
     } as React.CSSProperties,
     closeBtn: {
       position: "absolute" as const,
-      top: 10,
-      right: 14,
+      top: 4,
+      right: 4,
+      width: 40,
+      height: 40,
       fontSize: 20,
       padding: 0,
       background: "none",
@@ -97,6 +100,9 @@ export default function OnboardingWizard() {
       cursor: "pointer",
       color: "var(--text-faint)",
       lineHeight: 1,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     } as React.CSSProperties,
     progressRow: {
       display: "flex",
@@ -168,7 +174,7 @@ export default function OnboardingWizard() {
   };
 
   return (
-    <div style={s.overlay}>
+    <div className="cg-onboard" style={s.overlay}>
       <div style={s.card}>
         {/* Close */}
         <button style={s.closeBtn} onClick={dismiss} title="Close">×</button>

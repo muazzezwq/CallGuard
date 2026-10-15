@@ -775,15 +775,6 @@ body::before {
 .sb-item.active .sb-icon,
 .sb-item.on    .sb-icon { opacity: 1; }
 
-/* sidebar overlay (mobile) */
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 149;
-}
-
 /* sidebar logo block */
 .sb-logo {
   display: flex;
@@ -1121,7 +1112,6 @@ select.input { cursor: pointer; }
     padding-bottom: 80px;
   }
   .sidebar.open { left: 0; }
-  .sidebar-overlay { display: block; }
   /* hide large controls on mobile */
   .tb-hide-sm { display: none !important; }
   /* bottom nav visible */
@@ -1504,7 +1494,7 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   max-width: 1100px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 40px;
 }
 @media (max-width: 767px) {
@@ -2291,7 +2281,7 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   transition: background 0.15s;
 }
 .cg-stat-cell:hover { background: var(--bg-2); }
-.cg-stat-divider { border-right: 1px solid var(--border); }
+.cg-stat-divider { width: auto; height: auto; border-right: 1px solid var(--border); }
 .cg-stat-num {
   font-family: var(--font-display);
   font-size: 24px;
@@ -2308,7 +2298,12 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   letter-spacing: 0.06em;
   margin-top: 4px;
   text-align: center;
-  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .cg-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .cg-stat-cell:nth-child(even) { border-right: none; }
+  .cg-stat-num { font-size: 20px; }
+  .cg-stat-lbl { font-size: 9px; letter-spacing: 0.04em; }
 }
 
 /* ── Network stats bar ───────────────────────────────── */
@@ -3397,4 +3392,117 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   .mp-grid { grid-template-columns: 1fr; }
   .mp-cmp-bar { margin: 8px 16px; }
   .mp-list .mp-metrics { grid-template-columns: 1fr 1fr; }
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE HARDENING — consolidated responsive fixes
+   Breakpoints: 768 / 560 / 480
+══════════════════════════════════════════════════════ */
+
+/* ── Component styles that were referenced but undefined ── */
+.tb-theme-btn {
+  width: 30px; height: 30px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; font-size: 14px;
+  transition: background 0.15s;
+}
+.tb-theme-btn:hover { background: var(--bg-3); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.mbn-item { position: relative; }
+.mbn-label { display: block; font-size: 9px; }
+.mbn-badge {
+  position: absolute; top: 2px; right: calc(50% - 20px);
+  min-width: 14px; height: 14px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #000; font-size: 9px; font-weight: 700;
+  border-radius: 99px; line-height: 1;
+}
+
+/* Panels that only carried .cg-panel (previously had no gutter) */
+.cg-panel { padding: 24px 20px; max-width: 1100px; margin: 0 auto; padding-bottom: 80px; }
+.cg-tabs {
+  display: flex; gap: 4px; padding: 4px; margin-bottom: 20px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+  width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none;
+}
+.cg-tabs::-webkit-scrollbar { display: none; }
+.cg-tab {
+  flex-shrink: 0; padding: 6px 14px; border: none; border-radius: 7px;
+  background: transparent; color: var(--text-dim);
+  font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.cg-tab:hover { color: var(--text); }
+.cg-tab.active { background: var(--accent); color: #fff; }
+
+/* ── Dynamic-viewport heights (avoid mobile browser chrome clipping) ── */
+.app-shell { height: 100vh; height: 100dvh; }
+.cg-landing { min-height: 100vh; min-height: 100dvh; }
+.modal { max-height: 86vh; max-height: 86dvh; }
+@supports (height: 100dvh) {
+  .sidebar { height: calc(100dvh - var(--topbar-h)); }
+}
+
+/* ── Topbar: shrink instead of clip ── */
+.tb-left, .tb-right { min-width: 0; }
+.tb-breadcrumb { min-width: 0; }
+
+@media (max-width: 768px) {
+  .topbar { padding: 0 10px; gap: 6px; }
+  .tb-left { flex-shrink: 1; }
+  .tb-brand-name { display: none; }
+}
+
+@media (max-width: 560px) {
+  .tb-mode-toggle { display: none; }
+  .tb-breadcrumb-panel { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── Touch targets (≥40px) ── */
+@media (max-width: 768px) {
+  .modal-close { width: 40px; height: 40px; }
+  .tb-icon-btn, .tb-theme-btn, .tb-hamburger { width: 38px; height: 38px; }
+  .btn-sm { min-height: 34px; }
+  .tab, .sla-flow-tab, .mp-sort, .mp-view-btn { min-height: 34px; }
+  .app-footer-contract { padding: 5px 9px; }
+}
+
+/* ── Landing mobile fixes ── */
+@media (max-width: 768px) {
+  .cg-cta-section { padding: 56px 20px; }
+  .cg-metrics-section { padding: 28px 18px; margin-bottom: 48px; }
+  .cg-section { padding: 0 18px 32px; }
+  .cg-footer { padding: 32px 18px 0; }
+  .cg-contracts-grid { grid-template-columns: 1fr; max-width: 100%; }
+  .cg-feed-label { min-width: 0; }
+  .help-fab { bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+@media (max-width: 480px) {
+  .cg-footer-bottom { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .cg-feed-item { flex-wrap: wrap; }
+  .cg-feed-amt { margin-left: auto; }
+}
+.cg-contract-addr { overflow-wrap: anywhere; word-break: break-word; }
+
+/* ── Marketplace compare modal must scroll and sit above the bottom nav ── */
+.mp-overlay { z-index: 300; }
+.mp-modal-body { overflow-x: auto; }
+
+/* ── Call Builder: form + right rail stacks on mobile ── */
+.cg-split-rail { grid-template-columns: 1fr 320px; }
+@media (max-width: 768px) { .cg-split-rail { grid-template-columns: 1fr; } }
+
+/* ── Onboarding wizard: clear the mobile bottom nav ── */
+.cg-onboard { bottom: 24px; }
+@media (max-width: 768px) {
+  .cg-onboard { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 }

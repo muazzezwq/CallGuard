@@ -9,7 +9,7 @@ const MULTICALL3_ABI = [
 ] as const
 
 const S = {
-  wrap: { padding: '24px', maxWidth: '680px' },
+  wrap: { padding: '24px', maxWidth: '680px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
   card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
@@ -155,7 +155,7 @@ export default function Nano() {
       <div style={S.sub}>Gasless micropayments via Circle Gateway · 0.001 USDC · no wallet prompt</div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Calls Made</div>
           <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace' }}>{callCount}</div>

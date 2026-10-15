@@ -134,13 +134,9 @@ export default function Leaderboard() {
       </p>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "var(--bg-2)", borderRadius: 10, padding: 4, marginBottom: 20, width: "fit-content" }}>
+      <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} style={{
-            padding: "7px 14px", borderRadius: 7, border: "none", cursor: "pointer",
-            fontWeight: 600, fontSize: 12, background: tab === t.id ? "var(--accent)" : "transparent",
-            color: tab === t.id ? "#000" : "var(--text-dim)"
-          }}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? " active" : ""}`}>{t.label}</button>
         ))}
       </div>
 

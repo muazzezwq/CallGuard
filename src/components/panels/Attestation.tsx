@@ -12,7 +12,7 @@ const ATTESTATION_ABI = [
 ] as const
 
 const S = {
-  wrap: { padding: '24px', maxWidth: '720px' },
+  wrap: { padding: '24px', maxWidth: '720px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
   card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
@@ -98,7 +98,7 @@ export default function Attestation() {
       <div style={S.h1}>SLA Attestation Bridge</div>
       <div style={S.sub}>Cross-protocol SLA oracle. Any protocol can query CallGuard for provider attestations.</div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         {[
           { label: 'Type', value: 'On-chain', sub: 'Immutable records' },
           { label: 'Cross-chain', value: 'CCIP-ready', sub: 'Chainlink broadcast' },
@@ -112,9 +112,9 @@ export default function Attestation() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', width: 'fit-content' }}>
+      <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
         ))}
       </div>
 

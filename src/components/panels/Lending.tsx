@@ -123,7 +123,7 @@ export default function Lending() {
       <p style={s.sub}>Providers borrow USDC against their on-chain reputation to boost stake. Lenders earn yield from interest.</p>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
         {[["Pool Balance", `${pool} USDC`], ["APR", `${apr}%`], ["My Shares", mine]].map(([l, v]) => (
           <div key={l} style={s.stat}><div style={s.statVal}>{v}</div><div style={s.statLbl}>{l}</div></div>
         ))}

@@ -261,7 +261,7 @@ function BatchCard({ batchId }: { batchId: number }) {
           {b.active ? "Active" : "Closed"}
         </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, fontSize: 12, color: "var(--text-dim)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, fontSize: 12, color: "var(--text-dim)" }}>
         <div>Price: <strong style={{ color: "var(--text)" }}>{price} USDC</strong></div>
         <div>Slots: <strong style={{ color: "var(--text)" }}>{String(b.soldSlots)}/{String(b.totalSlots)}</strong></div>
         <div>Deadline: <strong style={{ color: "var(--text)" }}>{deadline}</strong></div>

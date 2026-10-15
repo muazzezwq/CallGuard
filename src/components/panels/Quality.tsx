@@ -8,7 +8,7 @@ const ADDR = CONFIG.disputeQualityAddress as `0x${string}`
 const ENABLED = CONFIG.disputeQualityEnabled
 
 const S = {
-  wrap: { padding: '24px', maxWidth: '720px' },
+  wrap: { padding: '24px', maxWidth: '720px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
   card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
@@ -87,9 +87,9 @@ export default function Quality() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', width: 'fit-content' }}>
+      <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
         ))}
       </div>
 
@@ -149,7 +149,7 @@ export default function Quality() {
       {tab === 'stake' && (
         <div style={S.card}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Become a Community Arbiter</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
             {[{ label: 'Earn', value: 'Dispute fees', sub: 'per resolved case' }, { label: 'Require', value: '>10 USDC', sub: 'minimum stake' }, { label: 'Voting power', value: 'Stake-weighted', sub: 'Bayesian majority' }].map(item => (
               <div key={item.label} style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>

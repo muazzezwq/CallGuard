@@ -143,14 +143,14 @@ export default function Requests() {
         <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 10 }}>
           Claim Timeout / Refund
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             id="timeout-input"
             value={timeoutCallId}
             onChange={e => setTimeoutCallId(e.target.value)}
             placeholder="0x... call ID (auto-filled when you click a row)"
             style={{
-              flex: 1, padding: "9px 12px", background: "var(--bg-3)",
+              flex: "1 1 200px", minWidth: 0, padding: "9px 12px", background: "var(--bg-3)",
               border: "1px solid var(--border)", borderRadius: 8,
               color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)"
             }}

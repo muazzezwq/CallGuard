@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const S = {
-  wrap: { padding: '24px', maxWidth: '680px' },
+  wrap: { padding: '24px', maxWidth: '680px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
   card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },

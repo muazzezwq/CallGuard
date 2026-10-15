@@ -427,7 +427,7 @@ export default function CgLanding() {
         <div className="tb-right">
           <div className="net-pill">
             <span className="net-dot" />
-            <span>Disconnected</span>
+            <span className="tb-hide-sm">Disconnected</span>
           </div>
           <button className="btn btn-primary" onClick={connect}>Connect wallet</button>
           <div className="tb-mode-toggle">
