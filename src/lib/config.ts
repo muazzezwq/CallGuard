@@ -111,6 +111,12 @@ export const PPC_ABI = [
       {name:"responseHash",type:"bytes32",indexed:false},
       {name:"respondedAt",type:"uint64",indexed:false}
     ] },
+  { name: "CallSlashed", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"refunded",type:"uint256",indexed:false},
+      {name:"slashed",type:"uint256",indexed:false}
+    ] },
   // HLB-01: callServiceFor — sets caller=beneficiary (cross-chain support)
   { name: "callServiceFor", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"},{name:"beneficiary",type:"address"}],

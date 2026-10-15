@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useModal } from "connectkit";
+import { toast } from "sonner";
 import { useAppStore } from "../../store/useAppStore";
 import { useUsdcBalance } from "../../hooks/useOnchain";
 
@@ -30,7 +31,7 @@ export default function AppTopbar({
       setCopied(true);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    });
+    }).catch(() => toast.error("Couldn't copy address"));
   }, [address]);
   // Cleanup timer on unmount
   useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);

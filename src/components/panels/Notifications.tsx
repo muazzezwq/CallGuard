@@ -60,7 +60,7 @@ export default function Notifications() {
     }),
   });
 
-  // Watch ReceiptSubmitted (timeout/slash implied by CallSlashed)
+  // Watch ReceiptSubmitted — event carries (callId, responseHash, respondedAt), no providerId
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
     abi: PPC_ABI,
@@ -69,8 +69,24 @@ export default function Notifications() {
       const a = l.args as any;
       push({
         type: "receipt",
-        msg: `Receipt submitted by Provider #${a.providerId ?? ""}`,
+        msg: `Receipt submitted`,
         sub: `Call ${String(a.callId || "").slice(0, 10)}…`,
+        txHash: l.transactionHash ?? undefined,
+      });
+    }),
+  });
+
+  // Watch CallSlashed — timeout: caller refunded, provider slashed
+  useWatchContractEvent({
+    address: CONFIG.ppcAddress as `0x${string}`,
+    abi: PPC_ABI,
+    eventName: "CallSlashed",
+    onLogs: logs => logs.forEach(l => {
+      const a = l.args as any;
+      push({
+        type: "slash",
+        msg: `Deadline missed — provider slashed ${Number(a.slashed || 0) / 1e6} USDC`,
+        sub: `Call ${String(a.callId || "").slice(0, 10)}… · refund ${Number(a.refunded || 0) / 1e6} USDC`,
         txHash: l.transactionHash ?? undefined,
       });
     }),
@@ -105,7 +121,7 @@ export default function Notifications() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "block", animation: "pulse 2s infinite" }} />
         <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>Listening for contract events…</span>
-        <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · TimeoutClaimed</span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · CallSlashed</span>
       </div>
 
       {/* Filter tabs */}

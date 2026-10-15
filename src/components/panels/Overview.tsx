@@ -155,7 +155,7 @@ export default function Overview() {
 
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
-    abi: [{ name: "CallStarted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }, { name: "caller", type: "address", indexed: true }, { name: "amount", type: "uint256" }] }],
+    abi: PPC_ABI,
     eventName: "CallStarted",
     onLogs: (logs) => logs.forEach(l => {
       const a = l.args as any;
@@ -164,7 +164,7 @@ export default function Overview() {
   });
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
-    abi: [{ name: "ReceiptSubmitted", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "responseHash", type: "bytes32" }, { name: "respondedAt", type: "uint64" }] }],
+    abi: PPC_ABI,
     eventName: "ReceiptSubmitted",
     onLogs: (logs) => logs.forEach(l => {
       const a = l.args as any;
@@ -173,11 +173,11 @@ export default function Overview() {
   });
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
-    abi: [{ name: "CallSlashed", type: "event", inputs: [{ name: "callId", type: "bytes32", indexed: true }, { name: "providerId", type: "uint256", indexed: true }, { name: "slashAmount", type: "uint256" }] }],
+    abi: PPC_ABI,
     eventName: "CallSlashed",
     onLogs: (logs) => logs.forEach(l => {
       const a = l.args as any;
-      pushEvent("⚠", `Slashed · Provider #${a.providerId}`, `${Number(a.slashAmount || 0) / 1e6} USDC`);
+      pushEvent("⚠", `Deadline missed — provider slashed`, `${Number(a.slashed || 0) / 1e6} USDC · refund ${Number(a.refunded || 0) / 1e6}`);
     }),
   });
 
