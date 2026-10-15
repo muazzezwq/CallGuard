@@ -117,6 +117,7 @@ export default function CallBuilder() {
   // ── Gas estimator ───────────────────────────────────────────────
   const [gasEstimate, setGasEstimate] = useState<bigint | null>(null);
   const [gasPrice, setGasPrice] = useState<bigint | null>(null);
+  const [gasError, setGasError] = useState(false);
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
   useEffect(() => {
     if (chain !== "arc" || !isConnected || !address || !active || providerIdNum <= 0 || !publicClient) return;
@@ -127,7 +128,7 @@ export default function CallBuilder() {
       functionName: "callService",
       args: [BigInt(providerIdNum), reqH],
       account: address as `0x${string}`,
-    }).then(g => setGasEstimate(g)).catch(() => setGasEstimate(null));
+    }).then(g => { setGasEstimate(g); setGasError(false); }).catch(() => { setGasEstimate(null); setGasError(true); });
     publicClient.getGasPrice().then(p => setGasPrice(p)).catch(() => setGasPrice(null));
   }, [chain, isConnected, address, active, providerIdNum, payload, publicClient]);
 
@@ -609,7 +610,7 @@ export default function CallBuilder() {
               { label:"Price",       value: price ? `${formatUnits(price,6)} USDC` : "—",   highlight: !!price },
               { label:"SLA window",  value: slaWindow ? `${slaWindow}s` : "—",              highlight: false },
               { label:"Slash %",     value: slashBps ? `${slashBps/100}%` : "—",            highlight: false },
-              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (chain === "arc" && isConnected ? "estimating…" : "—"), highlight: false },
+              { label:"Est. Gas",    value: gasEstimate && gasPrice ? `~${Number(gasEstimate * gasPrice / BigInt(1e12)) / 1e6} USDC` : (gasError || !isConnected ? "—" : (chain === "arc" ? "estimating…" : "—")), highlight: false },
               { label:"Network",     value: isCCTP ? `${chainInfo.label}` : "Arc Testnet",  highlight: false },
               { label:"Settlement",  value: "Arc Testnet (on-chain)",                       highlight: false },
               { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009",               highlight: true },

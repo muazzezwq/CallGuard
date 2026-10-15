@@ -4,7 +4,7 @@ import { useProviders } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import type { Provider } from "../../lib/subgraph";
 
-type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "maxResponseTime";
+type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "stake";
 type SortDir = "asc" | "desc";
 
 /* ─────────────────────────────────────────────
@@ -201,6 +201,7 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare, top }: {
 }) {
   const [hov, setHov] = useState(false);
   const price = formatUnits(BigInt(p.pricePerCall || 0), 6);
+  const stake = formatUnits(BigInt(p.stake || 0), 6);
   const total = p.completedCalls + p.slashedCalls;
 
   return (
@@ -231,8 +232,8 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare, top }: {
           <div className="mp-metric-val mp-val-green">{price} <span className="mp-metric-unit">USDC</span></div>
         </div>
         <div className="mp-metric">
-          <div className="mp-metric-lbl">SLA</div>
-          <div className="mp-metric-val">{p.maxResponseTime ?? "—"}<span className="mp-metric-unit">s</span></div>
+          <div className="mp-metric-lbl">Stake</div>
+          <div className="mp-metric-val">{Number(stake).toFixed(2)}<span className="mp-metric-unit"> USDC</span></div>
         </div>
         <div className="mp-metric">
           <div className="mp-metric-lbl">Done</div>
@@ -292,10 +293,10 @@ function CompareModal({ providers, onClose, onCall }: {
   const rows: { l: string; fn: (p: Provider) => string; hi?: boolean }[] = [
     { l: "Honor Rate", fn: p => `${p.reputation}%`, hi: true },
     { l: "Price / call", fn: p => `${formatUnits(BigInt(p.pricePerCall || 0), 6)} USDC` },
-    { l: "SLA window", fn: p => p.maxResponseTime ? `${p.maxResponseTime}s` : "—" },
+    { l: "Stake", fn: p => `${Number(formatUnits(BigInt(p.stake || 0), 6)).toFixed(2)} USDC` },
     { l: "Completed", fn: p => p.completedCalls.toString() },
     { l: "Slashed", fn: p => p.slashedCalls.toString() },
-    { l: "Slash %", fn: p => p.slashBps ? `${(p.slashBps / 100).toFixed(1)}%` : "—" },
+    { l: "Total slashed", fn: p => `${Number(formatUnits(BigInt(p.totalSlashed || 0), 6)).toFixed(2)} USDC` },
     { l: "Status", fn: p => p.active ? "Active" : "Inactive" },
   ];
 
@@ -467,9 +468,9 @@ export default function Marketplace() {
 
           {/* sort */}
           <div className="mp-sort-group">
-            {(["reputation", "pricePerCall", "completedCalls", "maxResponseTime"] as SortKey[]).map(k => (
+            {(["reputation", "pricePerCall", "completedCalls", "stake"] as SortKey[]).map(k => (
               <SortBtn
-                key={k} label={k === "reputation" ? "Honor" : k === "pricePerCall" ? "Price" : k === "completedCalls" ? "Calls" : "SLA"}
+                key={k} label={k === "reputation" ? "Honor" : k === "pricePerCall" ? "Price" : k === "completedCalls" ? "Calls" : "Stake"}
                 active={sortKey === k} dir={sortDir} onClick={() => toggleSort(k)}
               />
             ))}

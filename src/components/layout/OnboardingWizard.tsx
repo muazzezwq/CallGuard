@@ -8,7 +8,7 @@ const STEPS = [
     title: "Welcome to CallGuard",
     desc: "CallGuard is an on-chain SLA marketplace on Arc Testnet. Providers stake USDC and commit to responding within a time window. Miss the deadline — get slashed.",
     highlight: "🔒 Stake · ⚡ Call · ✓ Receipt · ⚠ Slash — the full lifecycle in one contract.",
-    nextLabel: "Connect wallet →",
+    nextLabel: "Get started →",
     skipLabel: "Skip tour",
   },
   {

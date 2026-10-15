@@ -59,7 +59,7 @@ const ADVANCED: NavItem[] = [
     badge: { text: "NEW", color: "#10b981" },
   },
   {
-    id: "agent", simple: "Agent Loop", pro: "Agent Loop",
+    id: "agent", simple: "Agent Wallet", pro: "Agent Wallet",
     icon: "cpu",
     badge: { text: "NEW", color: "#f59e0b" },
   },
@@ -83,7 +83,7 @@ const ADVANCED: NavItem[] = [
     icon: "refresh",
   },
   {
-    id: "jobs", simple: "Claims", pro: "Claims",
+    id: "jobs", simple: "Jobs", pro: "Jobs",
     icon: "briefcase",
   },
   {

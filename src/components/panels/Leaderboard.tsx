@@ -6,17 +6,17 @@ import { useAppStore } from '../../store/useAppStore'
 
 const PROVIDER_QUERY = `{
   providers(first: 20, orderBy: completedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 const SLASH_QUERY = `{
   providers(first: 20, orderBy: slashedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 const PRICE_QUERY = `{
   providers(first: 20, where: { active: true }, orderBy: pricePerCall, orderDirection: asc) {
-    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
+    id owner completedCalls slashedCalls pricePerCall stake active
   }
 }`
 
@@ -157,7 +157,7 @@ export default function Leaderboard() {
                 {[
                   ["Honor", `${honorRate(p)}%`],
                   ["Price", `${p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)).toFixed(4) : "—"} USDC`],
-                  ["SLA", `${p.maxResponseTime}s`],
+                  ["Slashed", `${Number(p.slashedCalls)}`],
                   ["Stake", `${p.stake ? Number(formatUnits(BigInt(p.stake), 6)).toFixed(2) : "—"} USDC`],
                   ["Calls", `${Number(p.completedCalls)}`],
                 ].map(([k, v]) => (

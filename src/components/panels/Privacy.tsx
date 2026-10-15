@@ -47,8 +47,9 @@ export default function Privacy() {
   }
 
   function clearData() {
-    STORAGE_KEYS.forEach(k => localStorage.removeItem(k))
-    sessionStorage.clear()
+    STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
+    // Clear only this app's transient hand-off keys, not the whole session store
+    ['callbuilder_provider', 'nano_provider', 'provprofile_id'].forEach(k => sessionStorage.removeItem(k));
     setCleared(true)
     setTimeout(() => setCleared(false), 3000)
   }

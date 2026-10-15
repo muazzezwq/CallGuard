@@ -23,10 +23,12 @@ export default function ProviderProfile() {
   const [copied, setCopied] = useState(false)
   const { setPanel } = useAppStore()
 
-  // deep-link: read ?provider=X from URL on mount
+  // deep-link: ?provider=X from URL, or hand-off from Marketplace via sessionStorage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const pId = params.get('provider')
+    const fromUrl = params.get('provider')
+    const fromStore = sessionStorage.getItem('provprofile_id')
+    const pId = fromUrl ?? fromStore
     if (pId && /^\d+$/.test(pId)) { setProviderId(pId); setQueried(pId) }
   }, [])
 
@@ -41,12 +43,23 @@ export default function ProviderProfile() {
     setPanel('nano')
   }, [queried, setPanel])
 
+  const validId = /^\d+$/.test(queried) && queried !== ''
   const { data: provider, isLoading, error } = useReadContract({
     address: REGISTRY,
     abi: REGISTRY_ABI,
     functionName: 'getProvider',
-    args: [/^\d+$/.test(queried) && queried !== '' ? BigInt(queried) : BigInt(0)],
-    query: { enabled: /^\d+$/.test(queried) && queried !== '' },
+    args: [validId ? BigInt(queried) : BigInt(0)],
+    query: { enabled: validId },
+  })
+
+  // completedCalls/slashedCalls are separate reads — not part of the getProvider tuple
+  const { data: completedRaw } = useReadContract({
+    address: REGISTRY, abi: REGISTRY_ABI, functionName: 'completedCalls',
+    args: [validId ? BigInt(queried) : BigInt(0)], query: { enabled: validId },
+  })
+  const { data: slashedRaw } = useReadContract({
+    address: REGISTRY, abi: REGISTRY_ABI, functionName: 'slashedCalls',
+    args: [validId ? BigInt(queried) : BigInt(0)], query: { enabled: validId },
   })
 
   const p = provider as any
@@ -54,8 +67,8 @@ export default function ProviderProfile() {
   const stake = p?.stake ?? p?.[2] ? formatUnits((p?.stake ?? p[2]) as bigint, 6) : '0'
   const price = p?.pricePerCall ?? p?.[3] ? formatUnits((p?.pricePerCall ?? p[3]) as bigint, 6) : '0'
   const slaWindow = Number(p?.maxResponseTime ?? p?.[4] ?? 0)
-  const completed = p?.completedCalls ? Number(p.completedCalls) : 0
-  const slashed = p?.slashedCalls ? Number(p.slashedCalls) : 0
+  const completed = Number(completedRaw ?? 0)
+  const slashed = Number(slashedRaw ?? 0)
   const total = completed + slashed
   const honorRate = total > 0 ? Math.round((completed / total) * 100) : 0
   const isActive = p?.active

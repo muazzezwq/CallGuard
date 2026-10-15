@@ -34,7 +34,6 @@ export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
   const honorColor = honorPct >= 80 ? "#10b981" : honorPct >= 50 ? "#f59e0b" : "#ef4444";
   const price = formatUnits(BigInt(p.pricePerCall), CONFIG.usdcDecimals);
   const stake = formatUnits(BigInt(p.stake), CONFIG.usdcDecimals);
-  const hasNoSlash = p.slashBps === 0;
 
   return (
     <motion.div
@@ -72,8 +71,8 @@ export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
         {[
           { label: "Price/call", value: `${price} USDC` },
           { label: "Stake", value: `${stake} USDC` },
-          { label: "SLA", value: `${p.maxResponseTime}s` },
-          { label: "Slash", value: p.slashBps != null ? `${(p.slashBps / 100).toFixed(0)}%` : "—" },
+          { label: "Completed", value: `${p.completedCalls}` },
+          { label: "Slashed", value: `${p.slashedCalls}` },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white/[0.03] rounded-xl p-2.5">
             <div className="text-[10px] text-white/30 mb-0.5">{label}</div>
@@ -106,11 +105,6 @@ export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
           <div className={clsx("w-1.5 h-1.5 rounded-full", p.active ? "bg-accent animate-pulse-glow" : "bg-white/20")} />
           {p.active ? "Active" : "Inactive"}
         </div>
-        {hasNoSlash && (
-          <div className="text-[9px] text-yellow-400/70 bg-yellow-400/8 border border-yellow-400/15 rounded-full px-2 py-0.5">
-            ⚠ No slash
-          </div>
-        )}
       </div>
 
       {/* Call button */}

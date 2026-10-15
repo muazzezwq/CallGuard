@@ -124,7 +124,7 @@ export default function Hero() {
           </div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {["EIP-712 receipts", "ERC-8004 identity", "x402 & CCTP", "66/66 tests passing"].map(b => (
+            {["EIP-712 receipts", "ERC-8004 identity", "x402 & CCTP", "300 tests passing"].map(b => (
               <span key={b} style={{ fontSize: 11, color: "#6b8a7a", fontFamily: "var(--mono)" }}>· {b}</span>
             ))}
           </div>

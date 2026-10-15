@@ -73,8 +73,8 @@ const PANEL_LABELS: Record<string, string> = {
   admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Leaderboard",
   apidocs:"API Docs", verify:"Verify", provprofile:"Provider Profile",
   analytics:"Analytics", notifications:"Notifications", settings:"Settings",
-  jobs:"Claims", bulkcall:"Bulk Call", register:"Register", nano:"Receipts",
-  privacy:"Privacy", bridge:"Bridge",
+  jobs:"Jobs", bulkcall:"Bulk Call", register:"Register", nano:"Nanopayments",
+  privacy:"Privacy", bridge:"Bridge", pipelinehook:"Pipeline Hook",
   passkey:"Passkey Wallet", balance:"Unified Balance",
 };
 
@@ -100,6 +100,12 @@ export default function AppShell() {
   }, [mode]);
 
   useEffect(() => initTabTitleCounter(), []);
+
+  // Deep-link: /?provider=X opens the provider profile (shareable links)
+  useEffect(() => {
+    const pId = new URLSearchParams(window.location.search).get("provider");
+    if (pId && /^\d+$/.test(pId)) setPanel("provprofile");
+  }, [setPanel]);
 
   const toggleCollapsed = () => {
     setSidebarCollapsed(v => {

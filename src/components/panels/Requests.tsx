@@ -83,6 +83,8 @@ export default function Requests() {
         abi: PPC_ABI,
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
+      }, {
+        onError: (e: any) => setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
       });
     } catch (_err: unknown) { const e = _err as any;
       setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);

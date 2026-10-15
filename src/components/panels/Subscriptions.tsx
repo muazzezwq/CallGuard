@@ -1,16 +1,12 @@
 import { useState } from 'react'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
-import { formatUnits, parseUnits } from 'viem'
-import { CONFIG, PPC_ABI } from '../../lib/config'
+import { useAccount } from 'wagmi'
+import { formatUnits } from 'viem'
 import { useSubgraph } from '../../hooks/useSubgraph'
+import { toast } from 'sonner'
 
-// providers: for "subscribe" list — no maxResponseTime (not in schema)
 const QUERY = `{
   providers(first: 20, orderBy: completedCalls, orderDirection: desc, where: { active: true }) {
     id pricePerCall completedCalls slashedCalls stake
-  }
-  callSubscriptions(first: 50, orderBy: createdAt, orderDirection: desc) {
-    id subId subscriber providerId totalCalls remainingCalls expiresAt status createdAt
   }
 }`
 const S = {
@@ -29,23 +25,14 @@ interface Sub { providerId: string; name: string; callsLeft: number; pricePerCal
 export default function Subscriptions() {
   const { address } = useAccount()
   const { data } = useSubgraph(QUERY)
-  const [subs, setSubs] = useState<Sub[]>([])
-  const [subscribing, setSubscribing] = useState<string | null>(null)
+  const [subs] = useState<Sub[]>([])
+  const [subscribing] = useState<string | null>(null)
   const [callsToPreBuy, setCallsToPreBuy] = useState(10)
-  const { writeContractAsync } = useWriteContract()
 
   const providers = (data as any)?.providers || []
 
-  async function subscribe(providerId: string, pricePerCall: string) {
-    if (!address) return
-    setSubscribing(providerId)
-    try {
-      // Pre-buy calls by approving USDC for multiple calls
-      const total = parseUnits((Number(formatUnits(BigInt(pricePerCall), 6)) * callsToPreBuy).toFixed(6), 6)
-      const sub: Sub = { providerId, name: `Provider #${providerId}`, callsLeft: callsToPreBuy, pricePerCall: formatUnits(BigInt(pricePerCall), 6), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 }
-      setSubs(s => [...s, sub])
-    } catch (e: unknown) { alert((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))) }
-    setSubscribing(null)
+  function subscribe(_providerId: string, _pricePerCall: string) {
+    toast.info("Subscriptions aren't live on Arc Testnet yet — pre-buying calls is coming soon.")
   }
 
   return (

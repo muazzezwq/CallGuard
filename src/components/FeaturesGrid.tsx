@@ -63,9 +63,9 @@ const FEATURES = [
   {
     icon: "⚖️",
     category: "DISPUTES",
-    title: "DisputeQuality System",
-    desc: "Community arbitration for SLA violation claims. USDC bond for spam protection. 48-hour voting window.",
-    tags: ["Voting", "Bond", "Community"],
+    title: "SLA Disputes",
+    desc: "Open on-chain disputes against a settled call and let the arbiter resolve them. Quality-voting disputes are paused while that contract is upgraded.",
+    tags: ["Disputes", "Arbiter", "On-chain"],
     color: "#ef4444",
   },
   {
@@ -193,7 +193,7 @@ export default function FeaturesGrid() {
         }}>
           {[
             { num: "11", label: "Smart Contracts" },
-            { num: "66/66", label: "Tests Passing" },
+            { num: "300", label: "Tests Passing" },
             { num: "12", label: "API Endpoints" },
             { num: "30+", label: "UI Panels" },
           ].map(s => (

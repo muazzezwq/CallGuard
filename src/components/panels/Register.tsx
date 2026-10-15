@@ -3,6 +3,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { toast } from "sonner";
 
 const IDENTITY_REGISTRY_ABI = [
   { name: "register", type: "function", stateMutability: "nonpayable",
@@ -20,7 +21,7 @@ const REGISTRY_V2_ABI = [
 ] as const;
 
 // HIGH-01 fix: unstake(uint256 providerId) — not unstake()
-// HIGH-03 fix: getProvider tuple is 7 fields, not 10
+// HIGH-03 fix: getProvider returns a 9-field ProviderView tuple
 const REGISTRY_UNSTAKE_ABI = [
   { name: "unstake",     type: "function", stateMutability: "nonpayable",
     inputs: [{ name: "providerId", type: "uint256" }], outputs: [] },
@@ -40,6 +41,8 @@ const REGISTRY_UNSTAKE_ABI = [
       { name: "maxResponseTime", type: "uint32"   },
       { name: "slashBps",        type: "uint32"   },
       { name: "active",          type: "bool"     },
+      { name: "maxConcurrentCalls", type: "uint32" },
+      { name: "zkTier",          type: "uint8"    },
     ]}]
   },
   { name: "completedCalls", type: "function", stateMutability: "view",
@@ -174,7 +177,10 @@ export default function Register() {
       abi: USDC_ABI,
       functionName: "approve",
       args: [CONFIG.registryAddress as `0x${string}`, stakeAmount],
-    }, { onSuccess: h => setHash(h) });
+    }, {
+      onSuccess: h => setHash(h),
+      onError: (e: any) => { setStep("idle"); toast.error(e.shortMessage || (e instanceof Error ? e.message : "Approval failed")); },
+    });
   };
 
   const handleRegister = () => {
@@ -185,7 +191,10 @@ export default function Register() {
       functionName: "register",
       // CRITICAL-03 fix: endpoint is string, not hex address
     args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""],
-    }, { onSuccess: h => setHash(h) });
+    }, {
+      onSuccess: h => setHash(h),
+      onError: (e: any) => { setStep("idle"); toast.error(e.shortMessage || (e instanceof Error ? e.message : "Registration failed")); },
+    });
   };
 
   const handleRegisterV2 = useCallback(async () => {

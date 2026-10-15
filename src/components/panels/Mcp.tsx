@@ -4,7 +4,7 @@ import { useAccount, useWalletClient } from 'wagmi'
 import { parseUnits } from 'viem'
 import { CONFIG } from '../../lib/config'
 
-const QUERY = `{ providers(first:5 orderBy:completedCalls orderDirection:desc) { id pricePerCall maxResponseTime completedCalls slashedCalls } }`
+const QUERY = `{ providers(first:5 orderBy:completedCalls orderDirection:desc) { id pricePerCall completedCalls slashedCalls } }`
 
 const USDC_ABI = [
   { name:"transferWithAuthorization", type:"function", stateMutability:"nonpayable",
