@@ -154,20 +154,23 @@ export default function Verify() {
           const data = await publicClient.readContract({
             address: CONFIG.ppcAddress as `0x${string}`,
             abi: PPC_ABI,
-            functionName: "calls",
+            functionName: "getCall",
             args: [val as `0x${string}`],
-          }) as unknown as any[];
+          }) as unknown as any;
+          const provId = data?.providerId ?? data?.[0];
+          const amt    = data?.amount     ?? data?.[2];
+          const st     = data?.status     ?? data?.[7];
 
-          if (data && data[0] !== undefined) {
-            // calls() returns [providerId, caller, amount, startedAt, deadline, requestHash, responseHash, status]
+          if (provId !== undefined) {
+            // getCall() returns [providerId, caller, amount, startedAt, deadline, requestHash, responseHash, status]
             // CallStatus: 0=None, 1=Pending, 2=Completed, 3=Slashed (see PayPerCall.sol)
-            const status = ["NONE","PENDING","COMPLETED","SLASHED"][Number(data[7])] || "UNKNOWN";
+            const status = ["NONE","PENDING","COMPLETED","SLASHED"][Number(st)] || "UNKNOWN";
             setResult({
               ok: status === "COMPLETED",
               status,
-              providerId: Number(data[0]),
+              providerId: Number(provId),
               callId: val,
-              amount: (Number(data[2]) / 1e6).toFixed(4),
+              amount: (Number(amt) / 1e6).toFixed(4),
             });
             setShareLink(`${window.location.origin}/?verify=${encodeURIComponent(val)}`);
             setLoading(false);

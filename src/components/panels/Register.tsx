@@ -76,10 +76,11 @@ export default function Register() {
   const { address } = useAccount();
   const identityAddr = (CONFIG as any).identityRegistryAddress as `0x${string}` | undefined;
   const [signerAddr, setSignerAddr] = useState("");
-  const [stake, setStake] = useState("5");
+  const [stake, setStake] = useState("10");
   const [price, setPrice] = useState("1");
   const [slaWindow, setSlaWindow] = useState("120");
   const [slashPct, setSlashPct] = useState("20");
+  const [maxConcurrent, setMaxConcurrent] = useState("10");
   const [step, setStep] = useState<"idle"|"approving"|"registering"|"done">("idle");
   const [endpoint, setEndpoint] = useState("https://your-provider-endpoint.com/api");
   const [v2Step, setV2Step] = useState<"idle"|"minting"|"approving"|"registering"|"done">("idle");
@@ -192,7 +193,7 @@ export default function Register() {
       abi: REGISTRY_ABI,
       functionName: "register",
       // CRITICAL-03 fix: endpoint is string, not hex address
-    args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""],
+    args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, parseInt(maxConcurrent) || 0, endpoint || ""],
     }, {
       onSuccess: h => setHash(h),
       onError: (e: any) => { setStep("idle"); toast.error(e.shortMessage || (e instanceof Error ? e.message : "Registration failed")); },
@@ -337,6 +338,10 @@ export default function Register() {
             <label style={s.label}>Slash % on timeout</label>
             <input style={s.input} type="number" min="1" max="100" value={slashPct} onChange={e => setSlashPct(e.target.value)} />
           </div>
+          <div style={{ flex:1 }}>
+            <label style={s.label}>Max concurrent calls</label>
+            <input style={s.input} type="number" min="0" step="1" value={maxConcurrent} onChange={e => setMaxConcurrent(e.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -351,6 +356,7 @@ export default function Register() {
             ["Break-even calls", String(breakeven)],
             ["Estimated earnings (10 calls)", `${estimatedEarning.toFixed(2)} USDC`],
             ["Slash BPS (on-chain value)", String(slashBps)],
+            ["Max concurrent calls", maxConcurrent || "0"],
           ].map(([k,v]) => (
             <div key={k} style={s.calcRow}>
               <span style={s.calcLabel}>{k}</span>
@@ -439,7 +445,7 @@ export default function Register() {
               address={CONFIG.registryAddress as `0x${string}`}
               abi={REGISTRY_ABI}
               functionName="register"
-              args={[signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""]}
+              args={[signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, parseInt(maxConcurrent) || 0, endpoint || ""]}
               enabled={step === "idle"}
             />
           </>

@@ -82,8 +82,8 @@ export const PPC_ABI = [
     outputs: [] },
   // MEDIUM-01: claimTimeout takes bytes32 callId (not uint256)
   { name: "claimTimeout", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"bytes32"}], outputs: [] },
-  // MEDIUM-02: calls() output matches struct Call exactly (no respondedAt field in struct)
-  { name: "calls", type: "function", stateMutability: "view",
+  // MEDIUM-02: getCall() output matches struct Call exactly (no respondedAt field in struct)
+  { name: "getCall", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}],
     outputs: [
       {name:"providerId",type:"uint256"},
@@ -272,7 +272,8 @@ export const REGISTRY_ABI = [
   { name: "register", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},
              {name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},
-             {name:"slashBps",type:"uint32"},{name:"endpoint",type:"string"}],
+             {name:"slashBps",type:"uint32"},{name:"maxConcurrentCalls",type:"uint32"},
+             {name:"endpoint",type:"string"}],
     outputs: [{type:"uint256"}] },
   // getProvider returns a ProviderView tuple — 9 fields matching ServiceRegistry.sol
   { name: "getProvider", type: "function", stateMutability: "view",
