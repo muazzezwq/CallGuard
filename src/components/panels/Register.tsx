@@ -17,7 +17,7 @@ const REGISTRY_V2_ABI = [
       { name: "erc8004TokenId", type: "uint256" }, { name: "signer", type: "address" },
       { name: "stakeAmount", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
       { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
-      { name: "endpoint", type: "string" },
+      { name: "maxConcurrentCalls", type: "uint32" }, { name: "endpoint", type: "string" },
     ], outputs: [{ name: "", type: "uint256" }] },
 ] as const;
 
@@ -245,7 +245,7 @@ export default function Register() {
         address: CONFIG.registryAddress as `0x${string}`,
         abi: REGISTRY_V2_ABI,
         functionName: "registerV2",
-        args: [tokenId, signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint],
+        args: [tokenId, signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, parseInt(maxConcurrent) || 0, endpoint],
       });
       setV2Status(`✅ Registered with NFT #${tokenId}! TX: ${regHash.slice(0, 14)}…`);
       setV2Step("done");
@@ -253,7 +253,7 @@ export default function Register() {
       setV2Status("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Failed"));
       setV2Step("idle");
     }
-  }, [walletClient, address, alreadyRegistered, providerId, endpoint, signerAddr, stakeAmount, priceAmount, slaWindow, slashBps]);
+  }, [walletClient, address, alreadyRegistered, providerId, endpoint, signerAddr, stakeAmount, priceAmount, slaWindow, slashBps, maxConcurrent]);
 
   if (step === "done") return (
     <div style={s.page}>
