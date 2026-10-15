@@ -24,6 +24,14 @@
  *   USDC_ADDRESS / VITE_USDC_ADDRESS — USDC contract on Arc Testnet
  */
 import { ethers } from "ethers";
+import crypto from "node:crypto";
+
+// Constant-time string compare (hash first so lengths always match).
+function safeEqual(a, b) {
+  const ab = crypto.createHash("sha256").update(String(a)).digest();
+  const bb = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(ab, bb);
+}
 
 const BUYER_KEY = process.env.BUYER_PRIVATE_KEY;
 const SELLER    = process.env.SELLER_ADDRESS;
@@ -118,7 +126,8 @@ export default async function handler(req, res) {
       const formatted = ethers.formatUnits(raw, 6);
       return res.json({ address, raw: raw.toString(), formatted, symbol: "USDC" });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error("[nano-call] balance error:", e.message);
+      return res.status(500).json({ error: "balance lookup failed" });
     }
   }
 
@@ -131,7 +140,7 @@ export default async function handler(req, res) {
   }
   {
     const provided = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
-    if (!provided || provided !== NANO_API_KEY) {
+    if (!provided || !safeEqual(provided, NANO_API_KEY)) {
       return res.status(401).json({ ok: false, error: "Unauthorized — X-Api-Key required" });
     }
   }
@@ -229,6 +238,6 @@ export default async function handler(req, res) {
     return res.json({ ok: true, amount: "0.001", rail: "erc20", txHash: tx.hash });
   } catch (e) {
     console.error("[nano-call] ERC-20 rail error:", e.message);
-    return res.status(500).json({ ok: false, error: e.message });
+    return res.status(500).json({ ok: false, error: "nano transfer failed" });
   }
 }

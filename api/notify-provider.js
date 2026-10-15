@@ -69,7 +69,8 @@ export default async function handler(req, res) {
     try {
       providerInfo = await registry.getProvider(providerId);
     } catch (e) {
-      return res.status(404).json({ error: "Provider not found", detail: e.message });
+      console.error("[notify-provider] getProvider failed:", e.message);
+      return res.status(404).json({ error: "Provider not found" });
     }
 
     if (!providerInfo.active) {
@@ -176,8 +177,8 @@ export default async function handler(req, res) {
       providerId,
     });
   } catch (e) {
-    console.error("[notify-provider] error:", e);
-    return res.status(500).json({ error: e.message });
+    console.error("[notify-provider] error:", e.message || e);
+    return res.status(500).json({ error: "notify failed" });
   }
 }
 

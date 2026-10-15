@@ -163,6 +163,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("[attestation api error]", err.message, err.stack);
-    return res.status(500).json({ ok: false, error: err.message || String(err) });
+    return res.status(500).json({ ok: false, error: "attestation request failed" });
   }
 }
