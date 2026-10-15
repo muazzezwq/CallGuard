@@ -12,9 +12,11 @@ const VOTE_FOR_PROVIDER = 2;
 interface SubgraphDispute {
   id: string;
   callId: string;
-  opener: string;
+  caller: string;
+  providerId?: string;
   status: string;
-  createdAt: string;
+  slashAmount?: string;
+  openedAt: string;
   resolvedAt?: string;
   outcome?: string;
 }
@@ -22,6 +24,8 @@ interface SubgraphDispute {
 export default function Disputes() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  // DisputeQuality v2 is retired (bound to the old Registry); gate live transactions.
+  const dqEnabled = CONFIG.disputeQualityEnabled;
 
   const [tab, setTab] = useState<"open" | "vote" | "mine" | "history">("open");
   const [callIdInput, setCallIdInput] = useState("");
@@ -71,6 +75,7 @@ export default function Disputes() {
   const payoutAmt = pendingPayout ? formatUnits(pendingPayout as bigint, 6) : "0";
 
   const handleWithdrawPayout = useCallback(async () => {
+    if (!dqEnabled) { setStatus("❌ Quality Disputes are disabled — the contract is retired."); return; }
     try {
       await writeContractAsync({
         address: CONFIG.disputeQualityAddress as `0x${string}`,
@@ -82,7 +87,7 @@ export default function Disputes() {
       const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
       setStatus(`❌ Withdraw failed: ${msg}`);
     }
-  }, [writeContractAsync, refetchPayout]);
+  }, [dqEnabled, writeContractAsync, refetchPayout]);
 
   // LOW-01: read bond/window values from contract instead of hardcoding
   const dqAddr = CONFIG.disputeQualityAddress as `0x${string}`;
@@ -99,6 +104,7 @@ export default function Disputes() {
 
   // CRITICAL-04 fix: openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
   const handleOpenDispute = useCallback(async () => {
+    if (!dqEnabled) { setStatus("❌ Quality Disputes are disabled — the contract is retired."); return; }
     if (!isConnected) { setStatus("❌ Connect wallet first"); return; }
     if (!callIdInput || !evidence) { setStatus("❌ Enter call ID and evidence URI"); return; }
     // callIdInput must be a 0x-prefixed bytes32 hex (66 chars) and providerId should be provided
@@ -124,7 +130,7 @@ export default function Disputes() {
       const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
       setStatus(`❌ ${msg}`);
     }
-  }, [callIdInput, evidence, isConnected, writeContractAsync, refetchHistory]);
+  }, [dqEnabled, callIdInput, evidence, isConnected, writeContractAsync, refetchHistory]);
 
   // Fetch dispute info for voting
   const fetchDisputeInfo = useCallback(async () => {
@@ -151,6 +157,7 @@ export default function Disputes() {
 
   // CRITICAL-04 fix: vote(uint256 disputeId, uint8 choice) — 1=ForCaller, 2=ForProvider
   const handleVote = useCallback(async (forCaller: boolean) => {
+    if (!dqEnabled) { setVoteStatus("❌ Quality Disputes are disabled — the contract is retired."); return; }
     if (!isConnected) { setVoteStatus("❌ Connect wallet first"); return; }
     if (!voteDisputeId) { setVoteStatus("❌ Enter dispute ID"); return; }
     const choice = forCaller ? VOTE_FOR_CALLER : VOTE_FOR_PROVIDER;
@@ -168,7 +175,7 @@ export default function Disputes() {
       const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
       setVoteStatus(`❌ ${msg}`);
     }
-  }, [voteDisputeId, isConnected, writeContractAsync, fetchDisputeInfo]);
+  }, [dqEnabled, voteDisputeId, isConnected, writeContractAsync, fetchDisputeInfo]);
 
   const disputes = historyData?.disputeRecords ?? [];
 
@@ -181,6 +188,17 @@ export default function Disputes() {
         </div>
         <button className="btn btn-sm" onClick={refetchHistory}>↻</button>
       </div>
+
+      {!dqEnabled && (
+        <div style={{
+          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
+          borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#f59e0b",
+        }}>
+          <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was
+          retired and has no active replacement — actions and on-chain reads are turned off to
+          avoid wasting gas. History remains visible below.
+        </div>
+      )}
 
       {/* HIGH-04: withdrawPayout banner */}
       {hasPayout && (
@@ -279,7 +297,7 @@ export default function Disputes() {
           <button
             className="btn btn-primary"
             onClick={handleOpenDispute}
-            disabled={!callIdInput || !evidence || !isConnected}
+            disabled={!dqEnabled || !callIdInput || !evidence || !isConnected}
           >
             Open Quality Dispute — {callerBondUSDC} USDC bond
           </button>
@@ -325,17 +343,18 @@ export default function Disputes() {
             <button
               className="btn btn-primary"
               onClick={() => { setVoteChoice(true); handleVote(true); }}
-              disabled={votePending || !isConnected || !voteDisputeId}
-              style={{ flex: 1 }}
+              disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
+              style={{ flex: 1, opacity: dqEnabled ? 1 : 0.5 }}
             >
               ✅ Vote Yes — Provider Honored
             </button>
             <button
               onClick={() => { setVoteChoice(false); handleVote(false); }}
-              disabled={votePending || !isConnected || !voteDisputeId}
+              disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
               style={{
                 flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger,#ef4444)",
                 border: "1px solid var(--danger,#ef4444)", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: 13,
+                opacity: dqEnabled ? 1 : 0.5,
               }}
             >
               ❌ Vote No — Provider Slashed
@@ -388,7 +407,7 @@ export default function Disputes() {
                   Dispute #{d.id} · Call {d.callId ? d.callId.slice(0, 10) + "…" : "—"}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                  Opened {d.createdAt ? new Date(Number(d.createdAt) * 1000).toLocaleString() : "—"}
+                  Opened {d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -443,7 +462,7 @@ export default function Disputes() {
                   Dispute #{d.id} · Call #{d.callId}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                  Opened by {d.opener.slice(0, 8)}… · {new Date(Number(d.createdAt) * 1000).toLocaleString()}
+                  Opened by {d.caller ? `${d.caller.slice(0, 8)}…` : "—"} · {d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>

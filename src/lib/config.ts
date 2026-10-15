@@ -26,8 +26,12 @@ export const CONFIG = {
   registryAddress: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333" as `0x${string}`,
   payPerCall: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540",
   ppcAddress: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540" as `0x${string}`,
+  // RETIRED (DisputeQuality v2, 0x7e2771df…) — superseded 13 Oct 2026 and bound to the
+  // old (v5) ServiceRegistry, so its slash path is broken. No active replacement is
+  // deployed. Kept for reference only; `disputeQualityEnabled` gates all live usage.
   disputeQuality: "0x7e2771df71c30307a95f038c93077d5350e7789d",
   disputeQualityAddress: "0x7e2771df71c30307a95f038c93077d5350e7789d" as `0x${string}`,
+  disputeQualityEnabled: false,
   slaFutures: "0xcd57a9b924a565b12889277173b9ec06d4e10435",
   slaFuturesAddress: "0xcd57a9b924a565b12889277173b9ec06d4e10435" as `0x${string}`,
   reputationLoan: "0x9e0622828a03a578050e45ba2fde6b9140e676aa",

@@ -20,7 +20,7 @@ const LINK_GROUPS = [
       { icon: "🔍", label: "ArcScan Testnet", href: `${ARCSCAN}/address/${CONFIG.ppcAddress}` },
       { icon: "🪙", label: "Arc Testnet Faucet", href: "https://faucet.testnet.arc.io" },
       { icon: "🕸️", label: "Thirdweb Arc Testnet", href: "https://thirdweb.com/arc-testnet" },
-      { icon: "📊", label: "Goldsky Subgraph", href: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn" },
+      { icon: "📊", label: "Goldsky Subgraph", href: CONFIG.subgraphUrl },
     ],
   },
   {

@@ -185,7 +185,7 @@ export default function Overview() {
     setAutoLoading(true);
     setAutoResult(null);
     try {
-      const res = await fetch(`https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn`, {
+      const res = await fetch(CONFIG.subgraphUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: `{ providers(first:20,where:{active:true}){ id pricePerCall completedCalls slashedCalls } }` }),

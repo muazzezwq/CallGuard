@@ -297,11 +297,11 @@ export default function AdminPanel() {
         <h3 className="admin-section-title">Correct Addresses</h3>
         <div className="admin-addr-list">
           {[
-            ["ServiceRegistry v4", CONFIG.registry],
-            ["PayPerCall v4",      CONFIG.payPerCall],
-            ["DisputeQuality v2",  CONFIG.disputeQuality],
-            ["SLAFutures v2",      CONFIG.slaFutures],
-            ["ReputationLoan v2",  CONFIG.reputationLoan],
+            ["ServiceRegistry v7", CONFIG.registry],
+            ["PayPerCall v7.1",    CONFIG.payPerCall],
+            ["DisputeQuality v2 (retired)", CONFIG.disputeQuality],
+            ["SLAFutures v3",      CONFIG.slaFutures],
+            ["ReputationLoan v3",  CONFIG.reputationLoan],
             ["CrossChainReceiver v2", CONFIG.crossChainReceiver],
           ].map(([name, addr]) => (
             <div key={addr} className="admin-addr-row">

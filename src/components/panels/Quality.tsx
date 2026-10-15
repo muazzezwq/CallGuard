@@ -3,6 +3,8 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { CONFIG, DISPUTE_QUALITY_ABI } from '../../lib/config'
 
 const ADDR = CONFIG.disputeQualityAddress as `0x${string}`
+// DisputeQuality v2 is retired (bound to the old Registry); block live transactions.
+const ENABLED = CONFIG.disputeQualityEnabled
 
 const S = {
   wrap: { padding: '24px', maxWidth: '720px' },
@@ -33,6 +35,7 @@ export default function Quality() {
 
   // CRITICAL-04 fix: openDispute(bytes32, uint256, uint64, string)
   async function openDispute() {
+    if (!ENABLED) { alert("Quality Disputes are disabled — the contract is retired."); return }
     if (!callId || !evidence) return
     if (!/^0x[0-9a-fA-F]{64}$/.test(callId)) {
       alert("Call ID must be a 0x-prefixed 32-byte hex (66 chars)"); return;
@@ -51,6 +54,7 @@ export default function Quality() {
 
   // CRITICAL-04 fix: vote(uint256, uint8) — 1=ForCaller, 2=ForProvider
   async function voteOnDispute() {
+    if (!ENABLED) { alert("Quality Disputes are disabled — the contract is retired."); return }
     if (!disputeId) return
     try {
       const choice = voteSupport ? 1 : 2; // true = ForCaller
@@ -76,6 +80,12 @@ export default function Quality() {
       <div style={S.h1}>Quality Disputes</div>
       <div style={S.sub}>Challenge provider response quality. Community arbiters vote stake-weighted.</div>
 
+      {!ENABLED && (
+        <div style={{ background: '#f59e0b15', border: '1px solid #f59e0b40', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#f59e0b' }}>
+          <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was retired and has no active replacement, so on-chain actions are turned off.
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', width: 'fit-content' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#000' : 'var(--text-dim)' }}>{t.label}</button>
@@ -98,7 +108,7 @@ export default function Quality() {
             <div style={S.label}>Evidence (IPFS hash or description)</div>
             <textarea style={{ ...S.input, minHeight: '80px', resize: 'vertical' }} value={evidence} onChange={e => setEvidence(e.target.value)} placeholder="Describe the quality issue or provide IPFS hash of evidence..." />
           </div>
-          <button style={S.btnDanger} onClick={openDispute} disabled={isPending || isConfirming || !address}>
+          <button style={S.btnDanger} onClick={openDispute} disabled={!ENABLED || isPending || isConfirming || !address}>
             {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Open Dispute'}
           </button>
           {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Dispute opened successfully</div>}
@@ -128,7 +138,7 @@ export default function Quality() {
               </button>
             </div>
           </div>
-          <button style={S.btn} onClick={voteOnDispute} disabled={isPending || isConfirming || !address || !disputeId}>
+          <button style={S.btn} onClick={voteOnDispute} disabled={!ENABLED || isPending || isConfirming || !address || !disputeId}>
             {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : `Vote: ${voteSupport ? 'Support Caller' : 'Support Provider'}`}
           </button>
           {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Vote cast successfully</div>}
@@ -160,7 +170,7 @@ export default function Quality() {
       <div style={{ ...S.card, marginTop: '24px' }}>
         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Contract Info</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
-          <span>DisputeQuality</span>
+          <span>DisputeQuality (retired)</span>
           <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'monospace' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
         </div>
       </div>

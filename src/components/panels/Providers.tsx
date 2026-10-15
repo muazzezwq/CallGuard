@@ -55,7 +55,7 @@ const provider = new ethers.BrowserProvider(window.ethereum);
 const wallet = await provider.getSigner();
 
 const PPC = "${CONFIG.ppcAddress}";
-const ABI = ["function callService(uint256 providerId,bytes32 requestHash) payable returns(uint256)"];
+const ABI = ["function callService(uint256 providerId,bytes32 requestHash) returns(bytes32)"];
 const ppc = new ethers.Contract(PPC, ABI, wallet);
 const tx = await ppc.callService(1, ethers.keccak256(ethers.toUtf8Bytes("ping")));
 console.log("call opened:", tx.hash);`,
@@ -65,7 +65,7 @@ const rpc = new ethers.JsonRpcProvider("https://rpc.testnet.arc.io");
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, rpc);
 
 const PPC = "${CONFIG.ppcAddress}";
-const ABI = ["function submitReceipt(uint256,bytes32,uint64,bytes) returns(bool)"];
+const ABI = ["function submitReceipt(bytes32,bytes32,uint64,bytes)"];
 const ppc = new ethers.Contract(PPC, ABI, wallet);
 // Call as provider after answering:
 await ppc.submitReceipt(callId, responseHash, respondedAt, signature);`,
@@ -122,15 +122,16 @@ export default function Providers() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // getProvider returns a 7-field tuple: [id, owner, pricePerCall, maxResponseTime, slashBps, active, stakeAmount]
-  const raw = provData as readonly [bigint, string, bigint, bigint, bigint, boolean, bigint] | undefined;
+  // getProvider returns a 9-field tuple:
+  // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
+  const raw = provData as readonly [string, string, bigint, bigint, number, number, boolean, number, number] | undefined;
   const p = raw && raw[1] ? {
     signer:          raw[1],
-    pricePerCall:    raw[2] ?? 0n,
-    maxResponseTime: Number(raw[3] ?? 0n),
-    slashBps:        Number(raw[4] ?? 0n),
-    active:          raw[5] ?? false,
-    stakeAmount:     raw[6] ?? 0n,
+    stakeAmount:     raw[2] ?? 0n,
+    pricePerCall:    raw[3] ?? 0n,
+    maxResponseTime: Number(raw[4] ?? 0n),
+    slashBps:        Number(raw[5] ?? 0n),
+    active:          raw[6] ?? false,
   } : undefined;
   const shorten = (a: string) => `${a.slice(0,8)}…${a.slice(-6)}`;
 

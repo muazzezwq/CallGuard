@@ -13,7 +13,7 @@ const FUTURES_ABI = [
   { name: "burnSlot",      type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
   { name: "cancelBatch",   type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
   { name: "claimRefund",   type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
-  { name: "batchCount",    type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+  { name: "nextBatchId",   type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
   { name: "batches",       type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "providerId", type: "uint256" }, { name: "pricePerCall", type: "uint256" }, { name: "totalSlots", type: "uint256" }, { name: "soldSlots", type: "uint256" }, { name: "usedSlots", type: "uint256" }, { name: "deadline", type: "uint64" }, { name: "active", type: "bool" }, { name: "provider", type: "address" }] }] },
   { name: "purchased",       type: "function", stateMutability: "view", inputs: [{ name: "", type: "uint256" }, { name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
   // HLB-02: provider pull settlement
@@ -60,7 +60,7 @@ export default function Futures() {
   const [claimBatchId, setClaimBatchId] = useState("1");
 
   const { writeContractAsync } = useWriteContract();
-  const { data: batchCount, refetch: refetchCount } = useReadContract({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "batchCount", chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
+  const { data: nextBatchId, refetch: refetchCount } = useReadContract({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "nextBatchId", chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
 
   const handleMint = useCallback(async () => {
     if (!isConnected) { setStatus("❌ Connect wallet"); return; }
@@ -130,7 +130,8 @@ export default function Futures() {
     setLoading(false);
   }, [isConnected, cancelBatchId, writeContractAsync, refetchCount]);
 
-  const count = batchCount ? Number(batchCount) : 0;
+  // nextBatchId is the next id to be assigned; existing batches are 1..nextBatchId-1
+  const count = nextBatchId ? Math.max(0, Number(nextBatchId) - 1) : 0;
 
   return (
     <div style={s.page}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONFIG } from "../../lib/config";
 import { toast } from "sonner";
@@ -26,12 +26,17 @@ export default function PipelineHook() {
 
   const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  if (isMining && txState !== "mining") setTxState("mining");
-  if (isSuccess && txState === "mining") {
-    setTxState("success");
-    toast.success("Pipeline hook updated");
-    refetch();
-  }
+  useEffect(() => {
+    if (isMining) setTxState((s) => (s === "mining" ? s : "mining"));
+  }, [isMining]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      setTxState("success");
+      toast.success("Pipeline hook updated");
+      void refetch();
+    }
+  }, [isSuccess, refetch]);
 
   const isZero = !currentHook || currentHook === "0x0000000000000000000000000000000000000000";
 

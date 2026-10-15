@@ -6,17 +6,17 @@ import { useAppStore } from '../../store/useAppStore'
 
 const PROVIDER_QUERY = `{
   providers(first: 20, orderBy: completedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
+    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
   }
 }`
 const SLASH_QUERY = `{
   providers(first: 20, orderBy: slashedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
+    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
   }
 }`
 const PRICE_QUERY = `{
   providers(first: 20, where: { active: true }, orderBy: pricePerCall, orderDirection: asc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
+    id owner completedCalls slashedCalls pricePerCall stake active maxResponseTime
   }
 }`
 
@@ -175,7 +175,10 @@ export default function Leaderboard() {
           <button
             onClick={() => {
               const best = compareProviders.sort((a: any, b: any) => honorRate(b) - honorRate(a))[0]
-              if (best) { setPanel("callbuilder" as any); }
+              if (best) {
+                sessionStorage.setItem("callbuilder_provider", String(best.id));
+                setPanel("calls");
+              }
             }}
             style={{ marginTop: 10, padding: "7px 16px", background: "var(--accent)", color: "#000", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
           >

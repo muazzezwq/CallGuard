@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-// toast helper — logs to console until sonner is installed
-const toast = {
-  success: (m: string) => console.info("✓", m),
-  error:   (m: string) => console.error("✗", m),
-  warning: (m: string) => console.warn("⚠", m),
-  info:    (m: string) => console.info("ℹ", m),
-};
+import { toast } from "sonner";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad, decodeEventLog } from "viem";
 // MEDIUM-09: import canonical ABIs from config — eliminates local duplicates
@@ -361,7 +355,7 @@ export default function CallBuilder() {
     setStatus("⏳ x402: Handshaking with facilitator…");
     try {
       // Step 1 — x402 handshake
-      const facilitatorUrl = "https://callguard.vercel.app";
+      const facilitatorUrl = CONFIG.facilitatorUrl;
       let x402Terms: any = null;
       try {
         const fRes = await fetch(`${facilitatorUrl}/api/service`);
