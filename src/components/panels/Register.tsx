@@ -4,6 +4,7 @@ import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
+import ArcFeeNotice from "../ArcFeeNotice";
 
 const IDENTITY_REGISTRY_ABI = [
   { name: "register", type: "function", stateMutability: "nonpayable",
@@ -73,6 +74,7 @@ const s = {
 
 export default function Register() {
   const { address } = useAccount();
+  const identityAddr = (CONFIG as any).identityRegistryAddress as `0x${string}` | undefined;
   const [signerAddr, setSignerAddr] = useState("");
   const [stake, setStake] = useState("5");
   const [price, setPrice] = useState("1");
@@ -388,6 +390,15 @@ export default function Register() {
         >
           {v2Step !== "idle" && v2Step !== "done" ? `${v2Step.charAt(0).toUpperCase()}${v2Step.slice(1)}…` : "🔐 Register with NFT — Recommended"}
         </button>
+        {identityAddr && (
+          <ArcFeeNotice
+            address={identityAddr}
+            abi={IDENTITY_REGISTRY_ABI}
+            functionName="register"
+            args={[endpoint || "https://callguard.vercel.app/provider"]}
+            enabled={!!address && !alreadyRegistered && v2Step === "idle"}
+          />
+        )}
         {v2Status && (
           <div style={{ marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)", padding: "8px 10px", borderRadius: 6, background: v2Status.startsWith("✅") ? "rgba(16,185,129,0.08)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.08)" : "var(--bg-3)", color: v2Status.startsWith("✅") ? "var(--accent)" : v2Status.startsWith("❌") ? "#ef4444" : "var(--text-dim)", border: `1px solid ${v2Status.startsWith("✅") ? "rgba(16,185,129,0.2)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.2)" : "var(--border)"}` }}>
             {v2Status}
@@ -407,6 +418,13 @@ export default function Register() {
             <button style={s.btn("primary", isPending || step==="approving")} onClick={handleApprove} disabled={isPending || step==="approving"}>
               {isPending || step==="approving" ? "Approving…" : `Approve ${stake} USDC`}
             </button>
+            <ArcFeeNotice
+              address={CONFIG.usdcAddress as `0x${string}`}
+              abi={USDC_ABI}
+              functionName="approve"
+              args={[CONFIG.registryAddress as `0x${string}`, stakeAmount]}
+              enabled={step === "idle"}
+            />
           </>
         ) : (
           <>
@@ -417,6 +435,13 @@ export default function Register() {
             <button style={s.btn("primary", isPending || step==="registering")} onClick={handleRegister} disabled={isPending || step==="registering"}>
               {isPending || step==="registering" ? "Registering…" : "Register as Provider"}
             </button>
+            <ArcFeeNotice
+              address={CONFIG.registryAddress as `0x${string}`}
+              abi={REGISTRY_ABI}
+              functionName="register"
+              args={[signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, endpoint || ""]}
+              enabled={step === "idle"}
+            />
           </>
         )}
       </div>
