@@ -135,36 +135,36 @@ sequenceDiagram
 
 ### 7. Circle Modular Wallets (ERC-4337 + Passkey)
 
-`src/components/PasskeyWallet.tsx` ve `src/hooks/usePasskeyWallet.ts` eklendi.
-Agent'lar bir kullanici adi ile passkey (WebAuthn) kaydedip Circle Gas Station ile gasless `callService` cagrisi yapabilir. On kosul: Circle Console'da Client Key + Passkey Domain ayari.
+`src/components/PasskeyWallet.tsx` and `src/hooks/usePasskeyWallet.ts` added.
+Agents can register a passkey (WebAuthn) with a username and make gasless `callService` calls via Circle Gas Station. Prerequisite: Client Key + Passkey Domain setting in Circle Console.
 
 ```bash
-# .env dosyasina ekle
+# add to .env
 VITE_CLIENT_KEY=TEST_API_KEY:...
 VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```
 
 ### 8. Gateway Unified Balance
 
-`api/unified-balance.js` eklendi: `GET /api/unified-balance?address=0x...` tum zincirlerdeki USDC'yi tek bir bakiye olarak doner (Kit Key gerektirmez).
-`src/components/UnifiedBalance.tsx` — bagli cuzdanin cross-chain USDC dagilimini gosterir.
+`api/unified-balance.js` added: `GET /api/unified-balance?address=0x...` returns USDC across all chains as a single balance (no Kit Key required).
+`src/components/UnifiedBalance.tsx` — shows the connected wallet's cross-chain USDC distribution.
 
 ### 9. ERC-4626 Stake Vault (Aave Arc Yield)
 
-`ReputationLoan.sol`'a `IERC4626Vault` arayuzu eklendi. `setYieldVault(address)` ile aktiflestirilir; LP'lerin yatirdigi USDC atil beklemek yerine Aave Arc vault'unda faiz kazanir. `_ensureLiquidity()` borrow/withdraw oncesinde vault'tan gerektigi kadar geri ceker.
+An `IERC4626Vault` interface was added to `ReputationLoan.sol`. Activate it with `setYieldVault(address)`; USDC deposited by LPs earns yield in the Aave Arc vault instead of sitting idle. `_ensureLiquidity()` pulls back as much as needed from the vault before borrow/withdraw.
 
 ```solidity
-// Deploy sonrasi:
+// After deploy:
 reputationLoan.setYieldVault(AAVE_ARC_AUSDC_VAULT);
 ```
 
 ### 10. StreamEscrow (Subscription.sol)
 
-`subscribeStream(providerId, lockedAmount, duration)` — USDC'yi belirli bir sure boyunca kilitler, provider lineer olarak `claimStream(subId)` ile birikmis tutari cekebilir. Klasik cagri-bazli abonelikten farkli olarak sureye dayali SaaS modelini destekler.
+`subscribeStream(providerId, lockedAmount, duration)` — locks USDC for a fixed period while the provider linearly claims the accrued amount via `claimStream(subId)`. Unlike classic per-call subscriptions, it supports a time-based SaaS model.
 
 ### 11. Chainlink Data Feeds (SLAFutures)
 
-`SLAFutures.sol`'a `IChainlinkAggregator` arayuzu eklendi. `setPriceFeed(address)` ile Chainlink USDC/USD feed aktiflestirilir; `mintCapacity()` toplu batch degerini $1M USD cap'e gore kontrol eder. Feed ayarlanmazsa mevcut manuel fiyat korunur.
+An `IChainlinkAggregator` interface was added to `SLAFutures.sol`. Activate the Chainlink USDC/USD feed with `setPriceFeed(address)`; `mintCapacity()` checks the batched mint value against a $1M USD cap. If no feed is set, the existing manual price is kept.
 
 ```solidity
 slaFutures.setPriceFeed(CHAINLINK_USDC_USD_FEED); // Arc Testnet
@@ -172,7 +172,7 @@ slaFutures.setPriceFeed(CHAINLINK_USDC_USD_FEED); // Arc Testnet
 
 ### 12. zkML Tier System
 
-`ServiceRegistry.sol`'a `setZkTier(providerId, tier)` eklendi (yalnizca admin). `tier=2` olan provider'lar icin `PayPerCall` cap'i x2 uygular. ERC-7992 standardi taslak asamasinda oldugundan tam ZK kanit dogrulamasi gelecek versiyona birakildi; simdi admin whitelist simulasyonu olarak calisir.
+`setZkTier(providerId, tier)` was added to `ServiceRegistry.sol` (admin only). Providers with `tier=2` get a 2x `PayPerCall` cap. Since the ERC-7992 standard is still a draft, full ZK proof verification is deferred to a future version; for now it operates as an admin-whitelist simulation.
 
 ```solidity
 serviceRegistry.setZkTier(providerId, 2); // tier 2 = cap x2
@@ -180,32 +180,32 @@ serviceRegistry.setZkTier(providerId, 2); // tier 2 = cap x2
 
 ### 13. DePIN Oracle (ServiceRegistry uptime feed)
 
-`ServiceRegistry.sol`'a `setUptimeOracle(address)` ve `recordUptime(providerId, score, timestamp, v, r, s)` eklendi. Oracle bot EIP-191 imzali mesaj ile uptime skoru (0–10000 bps) yazar; `uptimeScore[providerId]` ve `lastUptimePing[providerId]` on-chain guncellenir.
+`setUptimeOracle(address)` and `recordUptime(providerId, score, timestamp, v, r, s)` were added to `ServiceRegistry.sol`. The oracle bot writes the uptime score (0–10000 bps) with an EIP-191 signed message; `uptimeScore[providerId]` and `lastUptimePing[providerId]` are updated on-chain.
 
 ### 14. EIP-5564 Stealth Addresses
 
-`PayPerCall.sol`'a `callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` eklendi. Caller'in kimligini tek kullanimlik stealth adresinin arkasina saklar; opsiyonel `stealthAnnouncer` contract'ina delege ederek alicinin taramasini mumkun kilar.
+`callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` was added to `PayPerCall.sol`. It hides the caller's identity behind a one-time stealth address, optionally delegating to the `stealthAnnouncer` contract so the recipient can scan for it.
 
 ```solidity
 payPerCall.setStealthAnnouncer(EIP5564_ANNOUNCER_ADDR);
 ```
 
-### v4.2 sonrasi deploy kurulumu
+### Post-v4.2 deploy setup
 
 ```bash
-# zkML tier ayarla
+# set zkML tier
 cast send $SERVICE_REGISTRY "setZkTier(uint256,uint8)" $PROVIDER_ID 2
 
-# Aave Arc yield aktiflestir
+# activate Aave Arc yield
 cast send $REPUTATION_LOAN "setYieldVault(address)" $AAVE_ARC_AUSDC_VAULT
 
-# DePIN oracle ayarla
+# set DePIN oracle
 cast send $SERVICE_REGISTRY "setUptimeOracle(address)" $ORACLE_BOT_ADDRESS
 
-# Chainlink feed ayarla (Arc Testnet feed address Chainlink'ten alinmali)
+# set Chainlink feed (Arc Testnet feed address must be obtained from Chainlink)
 cast send $SLA_FUTURES "setPriceFeed(address)" $CHAINLINK_USDC_USD
 
-# EIP-5564 announcer ayarla
+# set EIP-5564 announcer
 cast send $PAY_PER_CALL "setStealthAnnouncer(address)" $EIP5564_ANNOUNCER
 ```
 

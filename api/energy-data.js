@@ -3,8 +3,8 @@
  *
  * CallGuard provider endpoint for SLA-guaranteed energy data.
  *
- * x402 odeme dogrulamasi: X-Payment header kontrol edilir.
- * Arkreen API'sinden gercek kWh verisi ceker (veya testnet mock doner).
+ * x402 payment verification: the X-Payment header is checked.
+ * Fetches real kWh data from the Arkreen API (or returns a testnet mock).
  */
 
 // LOW-02: prefer unprefixed env vars server-side

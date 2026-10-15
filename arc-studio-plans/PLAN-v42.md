@@ -1,40 +1,40 @@
-# Implementation Plan: CallGuard — v4.2 (Kalan 8 Entegrasyon)
+# Implementation Plan: CallGuard — v4.2 (Remaining 8 Integrations)
 
-## Ozet
+## Summary
 
-Onceki oturumlarda tamamlanan 6 entegrasyonun (rate limiting, Marketplace, Gateway, Refund Protocol, ERC-8004, ERC-8183) ardindan kalan 8 entegrasyonu uyguluyoruz. Hepsi mevcut kontrat ve test suite'ini kirmadan ekleniyor.
+After the 6 integrations completed in previous sessions (rate limiting, Marketplace, Gateway, Refund Protocol, ERC-8004, ERC-8183), we are implementing the remaining 8 integrations. All are added without breaking the existing contract and test suite.
 
-## Hedefler
+## Goals
 
-| # | Entegrasyon | Katman | Oncelik |
+| # | Integration | Layer | Priority |
 |---|---|---|---|
-| 7 | Circle Modular Wallets (passkey + paymaster) | Frontend + API | Yuksek |
-| 8 | Gateway Unified Balance | API + Frontend | Yuksek |
-| 9 | ERC-4626 Stake Vault (Aave Arc yield) | Kontrat | Yuksek |
-| 10 | StreamEscrow (Subscription stream modu) | Kontrat | Orta |
-| 11 | Chainlink Data Feeds (SLAFutures fiyat oracle) | Kontrat | Orta |
-| 12 | zkML Tier System (PayPerCall tier gating) | Kontrat | Orta |
-| 13 | DePIN Oracle (ServiceRegistry uptime feed) | Kontrat | Dusuk |
-| 14 | EIP-5564 Stealth Addresses (CallService stealth) | Kontrat | Dusuk |
+| 7 | Circle Modular Wallets (passkey + paymaster) | Frontend + API | High |
+| 8 | Gateway Unified Balance | API + Frontend | High |
+| 9 | ERC-4626 Stake Vault (Aave Arc yield) | Contract | High |
+| 10 | StreamEscrow (Subscription stream mode) | Contract | Medium |
+| 11 | Chainlink Data Feeds (SLAFutures price oracle) | Contract | Medium |
+| 12 | zkML Tier System (PayPerCall tier gating) | Contract | Medium |
+| 13 | DePIN Oracle (ServiceRegistry uptime feed) | Contract | Low |
+| 14 | EIP-5564 Stealth Addresses (CallService stealth) | Contract | Low |
 
 ---
 
 ## 7. Circle Modular Wallets
 
-### Amac
-`AgentWallet` icin passkey tabanli (WebAuthn) kimlik dogrulama ve Circle Gas Station paymaster ile gasless islem destegi. Mevcut MetaMask/ConnectKit akisina dokunmadan yeni bir "Passkey Wallet" secenegi eklenir.
+### Goal
+Passkey-based (WebAuthn) authentication for `AgentWallet` plus gasless transaction support via the Circle Gas Station paymaster. A new "Passkey Wallet" option is added without touching the existing MetaMask/ConnectKit flow.
 
-### Dosyalar
+### Files
 
-**Olusturulacak:**
-- `src/components/PasskeyWallet.tsx` — passkey kayit / giris / gasless callService akisi
-- `src/hooks/usePasskeyWallet.ts` — `@circle-fin/modular-wallets-core` sarmalayici hook
+**To create:**
+- `src/components/PasskeyWallet.tsx` — passkey registration / login / gasless callService flow
+- `src/hooks/usePasskeyWallet.ts` — wrapper hook around `@circle-fin/modular-wallets-core`
 
-**Degistirilecek:**
-- `package.json` — `@circle-fin/modular-wallets-core` bagimliligi ekle
-- `.env.example` — `VITE_CLIENT_KEY`, `VITE_CLIENT_URL` satirlari
+**To modify:**
+- `package.json` — add the `@circle-fin/modular-wallets-core` dependency
+- `.env.example` — `VITE_CLIENT_KEY`, `VITE_CLIENT_URL` lines
 
-### Uygulama Notu
+### Implementation Note
 
 ```ts
 // src/hooks/usePasskeyWallet.ts
@@ -78,28 +78,28 @@ export async function gaslessCallService(account, providerId: bigint, requestHas
 }
 ```
 
-### On Kosul (kullanici yapacak)
-1. [Circle Console](https://console.circle.com) → Keys → Client Keys → yeni key olustur
-2. Console → Passkey Domain → `igo0pyziy8t2gqihvahzj.preview.studio.arc.io` gir
-3. `.env` dosyasina `VITE_CLIENT_KEY=<key>` ekle
+### Prerequisite (user action)
+1. [Circle Console](https://console.circle.com) → Keys → Client Keys → create a new key
+2. Console → Passkey Domain → enter `igo0pyziy8t2gqihvahzj.preview.studio.arc.io`
+3. Add `VITE_CLIENT_KEY=<key>` to the `.env` file
 
 ---
 
 ## 8. Gateway Unified Balance
 
-### Amac
-LP'lerin ve provider'larin USDC bakiyelerini tum desteklenen zincirler uzerinde tek bir bakiye olarak gormesi ve harcamasi.
+### Goal
+Let LPs and providers see and spend their USDC balances across all supported chains as a single balance.
 
-### Dosyalar
+### Files
 
-**Olusturulacak:**
-- `api/unified-balance.js` — `GET /api/unified-balance?address=0x...` → per-chain breakdown + toplam
-- `src/components/UnifiedBalance.tsx` — wallet baglandiginda unified bakiye paneli
+**To create:**
+- `api/unified-balance.js` — `GET /api/unified-balance?address=0x...` → per-chain breakdown + total
+- `src/components/UnifiedBalance.tsx` — unified balance panel when the wallet is connected
 
-**Degistirilecek:**
-- `package.json` — `@circle-fin/unified-balance-kit @circle-fin/adapter-viem-v2` ekle
+**To modify:**
+- `package.json` — add `@circle-fin/unified-balance-kit @circle-fin/adapter-viem-v2`
 
-### Uygulama Notu
+### Implementation Note
 
 ```ts
 // src/components/UnifiedBalance.tsx
@@ -136,25 +136,25 @@ export default async function handler(req, res) {
 
 ## 9. ERC-4626 Stake Vault (Aave Arc Yield)
 
-### Amac
-`ReputationLoan.sol`'daki atil LP likidite havuzunu ERC-4626 uyumlu Aave Arc vault'una yonlendirerek LP'lerin ek APY kazanmasi.
+### Goal
+Route the idle LP liquidity pool in `ReputationLoan.sol` into an ERC-4626-compatible Aave Arc vault so LPs earn extra APY.
 
-### Dosyalar
+### Files
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/ReputationLoan.sol`
-  - `IERC4626Vault` arayuzu import
+  - import the `IERC4626Vault` interface
   - `yieldVault` state (address, set/clear via `setYieldVault` — onlyOwner)
   - `vaultShares` state
-  - `deposit()` → vault aktifse `usdc.approve + vault.deposit()` cagrisi
-  - `withdraw()` → vault aktifse `vault.redeem()` cagrisi
-  - `borrow()` → gerektiginde `vault.redeem()` ile likidite cek
-  - `YieldVaultSet(address)`, `YieldDeposited(uint256)`, `YieldRedeemed(uint256)` eventleri
+  - `deposit()` → call `usdc.approve + vault.deposit()` when the vault is active
+  - `withdraw()` → call `vault.redeem()` when the vault is active
+  - `borrow()` → pull liquidity via `vault.redeem()` when needed
+  - `YieldVaultSet(address)`, `YieldDeposited(uint256)`, `YieldRedeemed(uint256)` events
 
-### Solidity Tasarimi
+### Solidity Design
 
 ```solidity
-// contracts/ReputationLoan.sol — eklenecekler
+// contracts/ReputationLoan.sol — to add
 
 interface IERC4626Vault {
     function deposit(uint256 assets, address receiver) external returns (uint256 shares);
@@ -179,7 +179,7 @@ function setYieldVault(address vault) external onlyOwner {
     emit YieldVaultSet(vault);
 }
 
-// deposit() degisikligi — LP'nin USDC'si vault'a gidiyor:
+// deposit() change — the LP's USDC goes to the vault:
 // usdc.safeTransferFrom(msg.sender, address(this), amount);
 // if (address(yieldVault) != address(0)) {
 //     usdc.forceApprove(address(yieldVault), amount);
@@ -189,7 +189,7 @@ function setYieldVault(address vault) external onlyOwner {
 // }
 // totalShares += shares; totalAssets += amount;
 
-// _ensureLiquidity() — borrow/withdraw oncesi vault'tan gerektigi kadar redeem:
+// _ensureLiquidity() — redeem as much as needed from the vault before borrow/withdraw:
 // function _ensureLiquidity(uint256 needed) internal {
 //     uint256 directBalance = usdc.balanceOf(address(this));
 //     if (directBalance >= needed || address(yieldVault) == address(0)) return;
@@ -203,31 +203,31 @@ function setYieldVault(address vault) external onlyOwner {
 ```
 
 ### Test
-- `test/ReputationLoan.t.sol` → mock `IERC4626Vault` ekle, `setYieldVault` + `deposit` + `withdraw` + `borrow` senaryolari
+- `test/ReputationLoan.t.sol` → add a mock `IERC4626Vault`, `setYieldVault` + `deposit` + `withdraw` + `borrow` scenarios
 
 ---
 
-## 10. StreamEscrow (Subscription.sol stream odeme modu)
+## 10. StreamEscrow (Subscription.sol stream payment mode)
 
-### Amac
-`Subscription.sol`'daki mevcut toplu odeme modeline ek olarak, sure boyunca lineer olarak serbest birakilan stream odeme modu.
+### Goal
+In addition to the existing lump-sum payment model in `Subscription.sol`, a stream payment mode that releases linearly over time.
 
-### Dosyalar
+### Files
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/Subscription.sol`
-  - `Sub` struct'a `streamMode bool` ve `streamReleased uint256` ekle
-  - `subscribeStream(providerId, duration)` yeni fonksiyon — saatlik USDC stream kilidi
-  - `claimStream(subId)` — gecen sureye oranla birikmis USDC'yi provider'a serbest birak
-  - `StreamSubscribed`, `StreamClaimed` eventleri
+  - add `streamMode bool` and `streamReleased uint256` to the `Sub` struct
+  - `subscribeStream(providerId, duration)` new function — hourly USDC stream lock
+  - `claimStream(subId)` — release accrued USDC to the provider pro-rata for elapsed time
+  - `StreamSubscribed`, `StreamClaimed` events
 
-### Solidity Tasarimi
+### Solidity Design
 
 ```solidity
-// Yeni fonksiyon — stream modu:
+// New function — stream mode:
 function subscribeStream(uint256 providerId, uint64 duration) external nonReentrant returns (uint256 subId) {
-    // Mevcut provider aktiflik kontrolu...
-    // pricePerSecond = pricePerCall / maxResponseTime (yaklasik)
+    // existing provider-activity check...
+    // pricePerSecond = pricePerCall / maxResponseTime (approx)
     // lockedBalance = pricePerSecond * duration
     // Sub { ..., streamMode: true, streamReleased: 0 }
     // emit StreamSubscribed(subId, msg.sender, providerId, duration)
@@ -246,25 +246,25 @@ function claimStream(uint256 subId) external nonReentrant {
 
 ---
 
-## 11. Chainlink Data Feeds (SLAFutures fiyat oracle)
+## 11. Chainlink Data Feeds (SLAFutures price oracle)
 
-### Amac
-`SLAFutures.sol`'da provider'larin slot fiyatini manuel set etmek yerine Chainlink USD/USDC fiyat feed'inden otomatik hesaplama secenegi.
+### Goal
+In `SLAFutures.sol`, an option to auto-compute the slot price from the Chainlink USD/USDC price feed instead of setting it manually per provider.
 
-### Dosyalar
+### Files
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/SLAFutures.sol`
-  - `IChainlinkAggregator` minimal arayuzu
+  - minimal `IChainlinkAggregator` interface
   - `priceFeed` state (address, set via `setPriceFeed` — onlyOwner)
-  - `mintCapacity()` → `priceFeed` aktifse `latestRoundData()` ile USD bazli cap kontrolu
-  - `PriceFeedSet(address)` eventi
+  - `mintCapacity()` → USD-based cap check via `latestRoundData()` when `priceFeed` is active
+  - `PriceFeedSet(address)` event
 
 ### Chainlink Arc Testnet
-- USDC/USD feed: `0x...` (Arc Testnet — Chainlink Agustos 2026 duyurusu)
-- Fallback: feed `address(0)` ise mevcut manuel fiyat korunur
+- USDC/USD feed: `0x...` (Arc Testnet — Chainlink August 2026 announcement)
+- Fallback: if the feed is `address(0)`, the existing manual price is kept
 
-### Solidity Tasarimi
+### Solidity Design
 
 ```solidity
 interface IChainlinkAggregator {
@@ -283,14 +283,14 @@ function setPriceFeed(address feed) external onlyOwner {
     emit PriceFeedSet(feed);
 }
 
-// mintCapacity ici — slot fiyat USD cap:
+// inside mintCapacity — slot price USD cap:
 function _usdCapCheck(uint256 pricePerCall, uint256 totalSlots) internal view {
-    if (address(priceFeed) == address(0)) return; // feed yok, atla
+    if (address(priceFeed) == address(0)) return; // no feed, skip
     (, int256 answer,, uint256 updatedAt,) = priceFeed.latestRoundData();
     require(answer > 0 && block.timestamp - updatedAt < 3600, "stale feed");
     // answer = USD per USDC * 10^feedDecimals
     // totalUSD = pricePerCall * totalSlots * answer / 10^(feedDecimals + 6)
-    // require(totalUSD <= MAX_BATCH_USD) // orn. 1_000_000 = $1M cap
+    // require(totalUSD <= MAX_BATCH_USD) // e.g. 1_000_000 = $1M cap
 }
 ```
 
@@ -298,49 +298,49 @@ function _usdCapCheck(uint256 pricePerCall, uint256 totalSlots) internal view {
 
 ## 12. zkML Tier System (PayPerCall tier gating)
 
-### Amac
-Provider'larin zkML kaniti varsa daha dusuk stake + daha yuksek limit almasi. ERC-7992 zkML standard su an taslak — basit on/off tier flag olarak implemente edilir, gelecekte full ZK proof'a yukseltilir.
+### Goal
+Providers with a zkML proof get lower stake + higher limits. The ERC-7992 zkML standard is currently a draft — implemented as a simple on/off tier flag, to be upgraded to full ZK proofs later.
 
-### Dosyalar
+### Files
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/ServiceRegistry.sol`
   - `zkTier mapping(uint256 => uint8)` — provider → tier (0=none, 1=basic, 2=full)
-  - `setZkTier(providerId, tier)` — onlyOwner (zkML prover whitelist simulasyonu)
-  - `getProvider()` view'a `zkTier` yansit → `IServiceRegistry.ProviderView`'a `uint8 zkTier` ekle
-  - Tier 1: minStake %50 indirim. Tier 2: `maxConcurrentCalls` x2.
-  - `ZkTierSet(providerId, tier)` eventi
+  - `setZkTier(providerId, tier)` — onlyOwner (zkML prover whitelist simulation)
+  - reflect `zkTier` in the `getProvider()` view → add `uint8 zkTier` to `IServiceRegistry.ProviderView`
+  - Tier 1: 50% minStake discount. Tier 2: `maxConcurrentCalls` x2.
+  - `ZkTierSet(providerId, tier)` event
 
-**Degistirilecek:**
-- `contracts/interfaces/IServiceRegistry.sol` — `ProviderView`'a `uint8 zkTier` ekle
-- `contracts/PayPerCall.sol` — `_callServiceFor` icinde tier 2 ise cap x2
+**To modify:**
+- `contracts/interfaces/IServiceRegistry.sol` — add `uint8 zkTier` to `ProviderView`
+- `contracts/PayPerCall.sol` — cap x2 for tier 2 inside `_callServiceFor`
 
-### Test Guncellemeleri
-- `test/ServiceRegistry.t.sol` → `setZkTier` + tier 1/2 minStake testleri
-- `test/PayPerCall.t.sol` → tier 2 cap x2 testi
-- Tum `ProviderView` struct destructuring'leri +1 alan
+### Test Updates
+- `test/ServiceRegistry.t.sol` → `setZkTier` + tier 1/2 minStake tests
+- `test/PayPerCall.t.sol` → tier 2 cap x2 test
+- +1 field in all `ProviderView` struct destructurings
 
 ---
 
 ## 13. DePIN Oracle (ServiceRegistry uptime feed)
 
-### Amac
-Harici DePIN aglarindan (Cairn pattern) provider uptime kanitlarini `ServiceRegistry`'ye yazma. Off-chain oracle bot imzali mesajla `recordUptime()` cagirir.
+### Goal
+Write provider uptime proofs from external DePIN networks (Cairn pattern) into `ServiceRegistry`. An off-chain oracle bot calls `recordUptime()` with a signed message.
 
-### Dosyalar
+### Files
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/ServiceRegistry.sol`
   - `uptimeOracle address` state (set via `setUptimeOracle` — onlyOwner)
-  - `lastUptimePing mapping(uint256 => uint64)` — son ping zamani
+  - `lastUptimePing mapping(uint256 => uint64)` — last ping time
   - `uptimeScore mapping(uint256 => uint16)` — 0–10000 bps
-  - `recordUptime(providerId, score, sig)` — oracle imzali uptime kaydi
-  - `UptimeRecorded(providerId, score)` eventi
+  - `recordUptime(providerId, score, sig)` — oracle-signed uptime record
+  - `UptimeRecorded(providerId, score)` event
 
-**Olusturulacak:**
-- `api/notify-provider.js` → mevcut dosya; uptime ping + oracle bot webhook olarak guncelle
+**To create:**
+- `api/notify-provider.js` → existing file; update as the uptime ping + oracle bot webhook
 
-### EIP-712 Imza Tasarimi
+### EIP-712 Signature Design
 
 ```solidity
 // UptimeClaim(uint256 providerId, uint16 score, uint64 timestamp)
@@ -359,24 +359,24 @@ function recordUptime(uint256 providerId, uint16 score, uint64 timestamp, bytes 
 
 ---
 
-## 14. EIP-5564 Stealth Addresses (CallService stealth cagri)
+## 14. EIP-5564 Stealth Addresses (CallService stealth call)
 
-### Amac
-Caller'in kimligini gizlemek icin EIP-5564 stealth address semasi. Caller bir kerelik stealth adres uretir; payment ve callId bu adresten gonderilir.
+### Goal
+The EIP-5564 stealth address scheme for hiding the caller's identity. The caller generates a one-time stealth address; payment and callId are sent from that address.
 
-### Dosyalar
+### Files
 
-**Olusturulacak:**
-- `contracts/interfaces/IEIP5564Announcer.sol` — minimal announcer arayuzu
+**To create:**
+- `contracts/interfaces/IEIP5564Announcer.sol` — minimal announcer interface
 - `contracts/StealthCallGuard.sol` — stealth callService wrapper
 
-**Degistirilecek:**
+**To modify:**
 - `contracts/PayPerCall.sol`
-  - `callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` yeni fonksiyon
-  - EIP-5564 `Announce` event emit (announcer contract'a delege)
+  - `callServiceStealth(providerId, requestHash, stealthAddress, ephemeralPubKey, metadata)` new function
+  - emit the EIP-5564 `Announce` event (delegated to the announcer contract)
   - `StealthAnnouncer` state (set via `setStealthAnnouncer` — onlyOwner)
 
-### EIP-5564 Tasarimi
+### EIP-5564 Design
 
 ```solidity
 interface IEIP5564Announcer {
@@ -390,11 +390,11 @@ interface IEIP5564Announcer {
     function announce(uint256 schemeId, address stealthAddress, bytes calldata ephemeralPubKey, bytes calldata metadata) external;
 }
 
-// PayPerCall yeni fonksiyon:
+// PayPerCall new function:
 function callServiceStealth(
     uint256 providerId,
     bytes32 requestHash,
-    address stealthAddress,     // EIP-5564 tek kullanimlik adres
+    address stealthAddress,     // EIP-5564 one-time address
     bytes calldata ephemeralPubKey,
     bytes calldata metadata
 ) external nonReentrant returns (bytes32 callId) {
@@ -407,57 +407,57 @@ function callServiceStealth(
 
 ---
 
-## Build Sirasi
+## Build Order
 
-1. **`IServiceRegistry.sol`** — `uint8 zkTier` ekle (en cok bagimlilik yaratir)
+1. **`IServiceRegistry.sol`** — add `uint8 zkTier` (creates the most dependencies)
 2. **`ServiceRegistry.sol`** — zkML tier, DePIN oracle, uptime feed
-3. **`ReputationLoan.sol`** — ERC-4626 vault entegrasyonu
-4. **`Subscription.sol`** — stream odeme modu
-5. **`SLAFutures.sol`** — Chainlink fiyat oracle
+3. **`ReputationLoan.sol`** — ERC-4626 vault integration
+4. **`Subscription.sol`** — stream payment mode
+5. **`SLAFutures.sol`** — Chainlink price oracle
 6. **`PayPerCall.sol`** — zkML tier x2 cap, stealth callService
-7. **`contracts/interfaces/IEIP5564Announcer.sol`** — yeni dosya
-8. **Tum testler** — yeni alanlar icin destructuring guncellemeleri + yeni test case'leri
-9. **`api/unified-balance.js`** — yeni dosya
-10. **`api/notify-provider.js`** — DePIN oracle webhook guncellemesi
-11. **`src/components/PasskeyWallet.tsx`** — yeni bilesen
-12. **`src/components/UnifiedBalance.tsx`** — yeni bilesen
-13. **`src/hooks/usePasskeyWallet.ts`** — yeni hook
-14. **`package.json`** — `@circle-fin/modular-wallets-core`, `@circle-fin/unified-balance-kit`, `@circle-fin/adapter-viem-v2` ekle
-15. **`README.md`** — v4.2 bolumu
+7. **`contracts/interfaces/IEIP5564Announcer.sol`** — new file
+8. **All tests** — destructuring updates for new fields + new test cases
+9. **`api/unified-balance.js`** — new file
+10. **`api/notify-provider.js`** — DePIN oracle webhook update
+11. **`src/components/PasskeyWallet.tsx`** — new component
+12. **`src/components/UnifiedBalance.tsx`** — new component
+13. **`src/hooks/usePasskeyWallet.ts`** — new hook
+14. **`package.json`** — add `@circle-fin/modular-wallets-core`, `@circle-fin/unified-balance-kit`, `@circle-fin/adapter-viem-v2`
+15. **`README.md`** — v4.2 section
 16. **`git commit + push`**
 
 ---
 
 ## Done When
 
-- [ ] `forge test` 229+ test geciyor (yeni test case'ler dahil)
-- [ ] `setZkTier(id, 2)` → `getProvider` `zkTier=2` donuyor; `PayPerCall` tier 2 icin cap x2 uyguluyor
-- [ ] `setYieldVault(addr)` → `deposit()` USDC'yi vault'a yonlendiriyor
-- [ ] `subscribeStream()` → `claimStream()` lineer USDC serbest birakiyor
-- [ ] `setPriceFeed(addr)` → `mintCapacity()` fiyat cap kontrolu yapiyor
-- [ ] `recordUptime(providerId, score, sig)` oracle imzasi dogrulayarak `uptimeScore` guncelliyor
-- [ ] `callServiceStealth()` EIP-5564 announcer'a delege ediyor
-- [ ] `GET /api/unified-balance?address=0x...` unified bakiye donuyor
-- [ ] `PasskeyWallet.tsx` passkey kayit/giris ve gasless callService calisiyor
-- [ ] TypeScript lint/check sifir hata
-- [ ] `git push` basarili
+- [ ] `forge test` passes 229+ tests (including new test cases)
+- [ ] `setZkTier(id, 2)` → `getProvider` returns `zkTier=2`; `PayPerCall` applies a 2x cap for tier 2
+- [ ] `setYieldVault(addr)` → `deposit()` routes USDC into the vault
+- [ ] `subscribeStream()` → `claimStream()` releases USDC linearly
+- [ ] `setPriceFeed(addr)` → `mintCapacity()` performs the price cap check
+- [ ] `recordUptime(providerId, score, sig)` verifies the oracle signature and updates `uptimeScore`
+- [ ] `callServiceStealth()` delegates to the EIP-5564 announcer
+- [ ] `GET /api/unified-balance?address=0x...` returns the unified balance
+- [ ] `PasskeyWallet.tsx` passkey registration/login and gasless callService work
+- [ ] TypeScript lint/check zero errors
+- [ ] `git push` succeeds
 
 ---
 
-## On Kosullar (Kullanicinin Yapacaklari)
+## Prerequisites (user actions)
 
-### Circle Modular Wallets icin
-1. [Circle Console](https://console.circle.com) → Keys → Client Keys → yeni key olustur (TEST_API_KEY ile baslar)
+### For Circle Modular Wallets
+1. [Circle Console](https://console.circle.com) → Keys → Client Keys → create a new key (starts with TEST_API_KEY)
 2. Console → Passkey Settings → Passkey Domain: `igo0pyziy8t2gqihvahzj.preview.studio.arc.io`
-3. `.env` dosyasina ekle:
+3. Add to the `.env` file:
    ```
    VITE_CLIENT_KEY=TEST_API_KEY:...
    VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
    ```
 
-### DePIN Oracle icin
-- `UPTIME_ORACLE_PRIVATE_KEY` env degiskeni — oracle bot cuzdani
-- `setUptimeOracle(oracleAddress)` kontrat cagrisi deploy sonrasi
+### For the DePIN Oracle
+- `UPTIME_ORACLE_PRIVATE_KEY` env variable — oracle bot wallet
+- `setUptimeOracle(oracleAddress)` contract call after deploy
 
-### Chainlink icin
-- Arc Testnet Chainlink USDC/USD feed adresi (Agustos 2026 duyurusu — `setPriceFeed` ile sonradan set edilebilir)
+### For Chainlink
+- Arc Testnet Chainlink USDC/USD feed address (August 2026 announcement — can be set later via `setPriceFeed`)

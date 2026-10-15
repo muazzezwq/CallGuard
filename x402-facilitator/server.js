@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const fac = makeFacilitator(env);
-console.log("Facilitator cuzdani:", fac.facilitatorAddress);
+console.log("Facilitator wallet:", fac.facilitatorAddress);
 
 // Facilitator wallet for Memo transactions
 import { ethers } from "ethers";
@@ -53,7 +53,7 @@ function paymentRequirements() {
     asset: env.USDC_ADDRESS,
     payTo: PAY_TO,
     resource: "/api/service",
-    description: "CallGuard korumali servis cagrisi",
+    description: "CallGuard-protected service call",
     maxTimeoutSeconds: 120,
   };
 }
@@ -252,7 +252,7 @@ app.get("/", (_, res) => res.json({
   endpoints: ["/health", "/api/service", "/verify", "/settle", "/callService", "/nano/service"],
 }));
 
-// ---- /nano/call — facilitator GatewayClient ile odemeyi yapar ----
+// ---- /nano/call — facilitator pays via GatewayClient ----
 app.post("/nano/call", async (req, res) => {
   try {
     const { providerId } = req.body;

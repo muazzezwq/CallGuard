@@ -11,13 +11,13 @@ const PAY_ABI = [
   "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
 ];
 
-// Agresif polling — her 100ms'de tx receipt kontrol eder
+// Aggressive polling — checks the tx receipt every 100ms
 async function waitFast(provider, txHash, timeoutMs = 10000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const receipt = await provider.getTransactionReceipt(txHash);
     if (receipt && receipt.blockNumber) return receipt;
-    await new Promise(r => setTimeout(r, 100)); // 100ms bekle
+    await new Promise(r => setTimeout(r, 100)); // wait 100ms
   }
   throw new Error("tx timeout: " + txHash);
 }
@@ -27,7 +27,7 @@ export function makeFacilitator(env) {
   const wallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, provider);
   const usdc = new ethers.Contract(env.USDC_ADDRESS, USDC_ABI, wallet);
 
-  // EIP-712 domain — Asama 0'da dogruladigin degerler
+  // EIP-712 domain — values verified in Phase 0
   const domain = {
     name: env.USDC_NAME,
     version: env.USDC_VERSION || undefined,
@@ -47,7 +47,7 @@ export function makeFacilitator(env) {
     ],
   };
 
-  // ---- /verify : imza gecerli mi, odeme sartlarina uyuyor mu ----
+  // ---- /verify: is the signature valid, does it match the payment terms ----
   async function verify(payment, requirements) {
     const { authorization, signature } = payment;
     const a = authorization;
@@ -56,32 +56,32 @@ export function makeFacilitator(env) {
     try {
       recovered = ethers.verifyTypedData(domain, types, a, signature);
     } catch (e) {
-      return { isValid: false, reason: "imza cozulemedi: " + e.message };
+      return { isValid: false, reason: "signature unresolvable: " + e.message };
     }
     if (recovered.toLowerCase() !== a.from.toLowerCase())
-      return { isValid: false, reason: "imzalayan from ile eslesmiyor" };
+      return { isValid: false, reason: "signer does not match from" };
 
     const now = Math.floor(Date.now() / 1000);
     if (Number(a.validAfter) > now)
-      return { isValid: false, reason: "yetki henuz gecerli degil" };
+      return { isValid: false, reason: "authorization not yet valid" };
     if (Number(a.validBefore) < now)
-      return { isValid: false, reason: "yetki suresi dolmus" };
+      return { isValid: false, reason: "authorization expired" };
     if (BigInt(a.value) < BigInt(requirements.maxAmountRequired))
-      return { isValid: false, reason: "odenen miktar yetersiz" };
+      return { isValid: false, reason: "paid amount insufficient" };
     if (a.to.toLowerCase() !== requirements.payTo.toLowerCase())
-      return { isValid: false, reason: "alici (to) yanlis" };
+      return { isValid: false, reason: "recipient (to) mismatch" };
 
     const used = await usdc.authorizationState(a.from, a.nonce);
-    if (used) return { isValid: false, reason: "nonce zaten kullanilmis" };
+    if (used) return { isValid: false, reason: "nonce already used" };
 
     const bal = await usdc.balanceOf(a.from);
     if (bal < BigInt(a.value))
-      return { isValid: false, reason: "gonderen bakiyesi yetersiz" };
+      return { isValid: false, reason: "sender balance insufficient" };
 
     return { isValid: true };
   }
 
-  // ---- /settle : zinciri yur, transferWithAuthorization gonder ----
+  // ---- /settle: walk the chain, send transferWithAuthorization ----
   async function settle(payment) {
     const { authorization: a, signature } = payment;
     const sig = ethers.Signature.from(signature);
@@ -93,7 +93,7 @@ export function makeFacilitator(env) {
     return { success: true, txHash: tx.hash, blockNumber: rc.blockNumber };
   }
 
-  // ---- /callService : facilitator kendi cuzdanindan callServiceWithAuthorization cagirir ----
+  // ---- /callService: facilitator calls callServiceWithAuthorization from its own wallet ----
   async function callService({ providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s }) {
     const payPerCall = new ethers.Contract(env.PAY_PER_CALL, PAY_ABI, wallet);
     const tx = await payPerCall.callServiceWithAuthorization(

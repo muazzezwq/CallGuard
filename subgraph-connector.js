@@ -47,23 +47,23 @@ function truncateAddress(addr) {
 }
 
 function getStatusColor(status) {
-  if (status === "COMPLETED") return "#10b981"; // Yesil
-  if (status === "SLASHED") return "#ef4444";  // Kirmizi
-  return "#f59e0b"; // Sari (Started)
+  if (status === "COMPLETED") return "#10b981"; // green
+  if (status === "SLASHED") return "#ef4444";  // red
+  return "#f59e0b"; // yellow (Started)
 }
 
-// Bu fonksiyonu HTML icinde cagiracaksiniz
+// Call this function from within the HTML
 async function loadSubgraphUI() {
   try {
-    console.log("Subgraph'a baglaniliyor...");
+    console.log("Connecting to subgraph...");
     const data = await fetchSubgraph();
     
-    // 1. GENEL ISTATISTIKLER
+    // 1. GENERAL STATS
     const totalProviders = data.providers.length;
     const totalCalls = data.calls.length;
     const totalSlashed = data.slashed.length;
     
-    // Eger sayfada bu ID'lere sahip elementler varsa iclerini doldur
+    // Fill in page elements with these IDs, if present
     const elProviders = document.getElementById("sg-providers");
     const elCalls = document.getElementById("sg-calls");
     const elSlashes = document.getElementById("sg-slashes");
@@ -72,10 +72,10 @@ async function loadSubgraphUI() {
     if(elCalls) elCalls.innerText = totalCalls;
     if(elSlashes) elSlashes.innerText = totalSlashed;
 
-    // 2. SON ISLEMLER (AKTIVITE AKISI)
+    // 2. RECENT TRANSACTIONS (ACTIVITY FEED)
     const feedContainer = document.getElementById("sg-activity-feed");
     if (feedContainer) {
-      feedContainer.innerHTML = ""; // Eski verileri temizle
+      feedContainer.innerHTML = ""; // clear old data
       data.recentCalls.forEach(call => {
         const div = document.createElement("div");
         div.style.cssText = "padding: 8px; border-bottom: 1px solid #333; font-size: 13px; display: flex; justify-content: space-between;";
@@ -90,10 +90,10 @@ async function loadSubgraphUI() {
       });
     }
 
-    // 3. LIDERLIK TABLOSU
+    // 3. LEADERBOARD
     const leaderboardContainer = document.getElementById("sg-leaderboard");
     if (leaderboardContainer) {
-      leaderboardContainer.innerHTML = ""; // Eski verileri temizle
+      leaderboardContainer.innerHTML = ""; // clear old data
       data.topProviders.forEach(p => {
         const div = document.createElement("div");
         div.style.cssText = "padding: 8px; border-bottom: 1px solid #333; font-size: 13px; display: flex; justify-content: space-between;";
@@ -108,15 +108,15 @@ async function loadSubgraphUI() {
       });
     }
 
-    console.log(`Subgraph guncellendi: ${totalProviders} Provider, ${totalCalls} Call`);
+    console.log(`Subgraph updated: ${totalProviders} providers, ${totalCalls} calls`);
   } catch (err) {
-    console.error("Subgraph Hatasi:", err);
+    console.error("Subgraph error:", err);
   }
 }
 
-// Sayfa yuklendiginde otomatik calismasi icin
+// Auto-run on page load
 window.addEventListener("DOMContentLoaded", () => {
   loadSubgraphUI();
-  // Her 15 saniyede bir guncelle (Opsiyonel)
+  // refresh every 15 seconds (optional)
   setInterval(loadSubgraphUI, 15000);
 });
