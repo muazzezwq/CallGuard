@@ -20,7 +20,7 @@ const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcPro
 
 const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY; // arc-studio-allow-onchain-literal
 const registryAbi = [
-  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active))"
+  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))"
 ];
 const registryContract = new ethers.Contract(SERVICE_REGISTRY, registryAbi, _rpcProvider);
 
@@ -269,7 +269,7 @@ app.post("/nano/call", async (req, res) => {
       chain: "arcTestnet",
       privateKey: env.BUYER_PRIVATE_KEY,
     });
-    gateway.chainConfig.chain.id = 14601;
+    gateway.chainConfig.chain.id = 5042002; // Arc Testnet (was 14601 — wrong chain)
     const paymentPayload = await gateway.createPaymentPayload(2, {
       scheme: "exact",
       network: "eip155:5042002",
@@ -283,10 +283,11 @@ app.post("/nano/call", async (req, res) => {
         verifyingContract: "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
       },
     });
+    const nanoBase = env.PUBLIC_BASE_URL || `http://localhost:${env.PORT || 4021}`;
     const fullPayload = {
       ...paymentPayload,
       resource: {
-        url: "http://localhost:4021/nano/service",
+        url: `${nanoBase}/nano/service`,
         description: "CallGuard nanopayment — 0.001 USDC per call",
         mimeType: "application/json",
       },
@@ -305,7 +306,7 @@ app.post("/nano/call", async (req, res) => {
       },
     };
     const paymentHeader = Buffer.from(JSON.stringify(fullPayload)).toString("base64");
-    const paidRes = await fetch("http://localhost:4021/nano/service", {
+    const paidRes = await fetch(`${nanoBase}/nano/service`, {
       method: "POST",
       headers: { "Payment-Signature": paymentHeader },
     });

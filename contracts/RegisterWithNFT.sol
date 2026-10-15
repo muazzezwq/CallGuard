@@ -44,7 +44,7 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
         0x8004A818BFB912233c491871b3d84c89A494BD9e;
 
     address public constant SERVICE_REGISTRY =
-        0x9ca97010464e8e6de6e27cf25eae9b939fbd7333;
+        0x9cA97010464E8e6dE6E27CF25eAe9B939fbD7333;
 
     IERC20 public constant USDC =
         IERC20(0x3600000000000000000000000000000000000000);

@@ -18,12 +18,12 @@
 
 ```bash
 # 1. Wire PayPerCall into ServiceRegistry (one-time, irreversible)
-cast send 0xdb73903c904f83251bc345e591a769e0a4ca32d9 \
-  "setPayPerCall(address)" 0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a \
+cast send 0x9ca97010464e8e6de6e27cf25eae9b939fbd7333 \
+  "setPayPerCall(address)" 0x5fb41dd22c44e1de08f37d98c2995a62d6220540 \
   --private-key $ADMIN_PK --rpc-url https://rpc.testnet.arc.io
 
 # 2. Wire ERC-8004 ReputationRegistry into PayPerCall (optional, best-effort)
-cast send 0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a \
+cast send 0x5fb41dd22c44e1de08f37d98c2995a62d6220540 \
   "setReputationRegistry(address)" 0x8004B663056A597Dffe9eCcC1965A193B7388713 \
   --private-key $ADMIN_PK --rpc-url https://rpc.testnet.arc.io
 
@@ -33,13 +33,13 @@ cast send 0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5 \
   --private-key $ADMIN_PK --rpc-url https://rpc.testnet.arc.io
 
 # 4. DePIN Oracle — set your oracle bot address (optional)
-# cast send 0xdb73903c904f83251bc345e591a769e0a4ca32d9 "setUptimeOracle(address)" $ORACLE_ADDR ...
+# cast send 0x9ca97010464e8e6de6e27cf25eae9b939fbd7333 "setUptimeOracle(address)" $ORACLE_ADDR ...
 
 # 5. Chainlink Price Feed for SLAFutures (optional, set when Arc Testnet feed available)
 # cast send 0xcd57a9b924a565b12889277173b9ec06d4e10435 "setPriceFeed(address)" $CHAINLINK_FEED ...
 
 # 6. EIP-5564 Stealth Announcer (optional)
-# cast send 0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a "setStealthAnnouncer(address)" $ANNOUNCER ...
+# cast send 0x5fb41dd22c44e1de08f37d98c2995a62d6220540 "setStealthAnnouncer(address)" $ANNOUNCER ...
 ```
 
 ## Core Contracts — RETIRED (pre-v6, do not use)
@@ -70,23 +70,24 @@ cast send 0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5 \
 - Chain ID: `5042002`
 - RPC: `https://rpc.testnet.arc.io`
 - Explorer: `https://explorer.testnet.arc.io`
-- Subgraph: `https://api.goldsky.com/api/public/project_cmqryheeji.../subgraphs/arcsla/1.0.0/gn`
+- Subgraph: `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn` (canonical — matches `src/lib/config.ts`)
 
 ## Test Results
-- 223/223 Foundry tests passing (7 Oct 2026)
+- 280/280 Foundry tests passing, 9 suites (verified 15 Oct 2026, forge 1.8.5)
 - Grace period: `SUBMIT_GRACE = 5` seconds
 - Receipt EIP-712: domain ArcSLA/1, includes `respondedAt` timestamp
 
-## AgentWallet (1 Oct 2026)
+## AgentWallet (v2 active — 13 Oct 2026)
 | Field | Value |
 |---|---|
-| Contract | `0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6` |
+| Contract | `0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5` |
 | Owner | `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` |
 | Agent (hot wallet) | `0x22099051bbe59117Ebc5219bdDA90D7790758C03` |
 | Daily limit | 10 USDC |
 | Max per call | 2 USDC |
-| Balance | 0 USDC (needs deposit) |
 | Paused | false |
+
+> Previous record `0xf73f2Fc5...` (1 Oct 2026) is superseded by v2 above — do not use.
 
 ## Vercel Environment Variables Required
 | Key | Description |
@@ -94,12 +95,12 @@ cast send 0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5 \
 | `FACILITATOR_PRIVATE_KEY` | Facilitator wallet private key |
 | `SELLER_PRIVATE_KEY` | Auto-receipt provider private key |
 | `VITE_USDC_ADDRESS` | `0x3600000000000000000000000000000000000000` |
-| `VITE_PAY_PER_CALL` | `0xe901462b31f8a42262a2fc5ea3ee4f373cb75630` |
-| `VITE_SERVICE_REGISTRY` | `0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4` |
+| `VITE_PAY_PER_CALL` | `0x5fb41dd22c44e1de08f37d98c2995a62d6220540` |
+| `VITE_SERVICE_REGISTRY` | `0x9ca97010464e8e6de6e27cf25eae9b939fbd7333` |
 | `VITE_CHAIN_ID` | `5042002` |
 | `ARC_RPC_URL` | `https://rpc.testnet.arc.io` |
 | `PROVIDER_1_WEBHOOK` | `https://arcsla.vercel.app/api/auto-receipt` |
-| `AGENT_WALLET_ADDRESS` | `0xf73f2Fc55dd985E583516a4614f2A2c1Da0Ae8E6` |
+| `AGENT_WALLET_ADDRESS` | `0x6a7a41481e47a38bbe0236438c10e5ab8ca141e5` |
 | `AGENT_PRIVATE_KEY` | Private key of `0x22099051bbe59117Ebc5219bdDA90D7790758C03` |
 | `VITE_CLIENT_KEY` | Circle Console Client Key (`TEST_API_KEY:...`) — Passkey/Modular Wallets |
 | `VITE_CLIENT_URL` | `https://modular-sdk.circle.com/v1/rpc/w3s/buidl` — Passkey/Modular Wallets |

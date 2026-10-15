@@ -85,9 +85,10 @@ export async function fetchProviders(): Promise<Provider[]> {
     const completed = Number(p.completedCalls ?? 0);
     const slashed   = Number(p.slashedCalls ?? 0);
     const total     = completed + slashed;
-    // MEDIUM-05: clean formula — 100% for new providers, completed/total otherwise
+    // Canonical Bayesian reputation — matches ServiceRegistry.getReputationScore
+    // (alpha=2, beta=1): fresh providers start at 66, never a free 100.
     const reputation = total > 0
-      ? Math.round(completed / total * 100) : 100;
+      ? Math.round((completed + 2) * 100 / (total + 3)) : 66;
     return {
       id:           String(p.id),
       owner:        String(p.owner ?? ""),

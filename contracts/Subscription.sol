@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title Subscription
@@ -37,7 +38,7 @@ interface IServiceRegistry {
     );
 }
 
-contract Subscription is ReentrancyGuard {
+contract Subscription is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // -----------------------------------------------------------------------
@@ -110,7 +111,7 @@ contract Subscription is ReentrancyGuard {
     // Constructor
     // -----------------------------------------------------------------------
 
-    constructor(address _usdc, address _registry, address _payPerCall) {
+    constructor(address _usdc, address _registry, address _payPerCall) Ownable(msg.sender) {
         require(_usdc     != address(0), "bad usdc");
         require(_registry != address(0), "bad registry");
         usdc       = IERC20(_usdc);
@@ -241,16 +242,10 @@ contract Subscription is ReentrancyGuard {
         s.streamReleased += claimable;
         s.lockedBalance  -= claimable;
 
-        // Look up provider owner via registry — Subscription uses a local
-        // IServiceRegistry interface, so we use low-level call to get owner.
-        (bool ok, bytes memory data) = address(registry).staticcall(
-            abi.encodeWithSignature("getProvider(uint256)", s.providerId)
-        );
-        address providerOwner = s.subscriber; // fallback: return to subscriber
-        if (ok && data.length >= 32) {
-            address decoded = abi.decode(data, (address));
-            if (decoded != address(0)) providerOwner = decoded;
-        }
+        // Look up provider owner via the typed registry interface (9-field
+        // ProviderView — matches ServiceRegistry.getProvider exactly).
+        (address providerOwner,,,,,,,,) = registry.getProvider(s.providerId);
+        if (providerOwner == address(0)) providerOwner = s.subscriber;
 
         usdc.safeTransfer(providerOwner, claimable);
         emit StreamClaimed(subId, providerOwner, claimable);
@@ -340,8 +335,7 @@ contract Subscription is ReentrancyGuard {
     // Admin
     // -----------------------------------------------------------------------
 
-    function setPayPerCall(address next) external {
-        if (msg.sender != payPerCall && payPerCall != address(0)) revert OnlyPayPerCall();
+    function setPayPerCall(address next) external onlyOwner {
         emit PayPerCallSet(payPerCall, next);
         payPerCall = next;
     }

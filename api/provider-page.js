@@ -1,5 +1,5 @@
 // /api/provider-page.js — SSR provider profile + sitemap for SEO
-const SG_URL = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
+const SG_URL = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn';
 
 async function handleSitemap(req, res) {
   const base = 'https://arcsla.vercel.app';
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     : process.env.ARC_RPC_URL;
 
   const registryAddr = process.env.VITE_SERVICE_REGISTRY;
-  const sgUrl = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn';
+  const sgUrl = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn';
 
   if (!rpcUrl) {
     res.status(503).json({ error: 'ARC_RPC_URL not configured' });

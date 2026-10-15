@@ -23,6 +23,8 @@ interface IPayPerCallView {
 }
 
 /// @dev Minimal interface into ServiceRegistry views.
+// FIXED: getProvider returns the full 9-field ProviderView matching
+// ServiceRegistry.sol — the old 7-field version reverted on ABI decode.
 interface IServiceRegistryView {
     function getReputationScore(uint256 providerId) external view returns (uint8);
     function completedCalls(uint256 providerId) external view returns (uint64);
@@ -34,7 +36,9 @@ interface IServiceRegistryView {
         uint256 pricePerCall,
         uint32  maxResponseTime,
         uint32  slashBps,
-        bool    active
+        bool    active,
+        uint32  maxConcurrentCalls,
+        uint8   zkTier
     );
 }
 
@@ -430,11 +434,8 @@ contract SLAAttestationBridge is Ownable, ReentrancyGuard {
     }
 
     function _requireProviderExists(uint256 providerId) internal view {
-        // getReputationScore returns 0 for unknown providers — use completedCalls
-        // as the existence signal; a brand-new provider has 0 completed but a
-        // non-zero owner. We rely on getReputationScore reverting if needed, but
-        // for safety we just proceed — worst case an empty attestation is issued.
-        // The caller is responsible for passing a valid providerId.
         if (providerId == 0) revert UnknownProvider();
+        (address owner,,,,,,,,) = registry.getProvider(providerId);
+        if (owner == address(0)) revert UnknownProvider();
     }
 }

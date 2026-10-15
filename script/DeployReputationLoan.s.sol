@@ -7,7 +7,7 @@ import "../contracts/ReputationLoan.sol";
 contract DeployReputationLoan is Script {
     function run() external {
         address usdc     = 0x3600000000000000000000000000000000000000;
-        address registry = 0x9ca97010464e8e6de6e27cf25eae9b939fbd7333;
+        address registry = 0x9cA97010464E8e6dE6E27CF25eAe9B939fbD7333;
         address owner    = vm.envAddress("DEPLOYER");
 
         uint16  minHonorRate    = 8000;  // 80%

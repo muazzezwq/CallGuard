@@ -7,7 +7,7 @@ import "../contracts/AgentWallet.sol";
 contract DeployAgentWallet is Script {
     function run() external {
         address usdc       = 0x3600000000000000000000000000000000000000;
-        address payPerCall = 0x10387347678d9f7106D5625bE0BD6C915158B130;
+        address payPerCall = 0x5fb41DD22c44E1DE08F37D98c2995A62D6220540; // PayPerCall v7.1 (active)
         address agent      = vm.envAddress("AGENT_ADDRESS"); // AI hot wallet
         address deployer   = vm.envAddress("DEPLOYER");
 

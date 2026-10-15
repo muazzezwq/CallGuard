@@ -194,10 +194,12 @@ async function handleHealth(req, res) {
     providers: [],
   };
 
-  // Try to load provider data from sibling API if available.
+  // Try to load provider data from the sibling API via same-origin URL.
+  // (Never localhost — that fails on Vercel serverless where each function
+  // is isolated. baseUrl() resolves the public deployment host instead.)
   try {
     const energyRes = await Promise.race([
-      fetch(`http://localhost:${process.env.PORT || 3000}/api/energy-data`),
+      fetch(`${baseUrl(req)}/api/energy-data`),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("timeout")), PING_TIMEOUT_MS)
       ),

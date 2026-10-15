@@ -51,26 +51,27 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 
 > **Note on Arc native USDC decimals:** Arc exposes USDC two ways. The ERC-20 `decimals()` returns **6** (standard USDC). The EVM gas layer uses **18 decimals** (wei-equivalent). MetaMask and `wallet_addEthereumChain` require `decimals: 18` — using 6 causes gas estimates to display as 10¹² × the correct value.
 
-### Core Contracts (v5 — October 2026)
+### Core Contracts (v7 — October 2026, see AGENTS.md for full state)
 
 | Contract | Address | Explorer |
 |---|---|---|
-| `ServiceRegistry` v5 | `0xc3ff2169...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0xc3ff2169ed44129b9fc06011a5a432f92ef2f0c4) |
-| `PayPerCall` v5 | `0x389b44b7...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x389b44b7ad68c9e661a9ef2625f958840c31b601) |
+| `ServiceRegistry` v7 | `0x9ca97010...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x9ca97010464e8e6de6e27cf25eae9b939fbd7333) |
+| `PayPerCall` v7.1 | `0x5fb41dd2...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x5fb41dd22c44e1de08f37d98c2995a62d6220540) |
 | `CrossChainReceiver` v2 | `0x760326de...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x760326de3cba39994dfd81d2b71b072c0265601c) |
 | `USDC` | `0x360000...` | [ArcScan ↗](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) |
 
-### v2 Protocol Contracts (October 2026)
+### Protocol Contracts (October 2026)
 
 | Contract | Address | Purpose |
 |---|---|---|
-| `DisputeQuality` v2 | `0x7e2771df...` | Verifiable AI output — community stake-weighted voting + Circle Refund Protocol |
-| `SLAFutures` v2 | `0x19d03ff1...` | Provider capacity tokenized as ERC-1155 NFTs |
-| `ReputationLoan` v2 | `0x5a2f5455...` | Reputation-as-collateral USDC lending (RepFi) |
+| `ReputationLoan` v3 | `0x9e062282...` | Reputation-as-collateral USDC lending (RepFi) |
+| `SLAFutures` v3 | `0xcd57a9b9...` | Provider capacity tokenized as ERC-1155 NFTs |
+| `Subscription` v2 | `0xc090ff2b...` | Pre-paid call bundles + StreamEscrow |
+| `AgentWallet` v2 | `0x6a7a4148...` | Smart wallet with daily spend limits + ERC-8183 Pipeline Hook |
 | `SLAAttestationBridge` | `0x62a63a94...` | Cross-protocol SLA oracle — onchain attestations |
-| `AgentWallet` | `0xf73f2Fc5...` | Smart wallet with daily spend limits + ERC-8183 Pipeline Hook |
-| `AgenticCommerce` | `0x0747EEf0...` | ERC-8183 Jobs — full agentic job lifecycle |
-| `RegisterWithNFT` | `0x8b8aC247...` | Mint ERC-8004 NFT + register in one transaction |
+| `Dispute` | `0xa47162d8...` | Arbitrated disputes (active) |
+| `AgenticCommerce` | `0x0747EEf0...` | ERC-8183 Jobs — full agentic job lifecycle (third-party) |
+| `RegisterWithNFT` | `0x0aBC4333...` | Mint ERC-8004 NFT + register in one transaction |
 
 ### Third-Party Protocol Addresses (Arc Testnet)
 
@@ -293,7 +294,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 | Chain | wagmi v2 + viem |
 | Wallet | ConnectKit (MetaMask, Coinbase, Rainbow, injected) |
 | State | Zustand (persist) |
-| Subgraph | Goldsky GraphQL (`arcsla/3.0.0`) |
+| Subgraph | Goldsky GraphQL (`callguard-v7/1.0.0`) |
 | Styling | Custom CSS (light/dark theme via `[data-theme]`) |
 | Deploy | Vercel (SPA rewrites) |
 
@@ -596,7 +597,7 @@ CallGuard/
 │   ├── call-service.js               # x402 facilitator (full accepts array)
 │   ├── nano-call.js                  # Gateway nanopayments (dual-rail)
 │   └── auto-receipt.js               # auto-receipt + Circle Refund Protocol relay
-├── subgraph/                         # Goldsky subgraph (arcsla/3.0.0)
+├── subgraph/                         # Goldsky subgraph (callguard-v7/1.0.0)
 ├── x402-facilitator/                 # x402 + Gateway facilitator server
 ├── AGENTS.md                         # deployed contract addresses (canonical source)
 ├── SPEC.md
@@ -679,7 +680,7 @@ CallGuard/
 
 - [Arc Testnet Faucet](https://faucet.testnet.arc.io) — free testnet USDC (also covers gas)
 - [ArcScan Testnet](https://explorer.testnet.arc.io/) — block explorer
-- [Goldsky Subgraph](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/arcsla/3.0.0/gn) — live GraphQL endpoint
+- [Goldsky Subgraph](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn) — live GraphQL endpoint
 - [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer
 
 ### Project documents
