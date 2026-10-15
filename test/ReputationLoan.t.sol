@@ -479,13 +479,16 @@ contract ReputationLoanTest is Test {
         // Slash the registry stake so it falls below the loan principal
         registry.setStake(PROVIDER_ID, borrowAmount - 1);
 
+        // Liquidation is only allowed after the loan term has elapsed.
+        skip(LOAN_DURATION + 1);
+
         uint256 assetsBefore = pool.totalAssets();
         uint256 loanedBefore = pool.totalLoaned();
 
         vm.expectEmit(true, true, false, false, address(pool));
         emit ReputationLoan.LoanLiquidated(loanId, PROVIDER_ID);
 
-        pool.liquidate(loanId); // anyone can liquidate
+        pool.liquidate(loanId); // anyone can liquidate after maturity
 
         (,,,,,, bool active) = pool.loans(loanId);
         assertFalse(active, "loan inactive after liquidation");
@@ -501,6 +504,9 @@ contract ReputationLoanTest is Test {
 
         // Stake is still well above the loan principal
         // (registry stake = PROVIDER_STAKE = 200_000e6 >> 5_000e6)
+
+        // Past maturity so the term gate passes and the stake check is reached.
+        skip(LOAN_DURATION + 1);
 
         vm.expectRevert(ReputationLoan.NotLiquidatable.selector);
         pool.liquidate(loanId);
@@ -524,6 +530,9 @@ contract ReputationLoanTest is Test {
 
         // stake == principal → NOT liquidatable (need stake < principal)
         registry.setStake(PROVIDER_ID, borrowAmount);
+
+        // Past maturity so the term gate passes and the stake check is reached.
+        skip(LOAN_DURATION + 1);
 
         vm.expectRevert(ReputationLoan.NotLiquidatable.selector);
         pool.liquidate(loanId);
@@ -687,6 +696,9 @@ contract ReputationLoanTest is Test {
 
         // --- Step 3: Provider stake slashed below principal ---
         registry.setStake(PROVIDER_ID, borrowAmount - 1);
+
+        // --- Step 3b: Term elapses (liquidation requires maturity) ---
+        skip(LOAN_DURATION + 1);
 
         // --- Step 4: Anyone liquidates ---
         pool.liquidate(loanId);

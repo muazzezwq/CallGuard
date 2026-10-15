@@ -21,6 +21,12 @@ interface IServiceRegistry {
         uint32 maxConcurrentCalls,
         string calldata endpoint
     ) external returns (uint256 providerId);
+
+    function deactivate(uint256 providerId) external;
+    function unstake(uint256 providerId) external;
+    function updatePrice(uint256 providerId, uint256 newPrice) external;
+    function updateSigner(uint256 providerId, address newSigner) external;
+    function updateMaxConcurrentCalls(uint256 providerId, uint32 newCap) external;
 }
 
 interface IERC721Transfer {
@@ -59,6 +65,19 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
     error ZeroStake();
     error ZeroSigner();
     error EmptyEndpoint();
+    error NotProviderUser();
+
+    /// @dev providerId => the user who registered through this helper. Because
+    ///      registerV2 sets the registry owner to THIS contract (ownerOf(tokenId)
+    ///      must equal msg.sender), the user cannot call owner-gated registry
+    ///      functions directly. The forwarding functions below let the recorded
+    ///      user act as the provider without exposing the helper's authority.
+    mapping(uint256 => address) public userOfProvider;
+
+    modifier onlyProviderUser(uint256 providerId) {
+        if (userOfProvider[providerId] != msg.sender) revert NotProviderUser();
+        _;
+    }
 
     /// @notice Required so IdentityRegistry._safeMint() can mint to this contract.
     function onERC721Received(address, address, uint256, bytes calldata)
@@ -119,6 +138,53 @@ contract RegisterWithNFT is ReentrancyGuard, IERC721Receiver {
             tokenId
         );
 
+        // 6. Record the user so they can drive owner-gated registry calls via
+        //    the forwarders below. NOTE: registerV2 keys providers by owner
+        //    address, and here the owner is this contract, so only ONE provider
+        //    can ever be registered through this helper. A second caller would
+        //    revert AlreadyRegistered in ServiceRegistry. Multi-user support
+        //    requires a per-user proxy/factory (out of scope here).
+        userOfProvider[providerId] = msg.sender;
+
         emit RegisteredWithNFT(msg.sender, tokenId, providerId, stakeAmount);
+    }
+
+    // -----------------------------------------------------------------------
+    // Owner-gated forwarding
+    // -----------------------------------------------------------------------
+    // The ServiceRegistry owner of every provider created here is this
+    // contract. These functions let the recorded user act as that owner.
+
+    function deactivate(uint256 providerId) external onlyProviderUser(providerId) {
+        IServiceRegistry(SERVICE_REGISTRY).deactivate(providerId);
+    }
+
+    /// @notice Unstake the helper-owned provider and forward the returned USDC
+    ///         to the user who registered it.
+    function unstake(uint256 providerId) external nonReentrant onlyProviderUser(providerId) {
+        IServiceRegistry(SERVICE_REGISTRY).unstake(providerId);
+        uint256 balance = USDC.balanceOf(address(this));
+        if (balance > 0) USDC.safeTransfer(msg.sender, balance);
+    }
+
+    function updatePrice(uint256 providerId, uint256 newPrice)
+        external
+        onlyProviderUser(providerId)
+    {
+        IServiceRegistry(SERVICE_REGISTRY).updatePrice(providerId, newPrice);
+    }
+
+    function updateSigner(uint256 providerId, address newSigner)
+        external
+        onlyProviderUser(providerId)
+    {
+        IServiceRegistry(SERVICE_REGISTRY).updateSigner(providerId, newSigner);
+    }
+
+    function updateMaxConcurrentCalls(uint256 providerId, uint32 newCap)
+        external
+        onlyProviderUser(providerId)
+    {
+        IServiceRegistry(SERVICE_REGISTRY).updateMaxConcurrentCalls(providerId, newCap);
     }
 }

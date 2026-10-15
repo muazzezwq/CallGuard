@@ -37,6 +37,22 @@ interface IServiceRegistry {
     );
 }
 
+/// @dev Minimal PayPerCall view used to bind a dispute to a real, settled call
+///      instead of trusting caller-supplied (callId, providerId, settledAt).
+interface IPayPerCall {
+    struct Call {
+        uint256 providerId;
+        address caller;
+        uint256 amount;
+        uint32  startedAt;
+        uint32  deadline;
+        bytes32 requestHash;
+        bytes32 responseHash;
+        uint8   status; // CallStatus: 0 None, 1 Pending, 2 Completed, 3 Slashed
+    }
+    function getCall(bytes32 callId) external view returns (Call memory);
+}
+
 contract Dispute is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -52,6 +68,11 @@ contract Dispute is ReentrancyGuard {
     error AlreadyResolved();
     error BondTooLow();
     error DisputeNotFound();
+    error PayPerCallNotConfigured();
+    error PayPerCallAlreadySet();
+    error CallNotSettled();
+    error NotCallCaller();
+    error ProviderMismatch();
 
     // -----------------------------------------------------------------------
     // Types
@@ -75,6 +96,11 @@ contract Dispute is ReentrancyGuard {
 
     IERC20            public immutable usdc;
     IServiceRegistry  public immutable registry;
+
+    /// @notice PayPerCall contract used to verify that a disputed callId
+    ///         actually exists and belongs to the opener. Set once by the
+    ///         arbiter via setPayPerCall().
+    address public payPerCall;
 
     address public arbiter;
     address public treasury;
@@ -142,6 +168,16 @@ contract Dispute is ReentrancyGuard {
         if (settledAt > block.timestamp) revert WindowNotStarted();
         if (block.timestamp > settledAt + disputeWindow) revert WindowClosed();
         if (disputeIdByCallId[callId] != 0)              revert AlreadyDisputed();
+
+        // Bind the dispute to a real, settled on-chain call. Without this an
+        // attacker could fabricate a callId against any provider and, if the
+        // arbiter were misled, slash an innocent provider.
+        if (payPerCall == address(0)) revert PayPerCallNotConfigured();
+        IPayPerCall.Call memory c = IPayPerCall(payPerCall).getCall(callId);
+        if (c.status != 2 && c.status != 3) revert CallNotSettled(); // Completed | Slashed
+        if (c.caller != msg.sender)         revert NotCallCaller();
+        if (c.providerId != providerId)     revert ProviderMismatch();
+        if (settledAt < c.startedAt)        revert WindowNotStarted();
 
         // Pull bond from caller
         if (disputeBond > 0) {
@@ -217,6 +253,15 @@ contract Dispute is ReentrancyGuard {
         if (msg.sender != arbiter) revert NotArbiter();
         emit BondUpdated(disputeBond, next);
         disputeBond = next;
+    }
+
+    /// @notice One-time wiring of the PayPerCall contract used for call
+    ///         verification. Cannot be changed once set.
+    function setPayPerCall(address next) external {
+        if (msg.sender != arbiter) revert NotArbiter();
+        if (payPerCall != address(0)) revert PayPerCallAlreadySet();
+        require(next != address(0), "zero ppc");
+        payPerCall = next;
     }
 
     // -----------------------------------------------------------------------

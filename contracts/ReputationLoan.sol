@@ -56,6 +56,7 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
     error CallHistoryTooLow();
     error LoanTooLarge();
     error NotLiquidatable();
+    error LoanNotMatured();
 
     event Deposited(address indexed lp, uint256 amount, uint256 shares);
     event Withdrawn(address indexed lp, uint256 shares, uint256 amount);
@@ -293,6 +294,11 @@ contract ReputationLoan is Ownable, ReentrancyGuard {
     function liquidate(uint256 loanId) external nonReentrant {
         Loan storage loan = loans[loanId];
         if (!loan.active) revert LoanNotActive();
+
+        // Only allow liquidation after the loan term has elapsed. Without this
+        // gate anyone could liquidate a freshly opened, still-performing loan,
+        // wiping LP assets and closing a loan the borrower was servicing.
+        if (block.timestamp <= loan.startTime + loan.duration) revert LoanNotMatured();
 
         IServiceRegistry.ProviderView memory provider = registry.getProvider(loan.providerId);
         uint256 principalOutstanding = loan.principal;
