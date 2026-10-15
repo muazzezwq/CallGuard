@@ -53,12 +53,12 @@
         "internalType": "bytes"
       },
       {
-        "name": "",
+        "name": "messageId",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "",
+        "name": "nonce",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -94,6 +94,25 @@
   },
   {
     "type": "function",
+    "name": "processedMessages",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "recoverTokens",
     "inputs": [
       {
@@ -117,8 +136,34 @@
   },
   {
     "type": "function",
+    "name": "registry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IServiceRegistryView"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRegistry",
+    "inputs": [
+      {
+        "name": "_registry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -197,6 +242,16 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyProcessed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AmountMismatch",
+    "inputs": []
   },
   {
     "type": "error",

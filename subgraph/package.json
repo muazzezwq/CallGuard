@@ -4,7 +4,7 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "goldsky subgraph deploy arcsla/1.1.7"
+    "deploy": "goldsky subgraph deploy callguard-v7/1.1.0 --path build"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.68.0",

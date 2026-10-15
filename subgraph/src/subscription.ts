@@ -7,17 +7,17 @@ import {
   StreamSubscribed,
   StreamClaimed,
 } from "../generated/Subscription/Subscription";
-import { Subscription, StreamClaim } from "../generated/schema";
+import { CallSubscription, StreamClaim } from "../generated/schema";
 
 export function handleSubscribed(event: Subscribed): void {
   const id = event.params.subId.toString();
-  let s = new Subscription(id);
+  let s = new CallSubscription(id);
   s.subId          = event.params.subId;
   s.subscriber     = event.params.subscriber;
   s.providerId     = event.params.providerId;
-  s.totalCalls     = event.params.calls as i32;
-  s.remainingCalls = event.params.calls as i32;
-  s.expiresAt      = BigInt.fromI64(event.params.expiresAt as i64);
+  s.totalCalls     = event.params.calls.toI32();
+  s.remainingCalls = event.params.calls.toI32();
+  s.expiresAt      = event.params.expiresAt;
   s.status         = "Active";
   s.refund         = BigInt.fromI32(0);
   s.createdAt      = event.block.timestamp;
@@ -27,9 +27,9 @@ export function handleSubscribed(event: Subscribed): void {
 
 export function handleCallUsed(event: CallUsed): void {
   const id = event.params.subId.toString();
-  let s = Subscription.load(id);
+  let s = CallSubscription.load(id);
   if (!s) return;
-  s.remainingCalls = event.params.remaining as i32;
+  s.remainingCalls = event.params.remaining.toI32();
   s.updatedAt      = event.block.timestamp;
   if (s.remainingCalls == 0) s.status = "Exhausted";
   s.save();
@@ -37,7 +37,7 @@ export function handleCallUsed(event: CallUsed): void {
 
 export function handleCancelled(event: Cancelled): void {
   const id = event.params.subId.toString();
-  let s = Subscription.load(id);
+  let s = CallSubscription.load(id);
   if (!s) return;
   s.status    = "Cancelled";
   s.refund    = event.params.refund;
@@ -47,7 +47,7 @@ export function handleCancelled(event: Cancelled): void {
 
 export function handleExpiredReleased(event: ExpiredReleased): void {
   const id = event.params.subId.toString();
-  let s = Subscription.load(id);
+  let s = CallSubscription.load(id);
   if (!s) return;
   s.status    = "Expired";
   s.refund    = event.params.refund;
@@ -61,13 +61,13 @@ export function handleExpiredReleased(event: ExpiredReleased): void {
 
 export function handleStreamSubscribed(event: StreamSubscribed): void {
   const id = event.params.subId.toString();
-  let s = new Subscription(id);
+  let s = new CallSubscription(id);
   s.subId          = event.params.subId;
   s.subscriber     = event.params.subscriber;
   s.providerId     = event.params.providerId;
   s.totalCalls     = 0;
   s.remainingCalls = 0;
-  s.expiresAt      = event.block.timestamp.plus(BigInt.fromI64(event.params.duration as i64));
+  s.expiresAt      = event.block.timestamp.plus(event.params.duration);
   s.status         = "StreamActive";
   s.refund         = BigInt.fromI32(0);
   s.streamMode     = true;
@@ -94,7 +94,7 @@ export function handleStreamClaimed(event: StreamClaimed): void {
 
   // Update running streamReleased total on the Subscription entity.
   const subId = event.params.subId.toString();
-  let s = Subscription.load(subId);
+  let s = CallSubscription.load(subId);
   if (s) {
     s.streamReleased = s.streamReleased.plus(event.params.amount);
     s.updatedAt      = event.block.timestamp;

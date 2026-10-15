@@ -294,7 +294,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 | Chain | wagmi v2 + viem |
 | Wallet | ConnectKit (MetaMask, Coinbase, Rainbow, injected) |
 | State | Zustand (persist) |
-| Subgraph | Goldsky GraphQL (`callguard-v7/1.0.0`) |
+| Subgraph | Goldsky GraphQL (`callguard-v7/1.1.0`) |
 | Styling | Custom CSS (light/dark theme via `[data-theme]`) |
 | Deploy | Vercel (SPA rewrites) |
 
@@ -597,7 +597,7 @@ CallGuard/
 │   ├── call-service.js               # x402 facilitator (full accepts array)
 │   ├── nano-call.js                  # Gateway nanopayments (dual-rail)
 │   └── auto-receipt.js               # auto-receipt + Circle Refund Protocol relay
-├── subgraph/                         # Goldsky subgraph (callguard-v7/1.0.0)
+├── subgraph/                         # Goldsky subgraph (callguard-v7/1.1.0)
 ├── x402-facilitator/                 # x402 + Gateway facilitator server
 ├── AGENTS.md                         # deployed contract addresses (canonical source)
 ├── SPEC.md
@@ -680,7 +680,7 @@ CallGuard/
 
 - [Arc Testnet Faucet](https://faucet.testnet.arc.io) — free testnet USDC (also covers gas)
 - [ArcScan Testnet](https://explorer.testnet.arc.io/) — block explorer
-- [Goldsky Subgraph](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn) — live GraphQL endpoint
+- [Goldsky Subgraph](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn) — live GraphQL endpoint
 - [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer
 
 ### Project documents

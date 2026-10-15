@@ -100,6 +100,38 @@
   },
   {
     "type": "function",
+    "name": "authorizeSlasher",
+    "inputs": [
+      {
+        "name": "slasher",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "authorizedSlashers",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "completedCalls",
     "inputs": [
       {
@@ -206,6 +238,16 @@
             "name": "active",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "maxConcurrentCalls",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "zkTier",
+            "type": "uint8",
+            "internalType": "uint8"
           }
         ]
       }
@@ -291,6 +333,25 @@
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lastUptimePing",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
       }
     ],
     "stateMutability": "view"
@@ -458,6 +519,44 @@
   },
   {
     "type": "function",
+    "name": "recordUptime",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "score",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "v",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "r",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "s",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "register",
     "inputs": [
       {
@@ -482,6 +581,11 @@
       },
       {
         "name": "slashBps",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "maxConcurrentCalls_",
         "type": "uint32",
         "internalType": "uint32"
       },
@@ -535,6 +639,11 @@
         "internalType": "uint32"
       },
       {
+        "name": "maxConcurrentCalls_",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
         "name": "endpoint",
         "type": "string",
         "internalType": "string"
@@ -551,12 +660,56 @@
   },
   {
     "type": "function",
+    "name": "revokeSlasher",
+    "inputs": [
+      {
+        "name": "slasher",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setPayPerCall",
     "inputs": [
       {
         "name": "_payPerCall",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setUptimeOracle",
+    "inputs": [
+      {
+        "name": "oracle",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setZkTier",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tier",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "outputs": [],
@@ -619,6 +772,24 @@
   },
   {
     "type": "function",
+    "name": "updateMaxConcurrentCalls",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newCap",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "updatePayPerCall",
     "inputs": [
       {
@@ -668,6 +839,38 @@
   },
   {
     "type": "function",
+    "name": "uptimeOracle",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "uptimeScore",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "usdc",
     "inputs": [],
     "outputs": [
@@ -678,6 +881,44 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "zkTiers",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "MaxConcurrentCallsUpdated",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newCap",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -912,6 +1153,83 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "SlasherAuthorized",
+    "inputs": [
+      {
+        "name": "slasher",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SlasherRevoked",
+    "inputs": [
+      {
+        "name": "slasher",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UptimeOracleSet",
+    "inputs": [
+      {
+        "name": "oracle",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UptimeRecorded",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "score",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ZkTierSet",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tier",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyRegistered",
     "inputs": []
@@ -1010,6 +1328,11 @@
   {
     "type": "error",
     "name": "UnknownProvider",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAmount",
     "inputs": []
   }
 ]

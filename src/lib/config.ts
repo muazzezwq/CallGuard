@@ -55,7 +55,7 @@ export const CONFIG = {
   // ERC-8183 Jobs contract
   agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
   agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
-  subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn",
+  subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn",
   explorerBase: "https://explorer.testnet.arc.io",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,

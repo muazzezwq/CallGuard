@@ -40,6 +40,19 @@
   },
   {
     "type": "function",
+    "name": "deactivate",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "onERC721Received",
     "inputs": [
       {
@@ -97,6 +110,11 @@
         "internalType": "uint32"
       },
       {
+        "name": "maxConcurrentCalls",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
         "name": "signer",
         "type": "address",
         "internalType": "address"
@@ -120,6 +138,92 @@
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unstake",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateMaxConcurrentCalls",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newCap",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updatePrice",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newPrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateSigner",
+    "inputs": [
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newSigner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "userOfProvider",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "event",
@@ -155,6 +259,11 @@
   {
     "type": "error",
     "name": "EmptyEndpoint",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotProviderUser",
     "inputs": []
   },
   {

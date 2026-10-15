@@ -10,6 +10,28 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class MaxConcurrentCallsUpdated extends ethereum.Event {
+  get params(): MaxConcurrentCallsUpdated__Params {
+    return new MaxConcurrentCallsUpdated__Params(this);
+  }
+}
+
+export class MaxConcurrentCallsUpdated__Params {
+  _event: MaxConcurrentCallsUpdated;
+
+  constructor(event: MaxConcurrentCallsUpdated) {
+    this._event = event;
+  }
+
+  get providerId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get newCap(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
 export class NFTBound extends ethereum.Event {
   get params(): NFTBound__Params {
     return new NFTBound__Params(this);
@@ -28,6 +50,28 @@ export class NFTBound__Params {
   }
 
   get tokenId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
+export class PayPerCallProposed extends ethereum.Event {
+  get params(): PayPerCallProposed__Params {
+    return new PayPerCallProposed__Params(this);
+  }
+}
+
+export class PayPerCallProposed__Params {
+  _event: PayPerCallProposed;
+
+  constructor(event: PayPerCallProposed) {
+    this._event = event;
+  }
+
+  get proposed(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get executeAt(): BigInt {
     return this._event.parameters[1].value.toBigInt();
   }
 }
@@ -236,6 +280,104 @@ export class SignerUpdated__Params {
   }
 }
 
+export class SlasherAuthorized extends ethereum.Event {
+  get params(): SlasherAuthorized__Params {
+    return new SlasherAuthorized__Params(this);
+  }
+}
+
+export class SlasherAuthorized__Params {
+  _event: SlasherAuthorized;
+
+  constructor(event: SlasherAuthorized) {
+    this._event = event;
+  }
+
+  get slasher(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class SlasherRevoked extends ethereum.Event {
+  get params(): SlasherRevoked__Params {
+    return new SlasherRevoked__Params(this);
+  }
+}
+
+export class SlasherRevoked__Params {
+  _event: SlasherRevoked;
+
+  constructor(event: SlasherRevoked) {
+    this._event = event;
+  }
+
+  get slasher(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class UptimeOracleSet extends ethereum.Event {
+  get params(): UptimeOracleSet__Params {
+    return new UptimeOracleSet__Params(this);
+  }
+}
+
+export class UptimeOracleSet__Params {
+  _event: UptimeOracleSet;
+
+  constructor(event: UptimeOracleSet) {
+    this._event = event;
+  }
+
+  get oracle(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class UptimeRecorded extends ethereum.Event {
+  get params(): UptimeRecorded__Params {
+    return new UptimeRecorded__Params(this);
+  }
+}
+
+export class UptimeRecorded__Params {
+  _event: UptimeRecorded;
+
+  constructor(event: UptimeRecorded) {
+    this._event = event;
+  }
+
+  get providerId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get score(): i32 {
+    return this._event.parameters[1].value.toI32();
+  }
+}
+
+export class ZkTierSet extends ethereum.Event {
+  get params(): ZkTierSet__Params {
+    return new ZkTierSet__Params(this);
+  }
+}
+
+export class ZkTierSet__Params {
+  _event: ZkTierSet;
+
+  constructor(event: ZkTierSet) {
+    this._event = event;
+  }
+
+  get providerId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get tier(): i32 {
+    return this._event.parameters[1].value.toI32();
+  }
+}
+
 export class ServiceRegistry__getProviderResultValue0Struct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
@@ -263,6 +405,14 @@ export class ServiceRegistry__getProviderResultValue0Struct extends ethereum.Tup
 
   get active(): boolean {
     return this[6].toBoolean();
+  }
+
+  get maxConcurrentCalls(): BigInt {
+    return this[7].toBigInt();
+  }
+
+  get zkTier(): i32 {
+    return this[8].toI32();
   }
 }
 
@@ -332,6 +482,29 @@ export class ServiceRegistry extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  PAYPERCALL_TIMELOCK(): BigInt {
+    let result = super.call(
+      "PAYPERCALL_TIMELOCK",
+      "PAYPERCALL_TIMELOCK():(uint256)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_PAYPERCALL_TIMELOCK(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "PAYPERCALL_TIMELOCK",
+      "PAYPERCALL_TIMELOCK():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   UNSTAKE_COOLDOWN(): BigInt {
     let result = super.call(
       "UNSTAKE_COOLDOWN",
@@ -370,10 +543,33 @@ export class ServiceRegistry extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  authorizedSlashers(param0: Address): boolean {
+    let result = super.call(
+      "authorizedSlashers",
+      "authorizedSlashers(address):(bool)",
+      [ethereum.Value.fromAddress(param0)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_authorizedSlashers(param0: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "authorizedSlashers",
+      "authorizedSlashers(address):(bool)",
+      [ethereum.Value.fromAddress(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
   completedCalls(providerId: BigInt): BigInt {
     let result = super.call(
       "completedCalls",
-      "completedCalls(uint256):(uint32)",
+      "completedCalls(uint256):(uint64)",
       [ethereum.Value.fromUnsignedBigInt(providerId)],
     );
 
@@ -383,7 +579,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
   try_completedCalls(providerId: BigInt): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "completedCalls",
-      "completedCalls(uint256):(uint32)",
+      "completedCalls(uint256):(uint64)",
       [ethereum.Value.fromUnsignedBigInt(providerId)],
     );
     if (result.reverted) {
@@ -417,7 +613,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
   ): ServiceRegistry__getProviderResultValue0Struct {
     let result = super.call(
       "getProvider",
-      "getProvider(uint256):((address,address,uint256,uint256,uint32,uint32,bool))",
+      "getProvider(uint256):((address,address,uint256,uint256,uint32,uint32,bool,uint32,uint8))",
       [ethereum.Value.fromUnsignedBigInt(providerId)],
     );
 
@@ -431,7 +627,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
   ): ethereum.CallResult<ServiceRegistry__getProviderResultValue0Struct> {
     let result = super.tryCall(
       "getProvider",
-      "getProvider(uint256):((address,address,uint256,uint256,uint32,uint32,bool))",
+      "getProvider(uint256):((address,address,uint256,uint256,uint32,uint32,bool,uint32,uint8))",
       [ethereum.Value.fromUnsignedBigInt(providerId)],
     );
     if (result.reverted) {
@@ -510,6 +706,29 @@ export class ServiceRegistry extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
+  lastUptimePing(param0: BigInt): BigInt {
+    let result = super.call(
+      "lastUptimePing",
+      "lastUptimePing(uint256):(uint64)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_lastUptimePing(param0: BigInt): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "lastUptimePing",
+      "lastUptimePing(uint256):(uint64)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   minStake(): BigInt {
     let result = super.call("minStake", "minStake():(uint256)", []);
 
@@ -559,6 +778,29 @@ export class ServiceRegistry extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  payPerCallChangeAt(): BigInt {
+    let result = super.call(
+      "payPerCallChangeAt",
+      "payPerCallChangeAt():(uint256)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_payPerCallChangeAt(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "payPerCallChangeAt",
+      "payPerCallChangeAt():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   pendingCalls(providerId: BigInt): BigInt {
     let result = super.call("pendingCalls", "pendingCalls(uint256):(uint32)", [
       ethereum.Value.fromUnsignedBigInt(providerId),
@@ -578,6 +820,29 @@ export class ServiceRegistry extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  pendingPayPerCall(): Address {
+    let result = super.call(
+      "pendingPayPerCall",
+      "pendingPayPerCall():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_pendingPayPerCall(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "pendingPayPerCall",
+      "pendingPayPerCall():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
   providerIdOf(param0: Address): BigInt {
@@ -630,17 +895,19 @@ export class ServiceRegistry extends ethereum.SmartContract {
     pricePerCall_: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls_: BigInt,
     endpoint: string,
   ): BigInt {
     let result = super.call(
       "register",
-      "register(address,uint256,uint256,uint32,uint32,string):(uint256)",
+      "register(address,uint256,uint256,uint32,uint32,uint32,string):(uint256)",
       [
         ethereum.Value.fromAddress(signer),
         ethereum.Value.fromUnsignedBigInt(stakeAmount),
         ethereum.Value.fromUnsignedBigInt(pricePerCall_),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls_),
         ethereum.Value.fromString(endpoint),
       ],
     );
@@ -654,17 +921,19 @@ export class ServiceRegistry extends ethereum.SmartContract {
     pricePerCall_: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls_: BigInt,
     endpoint: string,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "register",
-      "register(address,uint256,uint256,uint32,uint32,string):(uint256)",
+      "register(address,uint256,uint256,uint32,uint32,uint32,string):(uint256)",
       [
         ethereum.Value.fromAddress(signer),
         ethereum.Value.fromUnsignedBigInt(stakeAmount),
         ethereum.Value.fromUnsignedBigInt(pricePerCall_),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls_),
         ethereum.Value.fromString(endpoint),
       ],
     );
@@ -682,11 +951,12 @@ export class ServiceRegistry extends ethereum.SmartContract {
     pricePerCall_: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls_: BigInt,
     endpoint: string,
   ): BigInt {
     let result = super.call(
       "registerV2",
-      "registerV2(uint256,address,uint256,uint256,uint32,uint32,string):(uint256)",
+      "registerV2(uint256,address,uint256,uint256,uint32,uint32,uint32,string):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(erc8004TokenId),
         ethereum.Value.fromAddress(signer),
@@ -694,6 +964,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
         ethereum.Value.fromUnsignedBigInt(pricePerCall_),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls_),
         ethereum.Value.fromString(endpoint),
       ],
     );
@@ -708,11 +979,12 @@ export class ServiceRegistry extends ethereum.SmartContract {
     pricePerCall_: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls_: BigInt,
     endpoint: string,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "registerV2",
-      "registerV2(uint256,address,uint256,uint256,uint32,uint32,string):(uint256)",
+      "registerV2(uint256,address,uint256,uint256,uint32,uint32,uint32,string):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(erc8004TokenId),
         ethereum.Value.fromAddress(signer),
@@ -720,6 +992,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
         ethereum.Value.fromUnsignedBigInt(pricePerCall_),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls_),
         ethereum.Value.fromString(endpoint),
       ],
     );
@@ -731,7 +1004,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
   }
 
   slashedCalls(providerId: BigInt): BigInt {
-    let result = super.call("slashedCalls", "slashedCalls(uint256):(uint32)", [
+    let result = super.call("slashedCalls", "slashedCalls(uint256):(uint64)", [
       ethereum.Value.fromUnsignedBigInt(providerId),
     ]);
 
@@ -741,7 +1014,7 @@ export class ServiceRegistry extends ethereum.SmartContract {
   try_slashedCalls(providerId: BigInt): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "slashedCalls",
-      "slashedCalls(uint256):(uint32)",
+      "slashedCalls(uint256):(uint64)",
       [ethereum.Value.fromUnsignedBigInt(providerId)],
     );
     if (result.reverted) {
@@ -749,6 +1022,40 @@ export class ServiceRegistry extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  uptimeOracle(): Address {
+    let result = super.call("uptimeOracle", "uptimeOracle():(address)", []);
+
+    return result[0].toAddress();
+  }
+
+  try_uptimeOracle(): ethereum.CallResult<Address> {
+    let result = super.tryCall("uptimeOracle", "uptimeOracle():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
+  uptimeScore(param0: BigInt): i32 {
+    let result = super.call("uptimeScore", "uptimeScore(uint256):(uint16)", [
+      ethereum.Value.fromUnsignedBigInt(param0),
+    ]);
+
+    return result[0].toI32();
+  }
+
+  try_uptimeScore(param0: BigInt): ethereum.CallResult<i32> {
+    let result = super.tryCall("uptimeScore", "uptimeScore(uint256):(uint16)", [
+      ethereum.Value.fromUnsignedBigInt(param0),
+    ]);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
   }
 
   usdc(): Address {
@@ -764,6 +1071,25 @@ export class ServiceRegistry extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
+  zkTiers(param0: BigInt): i32 {
+    let result = super.call("zkTiers", "zkTiers(uint256):(uint8)", [
+      ethereum.Value.fromUnsignedBigInt(param0),
+    ]);
+
+    return result[0].toI32();
+  }
+
+  try_zkTiers(param0: BigInt): ethereum.CallResult<i32> {
+    let result = super.tryCall("zkTiers", "zkTiers(uint256):(uint8)", [
+      ethereum.Value.fromUnsignedBigInt(param0),
+    ]);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
   }
 }
 
@@ -791,12 +1117,46 @@ export class ConstructorCall__Inputs {
   get _minStake(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
   }
+
+  get _admin(): Address {
+    return this._call.inputValues[2].value.toAddress();
+  }
 }
 
 export class ConstructorCall__Outputs {
   _call: ConstructorCall;
 
   constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+}
+
+export class AuthorizeSlasherCall extends ethereum.Call {
+  get inputs(): AuthorizeSlasherCall__Inputs {
+    return new AuthorizeSlasherCall__Inputs(this);
+  }
+
+  get outputs(): AuthorizeSlasherCall__Outputs {
+    return new AuthorizeSlasherCall__Outputs(this);
+  }
+}
+
+export class AuthorizeSlasherCall__Inputs {
+  _call: AuthorizeSlasherCall;
+
+  constructor(call: AuthorizeSlasherCall) {
+    this._call = call;
+  }
+
+  get slasher(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class AuthorizeSlasherCall__Outputs {
+  _call: AuthorizeSlasherCall;
+
+  constructor(call: AuthorizeSlasherCall) {
     this._call = call;
   }
 }
@@ -827,6 +1187,32 @@ export class DeactivateCall__Outputs {
   _call: DeactivateCall;
 
   constructor(call: DeactivateCall) {
+    this._call = call;
+  }
+}
+
+export class ExecutePayPerCallCall extends ethereum.Call {
+  get inputs(): ExecutePayPerCallCall__Inputs {
+    return new ExecutePayPerCallCall__Inputs(this);
+  }
+
+  get outputs(): ExecutePayPerCallCall__Outputs {
+    return new ExecutePayPerCallCall__Outputs(this);
+  }
+}
+
+export class ExecutePayPerCallCall__Inputs {
+  _call: ExecutePayPerCallCall;
+
+  constructor(call: ExecutePayPerCallCall) {
+    this._call = call;
+  }
+}
+
+export class ExecutePayPerCallCall__Outputs {
+  _call: ExecutePayPerCallCall;
+
+  constructor(call: ExecutePayPerCallCall) {
     this._call = call;
   }
 }
@@ -951,6 +1337,86 @@ export class MarkCallStartedCall__Outputs {
   }
 }
 
+export class ProposePayPerCallCall extends ethereum.Call {
+  get inputs(): ProposePayPerCallCall__Inputs {
+    return new ProposePayPerCallCall__Inputs(this);
+  }
+
+  get outputs(): ProposePayPerCallCall__Outputs {
+    return new ProposePayPerCallCall__Outputs(this);
+  }
+}
+
+export class ProposePayPerCallCall__Inputs {
+  _call: ProposePayPerCallCall;
+
+  constructor(call: ProposePayPerCallCall) {
+    this._call = call;
+  }
+
+  get _payPerCall(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class ProposePayPerCallCall__Outputs {
+  _call: ProposePayPerCallCall;
+
+  constructor(call: ProposePayPerCallCall) {
+    this._call = call;
+  }
+}
+
+export class RecordUptimeCall extends ethereum.Call {
+  get inputs(): RecordUptimeCall__Inputs {
+    return new RecordUptimeCall__Inputs(this);
+  }
+
+  get outputs(): RecordUptimeCall__Outputs {
+    return new RecordUptimeCall__Outputs(this);
+  }
+}
+
+export class RecordUptimeCall__Inputs {
+  _call: RecordUptimeCall;
+
+  constructor(call: RecordUptimeCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get score(): i32 {
+    return this._call.inputValues[1].value.toI32();
+  }
+
+  get timestamp(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
+  }
+
+  get v(): i32 {
+    return this._call.inputValues[3].value.toI32();
+  }
+
+  get r(): Bytes {
+    return this._call.inputValues[4].value.toBytes();
+  }
+
+  get s(): Bytes {
+    return this._call.inputValues[5].value.toBytes();
+  }
+}
+
+export class RecordUptimeCall__Outputs {
+  _call: RecordUptimeCall;
+
+  constructor(call: RecordUptimeCall) {
+    this._call = call;
+  }
+}
+
 export class RegisterCall extends ethereum.Call {
   get inputs(): RegisterCall__Inputs {
     return new RegisterCall__Inputs(this);
@@ -988,8 +1454,12 @@ export class RegisterCall__Inputs {
     return this._call.inputValues[4].value.toBigInt();
   }
 
+  get maxConcurrentCalls_(): BigInt {
+    return this._call.inputValues[5].value.toBigInt();
+  }
+
   get endpoint(): string {
-    return this._call.inputValues[5].value.toString();
+    return this._call.inputValues[6].value.toString();
   }
 }
 
@@ -1046,8 +1516,12 @@ export class RegisterV2Call__Inputs {
     return this._call.inputValues[5].value.toBigInt();
   }
 
+  get maxConcurrentCalls_(): BigInt {
+    return this._call.inputValues[6].value.toBigInt();
+  }
+
   get endpoint(): string {
-    return this._call.inputValues[6].value.toString();
+    return this._call.inputValues[7].value.toString();
   }
 }
 
@@ -1060,6 +1534,36 @@ export class RegisterV2Call__Outputs {
 
   get providerId(): BigInt {
     return this._call.outputValues[0].value.toBigInt();
+  }
+}
+
+export class RevokeSlasherCall extends ethereum.Call {
+  get inputs(): RevokeSlasherCall__Inputs {
+    return new RevokeSlasherCall__Inputs(this);
+  }
+
+  get outputs(): RevokeSlasherCall__Outputs {
+    return new RevokeSlasherCall__Outputs(this);
+  }
+}
+
+export class RevokeSlasherCall__Inputs {
+  _call: RevokeSlasherCall;
+
+  constructor(call: RevokeSlasherCall) {
+    this._call = call;
+  }
+
+  get slasher(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class RevokeSlasherCall__Outputs {
+  _call: RevokeSlasherCall;
+
+  constructor(call: RevokeSlasherCall) {
+    this._call = call;
   }
 }
 
@@ -1089,6 +1593,70 @@ export class SetPayPerCallCall__Outputs {
   _call: SetPayPerCallCall;
 
   constructor(call: SetPayPerCallCall) {
+    this._call = call;
+  }
+}
+
+export class SetUptimeOracleCall extends ethereum.Call {
+  get inputs(): SetUptimeOracleCall__Inputs {
+    return new SetUptimeOracleCall__Inputs(this);
+  }
+
+  get outputs(): SetUptimeOracleCall__Outputs {
+    return new SetUptimeOracleCall__Outputs(this);
+  }
+}
+
+export class SetUptimeOracleCall__Inputs {
+  _call: SetUptimeOracleCall;
+
+  constructor(call: SetUptimeOracleCall) {
+    this._call = call;
+  }
+
+  get oracle(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetUptimeOracleCall__Outputs {
+  _call: SetUptimeOracleCall;
+
+  constructor(call: SetUptimeOracleCall) {
+    this._call = call;
+  }
+}
+
+export class SetZkTierCall extends ethereum.Call {
+  get inputs(): SetZkTierCall__Inputs {
+    return new SetZkTierCall__Inputs(this);
+  }
+
+  get outputs(): SetZkTierCall__Outputs {
+    return new SetZkTierCall__Outputs(this);
+  }
+}
+
+export class SetZkTierCall__Inputs {
+  _call: SetZkTierCall;
+
+  constructor(call: SetZkTierCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get tier(): i32 {
+    return this._call.inputValues[1].value.toI32();
+  }
+}
+
+export class SetZkTierCall__Outputs {
+  _call: SetZkTierCall;
+
+  constructor(call: SetZkTierCall) {
     this._call = call;
   }
 }
@@ -1161,32 +1729,36 @@ export class UnstakeCall__Outputs {
   }
 }
 
-export class UpdatePayPerCallCall extends ethereum.Call {
-  get inputs(): UpdatePayPerCallCall__Inputs {
-    return new UpdatePayPerCallCall__Inputs(this);
+export class UpdateMaxConcurrentCallsCall extends ethereum.Call {
+  get inputs(): UpdateMaxConcurrentCallsCall__Inputs {
+    return new UpdateMaxConcurrentCallsCall__Inputs(this);
   }
 
-  get outputs(): UpdatePayPerCallCall__Outputs {
-    return new UpdatePayPerCallCall__Outputs(this);
+  get outputs(): UpdateMaxConcurrentCallsCall__Outputs {
+    return new UpdateMaxConcurrentCallsCall__Outputs(this);
   }
 }
 
-export class UpdatePayPerCallCall__Inputs {
-  _call: UpdatePayPerCallCall;
+export class UpdateMaxConcurrentCallsCall__Inputs {
+  _call: UpdateMaxConcurrentCallsCall;
 
-  constructor(call: UpdatePayPerCallCall) {
+  constructor(call: UpdateMaxConcurrentCallsCall) {
     this._call = call;
   }
 
-  get _payPerCall(): Address {
-    return this._call.inputValues[0].value.toAddress();
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get newCap(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
   }
 }
 
-export class UpdatePayPerCallCall__Outputs {
-  _call: UpdatePayPerCallCall;
+export class UpdateMaxConcurrentCallsCall__Outputs {
+  _call: UpdateMaxConcurrentCallsCall;
 
-  constructor(call: UpdatePayPerCallCall) {
+  constructor(call: UpdateMaxConcurrentCallsCall) {
     this._call = call;
   }
 }

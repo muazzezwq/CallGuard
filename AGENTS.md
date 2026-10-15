@@ -68,8 +68,9 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 - Receipts are **EIP-712** (domain name `"ArcSLA"`, version `"1"`, includes `respondedAt`).
   `ARCHITECTURE.md` §4 still describes the old EIP-191 `personal_sign` scheme — **stale**.
 - README says "229 tests"; actual is **300** (9 test files in `test/`, 11 suites).
-- The subgraph deploy script deploys `arcsla/1.1.7`, while the canonical query URL used by
-  the frontend is `callguard-v7/1.0.0` (see `src/lib/config.ts`).
+- The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
+  matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
+  the `callguard-v7/1.0.0` deploy were stale — they indexed the retired v3 registry.)
 
 ## Core Contracts — ACTIVE (v7, 13 Oct 2026; admin = owner wallet)
 
@@ -99,7 +100,7 @@ Also superseded: AgentWallet `0xf73f2Fc5…` (1 Oct).
 ## Key parameters
 
 - Chain ID `5042002`; RPC `https://rpc.testnet.arc.io`; explorer `https://explorer.testnet.arc.io`.
-- Subgraph (canonical): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.0.0/gn`.
+- Subgraph (canonical): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn`.
 - `SUBMIT_GRACE = 5` seconds. EIP-712 receipt domain ArcSLA/1 with `respondedAt`.
 - Erc-8004 `ReputationRegistry` `0x8004B663…` and ERC-8183 `AgenticCommerce` `0x0747EEf0…`
   integrations are **best-effort**: a revert there does not fail `submitReceipt`/`agentCall`.

@@ -37,6 +37,7 @@ enum CallStatus {
   STARTED
   COMPLETED
   SLASHED
+  REFUNDED
 }
 
 type CrossChainCall @entity {
@@ -78,6 +79,91 @@ type JobCreated @entity(immutable: true) {
   provider: Bytes!
   evaluator: Bytes!
   expiredAt: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type DisputeRecord @entity {
+  id: ID!
+  disputeId: BigInt!
+  callId: Bytes!
+  caller: Bytes!
+  providerId: BigInt!
+  status: String!
+  slashAmount: BigInt!
+  openedAt: BigInt!
+  resolvedAt: BigInt
+  txHash: Bytes!
+}
+
+type CallSubscription @entity {
+  id: ID!
+  subId: BigInt!
+  subscriber: Bytes!
+  providerId: BigInt!
+  totalCalls: Int!
+  remainingCalls: Int!
+  expiresAt: BigInt!
+  status: String!
+  refund: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  # StreamEscrow fields
+  streamMode: Boolean!
+  streamReleased: BigInt!
+}
+
+# zkML Tier events
+type ZkTierUpdate @entity(immutable: true) {
+  id: ID!
+  providerId: BigInt!
+  tier: Int!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+# DePIN Oracle uptime pings
+type UptimePing @entity(immutable: true) {
+  id: ID!
+  providerId: BigInt!
+  score: Int!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+# StreamEscrow claims
+type StreamClaim @entity(immutable: true) {
+  id: ID!
+  subId: BigInt!
+  providerOwner: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+# EIP-5564 Stealth calls
+type StealthCall @entity(immutable: true) {
+  id: ID!
+  callId: Bytes!
+  stealthAddress: Bytes!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+# Chainlink price feed updates (tracked via SLAFutures PriceFeedSet event)
+type PriceFeedConfig @entity {
+  id: ID!
+  feedAddress: Bytes!
+  setAt: BigInt!
+  txHash: Bytes!
+}
+
+# ERC-4626 yield vault events
+type YieldVaultEvent @entity(immutable: true) {
+  id: ID!
+  eventType: String! # "deposit" | "redeem" | "set"
+  assets: BigInt
+  shares: BigInt
   timestamp: BigInt!
   txHash: Bytes!
 }

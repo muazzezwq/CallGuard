@@ -6,9 +6,9 @@ dataSources:
     name: ServiceRegistry
     network: arc-testnet
     source:
-      address: "0xea00f898C0eA249de7226b283e93C13eFa7BbcFF"
+      address: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333"
       abi: ServiceRegistry
-      startBlock: 50334164
+      startBlock: 67036628
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -32,18 +32,22 @@ dataSources:
           handler: handlePriceUpdated
         - event: SignerUpdated(indexed uint256,address)
           handler: handleSignerUpdated
-        - event: ReputationUpdated(indexed uint256,uint32,uint32)
+        - event: ReputationUpdated(indexed uint256,uint64,uint64)
           handler: handleReputationUpdated
         - event: NFTBound(indexed uint256,indexed uint256)
           handler: handleNFTBound
+        - event: ZkTierSet(indexed uint256,uint8)
+          handler: handleZkTierSet
+        - event: UptimeRecorded(indexed uint256,uint16)
+          handler: handleUptimeRecorded
       file: ServiceRegistry/ServiceRegistry.wasm
   - kind: ethereum
     name: PayPerCall
     network: arc-testnet
     source:
-      address: "0x10387347678d9f7106d5625be0bd6c915158b130"
+      address: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540"
       abi: PayPerCall
-      startBlock: 50334164
+      startBlock: 67040477
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -57,18 +61,20 @@ dataSources:
       eventHandlers:
         - event: CallStarted(indexed bytes32,indexed uint256,indexed address,uint256,bytes32,uint32)
           handler: handleCallStarted
-        - event: ReceiptSubmitted(indexed bytes32,bytes32)
+        - event: ReceiptSubmitted(indexed bytes32,bytes32,uint64)
           handler: handleReceiptSubmitted
         - event: CallSlashed(indexed bytes32,uint256,uint256)
           handler: handleCallSlashed
+        - event: StealthCallStarted(indexed bytes32,indexed address)
+          handler: handleStealthCallStarted
       file: ServiceRegistry/ServiceRegistry.wasm
   - kind: ethereum
     name: CrossChainReceiver
     network: arc-testnet
     source:
-      address: "0xf345Bf875A6A4aB9dBb47b0D17bcbd67f7A26AA5"
+      address: "0x760326de3cba39994dfd81d2b71b072c0265601c"
       abi: CrossChainReceiver
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -89,7 +95,7 @@ dataSources:
     source:
       address: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169"
       abi: RegisterWithNFT
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -110,7 +116,7 @@ dataSources:
     source:
       address: "0x0747EEf0706327138c69792bF28Cd525089e4583"
       abi: AgenticCommerce
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -125,3 +131,55 @@ dataSources:
         - event: JobCreated(indexed uint256,indexed address,indexed address,address,uint256,address)
           handler: handleJobCreated
       file: AgenticCommerce/AgenticCommerce.wasm
+  - kind: ethereum
+    name: Dispute
+    network: arc-testnet
+    source:
+      address: "0xa47162d8e4785d867f05800f35a334fd78575e56"
+      abi: Dispute
+      startBlock: 67026098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - DisputeRecord
+      abis:
+        - name: Dispute
+          file: Dispute/abis/Dispute.json
+      eventHandlers:
+        - event: DisputeOpened(indexed uint256,indexed bytes32,indexed address,uint256)
+          handler: handleDisputeOpened
+        - event: DisputeResolved(indexed uint256,uint8,uint256)
+          handler: handleDisputeResolved
+      file: Dispute/Dispute.wasm
+  - kind: ethereum
+    name: Subscription
+    network: arc-testnet
+    source:
+      address: "0xc090ff2b856a5cc1bfe1137cf75ca566339f01db"
+      abi: Subscription
+      startBlock: 67026098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Subscription
+      abis:
+        - name: Subscription
+          file: Subscription/abis/Subscription.json
+      eventHandlers:
+        - event: Subscribed(indexed uint256,indexed address,indexed uint256,uint32,uint64)
+          handler: handleSubscribed
+        - event: CallUsed(indexed uint256,uint32)
+          handler: handleCallUsed
+        - event: Cancelled(indexed uint256,uint256)
+          handler: handleCancelled
+        - event: ExpiredReleased(indexed uint256,uint256)
+          handler: handleExpiredReleased
+        - event: StreamSubscribed(indexed uint256,indexed address,indexed uint256,uint256,uint64)
+          handler: handleStreamSubscribed
+        - event: StreamClaimed(indexed uint256,indexed address,uint256)
+          handler: handleStreamClaimed
+      file: Subscription/Subscription.wasm

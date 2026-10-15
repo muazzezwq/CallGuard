@@ -120,6 +120,44 @@ export class CrossChainReceiver extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  processedMessages(param0: Bytes): boolean {
+    let result = super.call(
+      "processedMessages",
+      "processedMessages(bytes32):(bool)",
+      [ethereum.Value.fromFixedBytes(param0)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_processedMessages(param0: Bytes): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "processedMessages",
+      "processedMessages(bytes32):(bool)",
+      [ethereum.Value.fromFixedBytes(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
+  registry(): Address {
+    let result = super.call("registry", "registry():(address)", []);
+
+    return result[0].toAddress();
+  }
+
+  try_registry(): ethereum.CallResult<Address> {
+    let result = super.tryCall("registry", "registry():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   usdc(): Address {
     let result = super.call("usdc", "usdc():(address)", []);
 
@@ -203,11 +241,11 @@ export class HandleReceiveFinalizedTransferCall__Inputs {
     return this._call.inputValues[3].value.toBytes();
   }
 
-  get value4(): Bytes {
+  get messageId(): Bytes {
     return this._call.inputValues[4].value.toBytes();
   }
 
-  get value5(): Bytes {
+  get nonce(): Bytes {
     return this._call.inputValues[5].value.toBytes();
   }
 }
@@ -280,6 +318,36 @@ export class RenounceOwnershipCall__Outputs {
   _call: RenounceOwnershipCall;
 
   constructor(call: RenounceOwnershipCall) {
+    this._call = call;
+  }
+}
+
+export class SetRegistryCall extends ethereum.Call {
+  get inputs(): SetRegistryCall__Inputs {
+    return new SetRegistryCall__Inputs(this);
+  }
+
+  get outputs(): SetRegistryCall__Outputs {
+    return new SetRegistryCall__Outputs(this);
+  }
+}
+
+export class SetRegistryCall__Inputs {
+  _call: SetRegistryCall;
+
+  constructor(call: SetRegistryCall) {
+    this._call = call;
+  }
+
+  get _registry(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetRegistryCall__Outputs {
+  _call: SetRegistryCall;
+
+  constructor(call: SetRegistryCall) {
     this._call = call;
   }
 }

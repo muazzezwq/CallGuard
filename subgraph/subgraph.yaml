@@ -8,7 +8,7 @@ dataSources:
     source:
       address: "0x9ca97010464e8e6de6e27cf25eae9b939fbd7333"
       abi: ServiceRegistry
-      startBlock: 19100000
+      startBlock: 67036628
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -47,7 +47,7 @@ dataSources:
     source:
       address: "0x5fb41dd22c44e1de08f37d98c2995a62d6220540"
       abi: PayPerCall
-      startBlock: 19100000
+      startBlock: 67040477
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -61,7 +61,7 @@ dataSources:
       eventHandlers:
         - event: CallStarted(indexed bytes32,indexed uint256,indexed address,uint256,bytes32,uint32)
           handler: handleCallStarted
-        - event: ReceiptSubmitted(indexed bytes32,bytes32)
+        - event: ReceiptSubmitted(indexed bytes32,bytes32,uint64)
           handler: handleReceiptSubmitted
         - event: CallSlashed(indexed bytes32,uint256,uint256)
           handler: handleCallSlashed
@@ -75,7 +75,7 @@ dataSources:
     source:
       address: "0x760326de3cba39994dfd81d2b71b072c0265601c"
       abi: CrossChainReceiver
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -97,7 +97,7 @@ dataSources:
     source:
       address: "0x0aBC433356754Cd269bEF9A46273d7a152a0F169"
       abi: RegisterWithNFT
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -118,7 +118,7 @@ dataSources:
     source:
       address: "0x0747EEf0706327138c69792bF28Cd525089e4583"
       abi: AgenticCommerce
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -140,7 +140,7 @@ dataSources:
     source:
       address: "0xa47162d8e4785d867f05800f35a334fd78575e56"
       abi: Dispute
-      startBlock: 50334164
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -163,7 +163,7 @@ dataSources:
     source:
       address: "0xc090ff2b856a5cc1bfe1137cf75ca566339f01db"
       abi: Subscription
-      startBlock: 19100000
+      startBlock: 67026098
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

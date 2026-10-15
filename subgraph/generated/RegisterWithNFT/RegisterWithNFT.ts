@@ -179,17 +179,19 @@ export class RegisterWithNFT extends ethereum.SmartContract {
     pricePerCall: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls: BigInt,
     signer: Address,
     endpoint: string,
   ): RegisterWithNFT__registerAndBindResult {
     let result = super.call(
       "registerAndBind",
-      "registerAndBind(uint256,uint256,uint32,uint32,address,string):(uint256,uint256)",
+      "registerAndBind(uint256,uint256,uint32,uint32,uint32,address,string):(uint256,uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(stakeAmount),
         ethereum.Value.fromUnsignedBigInt(pricePerCall),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls),
         ethereum.Value.fromAddress(signer),
         ethereum.Value.fromString(endpoint),
       ],
@@ -206,17 +208,19 @@ export class RegisterWithNFT extends ethereum.SmartContract {
     pricePerCall: BigInt,
     maxResponseTime: BigInt,
     slashBps: BigInt,
+    maxConcurrentCalls: BigInt,
     signer: Address,
     endpoint: string,
   ): ethereum.CallResult<RegisterWithNFT__registerAndBindResult> {
     let result = super.tryCall(
       "registerAndBind",
-      "registerAndBind(uint256,uint256,uint32,uint32,address,string):(uint256,uint256)",
+      "registerAndBind(uint256,uint256,uint32,uint32,uint32,address,string):(uint256,uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(stakeAmount),
         ethereum.Value.fromUnsignedBigInt(pricePerCall),
         ethereum.Value.fromUnsignedBigInt(maxResponseTime),
         ethereum.Value.fromUnsignedBigInt(slashBps),
+        ethereum.Value.fromUnsignedBigInt(maxConcurrentCalls),
         ethereum.Value.fromAddress(signer),
         ethereum.Value.fromString(endpoint),
       ],
@@ -231,6 +235,59 @@ export class RegisterWithNFT extends ethereum.SmartContract {
         value[1].toBigInt(),
       ),
     );
+  }
+
+  userOfProvider(param0: BigInt): Address {
+    let result = super.call(
+      "userOfProvider",
+      "userOfProvider(uint256):(address)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_userOfProvider(param0: BigInt): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "userOfProvider",
+      "userOfProvider(uint256):(address)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+}
+
+export class DeactivateCall extends ethereum.Call {
+  get inputs(): DeactivateCall__Inputs {
+    return new DeactivateCall__Inputs(this);
+  }
+
+  get outputs(): DeactivateCall__Outputs {
+    return new DeactivateCall__Outputs(this);
+  }
+}
+
+export class DeactivateCall__Inputs {
+  _call: DeactivateCall;
+
+  constructor(call: DeactivateCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class DeactivateCall__Outputs {
+  _call: DeactivateCall;
+
+  constructor(call: DeactivateCall) {
+    this._call = call;
   }
 }
 
@@ -267,12 +324,16 @@ export class RegisterAndBindCall__Inputs {
     return this._call.inputValues[3].value.toBigInt();
   }
 
+  get maxConcurrentCalls(): BigInt {
+    return this._call.inputValues[4].value.toBigInt();
+  }
+
   get signer(): Address {
-    return this._call.inputValues[4].value.toAddress();
+    return this._call.inputValues[5].value.toAddress();
   }
 
   get endpoint(): string {
-    return this._call.inputValues[5].value.toString();
+    return this._call.inputValues[6].value.toString();
   }
 }
 
@@ -289,5 +350,137 @@ export class RegisterAndBindCall__Outputs {
 
   get providerId(): BigInt {
     return this._call.outputValues[1].value.toBigInt();
+  }
+}
+
+export class UnstakeCall extends ethereum.Call {
+  get inputs(): UnstakeCall__Inputs {
+    return new UnstakeCall__Inputs(this);
+  }
+
+  get outputs(): UnstakeCall__Outputs {
+    return new UnstakeCall__Outputs(this);
+  }
+}
+
+export class UnstakeCall__Inputs {
+  _call: UnstakeCall;
+
+  constructor(call: UnstakeCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class UnstakeCall__Outputs {
+  _call: UnstakeCall;
+
+  constructor(call: UnstakeCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateMaxConcurrentCallsCall extends ethereum.Call {
+  get inputs(): UpdateMaxConcurrentCallsCall__Inputs {
+    return new UpdateMaxConcurrentCallsCall__Inputs(this);
+  }
+
+  get outputs(): UpdateMaxConcurrentCallsCall__Outputs {
+    return new UpdateMaxConcurrentCallsCall__Outputs(this);
+  }
+}
+
+export class UpdateMaxConcurrentCallsCall__Inputs {
+  _call: UpdateMaxConcurrentCallsCall;
+
+  constructor(call: UpdateMaxConcurrentCallsCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get newCap(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class UpdateMaxConcurrentCallsCall__Outputs {
+  _call: UpdateMaxConcurrentCallsCall;
+
+  constructor(call: UpdateMaxConcurrentCallsCall) {
+    this._call = call;
+  }
+}
+
+export class UpdatePriceCall extends ethereum.Call {
+  get inputs(): UpdatePriceCall__Inputs {
+    return new UpdatePriceCall__Inputs(this);
+  }
+
+  get outputs(): UpdatePriceCall__Outputs {
+    return new UpdatePriceCall__Outputs(this);
+  }
+}
+
+export class UpdatePriceCall__Inputs {
+  _call: UpdatePriceCall;
+
+  constructor(call: UpdatePriceCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get newPrice(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class UpdatePriceCall__Outputs {
+  _call: UpdatePriceCall;
+
+  constructor(call: UpdatePriceCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateSignerCall extends ethereum.Call {
+  get inputs(): UpdateSignerCall__Inputs {
+    return new UpdateSignerCall__Inputs(this);
+  }
+
+  get outputs(): UpdateSignerCall__Outputs {
+    return new UpdateSignerCall__Outputs(this);
+  }
+}
+
+export class UpdateSignerCall__Inputs {
+  _call: UpdateSignerCall;
+
+  constructor(call: UpdateSignerCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get newSigner(): Address {
+    return this._call.inputValues[1].value.toAddress();
+  }
+}
+
+export class UpdateSignerCall__Outputs {
+  _call: UpdateSignerCall;
+
+  constructor(call: UpdateSignerCall) {
+    this._call = call;
   }
 }

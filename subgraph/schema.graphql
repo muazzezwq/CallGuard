@@ -96,7 +96,7 @@ type DisputeRecord @entity {
   txHash: Bytes!
 }
 
-type Subscription @entity {
+type CallSubscription @entity {
   id: ID!
   subId: BigInt!
   subscriber: Bytes!

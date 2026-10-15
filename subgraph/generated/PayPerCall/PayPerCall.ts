@@ -74,6 +74,28 @@ export class CallStarted__Params {
   }
 }
 
+export class Claimed extends ethereum.Event {
+  get params(): Claimed__Params {
+    return new Claimed__Params(this);
+  }
+}
+
+export class Claimed__Params {
+  _event: Claimed;
+
+  constructor(event: Claimed) {
+    this._event = event;
+  }
+
+  get account(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
 export class EIP712DomainChanged extends ethereum.Event {
   get params(): EIP712DomainChanged__Params {
     return new EIP712DomainChanged__Params(this);
@@ -85,6 +107,50 @@ export class EIP712DomainChanged__Params {
 
   constructor(event: EIP712DomainChanged) {
     this._event = event;
+  }
+}
+
+export class PipelineHookCalled extends ethereum.Event {
+  get params(): PipelineHookCalled__Params {
+    return new PipelineHookCalled__Params(this);
+  }
+}
+
+export class PipelineHookCalled__Params {
+  _event: PipelineHookCalled;
+
+  constructor(event: PipelineHookCalled) {
+    this._event = event;
+  }
+
+  get jobId(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+
+  get before(): boolean {
+    return this._event.parameters[1].value.toBoolean();
+  }
+
+  get success(): boolean {
+    return this._event.parameters[2].value.toBoolean();
+  }
+}
+
+export class PipelineHookSet extends ethereum.Event {
+  get params(): PipelineHookSet__Params {
+    return new PipelineHookSet__Params(this);
+  }
+}
+
+export class PipelineHookSet__Params {
+  _event: PipelineHookSet;
+
+  constructor(event: PipelineHookSet) {
+    this._event = event;
+  }
+
+  get hook(): Address {
+    return this._event.parameters[0].value.toAddress();
   }
 }
 
@@ -107,6 +173,94 @@ export class ReceiptSubmitted__Params {
 
   get responseHash(): Bytes {
     return this._event.parameters[1].value.toBytes();
+  }
+
+  get respondedAt(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class ReputationRecorded extends ethereum.Event {
+  get params(): ReputationRecorded__Params {
+    return new ReputationRecorded__Params(this);
+  }
+}
+
+export class ReputationRecorded__Params {
+  _event: ReputationRecorded;
+
+  constructor(event: ReputationRecorded) {
+    this._event = event;
+  }
+
+  get providerId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get score(): i32 {
+    return this._event.parameters[1].value.toI32();
+  }
+
+  get success(): boolean {
+    return this._event.parameters[2].value.toBoolean();
+  }
+}
+
+export class ReputationRegistrySet extends ethereum.Event {
+  get params(): ReputationRegistrySet__Params {
+    return new ReputationRegistrySet__Params(this);
+  }
+}
+
+export class ReputationRegistrySet__Params {
+  _event: ReputationRegistrySet;
+
+  constructor(event: ReputationRegistrySet) {
+    this._event = event;
+  }
+
+  get registry_(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class StealthAnnouncerSet extends ethereum.Event {
+  get params(): StealthAnnouncerSet__Params {
+    return new StealthAnnouncerSet__Params(this);
+  }
+}
+
+export class StealthAnnouncerSet__Params {
+  _event: StealthAnnouncerSet;
+
+  constructor(event: StealthAnnouncerSet) {
+    this._event = event;
+  }
+
+  get announcer(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class StealthCallStarted extends ethereum.Event {
+  get params(): StealthCallStarted__Params {
+    return new StealthCallStarted__Params(this);
+  }
+}
+
+export class StealthCallStarted__Params {
+  _event: StealthCallStarted;
+
+  constructor(event: StealthCallStarted) {
+    this._event = event;
+  }
+
+  get callId(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+
+  get stealthAddress(): Address {
+    return this._event.parameters[1].value.toAddress();
   }
 }
 
@@ -220,11 +374,38 @@ export class PayPerCall__hashReceiptInputReceiptStruct extends ethereum.Tuple {
   get responseHash(): Bytes {
     return this[1].toBytes();
   }
+
+  get respondedAt(): BigInt {
+    return this[2].toBigInt();
+  }
 }
 
 export class PayPerCall extends ethereum.SmartContract {
   static bind(address: Address): PayPerCall {
     return new PayPerCall("PayPerCall", address);
+  }
+
+  DEFAULT_MAX_CONCURRENT(): BigInt {
+    let result = super.call(
+      "DEFAULT_MAX_CONCURRENT",
+      "DEFAULT_MAX_CONCURRENT():(uint32)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_DEFAULT_MAX_CONCURRENT(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "DEFAULT_MAX_CONCURRENT",
+      "DEFAULT_MAX_CONCURRENT():(uint32)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   RECEIPT_TYPEHASH(): Bytes {
@@ -248,6 +429,21 @@ export class PayPerCall extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
+  SUBMIT_GRACE(): BigInt {
+    let result = super.call("SUBMIT_GRACE", "SUBMIT_GRACE():(uint32)", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_SUBMIT_GRACE(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall("SUBMIT_GRACE", "SUBMIT_GRACE():(uint32)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   callService(providerId: BigInt, requestHash: Bytes): Bytes {
@@ -282,10 +478,96 @@ export class PayPerCall extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBytes());
   }
 
+  callServiceFor(
+    providerId: BigInt,
+    requestHash: Bytes,
+    beneficiary: Address,
+  ): Bytes {
+    let result = super.call(
+      "callServiceFor",
+      "callServiceFor(uint256,bytes32,address):(bytes32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(providerId),
+        ethereum.Value.fromFixedBytes(requestHash),
+        ethereum.Value.fromAddress(beneficiary),
+      ],
+    );
+
+    return result[0].toBytes();
+  }
+
+  try_callServiceFor(
+    providerId: BigInt,
+    requestHash: Bytes,
+    beneficiary: Address,
+  ): ethereum.CallResult<Bytes> {
+    let result = super.tryCall(
+      "callServiceFor",
+      "callServiceFor(uint256,bytes32,address):(bytes32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(providerId),
+        ethereum.Value.fromFixedBytes(requestHash),
+        ethereum.Value.fromAddress(beneficiary),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
+  callServiceStealth(
+    providerId: BigInt,
+    requestHash: Bytes,
+    stealthAddress: Address,
+    ephemeralPubKey: Bytes,
+    metadata: Bytes,
+  ): Bytes {
+    let result = super.call(
+      "callServiceStealth",
+      "callServiceStealth(uint256,bytes32,address,bytes,bytes):(bytes32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(providerId),
+        ethereum.Value.fromFixedBytes(requestHash),
+        ethereum.Value.fromAddress(stealthAddress),
+        ethereum.Value.fromBytes(ephemeralPubKey),
+        ethereum.Value.fromBytes(metadata),
+      ],
+    );
+
+    return result[0].toBytes();
+  }
+
+  try_callServiceStealth(
+    providerId: BigInt,
+    requestHash: Bytes,
+    stealthAddress: Address,
+    ephemeralPubKey: Bytes,
+    metadata: Bytes,
+  ): ethereum.CallResult<Bytes> {
+    let result = super.tryCall(
+      "callServiceStealth",
+      "callServiceStealth(uint256,bytes32,address,bytes,bytes):(bytes32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(providerId),
+        ethereum.Value.fromFixedBytes(requestHash),
+        ethereum.Value.fromAddress(stealthAddress),
+        ethereum.Value.fromBytes(ephemeralPubKey),
+        ethereum.Value.fromBytes(metadata),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
   callServiceWithAuthorization(
     providerId: BigInt,
     requestHash: Bytes,
-    from: Address,
+    beneficiary: Address,
     validAfter: BigInt,
     validBefore: BigInt,
     authNonce: Bytes,
@@ -299,7 +581,7 @@ export class PayPerCall extends ethereum.SmartContract {
       [
         ethereum.Value.fromUnsignedBigInt(providerId),
         ethereum.Value.fromFixedBytes(requestHash),
-        ethereum.Value.fromAddress(from),
+        ethereum.Value.fromAddress(beneficiary),
         ethereum.Value.fromUnsignedBigInt(validAfter),
         ethereum.Value.fromUnsignedBigInt(validBefore),
         ethereum.Value.fromFixedBytes(authNonce),
@@ -315,7 +597,7 @@ export class PayPerCall extends ethereum.SmartContract {
   try_callServiceWithAuthorization(
     providerId: BigInt,
     requestHash: Bytes,
-    from: Address,
+    beneficiary: Address,
     validAfter: BigInt,
     validBefore: BigInt,
     authNonce: Bytes,
@@ -329,7 +611,7 @@ export class PayPerCall extends ethereum.SmartContract {
       [
         ethereum.Value.fromUnsignedBigInt(providerId),
         ethereum.Value.fromFixedBytes(requestHash),
-        ethereum.Value.fromAddress(from),
+        ethereum.Value.fromAddress(beneficiary),
         ethereum.Value.fromUnsignedBigInt(validAfter),
         ethereum.Value.fromUnsignedBigInt(validBefore),
         ethereum.Value.fromFixedBytes(authNonce),
@@ -343,6 +625,25 @@ export class PayPerCall extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
+  claimable(param0: Address): BigInt {
+    let result = super.call("claimable", "claimable(address):(uint256)", [
+      ethereum.Value.fromAddress(param0),
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_claimable(param0: Address): ethereum.CallResult<BigInt> {
+    let result = super.tryCall("claimable", "claimable(address):(uint256)", [
+      ethereum.Value.fromAddress(param0),
+    ]);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   domainSeparator(): Bytes {
@@ -441,7 +742,7 @@ export class PayPerCall extends ethereum.SmartContract {
   hashReceipt(receipt: PayPerCall__hashReceiptInputReceiptStruct): Bytes {
     let result = super.call(
       "hashReceipt",
-      "hashReceipt((bytes32,bytes32)):(bytes32)",
+      "hashReceipt((bytes32,bytes32,uint64)):(bytes32)",
       [ethereum.Value.fromTuple(receipt)],
     );
 
@@ -453,7 +754,7 @@ export class PayPerCall extends ethereum.SmartContract {
   ): ethereum.CallResult<Bytes> {
     let result = super.tryCall(
       "hashReceipt",
-      "hashReceipt((bytes32,bytes32)):(bytes32)",
+      "hashReceipt((bytes32,bytes32,uint64)):(bytes32)",
       [ethereum.Value.fromTuple(receipt)],
     );
     if (result.reverted) {
@@ -478,6 +779,53 @@ export class PayPerCall extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  openCallsPerCaller(param0: BigInt, param1: Address): BigInt {
+    let result = super.call(
+      "openCallsPerCaller",
+      "openCallsPerCaller(uint256,address):(uint32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(param0),
+        ethereum.Value.fromAddress(param1),
+      ],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_openCallsPerCaller(
+    param0: BigInt,
+    param1: Address,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "openCallsPerCaller",
+      "openCallsPerCaller(uint256,address):(uint32)",
+      [
+        ethereum.Value.fromUnsignedBigInt(param0),
+        ethereum.Value.fromAddress(param1),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  pipelineHook(): Address {
+    let result = super.call("pipelineHook", "pipelineHook():(address)", []);
+
+    return result[0].toAddress();
+  }
+
+  try_pipelineHook(): ethereum.CallResult<Address> {
+    let result = super.tryCall("pipelineHook", "pipelineHook():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   registry(): Address {
     let result = super.call("registry", "registry():(address)", []);
 
@@ -486,6 +834,52 @@ export class PayPerCall extends ethereum.SmartContract {
 
   try_registry(): ethereum.CallResult<Address> {
     let result = super.tryCall("registry", "registry():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
+  reputationRegistry(): Address {
+    let result = super.call(
+      "reputationRegistry",
+      "reputationRegistry():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_reputationRegistry(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "reputationRegistry",
+      "reputationRegistry():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
+  stealthAnnouncer(): Address {
+    let result = super.call(
+      "stealthAnnouncer",
+      "stealthAnnouncer():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_stealthAnnouncer(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "stealthAnnouncer",
+      "stealthAnnouncer():(address)",
+      [],
+    );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
@@ -600,6 +994,98 @@ export class CallServiceCall__Outputs {
   }
 }
 
+export class CallServiceForCall extends ethereum.Call {
+  get inputs(): CallServiceForCall__Inputs {
+    return new CallServiceForCall__Inputs(this);
+  }
+
+  get outputs(): CallServiceForCall__Outputs {
+    return new CallServiceForCall__Outputs(this);
+  }
+}
+
+export class CallServiceForCall__Inputs {
+  _call: CallServiceForCall;
+
+  constructor(call: CallServiceForCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get requestHash(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
+
+  get beneficiary(): Address {
+    return this._call.inputValues[2].value.toAddress();
+  }
+}
+
+export class CallServiceForCall__Outputs {
+  _call: CallServiceForCall;
+
+  constructor(call: CallServiceForCall) {
+    this._call = call;
+  }
+
+  get callId(): Bytes {
+    return this._call.outputValues[0].value.toBytes();
+  }
+}
+
+export class CallServiceStealthCall extends ethereum.Call {
+  get inputs(): CallServiceStealthCall__Inputs {
+    return new CallServiceStealthCall__Inputs(this);
+  }
+
+  get outputs(): CallServiceStealthCall__Outputs {
+    return new CallServiceStealthCall__Outputs(this);
+  }
+}
+
+export class CallServiceStealthCall__Inputs {
+  _call: CallServiceStealthCall;
+
+  constructor(call: CallServiceStealthCall) {
+    this._call = call;
+  }
+
+  get providerId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get requestHash(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
+
+  get stealthAddress(): Address {
+    return this._call.inputValues[2].value.toAddress();
+  }
+
+  get ephemeralPubKey(): Bytes {
+    return this._call.inputValues[3].value.toBytes();
+  }
+
+  get metadata(): Bytes {
+    return this._call.inputValues[4].value.toBytes();
+  }
+}
+
+export class CallServiceStealthCall__Outputs {
+  _call: CallServiceStealthCall;
+
+  constructor(call: CallServiceStealthCall) {
+    this._call = call;
+  }
+
+  get callId(): Bytes {
+    return this._call.outputValues[0].value.toBytes();
+  }
+}
+
 export class CallServiceWithAuthorizationCall extends ethereum.Call {
   get inputs(): CallServiceWithAuthorizationCall__Inputs {
     return new CallServiceWithAuthorizationCall__Inputs(this);
@@ -625,7 +1111,7 @@ export class CallServiceWithAuthorizationCall__Inputs {
     return this._call.inputValues[1].value.toBytes();
   }
 
-  get from(): Address {
+  get beneficiary(): Address {
     return this._call.inputValues[2].value.toAddress();
   }
 
@@ -666,6 +1152,32 @@ export class CallServiceWithAuthorizationCall__Outputs {
   }
 }
 
+export class ClaimCall extends ethereum.Call {
+  get inputs(): ClaimCall__Inputs {
+    return new ClaimCall__Inputs(this);
+  }
+
+  get outputs(): ClaimCall__Outputs {
+    return new ClaimCall__Outputs(this);
+  }
+}
+
+export class ClaimCall__Inputs {
+  _call: ClaimCall;
+
+  constructor(call: ClaimCall) {
+    this._call = call;
+  }
+}
+
+export class ClaimCall__Outputs {
+  _call: ClaimCall;
+
+  constructor(call: ClaimCall) {
+    this._call = call;
+  }
+}
+
 export class ClaimTimeoutCall extends ethereum.Call {
   get inputs(): ClaimTimeoutCall__Inputs {
     return new ClaimTimeoutCall__Inputs(this);
@@ -696,6 +1208,96 @@ export class ClaimTimeoutCall__Outputs {
   }
 }
 
+export class SetPipelineHookCall extends ethereum.Call {
+  get inputs(): SetPipelineHookCall__Inputs {
+    return new SetPipelineHookCall__Inputs(this);
+  }
+
+  get outputs(): SetPipelineHookCall__Outputs {
+    return new SetPipelineHookCall__Outputs(this);
+  }
+}
+
+export class SetPipelineHookCall__Inputs {
+  _call: SetPipelineHookCall;
+
+  constructor(call: SetPipelineHookCall) {
+    this._call = call;
+  }
+
+  get hook(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetPipelineHookCall__Outputs {
+  _call: SetPipelineHookCall;
+
+  constructor(call: SetPipelineHookCall) {
+    this._call = call;
+  }
+}
+
+export class SetReputationRegistryCall extends ethereum.Call {
+  get inputs(): SetReputationRegistryCall__Inputs {
+    return new SetReputationRegistryCall__Inputs(this);
+  }
+
+  get outputs(): SetReputationRegistryCall__Outputs {
+    return new SetReputationRegistryCall__Outputs(this);
+  }
+}
+
+export class SetReputationRegistryCall__Inputs {
+  _call: SetReputationRegistryCall;
+
+  constructor(call: SetReputationRegistryCall) {
+    this._call = call;
+  }
+
+  get registry_(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetReputationRegistryCall__Outputs {
+  _call: SetReputationRegistryCall;
+
+  constructor(call: SetReputationRegistryCall) {
+    this._call = call;
+  }
+}
+
+export class SetStealthAnnouncerCall extends ethereum.Call {
+  get inputs(): SetStealthAnnouncerCall__Inputs {
+    return new SetStealthAnnouncerCall__Inputs(this);
+  }
+
+  get outputs(): SetStealthAnnouncerCall__Outputs {
+    return new SetStealthAnnouncerCall__Outputs(this);
+  }
+}
+
+export class SetStealthAnnouncerCall__Inputs {
+  _call: SetStealthAnnouncerCall;
+
+  constructor(call: SetStealthAnnouncerCall) {
+    this._call = call;
+  }
+
+  get announcer(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetStealthAnnouncerCall__Outputs {
+  _call: SetStealthAnnouncerCall;
+
+  constructor(call: SetStealthAnnouncerCall) {
+    this._call = call;
+  }
+}
+
 export class SubmitReceiptCall extends ethereum.Call {
   get inputs(): SubmitReceiptCall__Inputs {
     return new SubmitReceiptCall__Inputs(this);
@@ -721,8 +1323,12 @@ export class SubmitReceiptCall__Inputs {
     return this._call.inputValues[1].value.toBytes();
   }
 
+  get respondedAt(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
+  }
+
   get signature(): Bytes {
-    return this._call.inputValues[2].value.toBytes();
+    return this._call.inputValues[3].value.toBytes();
   }
 }
 
