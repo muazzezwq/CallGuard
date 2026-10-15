@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://callguard-eu.onrender.com";
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard/1.2.0/gn";
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn";
 const PORT = process.env.MCP_PORT || 4022;
 
 const app = express();

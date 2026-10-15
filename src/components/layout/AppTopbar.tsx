@@ -19,8 +19,8 @@ export default function AppTopbar({
   const { setOpen } = useModal();
   const { theme, setTheme, mode, setMode } = useAppStore();
 
-  const { data: usdcRaw } = useUsdcBalance(address);
-  const usdcBal = usdcRaw ? (Number(usdcRaw) / 1e6).toFixed(2) : null;
+  const { data: usdcBalance } = useUsdcBalance(address);
+  const usdcBal = usdcBalance ? Number(usdcBalance.formatted).toFixed(2) : null;
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   const [copied, setCopied] = useState(false);
