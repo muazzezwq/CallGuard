@@ -1,4 +1,5 @@
 import { useAppStore, PanelId } from "../../store/useAppStore";
+import { Mark } from "../../ui";
 
 /* ── Nav item definition ─────────────────────────────────── */
 type NavItem = {
@@ -191,6 +192,18 @@ function SbIcon({ name }: { name: string }) {
     case "hook": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw}><path d="M12 2v8"/><path d="M12 10c0 3.314-2.686 6-6 6"/><path d="M6 16v2a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V10"/><path d="M18 2v4"/><path d="M15 2h6"/></svg>;
     default: return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw}><circle cx="12" cy="12" r="10"/></svg>;
   }
+}
+
+export function SidebarBrand() {
+  return (
+    <div className="sb-logo">
+      <div className="sb-dot"><Mark size={24} /></div>
+      <div>
+        <div className="sb-name">CallGuard</div>
+        <div className="sb-net">Arc Testnet</div>
+      </div>
+    </div>
+  );
 }
 
 export default function Sidebar({ onNav }: { onNav?: () => void }) {

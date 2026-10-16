@@ -38,7 +38,7 @@ Arkreen DePIN Node          TLAY BoAT Machine         CallGuard (this project)
 | Subscription Contract  | ✅ Live | `0xef7d56390f86a5cecc05f75e265859a1c79cefe6` |
 | x402 endpoint          | ✅ Live | `https://arcsla.vercel.app/api/service` |
 | Energy data endpoint   | ✅ Live | `https://arcsla.vercel.app/api/energy-data` |
-| CallGuard app          | ✅ Live | `https://arcsla.vercel.app/app/` |
+| CallGuard app          | ✅ Live | `https://arcsla.vercel.app/` |
 
 ---
 
@@ -68,7 +68,7 @@ node scripts/arkreen-register.js
 - Sets: 0.01 USDC/call, 30s SLA window, 50% slash on timeout
 - Publishes metadata with service schema for TLAY machine discovery
 
-**After registration**, any TLAY machine or other caller can discover your provider via the leaderboard at `arcsla.vercel.app/app/` and call your endpoint with SLA enforcement.
+**After registration**, any TLAY machine or other caller can discover your provider via the leaderboard at `arcsla.vercel.app/` and call your endpoint with SLA enforcement.
 
 ---
 
@@ -136,7 +136,7 @@ This creates the first **Physical AI × DePIN × SLA** loop on Arc:
 ## Contact
 
 - CallGuard: https://github.com/muazzezwq/CallGuard
-- App: https://arcsla.vercel.app/app/
+- App: https://arcsla.vercel.app/
 - Contract explorer: https://testnet.arcscan.net/address/0x10387347678d9f7106D5625bE0BD6C915158B130
 
 ---

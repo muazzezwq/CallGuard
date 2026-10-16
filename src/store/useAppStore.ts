@@ -23,6 +23,7 @@ interface AppState {
   activePanel: PanelId;
   mode: AppMode;
   theme: "dark" | "light";
+  reducedMotion: boolean;
   advancedOpen: boolean;
   role: UserRole;
   onboardingDone: boolean;
@@ -32,6 +33,7 @@ interface AppState {
   setPanel: (panel: PanelId) => void;
   setMode: (mode: AppMode) => void;
   setTheme: (theme: "dark" | "light") => void;
+  setReducedMotion: (on: boolean) => void;
   toggleAdvanced: () => void;
   setRole: (role: UserRole) => void;
   setOnboardingDone: () => void;
@@ -53,7 +55,8 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       activePanel: "overview",
       mode: "simple",
-      theme: "light",
+      theme: "dark",
+      reducedMotion: false,
       advancedOpen: false,
       role: null,
       onboardingDone: false,
@@ -63,6 +66,7 @@ export const useAppStore = create<AppState>()(
       setPanel: (panel) => set({ activePanel: normalizePanel(panel) }),
       setMode: (mode) => set({ mode, advancedOpen: mode === "pro" }),
       setTheme: (theme) => set({ theme }),
+      setReducedMotion: (on) => set({ reducedMotion: on }),
       toggleAdvanced: () => set((s) => ({ advancedOpen: !s.advancedOpen })),
       setRole: (role) => set({ role }),
       setOnboardingDone: () => set({ onboardingDone: true }),

@@ -143,7 +143,7 @@ export default function Verify() {
 
       if (d.ok) {
         setResult({ ok: true, status: d.status || "VERIFIED", providerId: d.providerId, callId: val });
-        setShareLink(`${window.location.origin}/?verify=${encodeURIComponent(val)}`);
+        setShareLink(`${window.location.origin}/app?verify=${encodeURIComponent(val)}`);
         setLoading(false);
         return;
       }
@@ -172,7 +172,7 @@ export default function Verify() {
               callId: val,
               amount: (Number(amt) / 1e6).toFixed(4),
             });
-            setShareLink(`${window.location.origin}/?verify=${encodeURIComponent(val)}`);
+            setShareLink(`${window.location.origin}/app?verify=${encodeURIComponent(val)}`);
             setLoading(false);
             return;
           }
@@ -327,7 +327,7 @@ export default function Verify() {
         {[
           ["From History panel", "Open History → copy any Call ID from the table"],
           ["From TX hash", "Paste a TX hash directly — the call is looked up by event logs"],
-          ["From URL param", `Add ?verify=0x... to any CallGuard URL — auto-verifies on load`],
+          ["From URL param", `Add ?verify=0x... to an app URL — auto-verifies on load`],
           ["From API", "GET /api/attestation?callId=0x... returns full verification JSON"],
         ].map(([title, desc]) => (
           <div key={title} style={{ ...s.row, alignItems: "flex-start" }}>

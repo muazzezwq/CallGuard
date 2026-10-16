@@ -110,7 +110,7 @@ export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
       {/* Call button */}
       {p.active && !isSelf && (
         <a
-          href="./app/"
+          href={`/app?provider=${p.id}`}
           className="mt-1 w-full text-center text-xs font-semibold py-2 rounded-xl border border-accent/20
             text-accent hover:bg-accent/10 transition-colors"
         >

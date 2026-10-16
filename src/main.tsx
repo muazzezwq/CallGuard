@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import "./ui/ui.css";
+import "./marketing/marketing.css";
+import "./components/layout/shell.css";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
@@ -28,11 +31,11 @@ ReactDOM.createRoot(root).render(
           options={{ initialChainId: 5042002 }}
           theme="midnight"
           customTheme={{
-            "--ck-accent-color": "#10b981",
-            "--ck-accent-text-color": "#ffffff",
-            "--ck-body-background": "#0d1117",
-            "--ck-border-radius": "16px",
-            "--ck-font-family": '"DM Sans", -apple-system, sans-serif',
+            "--ck-accent-color": "#12B981",
+            "--ck-accent-text-color": "#06110d",
+            "--ck-body-background": "#10151E",
+            "--ck-border-radius": "14px",
+            "--ck-font-family": '"Geist", -apple-system, sans-serif',
           }}
         >
           <App />

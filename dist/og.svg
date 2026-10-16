@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="CallGuard — on-chain SLA marketplace">
+  <defs>
+    <linearGradient id="og-green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34D399"/>
+      <stop offset="1" stop-color="#0E9F6E"/>
+    </linearGradient>
+    <radialGradient id="og-glow" cx="0.14" cy="0.05" r="1.05">
+      <stop offset="0" stop-color="#12B981" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#0A0E14" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="og-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#222C3A" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#0A0E14"/>
+  <rect width="1200" height="630" fill="url(#og-grid)" opacity="0.5"/>
+  <rect width="1200" height="630" fill="url(#og-glow)"/>
+
+  <!-- mark -->
+  <g transform="translate(72,66) scale(2.0)">
+    <path d="M16 2.1 27.2 6.5v8.2c0 7.3-4.8 12.6-11.2 15C9.6 27.3 4.8 22 4.8 14.7V6.5L16 2.1Z" fill="url(#og-green)"/>
+    <path d="M17.5 8.2 11.2 17h4.2l-1.4 6.9 6.3-9.1h-4.3l1.5-6.6Z" fill="#0A0E14"/>
+  </g>
+  <text x="150" y="112" font-family="Geist, 'Segoe UI', system-ui, sans-serif" font-size="34" font-weight="700" fill="#E6EDF6">CallGuard</text>
+
+  <text x="72" y="300" font-family="Geist, 'Segoe UI', system-ui, sans-serif" font-size="76" font-weight="700" fill="#E6EDF6" letter-spacing="-2">Service guarantees,</text>
+  <text x="72" y="384" font-family="Geist, 'Segoe UI', system-ui, sans-serif" font-size="76" font-weight="700" fill="#12B981" letter-spacing="-2">enforced on-chain.</text>
+
+  <text x="72" y="452" font-family="Geist, 'Segoe UI', system-ui, sans-serif" font-size="27" font-weight="400" fill="#8DA0B8">Providers stake USDC. Callers pay per call. Miss the SLA — the stake is slashed.</text>
+
+  <!-- stat chips -->
+  <g font-family="'Geist Mono', ui-monospace, monospace" font-size="22" fill="#E6EDF6">
+    <rect x="72" y="510" width="214" height="56" rx="12" fill="#161D28" stroke="#222C3A"/>
+    <text x="96" y="545">Pay-per-call</text>
+
+    <rect x="302" y="510" width="238" height="56" rx="12" fill="#161D28" stroke="#222C3A"/>
+    <text x="326" y="545">Auto-slash SLA</text>
+
+    <rect x="556" y="510" width="332" height="56" rx="12" fill="#161D28" stroke="#222C3A"/>
+    <text x="580" y="545">USDC-native gas · Arc</text>
+  </g>
+</svg>

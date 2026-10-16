@@ -1,0 +1,194 @@
+/* ─────────────────────────────────────────────────────
+   CallGuard UI kit — primitives shared by app + marketing
+   All values come from tokens in index.css.
+   ───────────────────────────────────────────────────── */
+
+/* Button ─────────────────────────────────────────────── */
+.ui-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-sans); font-weight: 600; letter-spacing: 0.005em;
+  border: 1px solid transparent; border-radius: var(--radius);
+  cursor: pointer; white-space: nowrap; user-select: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .08s ease, opacity .15s ease;
+}
+.ui-btn:active { transform: translateY(1px); }
+.ui-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.ui-btn--sm { height: 32px; padding: 0 12px; font-size: 12.5px; border-radius: 8px; }
+.ui-btn--md { height: 40px; padding: 0 16px; font-size: 13.5px; }
+.ui-btn--lg { height: 48px; padding: 0 22px; font-size: 15px; border-radius: var(--radius-lg); }
+
+.ui-btn--primary { background: var(--accent); color: #06110d; }
+.ui-btn--primary:hover:not(:disabled) { background: var(--guard-hi); }
+.ui-btn--secondary { background: var(--surface-2); color: var(--text); border-color: var(--border-hi); }
+.ui-btn--secondary:hover:not(:disabled) { background: var(--surface-3); border-color: var(--text-faint); }
+.ui-btn--ghost { background: transparent; color: var(--text-dim); }
+.ui-btn--ghost:hover:not(:disabled) { background: var(--accent-bg); color: var(--text); }
+.ui-btn--outline { background: transparent; color: var(--text); border-color: var(--border-hi); }
+.ui-btn--outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ui-btn--danger { background: var(--danger-bg); color: var(--danger); border-color: rgba(246,70,93,0.28); }
+.ui-btn--danger:hover:not(:disabled) { background: rgba(246,70,93,0.16); }
+.ui-btn--block { width: 100%; }
+
+.ui-btn__spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: ui-spin .6s linear infinite;
+}
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+
+/* IconButton ─────────────────────────────────────────── */
+.ui-iconbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: transparent; border: 1px solid transparent; color: var(--text-dim);
+  cursor: pointer; transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.ui-iconbtn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.ui-iconbtn--sm { width: 28px; height: 28px; border-radius: 8px; }
+
+/* Badge ──────────────────────────────────────────────── */
+.ui-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.ui-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ui-badge--neutral { background: var(--surface-2); color: var(--text-dim); border-color: var(--border); }
+.ui-badge--guard   { background: var(--accent-bg); color: var(--accent); border-color: rgba(18,185,129,0.24); }
+.ui-badge--slash   { background: var(--danger-bg); color: var(--danger); border-color: rgba(246,70,93,0.24); }
+.ui-badge--pending { background: var(--warn-bg); color: var(--warn); border-color: rgba(240,185,11,0.26); }
+.ui-badge--info    { background: var(--info-bg); color: var(--info); border-color: rgba(59,130,246,0.24); }
+
+/* Card / Surface ─────────────────────────────────────── */
+.ui-card {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); position: relative;
+}
+.ui-card--pad { padding: 18px; }
+.ui-card--flush { padding: 0; }
+.ui-card--hover { transition: border-color .15s ease, background-color .15s ease; }
+.ui-card--hover:hover { border-color: var(--border-hi); background: var(--surface-2); }
+.ui-card__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.ui-card__title { font-size: 14px; font-weight: 650; color: var(--text); }
+.ui-card__body { padding: 18px; }
+
+/* Stat ───────────────────────────────────────────────── */
+.ui-stat { display: flex; flex-direction: column; gap: 6px; }
+.ui-stat__label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+.ui-stat__value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.05; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.ui-stat__value--guard { color: var(--accent); }
+.ui-stat__value--slash { color: var(--danger); }
+.ui-stat__hint { font-size: 12px; color: var(--text-faint); }
+
+/* Address pill ───────────────────────────────────────── */
+.ui-addr {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 8px 5px 10px; color: var(--text-dim);
+  max-width: 100%;
+}
+.ui-addr a, .ui-addr__val { color: var(--text); text-decoration: none; }
+.ui-addr a:hover { color: var(--accent); }
+.ui-addr__val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Copy button ────────────────────────────────────────── */
+.ui-copy {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background: transparent; border: none; color: var(--text-faint); cursor: pointer;
+  font-size: 11px; padding: 3px 5px; border-radius: 6px; transition: color .15s ease, background-color .15s ease;
+}
+.ui-copy:hover { color: var(--accent); background: var(--accent-bg); }
+.ui-copy--done { color: var(--accent); }
+
+/* Empty state ────────────────────────────────────────── */
+.ui-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 10px; padding: 48px 24px; color: var(--text-dim);
+}
+.ui-empty__icon {
+  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--accent);
+}
+.ui-empty__title { font-size: 15px; font-weight: 650; color: var(--text); }
+.ui-empty__desc { font-size: 13px; max-width: 42ch; color: var(--text-dim); line-height: 1.55; }
+
+/* Skeleton ───────────────────────────────────────────── */
+.ui-skel {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%; border-radius: 8px; animation: ui-shimmer 1.4s ease infinite;
+}
+@keyframes ui-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* Tabs ───────────────────────────────────────────────── */
+.ui-tabs {
+  display: inline-flex; gap: 3px; padding: 3px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+}
+.ui-tabs__tab {
+  border: none; background: transparent; color: var(--text-dim); cursor: pointer;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+  padding: 7px 14px; border-radius: 7px; transition: background-color .15s ease, color .15s ease;
+}
+.ui-tabs__tab:hover { color: var(--text); }
+.ui-tabs__tab--active { background: var(--surface-0); color: var(--text); box-shadow: var(--shadow-sm); }
+
+/* Field / Input / Select ─────────────────────────────── */
+.ui-field { display: flex; flex-direction: column; gap: 6px; }
+.ui-field__label { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+.ui-field__hint { font-size: 11.5px; color: var(--text-faint); }
+.ui-field__error { font-size: 11.5px; color: var(--danger); }
+.ui-input, .ui-select {
+  width: 100%; height: 40px; padding: 0 12px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+  color: var(--text); font-family: var(--font-sans); font-size: 13.5px; outline: none;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.ui-input::placeholder { color: var(--text-faint); }
+.ui-input:focus, .ui-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); background: var(--surface-1); }
+.ui-input--mono { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: -0.01em; }
+.ui-input--err { border-color: var(--danger); }
+.ui-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238DA0B8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+/* Modal ──────────────────────────────────────────────── */
+.ui-modal-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(3,6,10,0.66); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: ui-fade .18s ease;
+}
+.ui-modal {
+  width: 100%; max-width: 480px; max-height: 88vh; overflow: auto;
+  background: var(--surface-1); border: 1px solid var(--border-hi); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); animation: ui-pop .2s cubic-bezier(.22,1,.36,1);
+}
+.ui-modal__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.ui-modal__title { font-size: 15px; font-weight: 650; color: var(--text); }
+.ui-modal__body { padding: 18px; }
+@keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-pop { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* Table ──────────────────────────────────────────────── */
+.ui-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ui-table th {
+  text-align: left; font-size: 11px; font-weight: 600; color: var(--text-faint);
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface-1); z-index: 1;
+}
+.ui-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+.ui-table tbody tr:hover td { background: var(--surface-2); }
+.ui-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Layout helpers ─────────────────────────────────────── */
+.ui-row { display: flex; align-items: center; gap: 10px; }
+.ui-grid { display: grid; gap: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn, .ui-card--hover, .ui-copy { transition: none; }
+  .ui-modal-overlay, .ui-modal { animation: none; }
+  .ui-skel { animation: none; }
+}

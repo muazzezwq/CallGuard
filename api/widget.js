@@ -74,7 +74,7 @@ export default function handler(req, res) {
           <div style="font-weight:600;color:#10b981">\${amt} USDC</div>
           <div style="color:#8899b4;margin-top:8px;font-size:11px">SLA-guaranteed · Refunded if missed</div>
         </div>
-        <a href="https://arcsla.vercel.app/app/?provider=\${pid}" target="_blank"
+        <a href="https://arcsla.vercel.app/?provider=\${pid}" target="_blank"
           style="display:block;text-align:center;padding:12px;background:#10b981;color:white;border-radius:8px;font-weight:600;text-decoration:none">
           Open in CallGuard →
         </a>

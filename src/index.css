@@ -1,64 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
-
-/* ── CSS Tokens ─────────────────────────────────────── */
+/* ── CallGuard — design tokens (dark-first) ─────────── */
 :root {
-  --bg-0: #070b12;
-  --bg-1: #0d1421;
-  --bg-2: #131c2e;
-  --bg-3: #1a253a;
-  --border: #1e2d42;
-  --border-hi: #2a3f5c;
-  --text: #e2eaf6;
-  --text-dim: #7a90b0;
-  --text-faint: #3d5270;
-  --accent: #10b981;
-  --accent-dim: #059669;
-  --accent-bg: rgba(16,185,129,0.08);
-  --accent-fg: rgba(16,185,129,0.15);
-  --danger: #ef4444;
-  --danger-bg: rgba(239,68,68,0.08);
-  --warn: #f59e0b;
-  --warn-bg: rgba(245,158,11,0.08);
-  --info: #3b82f6;
-  --info-bg: rgba(59,130,246,0.08);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
-  --radius: 8px;
-  --radius-lg: 12px;
-  --glow-green: 0 0 20px rgba(16,185,129,0.25);
-  --glow-blue: 0 0 20px rgba(59,130,246,0.25);
-  --gradient-brand: linear-gradient(135deg,#10b981 0%,#0ea5e9 100%);
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-sans: "DM Sans", -apple-system, sans-serif;
-  --font-display: "Space Grotesk", -apple-system, sans-serif;
-  --sidebar-w: 220px;
-  --topbar-h: 48px;
+  /* Surfaces — near-black ink field, stepped in tone */
+  --bg-0: #0A0E14;
+  --bg-1: #10151E;
+  --bg-2: #161D28;
+  --bg-3: #1E2735;
+  --surface-0: #0A0E14;
+  --surface-1: #10151E;
+  --surface-2: #161D28;
+  --surface-3: #1E2735;
+  --line: #222C3A;
+  --border: #222C3A;
+  --border-hi: #33415A;
+
+  /* Text */
+  --text: #E6EDF6;
+  --text-hi: #E6EDF6;
+  --text-dim: #8DA0B8;
+  --text-mid: #8DA0B8;
+  --text-faint: #4D5F76;
+  --text-low: #4D5F76;
+
+  /* Accent — guard green is the single action colour (verified / settled) */
+  --accent: #12B981;
+  --accent-dim: #0E9F6E;
+  --accent-bg: rgba(18,185,129,0.10);
+  --accent-fg: rgba(18,185,129,0.16);
+  --guard: #12B981;
+  --guard-hi: #34D399;
+
+  /* Semantic — red is slash, amber is pending */
+  --danger: #F6465D;
+  --danger-bg: rgba(246,70,93,0.10);
+  --slash: #F6465D;
+  --warn: #F0B90B;
+  --warn-bg: rgba(240,185,11,0.10);
+  --pending: #F0B90B;
+  --info: #3B82F6;
+  --info-bg: rgba(59,130,246,0.10);
+
+  --focus: #12B981;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.40);
+  --shadow-md: 0 6px 20px rgba(0,0,0,0.45);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.55);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --glow-green: 0 0 20px rgba(18,185,129,0.22);
+  --glow-blue: 0 0 20px rgba(59,130,246,0.22);
+  --gradient-brand: linear-gradient(135deg,#12B981 0%,#0E9F6E 100%);
+
+  /* Type — one family, two faces (proportional + mono) */
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --sidebar-w: 232px;
+  --topbar-h: 52px;
 }
 
-/* ── Light theme ─────────────────────────────────────── */
+/* ── Light theme — same semantics, paper ground ──────── */
 [data-theme="light"] {
-  --bg-0: #f4f7f5;
-  --bg-1: #ffffff;
-  --bg-2: #eef2ef;
-  --bg-3: #e4ebe6;
-  --border: #d0dbd4;
-  --border-hi: #adbfb4;
-  --text: #0a1628;
-  --text-dim: #3d5060;
-  --text-faint: #7a9080;
-  --accent: #059669;
-  --accent-dim: #047857;
-  --accent-bg: rgba(5,150,105,0.08);
-  --accent-fg: rgba(5,150,105,0.15);
-  --danger: #dc2626;
-  --danger-bg: rgba(220,38,38,0.08);
-  --warn: #d97706;
-  --warn-bg: rgba(217,119,6,0.08);
-  --glow-green: 0 0 20px rgba(5,150,105,0.2);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+  --bg-0: #F6F8FA;
+  --bg-1: #FFFFFF;
+  --bg-2: #EEF2F6;
+  --bg-3: #E4EAF0;
+  --surface-0: #F6F8FA;
+  --surface-1: #FFFFFF;
+  --surface-2: #EEF2F6;
+  --surface-3: #E4EAF0;
+  --line: #D6DEE8;
+  --border: #D6DEE8;
+  --border-hi: #B4C1D0;
+  --text: #0B1220;
+  --text-hi: #0B1220;
+  --text-dim: #42536A;
+  --text-mid: #42536A;
+  --text-faint: #8A9BAE;
+  --text-low: #8A9BAE;
+  --accent: #0E9F6E;
+  --accent-dim: #0B855C;
+  --accent-bg: rgba(14,159,110,0.10);
+  --accent-fg: rgba(14,159,110,0.16);
+  --guard: #0E9F6E;
+  --guard-hi: #12B981;
+  --danger: #DC2626;
+  --danger-bg: rgba(220,38,38,0.10);
+  --slash: #DC2626;
+  --warn: #B45309;
+  --warn-bg: rgba(180,83,9,0.10);
+  --pending: #D97706;
+  --info: #2563EB;
+  --info-bg: rgba(37,99,235,0.10);
+  --focus: #0E9F6E;
+  --glow-green: 0 0 20px rgba(14,159,110,0.18);
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-md: 0 6px 20px rgba(15,23,42,0.08);
+  --shadow-lg: 0 16px 48px rgba(15,23,42,0.12);
 }
 /* ── Smooth theme transition — scoped to app elements only ── */
 .app-shell, .topbar, .sidebar, .cg-panel-page, .cg-stat-card,
@@ -467,20 +506,28 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Reset ───────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; }
+html { font-size: 14px; -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-sans);
   background: var(--bg-0);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
 }
+/* Every number that carries meaning aligns on the decimal */
+.tnum, code, kbd, samp, [data-num] { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+::selection { background: rgba(18,185,129,0.28); }
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(16,185,129,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(18,185,129,0.05) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 80% 80%, rgba(59,130,246,0.04) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
@@ -880,7 +927,7 @@ body::before {
   cursor: pointer;
   color: var(--text-dim);
   font-size: 10px;
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   transition: color 0.15s;
   -webkit-tap-highlight-color: transparent;
   user-select: none;

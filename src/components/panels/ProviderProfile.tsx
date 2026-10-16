@@ -73,7 +73,7 @@ export default function ProviderProfile() {
   const honorRate = total > 0 ? Math.round((completed / total) * 100) : 0
   const isActive = p?.active
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/?provider=${queried}` : ''
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/app?provider=${queried}` : ''
   const handleCopy = () => {
     navigator.clipboard?.writeText(shareUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {});
   }

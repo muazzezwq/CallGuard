@@ -11,7 +11,7 @@ async function handleSitemap(req, res) {
   } catch(e) { providerIds = ['1','2','3','4','5','6','7','8']; }
   const today = new Date().toISOString().split('T')[0];
   const urls = [
-    `<url><loc>${base}/app/</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${today}</lastmod></url>`,
+    `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${today}</lastmod></url>`,
     ...providerIds.map(id=>`<url><loc>${base}/providers/${id}</loc><changefreq>hourly</changefreq><priority>0.8</priority><lastmod>${today}</lastmod></url>`)
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
   const scoreColor = provider.score >= 70 ? '#10b981' : provider.score >= 40 ? '#f59e0b' : '#ef4444';
   const arcScanBase = process.env.VITE_ARCSCAN_URL || 'https://explorer.testnet.arc.io';
   const arcScanUrl = `${arcScanBase}/address/${registryAddr}`;
-  const appUrl = `https://arcsla.vercel.app/app/?provider=${id}`;
+  const appUrl = `https://arcsla.vercel.app/?provider=${id}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 </head>
 <body>
 <nav class="nav">
-  <a href="https://arcsla.vercel.app/app/" class="nav-brand">
+  <a href="https://arcsla.vercel.app/" class="nav-brand">
     <div class="nav-logo">⚡</div>CallGuard
   </a>
   <span class="nav-sub">/ Provider #${id}</span>
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
   <div class="cta-row">
     <a href="${appUrl}" class="btn-primary">Call this provider →</a>
     <a href="${arcScanUrl}" class="btn-secondary" target="_blank" rel="noopener">View on ArcScan</a>
-    <a href="https://arcsla.vercel.app/app/" class="btn-secondary">Browse all providers</a>
+    <a href="https://arcsla.vercel.app/" class="btn-secondary">Browse all providers</a>
   </div>
 </div>
 <footer class="footer">

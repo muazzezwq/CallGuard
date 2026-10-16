@@ -127,7 +127,7 @@ Owner `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`; agent hot wallet
 
 ## URLs
 
-- App: `https://arcsla.vercel.app/app/` · Landing: `https://arcsla.vercel.app` ·
+- App + Landing: `https://arcsla.vercel.app` ·
   Netlify: `https://keen-lamington-f268c2.netlify.app`
 - Backup branches: `backup/pre-app-redesign-20260924-2221`,
   `backup/pre-komple-redesign-20260925-1305`, `backup/pre-ux-overhaul-20260927`
