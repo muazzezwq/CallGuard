@@ -2,29 +2,52 @@ import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
+import {
+  PageHeader, SectionCard, StatCard, Toolbar, Chip, ChipRow,
+  Input, Button, Badge, EmptyState, Skeleton,
+} from "../../ui";
+import { SLACanvas, slaStages } from "../viz/SLACanvas";
 
 const PAGE_SIZE = 25;
 
-const STATUS_ICON: Record<string, string> = {
-  COMPLETED: "✓", STARTED: "◌", SLASHED: "✗", REFUNDED: "↩",
-};
-const STATUS_COLOR: Record<string, string> = {
-  COMPLETED: "var(--accent)",
-  STARTED: "var(--warn,#f59e0b)",
-  SLASHED: "var(--danger,#ef4444)",
-  REFUNDED: "var(--text-dim)",
+type Call = Record<string, unknown>;
+
+const STATUS_TONE: Record<string, "guard" | "pending" | "slash" | "neutral" | "info"> = {
+  COMPLETED: "guard",
+  STARTED: "pending",
+  SLASHED: "slash",
+  REFUNDED: "info",
 };
 
-function exportHistory(calls: Record<string,unknown>[], format: "csv" | "json") {
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "COMPLETED", label: "Completed" },
+  { id: "STARTED", label: "Open" },
+  { id: "SLASHED", label: "Slashed" },
+  { id: "REFUNDED", label: "Refunded" },
+];
+
+function usdc(v: unknown) {
+  if (v === null || v === undefined || v === "") return null;
+  try { return formatUnits(BigInt(String(v)), 6); } catch { return null; }
+}
+
+function when(v: unknown) {
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toLocaleString() : null;
+}
+
+function exportHistory(calls: Call[], format: "csv" | "json") {
   if (!calls.length) return;
   if (format === "csv") {
-    const headers = ["Call ID","Provider","Amount (USDC)","Status","Date","RequestHash"];
+    const headers = ["Call ID", "Provider", "Amount (USDC)", "Status", "Date", "RequestHash"];
     const rows = calls.map(c => [
       c.id ?? "",
       c.providerId ?? "",
-      c.amount ? (Number(c.amount) / 1e6).toFixed(4) : "0",
+      usdc(c.amount) ?? "0",
       c.status ?? "",
-      c.createdAt ? new Date(Number(c.createdAt) * 1000).toISOString() : "",
+      when(c.createdAt) ?? "",
       c.requestHash ?? "",
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
@@ -44,12 +67,12 @@ function exportHistory(calls: Record<string,unknown>[], format: "csv" | "json") 
 
 export default function History() {
   const { address } = useAccount();
-  const [search, setSearch]           = useState("");
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [page, setPage]               = useState(0);
-  const [expandedId, setExpandedId]   = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, loading, refetch } = useSubgraph<{calls: Record<string,unknown>[]}>(
+  const { data, loading, refetch } = useSubgraph<{ calls: Call[] }>(
     address ? `{
       calls(first:500 orderBy:createdAt orderDirection:desc where:{caller:"${address.toLowerCase()}"}) {
         id providerId caller amount status createdAt completedAt requestHash responseHash refunded slashed
@@ -61,175 +84,177 @@ export default function History() {
   const all = data?.calls ?? [];
 
   const filtered = all.filter(c => {
-    if (statusFilter !== "all" && String(c.status) !== statusFilter.toUpperCase()) return false;
+    if (statusFilter !== "all" && String(c.status) !== statusFilter) return false;
     const s = search.toLowerCase();
     if (s && !String(c.id).includes(s) && !String(c.providerId).includes(s)) return false;
     return true;
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged      = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleSearch = useCallback((v: string) => {
-    setSearch(v); setPage(0);
-  }, []);
-  const handleFilter = useCallback((v: string) => {
-    setStatusFilter(v); setPage(0);
-  }, []);
+  const onSearch = useCallback((v: string) => { setSearch(v); setPage(0); }, []);
+  const onFilter = useCallback((v: string) => { setStatusFilter(v); setPage(0); }, []);
 
-  const stats = {
-    Total:     all.length,
-    Completed: all.filter(c => c.status === "COMPLETED").length,
-    Slashed:   all.filter(c => c.status === "SLASHED").length,
-    Open:      all.filter(c => c.status === "STARTED").length,
-  };
+  const completed = all.filter(c => c.status === "COMPLETED").length;
+  const slashed = all.filter(c => c.status === "SLASHED").length;
+  const open = all.filter(c => c.status === "STARTED").length;
+
+  const selected = all.find(c => String(c.id) === selectedId) ?? null;
 
   return (
-    <div className="cg-panel">
-      <div className="panel-head">
-        <div>
-          <h2>Transaction History</h2>
-          <p className="text-dim">All on-chain activity · {all.length} total</p>
-        </div>
-        <div style={{ display:"flex", gap:6 }}>
-          <button className="btn btn-sm" onClick={() => exportHistory(filtered,"csv")} title="Export CSV">↓ CSV</button>
-          <button className="btn btn-sm" onClick={() => exportHistory(filtered,"json")} title="Export JSON">↓ JSON</button>
-          <button className="btn btn-sm" onClick={() => void refetch()} title="Refresh">↻</button>
-        </div>
+    <div className="ov-page tx-page">
+      <PageHeader
+        eyebrow={<><span className="ov-live-dot" />Arc Testnet · Live</>}
+        title="Transactions"
+        subtitle="Every call, receipt and settlement recorded on chain."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => exportHistory(filtered, "csv")}>Export CSV</Button>
+            <Button variant="secondary" size="sm" onClick={() => exportHistory(filtered, "json")}>Export JSON</Button>
+            <Button variant="secondary" size="sm" onClick={() => void refetch()}>Refresh</Button>
+          </>
+        }
+      />
+
+      <div className="ov-grid4">
+        <StatCard label="Total calls" value={all.length} loading={loading} />
+        <StatCard label="Completed" value={completed} loading={loading} />
+        <StatCard label="Open" value={open} loading={loading} />
+        <StatCard label="Slashed" value={slashed} loading={loading} />
       </div>
 
-      {/* Stats */}
-      <div className="hist-stats mb-4">
-        {Object.entries(stats).map(([k,v]) => (
-          <div key={k} className="hist-stat">
-            <span className="text-dim text-xs">{k}</span>
-            <strong className="text-lg">{v}</strong>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="hist-filters mb-4">
-        <input
-          className="cg-input"
-          style={{ flex:1 }}
+      <Toolbar>
+        <Input
           placeholder="Search by call ID or provider…"
           value={search}
-          onChange={e => handleSearch(e.target.value)}
+          onChange={e => onSearch(e.target.value)}
+          aria-label="Search transactions"
         />
-        <select
-          className="cg-input"
-          style={{ width:"auto" }}
-          value={statusFilter}
-          onChange={e => handleFilter(e.target.value)}
-        >
-          <option value="all">All</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="STARTED">Open</option>
-          <option value="SLASHED">Slashed</option>
-          <option value="REFUNDED">Refunded</option>
-        </select>
-      </div>
+        <ChipRow>
+          {FILTERS.map(f => (
+            <Chip key={f.id} active={statusFilter === f.id} onClick={() => onFilter(f.id)}>{f.label}</Chip>
+          ))}
+        </ChipRow>
+      </Toolbar>
 
       {!address && (
-        <div className="empty-state">Connect your wallet to see history.</div>
+        <SectionCard className="tx-block">
+          <EmptyState title="Connect a wallet" description="Your on-chain call history appears here once a wallet is connected." />
+        </SectionCard>
       )}
 
-      {address && loading && (
-        <div className="skeleton-list">
-          {[...Array(6)].map((_,i) => <div key={i} className="skeleton-row" style={{height:56}}/>)}
-        </div>
-      )}
-
-      {address && !loading && filtered.length === 0 && (
-        <div className="empty-state">No transactions match your filter.</div>
-      )}
-
-      {/* List */}
-      <div className="hist-list">
-        {paged.map(c => {
-          const id = String(c.id);
-          const isExpanded = expandedId === id;
-          return (
-            <div
-              key={id}
-              className="hist-row"
-              onClick={() => setExpandedId(isExpanded ? null : id)}
-              style={{ cursor:"pointer" }}
-            >
-              <div className="hist-icon" style={{ color: STATUS_COLOR[String(c.status)] }}>
-                {STATUS_ICON[String(c.status)] ?? "?"}
+      {address && (
+        <div className="tx-split">
+          <SectionCard className="tx-block" title={`${filtered.length} transaction${filtered.length === 1 ? "" : "s"}`} bodyClass="tx-block__body">
+            {loading && (
+              <div className="tx-skel">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} height={62} />)}
               </div>
-              <div className="hist-body">
-                <div className="hist-top">
-                  <span className="mono text-xs">{id.slice(0,18)}…</span>
-                  <span className="text-dim text-xs">
-                    {c.createdAt ? new Date(Number(c.createdAt)*1000).toLocaleString() : ""}
+            )}
+
+            {!loading && filtered.length === 0 && (
+              <EmptyState
+                title="No transactions match"
+                description={statusFilter === "all" ? "This wallet has no calls on Arc yet." : "Try another status filter."}
+              />
+            )}
+
+            {!loading && paged.map(c => {
+              const id = String(c.id);
+              const status = String(c.status);
+              const amount = usdc(c.amount);
+              const isSel = selectedId === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`tx-row${isSel ? " tx-row--on" : ""}`}
+                  onClick={() => setSelectedId(isSel ? null : id)}
+                  aria-pressed={isSel}
+                >
+                  <span className={`tx-row__dot tx-row__dot--${(STATUS_TONE[status] ?? "neutral")}`} />
+                  <span className="tx-row__id mono">{id.slice(0, 14)}…</span>
+                  <span className="tx-row__meta">
+                    <span className="tx-row__prov">Provider #{String(c.providerId)}</span>
+                    <span className="tx-row__time">{when(c.createdAt) ?? "—"}</span>
                   </span>
-                </div>
-                <div className="hist-bot">
-                  <span className="text-dim text-xs">Provider #{String(c.providerId)}</span>
-                  <span className="text-sm">{formatUnits(BigInt(String(c.amount??0)),6)} USDC</span>
-                </div>
-                {isExpanded && (
-                  <div style={{ marginTop:8, fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)", display:"flex", flexDirection:"column", gap:3 }}>
-                    {!!c.requestHash  && <span>reqHash: {String(c.requestHash).slice(0,30)}…</span>}
-                    {!!c.responseHash && <span>resHash: {String(c.responseHash).slice(0,30)}…</span>}
-                    {!!c.completedAt  && <span>completedAt: {new Date(Number(c.completedAt)*1000).toLocaleString()}</span>}
-                    {!!c.refunded && <span style={{color:"var(--accent)"}}>✓ Refunded</span>}
-                    {!!c.slashed  && <span style={{color:"var(--danger,#ef4444)"}}>⚡ Slashed</span>}
-                    <button
-                      onClick={e => { e.stopPropagation(); navigator.clipboard?.writeText(id).catch(()=>{}); }}
-                      style={{ background:"none", border:"none", padding:0, color:"var(--accent)", marginTop:2, cursor:"pointer", fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}
-                    >
-                      Copy call ID ⎘
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="hist-status" style={{ color: STATUS_COLOR[String(c.status)] }}>
-                {String(c.status)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                  <span className="tx-row__amt">{amount ? `${amount} USDC` : "—"}</span>
+                  <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status || "UNKNOWN"}</Badge>
+                </button>
+              );
+            })}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:8, marginTop:20 }}>
-          <button
-            className="btn btn-sm"
-            onClick={() => setPage(p => Math.max(0, p-1))}
-            disabled={page === 0}
-          >← Prev</button>
-          <span className="text-dim text-xs">
-            Page {page+1} / {totalPages} · {filtered.length} results
-          </span>
-          <button
-            className="btn btn-sm"
-            onClick={() => setPage(p => Math.min(totalPages-1, p+1))}
-            disabled={page >= totalPages-1}
-          >Next →</button>
+            {totalPages > 1 && (
+              <div className="tx-pager">
+                <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</Button>
+                <span className="tx-pager__lbl">Page {page + 1} / {totalPages}</span>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</Button>
+              </div>
+            )}
+          </SectionCard>
+
+          <div className="tx-detail">
+            {!selected && (
+              <SectionCard className="tx-block">
+                <EmptyState
+                  title="Select a transaction"
+                  description="Pick a row to trace its SLA lifecycle, hashes and settlement."
+                />
+              </SectionCard>
+            )}
+
+            {selected && (
+              <>
+                <SectionCard
+                  title="SLA lifecycle"
+                  subtitle={`Call ${String(selected.id).slice(0, 18)}…`}
+                >
+                  <SLACanvas stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })} />
+                </SectionCard>
+
+                <SectionCard title="Details" bodyClass="tx-block__body">
+                  <dl className="tx-fields">
+                    {[
+                      { k: "Call ID", v: String(selected.id), mono: true, copy: true },
+                      { k: "Provider", v: `#${String(selected.providerId)}`, mono: true },
+                      { k: "Amount", v: usdc(selected.amount) ? `${usdc(selected.amount)} USDC` : "—", mono: true },
+                      { k: "Status", v: String(selected.status) || "—" },
+                      { k: "Created", v: when(selected.createdAt) ?? "—" },
+                      { k: "Completed", v: when(selected.completedAt) ?? "—" },
+                      { k: "Request hash", v: selected.requestHash ? String(selected.requestHash) : "—", mono: true },
+                      { k: "Response hash", v: selected.responseHash ? String(selected.responseHash) : "—", mono: true },
+                    ].map(f => (
+                      <div key={f.k} className="tx-field">
+                        <dt>{f.k}</dt>
+                        <dd className={f.mono ? "mono" : undefined}>
+                          {f.v}
+                          {f.copy && (
+                            <button
+                              type="button"
+                              className="tx-copy"
+                              aria-label="Copy call ID"
+                              onClick={() => navigator.clipboard?.writeText(String(selected.id)).catch(() => {})}
+                            >
+                              Copy
+                            </button>
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {(!!selected.refunded || !!selected.slashed) && (
+                    <div className="tx-flags">
+                      {!!selected.refunded && <Badge tone="info" dot>Refunded to caller</Badge>}
+                      {!!selected.slashed && <Badge tone="slash" dot>Stake slashed</Badge>}
+                    </div>
+                  )}
+                </SectionCard>
+              </>
+            )}
+          </div>
         </div>
       )}
-
-      <style>{`
-        .hist-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-        .hist-stat{background:var(--bg-2);border-radius:var(--radius,8px);padding:12px;display:flex;flex-direction:column;gap:4px;align-items:center;}
-        .hist-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-        .hist-list{display:flex;flex-direction:column;gap:6px;}
-        .hist-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-2);border-radius:var(--radius,8px);border:1px solid var(--border);transition:border-color .15s;}
-        .hist-row:hover{border-color:var(--accent);}
-        .hist-icon{font-size:16px;font-weight:700;width:20px;text-align:center;margin-top:2px;}
-        .hist-body{flex:1;display:flex;flex-direction:column;gap:4px;}
-        .hist-top,.hist-bot{display:flex;justify-content:space-between;gap:8px;}
-        .hist-status{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
-        .skeleton-list{display:flex;flex-direction:column;gap:8px;}
-        .skeleton-row{border-radius:var(--radius,8px);background:var(--bg-2);animation:shimmer 1.4s infinite;}
-        @keyframes shimmer{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
-        @media(max-width:560px){.hist-stats{grid-template-columns:repeat(2,1fr);}}
-      `}</style>
     </div>
   );
 }
