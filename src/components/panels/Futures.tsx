@@ -26,12 +26,12 @@ const s = {
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 4 },
-  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 },
+  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
+  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius: 8, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : "var(--bg-3)", color: v === "primary" ? "#fff" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
+  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
+  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : "var(--bg-3)", color: v === "primary" ? "#fff" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
 };
 
 type Tab = "browse" | "myslots" | "mint";

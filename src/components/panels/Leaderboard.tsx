@@ -127,7 +127,7 @@ export default function Leaderboard() {
     <div style={{ padding: 24, maxWidth: 760 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Leaderboard</h2>
-        <button style={{ fontSize: 11, padding: "5px 10px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-dim)", cursor: "pointer" }} onClick={refetchTop}>↻ Refresh</button>
+        <button style={{ fontSize: 11, padding: "5px 10px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:999, color: "var(--text-dim)", cursor: "pointer" }} onClick={refetchTop}>↻ Refresh</button>
       </div>
       <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 20 }}>
         Live provider rankings from Arc Testnet. Click rows to compare.
@@ -162,7 +162,7 @@ export default function Leaderboard() {
                     <span style={{ color: "var(--text)", fontWeight: 600 }}>{v}</span>
                   </div>
                 ))}
-                <button onClick={() => toggleCompare(p.id)} style={{ marginTop: 8, width: "100%", fontSize: 10, padding: "4px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 5, cursor: "pointer", color: "var(--text-dim)" }}>
+                <button onClick={() => toggleCompare(p.id)} style={{ marginTop: 8, width: "100%", fontSize: 10, padding: "4px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:999, cursor: "pointer", color: "var(--text-dim)" }}>
                   Remove
                 </button>
               </div>

@@ -17,9 +17,9 @@ const USDC_ABI = [
 ] as const;
 
 const S = {
-  card: { background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:12, padding:20, marginBottom:16 },
+  card: { background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:14, padding:20, marginBottom:16 },
   label: { fontSize:11, fontWeight:600 as const, letterSpacing:'0.08em', color:'var(--text-faint)', textTransform:'uppercase' as const, marginBottom:6, display:'block' as const },
-  code: { background:'var(--bg-3)', borderRadius:8, padding:'12px 14px', fontSize:12, fontFamily:'var(--font-mono,monospace)', overflowX:'auto' as const, margin:'8px 0' },
+  code: { background:'var(--bg-3)', borderRadius:10, padding:'12px 14px', fontSize:12, fontFamily:'var(--font-mono,monospace)', overflowX:'auto' as const, margin:'8px 0' },
 }
 
 function copyText(text: string) {
@@ -140,7 +140,7 @@ export default function Mcp() {
       </div>
 
       {/* Tab bar */}
-      <div style={{ display:'flex', gap:4, background:'var(--bg-2)', borderRadius:10, padding:4, marginBottom:20, width:'fit-content', flexWrap:'wrap' }}>
+      <div style={{ display:'flex', gap:4, background:'var(--bg-2)', borderRadius:14, padding:4, marginBottom:20, width:'fit-content', flexWrap:'wrap' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding:'7px 14px', borderRadius:7, border:'none', cursor:'pointer',
@@ -158,7 +158,7 @@ export default function Mcp() {
           {tools.map(t => (
             <div key={t.name} style={{ padding:'12px 0', borderBottom:'1px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:4, fontSize:12, fontFamily:'monospace' }}>{t.name}</code>
+                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily:'monospace' }}>{t.name}</code>
               </div>
               <div style={{ fontSize:13, color:'var(--text-dim)', marginBottom:4 }}>{t.desc}</div>
               <code style={{ fontSize:11, color:'var(--text-faint)' }}>params: {t.params}</code>
@@ -261,7 +261,7 @@ export default function Mcp() {
           <label style={S.label}>Install</label>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'#19D186' }}>npm install @callguard/mcp-server</pre>
-            <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
+            <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <label style={S.label}>Claude Desktop Config</label>
@@ -278,19 +278,19 @@ export default function Mcp() {
     }
   }
 }`}</pre>
-            <button onClick={() => copyText(`{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`)} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
+            <button onClick={() => copyText(`{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`)} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <label style={S.label}>REST Base URL</label>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'#19D186' }}>https://arcsla.vercel.app/api</pre>
-            <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
+            <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <label style={S.label}>Remote SSE Endpoint</label>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'#19D186' }}>https://arcsla.vercel.app/api/mcp-server</pre>
-            <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
+            <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <div style={{ background:'rgba(25,209,134,0.05)', border:'1px solid rgba(25,209,134,0.2)', borderRadius:8, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>

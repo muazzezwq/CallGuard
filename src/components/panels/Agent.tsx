@@ -26,10 +26,10 @@ const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 },
+  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
+  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
   btn: (variant = "default", disabled = false) => ({
     padding: "9px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
     background: variant === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : variant === "danger" ? "rgba(238,69,57,0.12)" : "var(--bg-3)",
@@ -40,7 +40,7 @@ const s = {
   statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-display)" },
   statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 4 },
-  tab: (active: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: active ? "var(--accent)" : "transparent", color: active ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
+  tab: (active: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: active ? "var(--accent)" : "transparent", color: active ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
 };
 
 type Tab = "setup" | "autoroute" | "settings";
@@ -302,7 +302,7 @@ export default function Agent() {
             {autoRunning ? "⏳ Routing…" : "⚡ Auto-route & call"}
           </button>
           {autoResult && (
-            <pre style={{ marginTop: 12, padding: "10px 12px", background: "var(--bg-3)", borderRadius: 8, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-dim)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            <pre style={{ marginTop: 12, padding: "10px 12px", background: "var(--bg-3)", borderRadius:10, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-dim)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
               {autoResult}
             </pre>
           )}

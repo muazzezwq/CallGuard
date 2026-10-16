@@ -44,10 +44,10 @@ const s = {
   page: { padding: "20px 16px", maxWidth: 560, margin: "0 auto" },
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "20px" },
+  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "20px" },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, marginBottom: 6, display: "block" },
-  input: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  select: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, cursor: "pointer", boxSizing: "border-box" as const },
+  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
+  select: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, cursor: "pointer", boxSizing: "border-box" as const },
   btn: (disabled = false) => ({
     width: "100%", padding: "11px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer",
     fontSize: 13, fontWeight: 600, background: disabled ? "var(--bg-3)" : "linear-gradient(135deg,#19D186,#0E9F6E)",
@@ -63,7 +63,7 @@ const s = {
     background: done ? "var(--accent)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: 9, fontWeight: 700, color: done ? "#fff" : active ? "var(--text)" : "var(--text-faint)", flexShrink: 0,
   }),
-  status: { marginTop: 12, padding: "10px 14px", borderRadius: 8, background: "var(--bg-3)", fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)", wordBreak: "break-all" as const, whiteSpace: "pre-wrap" as const },
+  status: { marginTop: 12, padding: "10px 14px", borderRadius:10, background: "var(--bg-3)", fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)", wordBreak: "break-all" as const, whiteSpace: "pre-wrap" as const },
 };
 
 function addressToBytes32(addr: string): `0x${string}` {

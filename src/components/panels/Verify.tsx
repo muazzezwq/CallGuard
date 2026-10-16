@@ -12,10 +12,10 @@ const s: Record<string, React.CSSProperties> = {
   page: { padding: "20px 16px", maxWidth: 720, margin: "0 auto" },
   h1: { fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 12 },
+  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 16, marginBottom: 12 },
   label: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 6, display: "block" },
-  input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
+  input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius:10, padding: "10px 12px", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
+  btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius:999, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
   btnSecondary: { background: "var(--bg-3)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid var(--border)" },
   rowLabel: { fontSize: 12, color: "var(--text-dim)" },
@@ -347,7 +347,7 @@ export default function Verify() {
         <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>
           Verify multiple call IDs programmatically via the REST API:
         </div>
-        <pre style={{ background: "var(--bg-3)", borderRadius: 8, padding: "10px 12px", fontSize: 11, color: "var(--accent)", overflowX: "auto" as const, margin: 0 }}>
+        <pre style={{ background: "var(--bg-3)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent)", overflowX: "auto" as const, margin: 0 }}>
 {`curl https://arcsla.vercel.app/api/attestation\\
   ?callId=0x1234...&type=call`}
         </pre>

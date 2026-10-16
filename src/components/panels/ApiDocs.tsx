@@ -44,11 +44,11 @@ export default function ApiDocs() {
       </div>
       <div style={{marginBottom:24}}>
         <div style={{fontWeight:600,marginBottom:12}}>Quick Integration</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:8,fontSize:11,overflow:"auto",color:"var(--text)",lineHeight:1.6}}>{CODE}</pre>
+        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)",lineHeight:1.6}}>{CODE}</pre>
       </div>
       <div style={{marginBottom:24}}>
         <div style={{fontWeight:600,marginBottom:12}}>Embed Widget</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:8,fontSize:11,overflow:"auto",color:"var(--text)"}}>{`<script src="https://arcsla.vercel.app/api/widget.js"></script>
+        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)"}}>{`<script src="https://arcsla.vercel.app/api/widget.js"></script>
 <button data-callguard-provider="1" data-callguard-payload="ping">
   Pay with CallGuard
 </button>`}</pre>
@@ -56,7 +56,7 @@ export default function ApiDocs() {
       <div>
         <div style={{fontWeight:600,marginBottom:12}}>MCP Server</div>
         <div className="info-box">Add to your AI agent config to enable autonomous USDC payments.</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:8,fontSize:11,overflow:"auto",color:"var(--text)",marginTop:8}}>{`{
+        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)",marginTop:8}}>{`{
   "mcpServers": {
     "callguard": {
       "url": "https://arcsla.vercel.app/api/mcp-server",

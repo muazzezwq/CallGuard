@@ -10,13 +10,13 @@ const s = {
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   grid4: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 } as React.CSSProperties,
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" },
+  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px" },
   cardLabel: { fontSize: 10, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 4 },
   cardVal: { fontSize: 22, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-display)" },
   cardSub: { fontSize: 11, color: "var(--text-dim)", marginTop: 2 },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 },
+  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  btn: { padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: "var(--bg-3)", color: "var(--text)", display: "inline-flex", alignItems: "center", gap: 6 } as React.CSSProperties,
+  btn: { padding: "8px 14px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: "var(--bg-3)", color: "var(--text)", display: "inline-flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   row: { display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--border)", fontSize: 11 } as React.CSSProperties,
 };
 

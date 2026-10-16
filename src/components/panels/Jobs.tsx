@@ -25,13 +25,13 @@ const s: Record<string, React.CSSProperties> = {
   eyebrow: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "var(--accent)", fontWeight: 700, marginBottom: 6 },
   h1: { fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 12 },
+  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 16, marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 12, color: "var(--text-dim)", marginBottom: 5, display: "block" },
-  input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
-  btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius:10, padding: "9px 12px", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
+  btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius:999, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   btnSecondary: { background: "var(--bg-3)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
-  output: { background: "var(--bg-0)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" as const, minHeight: 60, marginTop: 10 },
+  output: { background: "var(--bg-0)", border: "1px solid var(--border)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" as const, minHeight: 60, marginTop: 10 },
 };
 
 export default function Jobs() {

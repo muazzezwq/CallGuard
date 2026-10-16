@@ -111,7 +111,7 @@ export default function Notifications() {
           </p>
         </div>
         {notifs.length > 0 && (
-          <button onClick={clear} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-2)", color: "var(--text-dim)", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={clear} style={{ padding: "6px 12px", borderRadius:999, border: "1px solid var(--border)", background: "var(--bg-2)", color: "var(--text-dim)", fontSize: 12, cursor: "pointer" }}>
             Clear all ✕
           </button>
         )}

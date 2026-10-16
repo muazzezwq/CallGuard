@@ -146,8 +146,8 @@ export default function BulkCall() {
           </div>
         )}
         <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-faint)" }}>
-          CSV format: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius: 3 }}>provider_id,payload</code><br />
-          Example: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius: 3 }}>1,ping</code>
+          CSV format: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius:10 }}>provider_id,payload</code><br />
+          Example: <code style={{ background: "var(--bg-3)", padding: "1px 4px", borderRadius:10 }}>1,ping</code>
         </div>
       </div>
 
