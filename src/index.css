@@ -29,6 +29,10 @@
   --guard: #12B981;
   --guard-hi: #34D399;
 
+  /* Secondary accent — cyan, for network/flow viz (never for primary actions) */
+  --accent-2: #22D3EE;
+  --accent-2-bg: rgba(34,211,238,0.10);
+
   /* Semantic — red is slash, amber is pending */
   --danger: #F6465D;
   --danger-bg: rgba(246,70,93,0.10);
@@ -85,6 +89,8 @@
   --accent-fg: rgba(14,159,110,0.16);
   --guard: #0E9F6E;
   --guard-hi: #12B981;
+  --accent-2: #0891B2;
+  --accent-2-bg: rgba(8,145,178,0.10);
   --danger: #DC2626;
   --danger-bg: rgba(220,38,38,0.10);
   --slash: #DC2626;
