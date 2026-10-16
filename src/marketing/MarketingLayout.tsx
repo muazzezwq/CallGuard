@@ -7,11 +7,11 @@ import { useAppStore } from "../store/useAppStore";
 import { CONFIG } from "../lib/config";
 
 const NAV = [
-  { to: "/", label: "Product", end: true },
-  { to: "/how-it-works", label: "How it works" },
-  { to: "/docs", label: "Docs" },
-  { to: "/providers", label: "Providers" },
-  { to: "/security", label: "Security" },
+  { to: "/", label: "Home", end: true },
+  { to: "/how-it-works", label: "Product" },
+  { to: "/docs#api", label: "Developers" },
+  { to: "/providers", label: "Ecosystem" },
+  { to: "/docs", label: "Docs", end: true },
 ];
 
 function useLaunch() {
@@ -63,10 +63,14 @@ export default function MarketingLayout() {
           </nav>
           <span className="mk-nav__spacer" />
           <div className="mk-nav__actions">
-            <button className="mk-nav__link" onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme" style={{ padding: "8px 10px" }}>
+            <button className="mk-nav__link mk-nav__theme" onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
               {theme === "dark" ? "☀" : "☾"}
             </button>
-            <button className="ui-btn ui-btn--primary ui-btn--md" onClick={launch}>Launch app</button>
+            <a className="mk-nav__builton" href={CONFIG.explorerBase} target="_blank" rel="noreferrer">
+              <span className="mk-nav__builton-dot" />
+              Built on Arc
+            </a>
+            <button className="ui-btn ui-btn--primary ui-btn--md" onClick={launch}>Launch App</button>
             <button className="mk-nav__toggle ui-btn ui-btn--secondary ui-btn--sm" onClick={() => setDrawer((d) => !d)} aria-label="Menu">☰</button>
           </div>
         </div>

@@ -65,6 +65,67 @@
 .mk-hero__metaItem { font-size: 13px; color: var(--text-faint); }
 .mk-hero__metaItem b { color: var(--text); font-weight: 650; }
 
+.mk-hero__title { max-width: 18ch; }
+.mk-hero__copy { min-width: 0; }
+.mk-hero__art {
+  position: relative; min-width: 0;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse 80% 70% at 50% 45%, rgba(18,185,129,0.10) 0%, transparent 70%);
+}
+.mk-hero__chips { margin-top: 34px; display: flex; gap: 10px; flex-wrap: wrap; list-style: none; padding: 0; }
+.mk-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px; border-radius: 999px;
+  background: var(--accent-bg); border: 1px solid var(--accent-fg);
+  font-size: 12.5px; font-weight: 600; color: var(--accent);
+}
+.mk-chip svg { flex: 0 0 auto; }
+
+/* Trusted-by row */
+.mk-trust { padding: 44px 0 8px; }
+.mk-trust__lead { font-size: 13px; color: var(--text-faint); margin-bottom: 22px; }
+.mk-trust__logos {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 28px; flex-wrap: wrap;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 26px 0;
+}
+.mk-eco { display: inline-flex; align-items: center; gap: 11px; opacity: 0.62; transition: opacity .18s ease; }
+.mk-eco:hover { opacity: 1; }
+.mk-eco__glyph { font-size: 26px; line-height: 1; color: var(--text-dim); }
+.mk-eco__name { font-size: 19px; font-weight: 650; letter-spacing: -0.015em; color: var(--text-dim); }
+
+/* Network graph visual */
+.viz-net { position: relative; width: 100%; }
+.viz-net__svg { width: 100%; height: 100%; display: block; }
+.viz-net__edges { animation: viz-drift 24s ease-in-out infinite alternate; }
+.viz-net__edges.is-static { animation: none; }
+@keyframes viz-drift {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to   { transform: translateY(-6px) scale(1.012); opacity: .94; }
+}
+.viz-net__label {
+  position: absolute; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  border: 1px solid var(--border-hi);
+  font-size: 11.5px; font-weight: 600; color: var(--text-dim);
+  backdrop-filter: blur(4px); white-space: nowrap;
+}
+.viz-net__label-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+/* Nav: built-on-Arc pill */
+.mk-nav__builton {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid var(--border-hi); background: var(--surface-2);
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+}
+.mk-nav__builton:hover { color: var(--text); border-color: var(--accent-fg); }
+.mk-nav__builton-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.mk-nav__theme { padding: 8px 10px; }
+
 /* Live protocol panel (the hero object) */
 .mk-panel {
   background: var(--surface-1); border: 1px solid var(--border-hi);
@@ -220,7 +281,10 @@
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 980px) {
   .mk-hero__grid { grid-template-columns: 1fr; gap: 40px; padding: 56px 0 44px; }
+  .mk-hero__art { order: 2; }
+  .mk-hero__title { max-width: none; }
   .mk-nav__links { display: none; }
+  .mk-nav__builton { display: none; }
   .mk-nav__toggle { display: inline-flex; }
   .mk-steps { grid-template-columns: 1fr; }
   .mk-bento { grid-template-columns: repeat(2, 1fr); }
@@ -229,6 +293,8 @@
   .mk-footer__grid { grid-template-columns: 1fr 1fr; }
   .mk-nav__drawer { display: flex; flex-direction: column; gap: 2px; padding: 10px 24px 18px; border-bottom: 1px solid var(--border); }
   .mk-section { padding: 72px 0; }
+  .mk-trust__logos { justify-content: center; gap: 22px; }
+  .mk-trust__lead { text-align: center; }
 }
 @media (max-width: 620px) {
   .mk-bento { grid-template-columns: 1fr; }
@@ -238,10 +304,13 @@
   .mk-container { padding: 0 18px; }
   .mk-tableWrap { overflow-x: auto; }
   .mk-table { min-width: 560px; }
+  .mk-hero__chips { gap: 8px; }
+  .mk-eco__name { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mk-ribbon__track { animation: none; }
   .mk-live { animation: none; }
   .mk-reveal { opacity: 1; transform: none; transition: none; }
+  .viz-net__edges { animation: none; }
 }

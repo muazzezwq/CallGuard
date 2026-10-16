@@ -5,6 +5,23 @@ import { useCountUp } from "../hooks/useCountUp";
 import { CONFIG } from "../lib/config";
 import { AddressPill } from "../ui";
 import { useReveal } from "./useReveal";
+import { NetworkGraph } from "../components/viz/NetworkGraph";
+import { Lock, FileCheck2, ShieldCheck, Zap } from "lucide-react";
+
+const HERO_CHIPS = [
+  { label: "On-chain Escrow",  Icon: Lock },
+  { label: "EIP-712 Receipts", Icon: FileCheck2 },
+  { label: "SLA Enforcement",  Icon: ShieldCheck },
+  { label: "x402 Payments",    Icon: Zap },
+];
+
+const ECOSYSTEM = [
+  { name: "Arc",      glyph: "◠" },
+  { name: "Circle",   glyph: "○" },
+  { name: "Ethereum", glyph: "◆" },
+  { name: "Base",     glyph: "◉" },
+  { name: "Polygon",  glyph: "⬡" },
+];
 
 type Call = { id: string; status: string; amount: string; createdAt: string; providerId: string; caller: string };
 type Prov = { id: string; pricePerCall: string; stake: string; active: boolean; completedCalls: string; slashedCalls: string };
@@ -99,29 +116,58 @@ export default function Landing() {
       {/* ── HERO ─────────────────────────────────────── */}
       <section className="mk-hero">
         <div className="mk-container mk-hero__grid">
-          <div>
+          <div className="mk-hero__copy">
             <h1 className="mk-hero__title">
-              Service guarantees,
+              Reliable Calls.
               <br />
-              <em>enforced on-chain.</em>
+              On-Chain Trust.
+              <br />
+              <em>Built for AI Agents.</em>
             </h1>
             <p className="mk-hero__sub">
-              CallGuard is a pay-per-call marketplace where providers stake USDC and commit to a
-              response-time SLA. Callers pay per request and receive a signed receipt. Miss the deadline,
-              and the stake is slashed automatically.
+              CallGuard is a programmable SLA marketplace for autonomous services. Pay per request,
+              verify with EIP-712 receipts, and get protected by on-chain escrow, slashing and settlement.
             </p>
             <div className="mk-hero__cta">
-              <button className="ui-btn ui-btn--primary ui-btn--lg" onClick={launch}>Launch app</button>
-              <a className="ui-btn ui-btn--outline ui-btn--lg" href="#how">How it works</a>
+              <button className="ui-btn ui-btn--primary ui-btn--lg" onClick={launch}>Launch App</button>
+              <Link className="ui-btn ui-btn--outline ui-btn--lg" to="/docs">Explore Docs</Link>
             </div>
-            <div className="mk-hero__meta">
-              <span className="mk-hero__metaItem"><b>Arc Testnet</b> · live</span>
-              <span className="mk-hero__metaItem"><b>USDC</b> is the gas token</span>
-              <span className="mk-hero__metaItem">Signed <b>EIP-712</b> receipts</span>
-            </div>
+            <ul className="mk-hero__chips">
+              {HERO_CHIPS.map(({ label, Icon }) => (
+                <li className="mk-chip" key={label}><Icon size={13} strokeWidth={2.2} />{label}</li>
+              ))}
+            </ul>
           </div>
 
-          <div className="mk-panel" aria-label="Live protocol activity">
+          <div className="mk-hero__art">
+            <NetworkGraph labels={["AI Agents", "Providers", "Callers"]} seed={11} height={420} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── TRUSTED BY ───────────────────────────────── */}
+      <section className="mk-trust">
+        <div className="mk-container">
+          <p className="mk-trust__lead">Trusted by developers building the next generation of autonomous services</p>
+          <div className="mk-trust__logos">
+            {ECOSYSTEM.map((e) => (
+              <span className="mk-eco" key={e.name} aria-label={e.name}>
+                <span className="mk-eco__glyph" aria-hidden="true">{e.glyph}</span>
+                <span className="mk-eco__name">{e.name}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── LIVE ACTIVITY ────────────────────────────── */}
+      <section className="mk-section mk-section--tight">
+        <div className="mk-container">
+          <div className="mk-head mk-reveal">
+            <h2 className="mk-h2">Live on Arc Testnet.</h2>
+            <p className="mk-lead">Real calls, settled on-chain right now. This panel reads the public subgraph — no mock numbers.</p>
+          </div>
+          <div className="mk-panel mk-reveal" aria-label="Live protocol activity">
             <div className="mk-panel__head">
               <span className="mk-panel__headL"><span className="mk-live" /> Protocol activity</span>
               <span className="mk-panel__headL" style={{ color: "var(--text-faint)" }}>Arc Testnet</span>
