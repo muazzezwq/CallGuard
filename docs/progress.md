@@ -31,3 +31,9 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - Rewrote `UnifiedBalance.tsx` and `Subscriptions.tsx` from raw Tailwind/inline styles to `ui` primitives + tokens (PageHeader/SectionCard/StatCard/Button/Badge/EmptyState/Skeleton); kept all states and data flow. Added `.ub-*`/`.sub-*` classes in shell.css.
 - `Analytics`, `Providers`, `Jobs` verified already tokenized (cards 14, buttons pill, Geist Mono). Fixed global `.mono` to `var(--font-mono)`.
 - typecheck + build pass. Inventory rows 6, 15, 25, 26, 32 -> `done` (9 total). Next: Batch 2 (T3 TABLE: Receipts, Payments, My Requests, Disputes, Quality Disputes, Rankings, Logs, Admin Panel).
+
+## Phase 5 — Batch 2 (T3 TABLE)
+- Quality Disputes: tokenized badge/button colors (accent-bg/info-bg/bg-3, var(--danger)), radii 14/10/999.
+- Logs (Notifications): cards -> 14, filter tabs -> 999.
+- Receipts, Payments, My Requests, Disputes, Rankings, Admin Panel verified already styled via shared `cg-*`/`ui` classes + tokens; no off-brand colors. Left as-is.
+- typecheck + build pass. Inventory rows 5, 7, 18, 19, 20, 21, 31, 33 -> `done` (17 total). Next: Batch 3 (T4 FORM: Register, Bulk Call, Nanopayments, Bridge, SLA Bridge, Agent Wallet, Passkey Wallet, Settings, Privacy).

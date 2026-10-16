@@ -118,7 +118,7 @@ export default function Notifications() {
       </div>
 
       {/* Live indicator */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 14 }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "block", animation: "pulse 2s infinite" }} />
         <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>Listening for contract events…</span>
         <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · CallSlashed</span>
@@ -131,7 +131,7 @@ export default function Notifications() {
             key={f}
             onClick={() => setFilter(f)}
             style={{
-              padding: "4px 12px", borderRadius: 99, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
+              padding: "4px 12px", borderRadius: 999, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
               background: filter === f ? "var(--accent)" : "var(--bg-2)",
               color: filter === f ? "#fff" : "var(--text-dim)",
               transition: "all 0.15s",
@@ -166,7 +166,7 @@ export default function Notifications() {
                 background: "var(--bg-2)",
                 border: "1px solid var(--border)",
                 borderLeft: `3px solid ${meta.color}`,
-                borderRadius: 10,
+                borderRadius: 14,
                 boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                 transition: "transform 0.15s",
               }}
