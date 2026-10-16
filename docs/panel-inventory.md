@@ -10,10 +10,10 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 
 | # | panel | route (activePanel) | file | data source | status |
 |---|---|---|---|---|---|
-| 1 | Overview | `overview` | `src/components/panels/Overview.tsx` | useSubgraph + fetch + lib/config | todo |
-| 2 | Marketplace | `marketplace` | `src/components/panels/Marketplace.tsx` | useSubgraph + lib/subgraph | todo |
-| 3 | Call Builder | `calls` (`x402` alias) | `src/components/panels/CallBuilder.tsx` | useSubgraph + useBudgetCap + lib/cctp + fetch `/api` | todo |
-| 4 | Transactions | `history` | `src/components/panels/History.tsx` | useSubgraph + fetch | todo |
+| 1 | Overview | `overview` | `src/components/panels/Overview.tsx` | useSubgraph + fetch + lib/config | done |
+| 2 | Marketplace | `marketplace` | `src/components/panels/Marketplace.tsx` | useSubgraph + lib/subgraph | done |
+| 3 | Call Builder | `calls` (`x402` alias) | `src/components/panels/CallBuilder.tsx` | useSubgraph + useBudgetCap + lib/cctp + fetch `/api` | done |
+| 4 | Transactions | `history` | `src/components/panels/History.tsx` | useSubgraph + fetch | done |
 | 5 | Receipts | `receipts` | `src/components/panels/Receipts.tsx` | useSubgraph + fetch | todo |
 | 6 | Providers | `providers` | `src/components/panels/Providers.tsx` | fetch `/api` + lib/config | todo |
 | 7 | Rankings | `leaderboard` | `src/components/panels/Leaderboard.tsx` | useSubgraph | todo |
