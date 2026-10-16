@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { useModal } from "connectkit";
 import { Moon, Sun, Menu } from "lucide-react";
@@ -7,12 +7,12 @@ import { Mark } from "../ui";
 import { useAppStore } from "../store/useAppStore";
 import { CONFIG } from "../lib/config";
 
-const NAV = [
-  { to: "/", label: "Home", end: true, noActive: false },
-  { to: "/how-it-works", label: "Product", noActive: false },
-  { to: "/docs#api", label: "Developers", noActive: true },
-  { to: "/providers", label: "Ecosystem", noActive: false },
-  { to: "/docs", label: "Docs", end: true, noActive: false },
+const NAV: { href: string; label: string; anchor?: boolean }[] = [
+  { href: "/", label: "Home" },
+  { href: "/#product", label: "Product", anchor: true },
+  { href: "/#developers", label: "Developers", anchor: true },
+  { href: "/#ecosystem", label: "Ecosystem", anchor: true },
+  { href: "/docs", label: "Docs" },
 ];
 
 function useLaunch() {
@@ -39,6 +39,10 @@ export default function MarketingLayout() {
   const setTheme = useAppStore((s) => s.setTheme);
   const [drawer, setDrawer] = useState(false);
   const launch = useLaunch();
+  const { pathname } = useLocation();
+
+  const linkCls = (href: string) =>
+    `mk-nav__link${href === "/" && pathname === "/" ? " mk-nav__link--active" : ""}`;
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -56,11 +60,13 @@ export default function MarketingLayout() {
             <b>CallGuard</b>
           </Link>
           <nav className="mk-nav__links">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mk-nav__link${isActive && !n.noActive ? " mk-nav__link--active" : ""}`}>
-                {n.label}
-              </NavLink>
-            ))}
+            {NAV.map((n) =>
+              n.href === "/docs" ? (
+                <Link key={n.href} to={n.href} className={linkCls(n.href)}>{n.label}</Link>
+              ) : (
+                <a key={n.href} href={n.href} className={linkCls(n.href)}>{n.label}</a>
+              ),
+            )}
           </nav>
           <span className="mk-nav__spacer" />
           <div className="mk-nav__actions">
@@ -77,9 +83,13 @@ export default function MarketingLayout() {
         </div>
         {drawer && (
           <div className="mk-nav__drawer">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className="mk-nav__link" onClick={() => setDrawer(false)}>{n.label}</NavLink>
-            ))}
+            {NAV.map((n) =>
+              n.href === "/docs" ? (
+                <Link key={n.href} to={n.href} className={linkCls(n.href)} onClick={() => setDrawer(false)}>{n.label}</Link>
+              ) : (
+                <a key={n.href} href={n.href} className={linkCls(n.href)} onClick={() => setDrawer(false)}>{n.label}</a>
+              ),
+            )}
           </div>
         )}
       </header>

@@ -53,3 +53,10 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - Pipeline Hook: replaced full old palette (#e8edf5/#8899b4/#1f2d42/#131c2e, rgba white) with tokens; radii 14/10/999.
 - Webhooks / RepFi Lending / SLA Futures: normalized radii (cards -> 14, callouts -> 10, pills -> 999).
 - typecheck + build pass. Inventory rows 11, 12, 22, 23 -> `done`. **34/34 panels done.** Next: Phase 6 marketing pages.
+
+## Phase 6 — Marketing pages
+- Rewrote `src/marketing/Landing.tsx` to the spec's section list and order: Hero (H1 + body + Launch/Explore CTAs + 4 icon chips + right art) → trusted-by row → Product (#product, 4 cards) → Transaction Flow (4-step framer-motion scroll sequence) → Developers (#developers, 4 cards + copy-able code block) → Live stats band (real subgraph data) → Ecosystem (#ecosystem) → CTA. Reused existing classes (`.mk-hero`, `.mk-trust`, `.mk-band`, `.mk-cta`, `.mk-eco`, `.mk-chip`, `.mk-flow`) + added `.mk-prodgrid/.mk-prodcard`, `.mk-devgrid/.mk-devcard`, `.mk-codewrap/.mk-codeblock/.mk-copy`, `.mk-flow--seq`.
+- Hero art uses the existing `NetworkGraph` (SVG) as the Phase 7 fallback slot; the 3D scene replaces/overlays it in Phase 7.
+- `MarketingLayout.tsx` navbar remapped to spec: Home (`/`, green underline active) · Product (`/#product`) · Developers (`/#developers`) · Ecosystem (`/#ecosystem`) · Docs (`/docs`); "Built on Arc" now an outline pill.
+- HowItWorks / Docs / Providers / Security / About already tokenized from Phase 3; verified, no change.
+- Verified: typecheck + build pass; landing + all marketing routes render, console clean; dark + light both correct; #product/#developers/#ecosystem anchors present; 4 product cards, 4 dev cards, 4 stat cells. Next: Phase 7 (3D hero), then Phase 8 (final pass + dist rebuild).

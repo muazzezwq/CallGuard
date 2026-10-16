@@ -53,12 +53,12 @@ Public pages rendered by `MarketingLayout` under URL routes (real router routes,
 
 | panel | route | file | status |
 |---|---|---|---|
-| Landing | `/` | `src/marketing/Landing.tsx` | todo |
-| How It Works | `/how-it-works` | `src/marketing/HowItWorks.tsx` | todo |
-| Docs | `/docs` | `src/marketing/Docs.tsx` | todo |
-| Providers | `/providers` | `src/marketing/Providers.tsx` | todo |
-| Security | `/security` | `src/marketing/Security.tsx` | todo |
-| About | `/about` | `src/marketing/About.tsx` | todo |
+| Landing | `/` | `src/marketing/Landing.tsx` | done |
+| How It Works | `/how-it-works` | `src/marketing/HowItWorks.tsx` | done |
+| Docs | `/docs` | `src/marketing/Docs.tsx` | done |
+| Providers | `/providers` | `src/marketing/Providers.tsx` | done |
+| Security | `/security` | `src/marketing/Security.tsx` | done |
+| About | `/about` | `src/marketing/About.tsx` | done |
 
 ## Notes
 
