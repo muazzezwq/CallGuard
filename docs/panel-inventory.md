@@ -22,28 +22,28 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 10 | API Docs | `apidocs` | `src/components/panels/ApiDocs.tsx` | fetch `/api` | todo |
 | 11 | Webhooks | `webhooks` | `src/components/panels/Webhooks.tsx` | fetch | todo |
 | 12 | Pipeline Hook | `pipelinehook` | `src/components/panels/PipelineHook.tsx` | fetch + lib/config | todo |
-| 13 | Nanopayments | `nano` | `src/components/panels/Nano.tsx` | fetch `/api` + lib/config | todo |
-| 14 | Bridge | `bridge` | `src/components/panels/Bridge.tsx` | fetch `/api` + lib/config | todo |
+| 13 | Nanopayments | `nano` | `src/components/panels/Nano.tsx` | fetch `/api` + lib/config | done |
+| 14 | Bridge | `bridge` | `src/components/panels/Bridge.tsx` | fetch `/api` + lib/config | done |
 | 15 | Unified Balance | `balance` | `src/components/UnifiedBalance.tsx` | fetch `/api` (unified-balance) | done |
-| 16 | Agent Wallet | `agent` | `src/components/panels/Agent.tsx` | useSubgraph + fetch + lib/config | todo |
-| 17 | Passkey Wallet | `passkey` | `src/components/PasskeyWallet.tsx` | usePasskeyWallet + lib/config | todo |
+| 16 | Agent Wallet | `agent` | `src/components/panels/Agent.tsx` | useSubgraph + fetch + lib/config | done |
+| 17 | Passkey Wallet | `passkey` | `src/components/PasskeyWallet.tsx` | usePasskeyWallet + lib/config | done |
 | 18 | My Requests | `requests` | `src/components/panels/Requests.tsx` | useSubgraph + fetch + lib/config | done |
 | 19 | Payments | `payments` | `src/components/panels/Payments.tsx` | useSubgraph + lib/config | done |
 | 20 | Disputes | `disputes` | `src/components/panels/Disputes.tsx` | useSubgraph + lib/config | done |
 | 21 | Quality Disputes | `quality` | `src/components/panels/Quality.tsx` | lib/config | done |
 | 22 | RepFi Lending | `lending` | `src/components/panels/Lending.tsx` | lib/config | todo |
 | 23 | SLA Futures | `futures` | `src/components/panels/Futures.tsx` | lib/config | todo |
-| 24 | SLA Bridge | `attestation` | `src/components/panels/Attestation.tsx` | fetch `/api` + lib/config | todo |
+| 24 | SLA Bridge | `attestation` | `src/components/panels/Attestation.tsx` | fetch `/api` + lib/config | done |
 | 25 | Subscriptions | `subscriptions` | `src/components/panels/Subscriptions.tsx` | useSubgraph | done |
 | 26 | Jobs | `jobs` | `src/components/panels/Jobs.tsx` | lib/config | done |
-| 27 | Bulk Call | `bulkcall` | `src/components/panels/BulkCall.tsx` | lib/config | todo |
+| 27 | Bulk Call | `bulkcall` | `src/components/panels/BulkCall.tsx` | lib/config | done |
 | 28 | Verify Receipt | `verify` | `src/components/panels/Verify.tsx` | fetch `/api` + lib/config | todo |
-| 29 | Register | `register` | `src/components/panels/Register.tsx` | lib/config | todo |
-| 30 | Privacy | `privacy` | `src/components/panels/Privacy.tsx` | static / local | todo |
+| 29 | Register | `register` | `src/components/panels/Register.tsx` | lib/config | done |
+| 30 | Privacy | `privacy` | `src/components/panels/Privacy.tsx` | static / local | done |
 | 31 | Admin Panel | `admin` | `src/components/panels/AdminPanel.tsx` | lib/config | done |
 | 32 | Analytics | `analytics` | `src/components/panels/Analytics.tsx` | fetch + lib/config | done |
 | 33 | Logs | `notifications` | `src/components/panels/Notifications.tsx` | lib/config | done |
-| 34 | Settings | `settings` | `src/components/panels/SettingsPanel.tsx` | lib/config + store | todo |
+| 34 | Settings | `settings` | `src/components/panels/SettingsPanel.tsx` | lib/config + store | done |
 
 > Rows marked `lib/config` only also use wagmi (`useOnchain`) indirectly through shared UI/child components; the direct data source per file is what is listed.
 

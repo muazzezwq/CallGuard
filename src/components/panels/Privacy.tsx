@@ -4,12 +4,12 @@ const S = {
   wrap: { padding: '24px', maxWidth: '680px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', marginBottom: '16px' },
   row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' },
   label: { fontSize: '14px', fontWeight: 600, color: 'var(--text)' },
   desc: { fontSize: '12px', color: 'var(--text-dim)', marginTop: '2px' },
   toggle: { width: '42px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', position: 'relative' as const, transition: 'background 0.2s' },
-  btn: { padding: '8px 16px', background: '#EE4539', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' },
+  btn: { padding: '8px 16px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' },
 }
 
 const STORAGE_KEYS = [

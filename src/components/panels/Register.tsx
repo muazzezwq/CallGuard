@@ -61,7 +61,7 @@ const s = {
   label: { fontSize:12,color:"var(--text-dim)",marginBottom:4,display:"block" },
   input: { width:"100%",padding:"8px 12px",borderRadius:10,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const,marginBottom:12 },
   row: { display:"flex",gap:10,marginBottom:0 },
-  calcCard: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",marginBottom:12 },
+  calcCard: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:14,padding:"12px 14px",marginBottom:12 },
   calcRow: { display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--border)" },
   calcLabel: { fontSize:12,color:"var(--text-dim)" },
   calcVal: { fontSize:12,fontWeight:600,fontFamily:"var(--font-mono)",color:"var(--text)" },
@@ -69,7 +69,7 @@ const s = {
   info: { background:"rgba(31,119,239,0.08)",border:"1px solid rgba(31,119,239,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#93c5fd",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
   warn: { background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#fbbf24",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
   success: { background:"rgba(25,209,134,0.08)",border:"1px solid rgba(25,209,134,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--accent)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
-  tag: { display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,background:"rgba(25,209,134,0.1)",color:"var(--accent)",border:"1px solid rgba(25,209,134,0.2)",marginLeft:6 },
+  tag: { display:"inline-block",padding:"2px 10px",borderRadius:999,fontSize:10,fontWeight:600,background:"var(--accent-bg)",color:"var(--accent)",border:"1px solid var(--accent-fg)",marginLeft:6 },
 };
 
 export default function Register() {

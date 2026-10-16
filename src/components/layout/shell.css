@@ -476,3 +476,12 @@
 .sub-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 14px; }
 .sub-row__title { font-weight: 600; font-size: 14px; color: var(--text); }
 .sub-total { font-size: 13px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+
+/* ── Passkey Wallet panel ── */
+.pk-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--warn, #f59e0b); display: grid; gap: 4px; margin-bottom: 14px; }
+.pk-warn__title { font-weight: 600; margin: 0; }
+.pk-field { background: var(--bg-3); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+.pk-field__lbl { font-size: 12px; color: var(--text-dim); margin: 0 0 4px; }
+.pk-field__val { font-size: 12px; color: var(--text); font-family: var(--font-mono); word-break: break-all; margin: 0; }
+.pk-spin-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+.pk-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent); border-top-color: transparent; animation: spin 0.8s linear infinite; }

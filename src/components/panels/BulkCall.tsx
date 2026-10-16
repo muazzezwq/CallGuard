@@ -119,7 +119,7 @@ export default function BulkCall() {
           Bulk from CSV
         </div>
         <div
-          style={{ border: "2px dashed var(--border)", borderRadius: 8, padding: 24, textAlign: "center" as const, cursor: "pointer" }}
+          style={{ border: "2px dashed var(--border)", borderRadius: 14, padding: 24, textAlign: "center" as const, cursor: "pointer" }}
           onClick={() => document.getElementById("bulkCsvInput")?.click()}
           onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) parseCsvFile(f); }}

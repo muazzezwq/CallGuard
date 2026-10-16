@@ -36,7 +36,7 @@ const s = {
     color: variant === "primary" ? "#fff" : variant === "danger" ? "#EE4539" : "var(--text)",
     opacity: disabled ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6,
   }) as React.CSSProperties,
-  stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const },
+  stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", textAlign: "center" as const },
   statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-display)" },
   statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
@@ -228,7 +228,7 @@ export default function Agent() {
 
       {/* Status */}
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)" }}>
           {status}
         </div>
       )}

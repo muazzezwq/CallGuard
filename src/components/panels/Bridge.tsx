@@ -240,7 +240,7 @@ export default function Bridge() {
         </div>
 
         {/* Destination (always Arc Testnet) */}
-        <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "var(--bg-3)", border: "1px solid var(--border)" }}>
+        <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 14, background: "var(--bg-3)", border: "1px solid var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 2 }}>Destination</div>
           <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600 }}>Arc Testnet (chain 5042002)</div>
           <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", marginTop: 2 }}>{CONFIG.usdc.slice(0, 10)}…</div>
