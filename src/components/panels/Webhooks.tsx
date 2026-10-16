@@ -29,7 +29,7 @@ const s = {
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
   btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "#EE4539" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
-  whCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", marginBottom: 8 },
+  whCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 },
 };
 
 export default function Webhooks() {
@@ -96,7 +96,7 @@ export default function Webhooks() {
       <p style={s.sub}>Get POST notifications when calls open, complete, timeout, or get slashed. No backend needed to get started.</p>
 
       {/* Info */}
-      <div style={{ background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
+      <div style={{ background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
         <strong style={{ color: "var(--accent)" }}>Quick start:</strong> Use{" "}
         <a href="https://webhook.site" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>webhook.site</a>{" "}
         to get a free URL and see the exact payload. Then point it to your own server.
@@ -113,7 +113,7 @@ export default function Webhooks() {
           <label style={s.label}>Events to subscribe</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {EVENT_TYPES.map(ev => (
-              <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 99, background: selectedEvents.includes(ev) ? "rgba(25,209,134,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(25,209,134,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
+              <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 999, background: selectedEvents.includes(ev) ? "rgba(25,209,134,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(25,209,134,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
                 <input type="checkbox" style={{ width: 12, height: 12, accentColor: "var(--accent)" }} checked={selectedEvents.includes(ev)} onChange={() => toggleEvent(ev)} />
                 {ev}
               </label>
@@ -147,7 +147,7 @@ export default function Webhooks() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
                   {wh.events.map(ev => (
-                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(25,209,134,0.1)", color: "var(--accent)", fontWeight: 600 }}>{ev}</span>
+                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(25,209,134,0.1)", color: "var(--accent)", fontWeight: 600 }}>{ev}</span>
                   ))}
                 </div>
                 {wh.lastTest && (

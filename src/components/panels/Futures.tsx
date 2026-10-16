@@ -139,7 +139,7 @@ export default function Futures() {
       <p style={s.sub}>Providers tokenize future capacity as ERC-1155 slots. Callers reserve priority calls. Slots trade on secondary markets.</p>
 
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : "rgba(238,69,57,0.08)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : "rgba(238,69,57,0.2)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : "#EE4539" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : "rgba(238,69,57,0.08)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : "rgba(238,69,57,0.2)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : "#EE4539" }}>
           {status}
         </div>
       )}
@@ -254,10 +254,10 @@ function BatchCard({ batchId }: { batchId: number }) {
   const deadline = new Date(Number(b.deadline) * 1000).toLocaleDateString();
   const fill = b.totalSlots > 0 ? Math.round((Number(b.soldSlots) / Number(b.totalSlots)) * 100) : 0;
   return (
-    <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
+    <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <span style={{ fontWeight: 600, fontSize: 13 }}>Batch #{batchId} · Provider #{String(b.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: b.active ? "rgba(25,209,134,0.15)" : "rgba(100,100,100,0.15)", color: b.active ? "var(--accent)" : "var(--text-faint)" }}>
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: b.active ? "rgba(25,209,134,0.15)" : "rgba(100,100,100,0.15)", color: b.active ? "var(--accent)" : "var(--text-faint)" }}>
           {b.active ? "Active" : "Closed"}
         </span>
       </div>

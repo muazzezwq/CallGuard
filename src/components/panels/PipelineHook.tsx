@@ -90,7 +90,7 @@ export default function PipelineHook() {
         <span
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+            padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600,
             background: isZero ? "rgba(238,69,57,.15)" : "rgba(25,209,134,.15)",
             color: isZero ? "#EE4539" : "#19D186",
             border: `1px solid ${isZero ? "rgba(238,69,57,.3)" : "rgba(25,209,134,.3)"}`,
@@ -102,9 +102,9 @@ export default function PipelineHook() {
       </div>
 
       {/* Current hook address */}
-      <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: "#8899b4", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Current Hook Address</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: isZero ? "#8899b4" : "#e8edf5", wordBreak: "break-all" }}>
+      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Current Hook Address</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: isZero ? "var(--text-dim)" : "var(--text)", wordBreak: "break-all" }}>
           {isZero ? "Not set (0x000...000)" : currentHook}
         </div>
         {!isZero && (
@@ -120,7 +120,7 @@ export default function PipelineHook() {
       </div>
 
       {/* How it works */}
-      <div style={{ background: "rgba(31,119,239,.08)", border: "1px solid rgba(31,119,239,.2)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: "rgba(31,119,239,.08)", border: "1px solid rgba(31,119,239,.2)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 10 }}>How It Works</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
@@ -133,8 +133,8 @@ export default function PipelineHook() {
                 {step}
               </div>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#e8edf5" }}>{label}</div>
-                <div style={{ fontSize: 11, color: "#8899b4", marginTop: 2 }}>{desc}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{desc}</div>
               </div>
             </div>
           ))}
@@ -142,10 +142,10 @@ export default function PipelineHook() {
       </div>
 
       {/* Set hook form */}
-      <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 12 }}>Set Hook Address</div>
+      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Set Hook Address</div>
         {!isConnected ? (
-          <div style={{ fontSize: 13, color: "#8899b4" }}>Connect your wallet to perform this action.</div>
+          <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Connect your wallet to perform this action.</div>
         ) : (
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -154,8 +154,8 @@ export default function PipelineHook() {
                 onChange={e => setHookInput(e.target.value)}
                 placeholder="0x... (contract implementing the IERC8183Hook interface)"
                 style={{
-                  flex: 1, background: "rgba(255,255,255,.04)", border: "1px solid #1f2d42",
-                  borderRadius: 8, padding: "9px 12px", color: "#e8edf5", fontSize: 12,
+                  flex: 1, background: "var(--bg-3)", border: "1px solid var(--border)",
+                  borderRadius: 10, padding: "9px 12px", color: "var(--text)", fontSize: 12,
                   fontFamily: "var(--font-mono)", outline: "none",
                 }}
               />
@@ -163,7 +163,7 @@ export default function PipelineHook() {
                 onClick={handleSet}
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
-                  padding: "9px 18px", borderRadius: 8, fontWeight: 600, fontSize: 12,
+                  padding: "9px 18px", borderRadius: 999, fontWeight: 600, fontSize: 12,
                   background: "#19D186", color: "#fff", border: "none", cursor: "pointer",
                   opacity: (txState === "pending" || txState === "mining") ? 0.6 : 1,
                   whiteSpace: "nowrap",
@@ -177,7 +177,7 @@ export default function PipelineHook() {
                 onClick={handleDisable}
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
-                  padding: "8px 16px", borderRadius: 8, fontWeight: 600, fontSize: 12,
+                  padding: "8px 16px", borderRadius: 999, fontWeight: 600, fontSize: 12,
                   background: "rgba(238,69,57,.15)", color: "#EE4539",
                   border: "1px solid rgba(238,69,57,.3)", cursor: "pointer",
                 }}
@@ -203,8 +203,8 @@ export default function PipelineHook() {
       </div>
 
       {/* Interface spec */}
-      <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 10 }}>IERC8183Hook Interface</div>
+      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>IERC8183Hook Interface</div>
         <pre style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93c5fd", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
 {`interface IERC8183Hook {
   function beforeCall(
@@ -220,9 +220,9 @@ export default function PipelineHook() {
   ) external;
 }`}
         </pre>
-        <div style={{ marginTop: 10, fontSize: 11, color: "#8899b4" }}>
+        <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-dim)" }}>
           Both hooks are called <strong>best-effort</strong> — the PayPerCall transaction continues even if the hook contract reverts.
-          <br />PayPerCall v7.1: <span style={{ fontFamily: "var(--font-mono)", color: "#e8edf5" }}>{CONFIG.ppcAddress}</span>
+          <br />PayPerCall v7.1: <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{CONFIG.ppcAddress}</span>
         </div>
       </div>
     </div>

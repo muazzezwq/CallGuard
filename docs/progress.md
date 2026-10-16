@@ -48,3 +48,8 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - Provider details: tokenized status badge + avatar (fixed invalid `var(--accent)20`).
 - Verify Receipt / API-MCP / API Docs: normalized leftover radii (cards -> 14, tags -> 999).
 - typecheck + build pass. Inventory rows 8, 9, 10, 28 -> `done` (30 total). Next: Batch 5 (T7 HYBRID: Webhooks, Pipeline Hook, RepFi Lending, SLA Futures).
+
+## Phase 5 — Batch 5 (T7 HYBRID) — ALL 34 PANELS DONE
+- Pipeline Hook: replaced full old palette (#e8edf5/#8899b4/#1f2d42/#131c2e, rgba white) with tokens; radii 14/10/999.
+- Webhooks / RepFi Lending / SLA Futures: normalized radii (cards -> 14, callouts -> 10, pills -> 999).
+- typecheck + build pass. Inventory rows 11, 12, 22, 23 -> `done`. **34/34 panels done.** Next: Phase 6 marketing pages.

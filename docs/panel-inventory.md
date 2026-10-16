@@ -20,8 +20,8 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | lib/config | done |
 | 9 | API / MCP | `mcp` | `src/components/panels/Mcp.tsx` | useSubgraph + fetch `/api` + lib/config | done |
 | 10 | API Docs | `apidocs` | `src/components/panels/ApiDocs.tsx` | fetch `/api` | done |
-| 11 | Webhooks | `webhooks` | `src/components/panels/Webhooks.tsx` | fetch | todo |
-| 12 | Pipeline Hook | `pipelinehook` | `src/components/panels/PipelineHook.tsx` | fetch + lib/config | todo |
+| 11 | Webhooks | `webhooks` | `src/components/panels/Webhooks.tsx` | fetch | done |
+| 12 | Pipeline Hook | `pipelinehook` | `src/components/panels/PipelineHook.tsx` | fetch + lib/config | done |
 | 13 | Nanopayments | `nano` | `src/components/panels/Nano.tsx` | fetch `/api` + lib/config | done |
 | 14 | Bridge | `bridge` | `src/components/panels/Bridge.tsx` | fetch `/api` + lib/config | done |
 | 15 | Unified Balance | `balance` | `src/components/UnifiedBalance.tsx` | fetch `/api` (unified-balance) | done |
@@ -31,8 +31,8 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 19 | Payments | `payments` | `src/components/panels/Payments.tsx` | useSubgraph + lib/config | done |
 | 20 | Disputes | `disputes` | `src/components/panels/Disputes.tsx` | useSubgraph + lib/config | done |
 | 21 | Quality Disputes | `quality` | `src/components/panels/Quality.tsx` | lib/config | done |
-| 22 | RepFi Lending | `lending` | `src/components/panels/Lending.tsx` | lib/config | todo |
-| 23 | SLA Futures | `futures` | `src/components/panels/Futures.tsx` | lib/config | todo |
+| 22 | RepFi Lending | `lending` | `src/components/panels/Lending.tsx` | lib/config | done |
+| 23 | SLA Futures | `futures` | `src/components/panels/Futures.tsx` | lib/config | done |
 | 24 | SLA Bridge | `attestation` | `src/components/panels/Attestation.tsx` | fetch `/api` + lib/config | done |
 | 25 | Subscriptions | `subscriptions` | `src/components/panels/Subscriptions.tsx` | useSubgraph | done |
 | 26 | Jobs | `jobs` | `src/components/panels/Jobs.tsx` | lib/config | done |
