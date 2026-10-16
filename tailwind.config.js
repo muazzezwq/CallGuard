@@ -43,12 +43,12 @@ export default {
       keyframes: {
         fadeIn: { from: { opacity: 0, transform: "translateY(8px)" }, to: { opacity: 1, transform: "translateY(0)" } },
         slideUp: { from: { opacity: 0, transform: "translateY(24px)" }, to: { opacity: 1, transform: "translateY(0)" } },
-        pulseGlow: { "0%,100%": { boxShadow: "0 0 4px #12B981" }, "50%": { boxShadow: "0 0 16px #12B981, 0 0 32px rgba(18,185,129,0.3)" } },
+        pulseGlow: { "0%,100%": { boxShadow: "0 0 4px #19D186" }, "50%": { boxShadow: "0 0 16px #19D186, 0 0 32px rgba(25,209,134,0.3)" } },
         borderBeam: { from: { backgroundPosition: "0% 0%" }, to: { backgroundPosition: "200% 0%" } },
       },
       boxShadow: {
-        glow: "0 0 20px rgba(18,185,129,0.25)",
-        "glow-sm": "0 0 10px rgba(18,185,129,0.15)",
+        glow: "0 0 20px rgba(25,209,134,0.25)",
+        "glow-sm": "0 0 10px rgba(25,209,134,0.15)",
         card: "0 4px 24px rgba(0,0,0,0.4)",
         "card-hover": "0 8px 40px rgba(0,0,0,0.5)",
       },

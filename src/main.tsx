@@ -31,9 +31,9 @@ ReactDOM.createRoot(root).render(
           options={{ initialChainId: 5042002 }}
           theme="midnight"
           customTheme={{
-            "--ck-accent-color": "#12B981",
+            "--ck-accent-color": "#19D186",
             "--ck-accent-text-color": "#06110d",
-            "--ck-body-background": "#10151E",
+            "--ck-body-background": "#051528",
             "--ck-border-radius": "14px",
             "--ck-font-family": '"Geist", -apple-system, sans-serif',
           }}

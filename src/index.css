@@ -1,34 +1,34 @@
 /* ── CallGuard — design tokens (dark-first) ─────────── */
 :root {
   /* Surfaces — near-black ink field, stepped in tone */
-  --bg-0: #0A0E14;
-  --bg-1: #10151E;
-  --bg-2: #161D28;
+  --bg-0: #000D1A;
+  --bg-1: #051528;
+  --bg-2: #051528;
   --bg-3: #1E2735;
-  --surface-0: #0A0E14;
-  --surface-1: #10151E;
-  --surface-2: #161D28;
+  --surface-0: #000D1A;
+  --surface-1: #051528;
+  --surface-2: #051528;
   --surface-3: #1E2735;
-  --line: #222C3A;
-  --border: #222C3A;
+  --line: #112939;
+  --border: #0B1E30;
   --border-hi: #33415A;
 
   /* Text */
-  --text: #E6EDF6;
-  --text-hi: #E6EDF6;
-  --text-dim: #8DA0B8;
-  --text-mid: #8DA0B8;
+  --text: #FDFEFF;
+  --text-hi: #FDFEFF;
+  --text-dim: #8A9FB2;
+  --text-mid: #8A9FB2;
   --text-faint: #4D5F76;
   --text-low: #4D5F76;
 
   /* Accent — guard green is the single action colour (verified / settled) */
-  --accent: #12B981;
-  --accent-ink: #12B981;
+  --accent: #19D186;
+  --accent-ink: #19D186;
   --accent-dim: #0E9F6E;
-  --accent-bg: rgba(18,185,129,0.10);
-  --accent-fg: rgba(18,185,129,0.16);
-  --guard: #12B981;
-  --guard-hi: #34D399;
+  --accent-bg: rgba(25,209,134,0.10);
+  --accent-fg: rgba(25,209,134,0.16);
+  --guard: #19D186;
+  --guard-hi: #1CE08E;
 
   /* Secondary accent — cyan, for network/flow viz (never for primary actions) */
   --accent-2: #22D3EE;
@@ -36,16 +36,16 @@
   --accent-2-bg: rgba(34,211,238,0.10);
 
   /* Semantic — red is slash, amber is pending */
-  --danger: #F6465D;
-  --danger-bg: rgba(246,70,93,0.10);
-  --slash: #F6465D;
+  --danger: #EE4539;
+  --danger-bg: rgba(238,69,57,0.10);
+  --slash: #EE4539;
   --warn: #F0B90B;
   --warn-bg: rgba(240,185,11,0.10);
-  --pending: #F0B90B;
-  --info: #3B82F6;
-  --info-bg: rgba(59,130,246,0.10);
+  --pending: #1F77EF;
+  --info: #1F77EF;
+  --info-bg: rgba(31,119,239,0.10);
 
-  --focus: #12B981;
+  --focus: #19D186;
 
   /* Elevation */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.40);
@@ -53,9 +53,9 @@
   --shadow-lg: 0 16px 48px rgba(0,0,0,0.55);
   --radius: 10px;
   --radius-lg: 14px;
-  --glow-green: 0 0 20px rgba(18,185,129,0.22);
+  --glow-green: 0 0 20px rgba(25,209,134,0.22);
   --glow-blue: 0 0 20px rgba(59,130,246,0.22);
-  --gradient-brand: linear-gradient(135deg,#12B981 0%,#0E9F6E 100%);
+  --gradient-brand: linear-gradient(135deg,#19D186 0%,#0E9F6E 100%);
 
   /* Type — one family, two faces (proportional + mono) */
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
@@ -68,43 +68,43 @@
 
 /* ── Light theme — same semantics, paper ground ──────── */
 [data-theme="light"] {
-  --bg-0: #F6F8FA;
-  --bg-1: #FFFFFF;
-  --bg-2: #EEF2F6;
+  --bg-0: #F1F5FA;
+  --bg-1: #F9FBFD;
+  --bg-2: #EAF0F8;
   --bg-3: #E4EAF0;
-  --surface-0: #F6F8FA;
-  --surface-1: #FFFFFF;
-  --surface-2: #EEF2F6;
+  --surface-0: #F1F5FA;
+  --surface-1: #F9FBFD;
+  --surface-2: #EAF0F8;
   --surface-3: #E4EAF0;
-  --line: #D6DEE8;
-  --border: #D6DEE8;
+  --line: #EAF1F8;
+  --border: #EAF1F8;
   --border-hi: #B4C1D0;
-  --text: #0B1220;
-  --text-hi: #0B1220;
-  --text-dim: #42536A;
-  --text-mid: #42536A;
+  --text: #091636;
+  --text-hi: #091636;
+  --text-dim: #667A98;
+  --text-mid: #667A98;
   --text-faint: #8A9BAE;
   --text-low: #8A9BAE;
-  --accent: #0E9F6E;
+  --accent: #19D186;
   /* --accent-ink: small accent text on light surfaces (AA for <18px) */
-  --accent-ink: #0A7A55;
+  --accent-ink: #19D186;
   --accent-dim: #0B855C;
-  --accent-bg: rgba(14,159,110,0.10);
-  --accent-fg: rgba(14,159,110,0.16);
-  --guard: #0E9F6E;
-  --guard-hi: #12B981;
+  --accent-bg: rgba(25,209,134,0.10);
+  --accent-fg: rgba(25,209,134,0.16);
+  --guard: #19D186;
+  --guard-hi: #1CE08E;
   --accent-2: #0891B2;
   --accent-2-ink: #0E7490;
   --accent-2-bg: rgba(8,145,178,0.10);
-  --danger: #DC2626;
-  --danger-bg: rgba(220,38,38,0.10);
-  --slash: #DC2626;
+  --danger: #EE4539;
+  --danger-bg: rgba(238,69,57,0.10);
+  --slash: #EE4539;
   --warn: #B45309;
   --warn-bg: rgba(180,83,9,0.10);
-  --pending: #D97706;
-  --info: #2563EB;
-  --info-bg: rgba(37,99,235,0.10);
-  --focus: #0E9F6E;
+  --pending: #1F77EF;
+  --info: #1F77EF;
+  --info-bg: rgba(31,119,239,0.10);
+  --focus: #19D186;
   --glow-green: 0 0 20px rgba(14,159,110,0.18);
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
   --shadow-md: 0 6px 20px rgba(15,23,42,0.08);
@@ -539,13 +539,13 @@ body {
 /* Every number that carries meaning aligns on the decimal */
 .tnum, code, kbd, samp, [data-num] { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
-::selection { background: rgba(18,185,129,0.28); }
+::selection { background: rgba(25,209,134,0.28); }
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(18,185,129,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(25,209,134,0.05) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 80% 80%, rgba(59,130,246,0.04) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;

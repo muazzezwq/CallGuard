@@ -10,7 +10,7 @@ export function Mark({ size = 28, className }: { size?: number; className?: stri
         </linearGradient>
       </defs>
       <path d="M16 2.1 27.2 6.5v8.2c0 7.3-4.8 12.6-11.2 15C9.6 27.3 4.8 22 4.8 14.7V6.5L16 2.1Z" fill="url(#cg-mark)" />
-      <path d="M17.5 8.2 11.2 17h4.2l-1.4 6.9 6.3-9.1h-4.3l1.5-6.6Z" fill="#0A0E14" />
+      <path d="M17.5 8.2 11.2 17h4.2l-1.4 6.9 6.3-9.1h-4.3l1.5-6.6Z" fill="#000D1A" />
     </svg>
   );
 }
