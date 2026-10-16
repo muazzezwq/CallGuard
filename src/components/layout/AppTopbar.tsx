@@ -89,7 +89,7 @@ export default function AppTopbar({
         )}
 
         {/* Theme toggle */}
-        <button className="tb-icon-btn" title="Toggle theme" onClick={toggleTheme}>
+        <button className="tb-icon-btn" title="Toggle theme" aria-label="Toggle theme" onClick={toggleTheme}>
           {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
         </button>
 
@@ -111,6 +111,7 @@ export default function AppTopbar({
               style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }}
               onClick={() => disconnect()}
               title="Disconnect"
+              aria-label="Disconnect"
             ><X size={14} /></button>
           </>
         )}

@@ -102,11 +102,19 @@ function NavButton({ item, active, label, onClick }: { item: NavItem; active: bo
   );
 }
 
-export default function Sidebar({ onNav }: { onNav?: () => void }) {
+export default function Sidebar({ onNav, collapsed = false, onExpandGroup }: {
+  onNav?: () => void; collapsed?: boolean; onExpandGroup?: () => void;
+}) {
   const { activePanel, setPanel, mode } = useAppStore();
   const { address, isConnected } = useAccount();
   const [devOpen, setDevOpen] = useState(false);
   const [repOpen, setRepOpen] = useState(false);
+
+  /* Collapsed rails hide the sub-lists, so a group click must expand first. */
+  const toggleGroup = (open: boolean, set: (v: boolean) => void) => {
+    if (collapsed) onExpandGroup?.();
+    set(collapsed ? true : !open);
+  };
 
   const label = (i: NavItem) => (mode === "simple" ? i.simple : i.pro);
   const go = (id: PanelId) => { setPanel(id); onNav?.(); };
@@ -129,7 +137,7 @@ export default function Sidebar({ onNav }: { onNav?: () => void }) {
           type="button"
           className={`sb-item sb-group${groupActive(REPUTATION) ? " has-active" : ""}`}
           aria-expanded={repOpen}
-          onClick={() => setRepOpen((o) => !o)}
+          onClick={() => toggleGroup(repOpen, setRepOpen)}
         >
           <span className="sb-icon"><Star size={16} strokeWidth={1.8} /></span>
           <span className="sb-label">Reputation</span>
@@ -148,7 +156,7 @@ export default function Sidebar({ onNav }: { onNav?: () => void }) {
           type="button"
           className={`sb-item sb-group${groupActive([...DEV_DEVELOPER, ...DEV_RAILS, ...DEV_ADVANCED]) ? " has-active" : ""}`}
           aria-expanded={devOpen}
-          onClick={() => setDevOpen((o) => !o)}
+          onClick={() => toggleGroup(devOpen, setDevOpen)}
         >
           <span className="sb-icon"><Wrench size={16} strokeWidth={1.8} /></span>
           <span className="sb-label">Developer Tools</span>

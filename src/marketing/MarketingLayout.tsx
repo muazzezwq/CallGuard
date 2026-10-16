@@ -7,11 +7,11 @@ import { useAppStore } from "../store/useAppStore";
 import { CONFIG } from "../lib/config";
 
 const NAV = [
-  { to: "/", label: "Home", end: true },
-  { to: "/how-it-works", label: "Product" },
-  { to: "/docs#api", label: "Developers" },
-  { to: "/providers", label: "Ecosystem" },
-  { to: "/docs", label: "Docs", end: true },
+  { to: "/", label: "Home", end: true, noActive: false },
+  { to: "/how-it-works", label: "Product", noActive: false },
+  { to: "/docs#api", label: "Developers", noActive: true },
+  { to: "/providers", label: "Ecosystem", noActive: false },
+  { to: "/docs", label: "Docs", end: true, noActive: false },
 ];
 
 function useLaunch() {
@@ -56,7 +56,7 @@ export default function MarketingLayout() {
           </Link>
           <nav className="mk-nav__links">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mk-nav__link${isActive ? " mk-nav__link--active" : ""}`}>
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mk-nav__link${isActive && !n.noActive ? " mk-nav__link--active" : ""}`}>
                 {n.label}
               </NavLink>
             ))}

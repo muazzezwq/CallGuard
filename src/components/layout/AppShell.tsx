@@ -175,7 +175,7 @@ export default function AppShell() {
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>
-        <Sidebar onNav={handleNav} />
+        <Sidebar onNav={handleNav} collapsed={sidebarCollapsed} onExpandGroup={() => setSidebarCollapsed(false)} />
         <button
           className="sidebar-collapse-btn"
           onClick={toggleCollapsed}

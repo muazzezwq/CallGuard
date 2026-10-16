@@ -231,9 +231,7 @@
 .ov-page { padding: 24px 28px 96px; max-width: 1240px; margin: 0 auto; }
 .ov-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
 .ov-2col { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; margin-bottom: 14px; align-items: start; }
-.ui-section + .ui-section { margin-top: 14px; }
 .ov-2col .ui-section + .ui-section { margin-top: 0; }
-.ov-flush { padding: 0 !important; }
 
 .ov-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .c-accent { color: var(--accent); } .c-info { color: var(--info, #3b82f6); } .c-danger { color: var(--danger); }
@@ -259,9 +257,9 @@
 .ov-activity__ico--danger { background: rgba(239,68,68,0.12); color: var(--danger); }
 .ov-activity__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ov-activity__title { font-size: 12.5px; font-weight: 600; color: var(--text); }
-.ov-activity__sub { font-size: 11px; color: var(--text-faint); }
+.ov-activity__sub { font-size: 11px; color: var(--text-dim); }
 
-.ov-flow__meta { margin-top: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+.ov-flow__meta { margin-top: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
 
 /* service health */
 .ov-health { list-style: none; margin: 0; padding: 0; }
@@ -313,9 +311,9 @@
 .ov-actions__icon--warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
 .ov-actions__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ov-actions__title { font-size: 13px; font-weight: 600; color: var(--text); }
-.ov-actions__sub { font-size: 11.5px; color: var(--text-faint); }
-.ov-actions__ctrl { display: flex; align-items: center; gap: 8px; }
-.ov-input-sm { width: 110px; }
+.ov-actions__sub { font-size: 11.5px; color: var(--text-dim); }
+.ov-actions__ctrl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ov-input-sm { width: 110px; min-width: 0; flex: 0 1 110px; }
 .ov-actions__ctrl .ui-input, .ov-input-sm { height: 34px; }
 
 .ov-accordion { border-bottom: 1px solid var(--border); }

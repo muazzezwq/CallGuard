@@ -10,77 +10,6 @@ type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "stake";
 type SortDir = "asc" | "desc";
 
 /* ─────────────────────────────────────────────
-   Particle Network Canvas  (header bg)
-───────────────────────────────────────────── */
-function ParticleCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const raf = useRef(0);
-
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const c = ctx;
-
-    let W = 0, H = 0;
-
-    function resize() {
-      if (!canvas) return;
-      W = canvas.offsetWidth;
-      H = canvas.offsetHeight;
-      canvas.width = W * window.devicePixelRatio;
-      canvas.height = H * window.devicePixelRatio;
-      c.scale(window.devicePixelRatio, window.devicePixelRatio);
-    }
-    resize();
-
-    const N = Math.min(55, Math.floor((W * H) / 9000));
-    type Dot = { x: number; y: number; vx: number; vy: number; r: number; a: number };
-    const dots: Dot[] = Array.from({ length: N }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
-      r: Math.random() * 1.6 + 0.5, a: Math.random() * 0.45 + 0.18,
-    }));
-
-    function tick() {
-      c.clearRect(0, 0, W, H);
-      for (let i = 0; i < dots.length; i++) {
-        for (let j = i + 1; j < dots.length; j++) {
-          const dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 110) {
-            c.beginPath();
-            c.strokeStyle = `rgba(16,185,129,${0.11 * (1 - d / 110)})`;
-            c.lineWidth = 0.5;
-            c.moveTo(dots[i].x, dots[i].y);
-            c.lineTo(dots[j].x, dots[j].y);
-            c.stroke();
-          }
-        }
-      }
-      for (const d of dots) {
-        c.beginPath();
-        c.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        c.fillStyle = `rgba(16,185,129,${d.a})`;
-        c.fill();
-        d.x += d.vx; d.y += d.vy;
-        if (d.x < 0 || d.x > W) d.vx *= -1;
-        if (d.y < 0 || d.y > H) d.vy *= -1;
-      }
-      raf.current = requestAnimationFrame(tick);
-    }
-    tick();
-
-    const obs = new ResizeObserver(resize);
-    obs.observe(canvas);
-    return () => { cancelAnimationFrame(raf.current); obs.disconnect(); };
-  }, []);
-
-  return <canvas ref={ref} className="mp-particle-canvas" aria-hidden="true" />;
-}
-
-/* ─────────────────────────────────────────────
    Sparkline Canvas  (per-card reputation bars)
 ───────────────────────────────────────────── */
 function SparklineCanvas({ completed, slashed, glow }: {
@@ -162,35 +91,6 @@ function TierBadge({ rate }: { rate: number }) {
   if (rate >= 80) return <span className="mp-tier mp-tier-pro">Pro</span>;
   if (rate >= 60) return <span className="mp-tier mp-tier-std">Standard</span>;
   return <span className="mp-tier mp-tier-risk">At Risk</span>;
-}
-
-/* ─────────────────────────────────────────────
-   Stats Bar  (header summary)
-───────────────────────────────────────────── */
-function StatsBar({ providers }: { providers: Provider[] }) {
-  const active = providers.filter(p => p.active).length;
-  const avg = providers.length
-    ? Math.round(providers.reduce((s, p) => s + p.reputation, 0) / providers.length) : 0;
-  const calls = providers.reduce((s, p) => s + p.completedCalls, 0);
-  const elite = providers.filter(p => p.reputation >= 95).length;
-
-  return (
-    <div className="mp-stats-bar">
-      {[
-        { v: providers.length, l: "Total", c: "" },
-        { v: active, l: "Active", c: "green" },
-        { v: `${avg}%`, l: "Avg Honor", c: "" },
-        { v: calls.toLocaleString(), l: "Calls", c: "" },
-        { v: elite, l: "Elite", c: "purple" },
-      ].map((s, i) => (
-        <div key={s.l} className="mp-stats-item">
-          {i > 0 && <div className="mp-stats-div" />}
-          <div className={`mp-stats-val ${s.c ? `mp-stats-${s.c}` : ""}`}>{s.v}</div>
-          <div className="mp-stats-lbl">{s.l}</div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 /* ─────────────────────────────────────────────
@@ -355,19 +255,6 @@ function CompareModal({ providers, onClose, onCall }: {
 }
 
 /* ─────────────────────────────────────────────
-   Sort Button
-───────────────────────────────────────────── */
-function SortBtn({ label, active, dir, onClick }: {
-  label: string; active: boolean; dir: SortDir; onClick: () => void;
-}) {
-  return (
-    <button className={`mp-sort${active ? " mp-sort-on" : ""}`} onClick={onClick}>
-      {label}{active && <span className="mp-sort-arrow">{dir === "desc" ? " ↓" : " ↑"}</span>}
-    </button>
-  );
-}
-
-/* ─────────────────────────────────────────────
    Skeleton Card
 ───────────────────────────────────────────── */
 function SkeletonCard() {
@@ -422,11 +309,6 @@ export default function Marketplace() {
       prev.includes(p.id) ? prev.filter(id => id !== p.id) : prev.length < 4 ? [...prev, p.id] : prev
     );
   }, []);
-
-  const toggleSort = (k: SortKey) => {
-    if (sortKey === k) setSortDir(d => d === "desc" ? "asc" : "desc");
-    else { setSortKey(k); setSortDir("desc"); }
-  };
 
   return (
     <div className="mp-root">
@@ -502,10 +384,16 @@ export default function Marketplace() {
             <div className="mp-empty-icon">◎</div>
             <div className="mp-empty-title">No providers found</div>
             <div className="mp-empty-sub">
-              {activeOnly ? "Try removing the active filter." : "No providers match your search."}
+              {activeOnly && highRep
+                ? "No providers match the active + high-reputation filters."
+                : activeOnly
+                  ? "Try removing the active filter."
+                  : highRep
+                    ? "No providers have a reputation of 90 or higher."
+                    : "No providers match your search."}
             </div>
-            {activeOnly && (
-              <button className="mp-btn-call" style={{ marginTop: 16 }} onClick={() => setActiveOnly(false)}>
+            {(activeOnly || highRep) && (
+              <button className="mp-btn-call" style={{ marginTop: 16 }} onClick={() => { setActiveOnly(false); setHighRep(false); }}>
                 Show all providers
               </button>
             )}

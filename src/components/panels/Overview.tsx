@@ -91,13 +91,10 @@ export default function Overview() {
   const sgCalls: any[] = (sg as any)?.calls ?? [];
   const providerCount = providerCountRaw ? Math.max(0, Number(providerCountRaw) - 1) : sgProviders.length;
   const callsNum = sgCalls.length;
-  const slashesNum = sgCalls.filter((c: any) => c.status === "SLASHED").length;
   const completedNum = sgCalls.filter((c: any) => c.status === "COMPLETED").length;
-  const receiptsNum = completedNum;
 
   const animProviders = useCountUp(providerCount);
   const animCalls = useCountUp(callsNum);
-  const animReceipts = useCountUp(receiptsNum);
 
   const honorPctNum = callsNum > 0 ? Math.round((completedNum / callsNum) * 100) : null;
   const honorRate = honorPctNum === null ? "—" : `${honorPctNum}%`;
@@ -292,7 +289,7 @@ export default function Overview() {
         <SectionCard
           title="Live Network"
           action={<Badge tone="guard" dot>Live</Badge>}
-          bodyClass="ov-flush"
+          bodyClass="ui-section__body--flush"
         >
           <div className="ov-net">
             <NetworkGraphBox />
@@ -308,7 +305,7 @@ export default function Overview() {
         <SectionCard
           title="Recent Activity"
           action={<button className="ov-linkbtn" onClick={() => setPanel("history")}>View all</button>}
-          bodyClass="ov-flush"
+          bodyClass="ui-section__body--flush"
         >
           {activities.length === 0 ? (
             <div className="ov-empty">No calls yet — the ledger fills as the network runs.</div>
@@ -352,7 +349,7 @@ export default function Overview() {
           )}
         </SectionCard>
 
-        <SectionCard title="Service Health" bodyClass="ov-flush">
+        <SectionCard title="Service Health" bodyClass="ui-section__body--flush">
           <ul className="ov-health">
             {[
               { name: "PayPerCall", addr: CONFIG.ppcAddress },
@@ -436,7 +433,7 @@ export default function Overview() {
 
       {/* ── My activity ── */}
       {isConnected && myActivity.length > 0 && (
-        <SectionCard title="My Activity" action={<button className="ov-linkbtn" onClick={() => setPanel("requests")}>My requests</button>} bodyClass="ov-flush">
+        <SectionCard title="My Activity" action={<button className="ov-linkbtn" onClick={() => setPanel("requests")}>My requests</button>} bodyClass="ui-section__body--flush">
           <ul className="ov-activity">
             {myActivity.map((c: any) => (
               <li key={c.id} className="ov-activity__row">
@@ -455,7 +452,7 @@ export default function Overview() {
       )}
 
       {/* ── Actions ── */}
-      <SectionCard title="Actions" bodyClass="ov-flush">
+      <SectionCard title="Actions" bodyClass="ui-section__body--flush">
         <div className="ov-actions">
           <div className="ov-actions__row">
             <span className="ov-actions__icon ov-actions__icon--accent"><Zap size={15} /></span>
@@ -517,9 +514,9 @@ export default function Overview() {
                 <div className="ov-stepper-row">
                   <span className="ov-actions__sub">Calls per provider</span>
                   <div className="ov-stepper">
-                    <button onClick={() => setMultiCount(c => Math.max(1, c - 1))}>−</button>
+                    <button aria-label="Decrease calls per provider" onClick={() => setMultiCount(c => Math.max(1, c - 1))}>−</button>
                     <span>{multiCount}</span>
-                    <button onClick={() => setMultiCount(c => Math.min(10, c + 1))}>+</button>
+                    <button aria-label="Increase calls per provider" onClick={() => setMultiCount(c => Math.min(10, c + 1))}>+</button>
                   </div>
                 </div>
                 <div className="ov-note ov-note--muted">
@@ -550,7 +547,7 @@ export default function Overview() {
       <SectionCard
         title="Live Activity"
         action={<span className="ov-live"><span className="live-dot-pulse" />live</span>}
-        bodyClass="ov-flush"
+        bodyClass="ui-section__body--flush"
       >
         {liveEvents.length === 0 && activities.length === 0 ? (
           <div className="ov-empty">Waiting for on-chain events…</div>
@@ -586,7 +583,7 @@ export default function Overview() {
 
       {/* ── Top providers ── */}
       {topProviders.length > 0 && (
-        <SectionCard title="Top Providers" bodyClass="ov-flush">
+        <SectionCard title="Top Providers" bodyClass="ui-section__body--flush">
           <ul className="ov-rank">
             {topProviders.map((p: { id: string; completedCalls: string; slashedCalls: string }, i: number) => {
               const total = parseInt(p.completedCalls || "0") + parseInt(p.slashedCalls || "0") + 3;
