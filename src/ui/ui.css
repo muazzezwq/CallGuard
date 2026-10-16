@@ -205,6 +205,18 @@
 .ui-pagehead__sub { margin-top: 5px; font-size: 13.5px; color: var(--text-dim); line-height: 1.55; max-width: 68ch; }
 .ui-pagehead__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+/* Inline status pill (gas-free / network badges) ──────── */
+.cb-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  background: var(--accent-bg); border: 1px solid var(--accent-fg);
+  color: var(--accent); font-size: 11.5px; font-weight: 600;
+}
+.cb-pill__dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 6px var(--accent); display: block;
+}
+
 /* Section card ───────────────────────────────────────── */
 .ui-section {
   background: var(--surface-1); border: 1px solid var(--border);

@@ -7,6 +7,8 @@ import { arcTestnet, CONFIG, REGISTRY_ABI, PPC_ABI } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
 import { useBudgetCap } from "../../hooks/useBudgetCap";
+import { useProviders } from "../../hooks/useSubgraph";
+import { PageHeader, SectionCard, Tabs } from "../../ui";
 import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx } from "../../lib/utils";
 
 // Aliases for local readability — both reference the same canonical PPC_ABI from config
@@ -66,6 +68,10 @@ export default function CallBuilder() {
   const [batchCount, setBatchCount] = useState(3);
   const [batchResults, setBatchResults] = useState<{ i: number; hash?: string; error?: string }[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [tab, setTab] = useState<"basic" | "advanced">("basic");
+
+  /* Live provider list — lets the builder pick a real id instead of typing one. */
+  const { data: providers = [] } = useProviders();
 
   const chainInfo = CHAINS.find(c => c.value === chain)!;
   const providerIdNum = parseInt(providerId) || 0;
@@ -79,15 +85,16 @@ export default function CallBuilder() {
     query: { enabled: providerIdNum > 0, refetchInterval: 30_000 },
   });
 
-  // HIGH-01 fix: getProvider returns 7-field indexed tuple, not named struct
-  // [0]=owner [1]=signer [2]=stake [3]=pricePerCall [4]=maxResponseTime [5]=slashBps [6]=active
-  const raw = providerData as readonly [string, string, bigint, bigint, number, number, boolean] | undefined;
-  const owner     = raw?.[0];
-  const price     = raw?.[3]  ?? BigInt(0);
-  const slaWindow = raw?.[4]  ?? 0;
-  const slashBps  = raw?.[5]  ?? 0;
-  const active    = raw?.[6]  ?? false;
-  const stake     = raw?.[2]  ?? BigInt(0);
+  // getProvider returns a named 9-field ProviderView tuple. viem decodes named tuples to an
+  // object, so read by name and fall back to positional indexes for older shapes.
+  // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
+  const raw = providerData as any;
+  const owner     = (raw?.owner ?? raw?.[0]) as string | undefined;
+  const price     = (raw?.pricePerCall ?? raw?.[3] ?? BigInt(0)) as bigint;
+  const slaWindow = Number(raw?.maxResponseTime ?? raw?.[4] ?? 0);
+  const slashBps  = Number(raw?.slashBps ?? raw?.[5] ?? 0);
+  const active    = Boolean(raw?.active ?? raw?.[6] ?? false);
+  const stake     = (raw?.stake ?? raw?.[2] ?? BigInt(0)) as bigint;
   // getProvider reverts for unknown ids, so a settled query with no usable owner means
   // the id doesn't exist on the live registry — surface that instead of loading forever.
   const providerNotFound = providerIdNum > 0 && (
@@ -458,57 +465,54 @@ export default function CallBuilder() {
   const isCCTP = chain !== "arc";
 
   return (
-    <div style={{ padding:"20px 16px",maxWidth:900,margin:"0 auto" }}>
-      {/* Header */}
-      <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20 }}>
-        <div>
-          <div style={{ fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.1em",color:"var(--accent)",marginBottom:4,fontWeight:700 }}>Call Builder</div>
-          <h1 style={{ fontSize:24,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" }}>Execute a Service Call</h1>
-          <p style={{ fontSize:13,color:"var(--text-dim)",margin:0 }}>Configure and execute an API call with on-chain SLA enforcement.</p>
-        </div>
-        <div style={{ display:"flex",alignItems:"center",gap:6,padding:"4px 12px",background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:20,color:"var(--accent)",fontSize:11,fontWeight:600,whiteSpace:"nowrap" as const }}>
-          <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"block" }} />
-          Gas-free · EIP-3009
-        </div>
-      </div>
+    <div style={{ padding:"20px 16px 96px",maxWidth:1100,margin:"0 auto" }}>
+      <PageHeader
+        eyebrow="Call Builder"
+        title="Create your custom SLA call."
+        subtitle="Configure and execute an API call with on-chain SLA enforcement."
+        actions={
+          <div className="cb-pill">
+            <span className="cb-pill__dot" />
+            Gas-free · EIP-3009
+          </div>
+        }
+      />
+
+      <Tabs
+        tabs={[
+          { id: "basic", label: "Basic" },
+          { id: "advanced", label: "Advanced" },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       <div className="cg-split-rail" style={{ display:"grid",gap:16 }}>
         {/* Left: form */}
-        <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:12,padding:24 }}>
+        <SectionCard>
           {/* Gas-free info */}
           <div style={{ background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--text-dim)",marginBottom:18 }}>
             <strong style={{ color:"var(--accent)" }}>No gas required.</strong> Sign an EIP-3009 authorization off-chain. The facilitator pays gas and settles on Arc in a single transaction.
           </div>
 
-          {/* Chain select */}
-          <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Pay from chain</label>
-            <select
-              value={chain}
-              onChange={e => setChain(e.target.value as Chain)}
-              style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13 }}
-            >
-              {CHAINS.map(c => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-            <p style={{ fontSize:12,color:"var(--text-dim)",marginTop:6 }}>{chainInfo.hint}</p>
-            <div style={{ marginTop:6 }}>
-              <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(59,130,246,0.1)" : "rgba(16,185,129,0.1)",color: isCCTP ? "#3b82f6" : "var(--accent)" }}>
-                {isCCTP ? `5 steps — CCTP bridge` : "1 TX — EIP-3009 gasless"}
-              </span>
-            </div>
-          </div>
-
           {/* Provider + Payload */}
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16 }}>
             <div>
-              <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Provider ID</label>
-              <input
-                type="number" min="1" value={providerId} onChange={e => setProviderId(e.target.value)}
+              <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Provider</label>
+              <select
+                value={providerId}
+                onChange={e => setProviderId(e.target.value)}
                 style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
-                placeholder="1"
-              />
+              >
+                {!providers.some(p => String(p.id) === providerId) && providerId && (
+                  <option value={providerId}>#{providerId}{providerNotFound ? " · not found" : ""}</option>
+                )}
+                {providers.map(p => (
+                  <option key={p.id} value={String(p.id)}>
+                    #{p.id} · {p.owner.slice(0, 6)}…{p.owner.slice(-4)} · {formatUnits(BigInt(p.pricePerCall || 0), 6)} USDC
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Request payload</label>
@@ -518,6 +522,20 @@ export default function CallBuilder() {
                 placeholder="ping"
               />
             </div>
+          </div>
+
+          {/* SLA terms read from the registry */}
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16 }}>
+            {[
+              { label:"Price (USDC)",    value: price ? formatUnits(price, 6) : "—" },
+              { label:"Max response",    value: slaWindow ? `${slaWindow}s` : "—" },
+              { label:"Slash",           value: slashBps ? `${slashBps / 100}%` : "—" },
+            ].map(f => (
+              <div key={f.label}>
+                <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>{f.label}</label>
+                <div style={{ background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color: price ? "var(--text)" : "var(--text-dim)",fontSize:13,fontFamily:"var(--font-mono)" }}>{f.value}</div>
+              </div>
+            ))}
           </div>
 
           {/* Risk badge */}
@@ -562,8 +580,31 @@ export default function CallBuilder() {
             </button>
           )}
 
-          {/* Provider actions */}
-          <div style={{ borderTop:"1px solid var(--border)",paddingTop:16 }}>
+          {/* ── Advanced ── */}
+          {tab === "advanced" && (
+            <>
+              {/* Chain select */}
+              <div style={{ marginBottom:16 }}>
+                <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Pay from chain</label>
+                <select
+                  value={chain}
+                  onChange={e => setChain(e.target.value as Chain)}
+                  style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13 }}
+                >
+                  {CHAINS.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <p style={{ fontSize:12,color:"var(--text-dim)",marginTop:6 }}>{chainInfo.hint}</p>
+                <div style={{ marginTop:6 }}>
+                  <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(59,130,246,0.1)" : "rgba(16,185,129,0.1)",color: isCCTP ? "#3b82f6" : "var(--accent)" }}>
+                    {isCCTP ? `5 steps — CCTP bridge` : "1 TX — EIP-3009 gasless"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Provider actions */}
+              <div style={{ borderTop:"1px solid var(--border)",paddingTop:16 }}>
             <div style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,marginBottom:10 }}>Provider actions</div>
             <div style={{ marginBottom:10 }}>
               <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Response payload</label>
@@ -589,7 +630,9 @@ export default function CallBuilder() {
                 Claim timeout
               </button>
             </div>
-          </div>
+              </div>
+            </>
+          )}
 
           {/* Status */}
           {status && (
@@ -602,7 +645,7 @@ export default function CallBuilder() {
               {status}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* Right panel */}
         <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
