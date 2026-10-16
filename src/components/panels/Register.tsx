@@ -65,11 +65,11 @@ const s = {
   calcRow: { display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--border)" },
   calcLabel: { fontSize:12,color:"var(--text-dim)" },
   calcVal: { fontSize:12,fontWeight:600,fontFamily:"var(--font-mono)",color:"var(--text)" },
-  btn: (v="primary",disabled=false) => ({ padding:"10px 20px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontSize:13,fontWeight:500,background:disabled?"var(--bg-3)":v==="primary"?"linear-gradient(135deg,#10b981,#059669)":"var(--bg-3)",color:disabled?"var(--text-faint)":v==="primary"?"#fff":"var(--text)",display:"inline-flex",alignItems:"center",gap:6,opacity:disabled?0.6:1,width:"100%",justifyContent:"center" as const }),
-  info: { background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#93c5fd",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  btn: (v="primary",disabled=false) => ({ padding:"10px 20px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontSize:13,fontWeight:500,background:disabled?"var(--bg-3)":v==="primary"?"linear-gradient(135deg,#19D186,#0E9F6E)":"var(--bg-3)",color:disabled?"var(--text-faint)":v==="primary"?"#fff":"var(--text)",display:"inline-flex",alignItems:"center",gap:6,opacity:disabled?0.6:1,width:"100%",justifyContent:"center" as const }),
+  info: { background:"rgba(31,119,239,0.08)",border:"1px solid rgba(31,119,239,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#93c5fd",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
   warn: { background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#fbbf24",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
-  success: { background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--accent)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
-  tag: { display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,background:"rgba(16,185,129,0.1)",color:"var(--accent)",border:"1px solid rgba(16,185,129,0.2)",marginLeft:6 },
+  success: { background:"rgba(25,209,134,0.08)",border:"1px solid rgba(25,209,134,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--accent)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  tag: { display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,background:"rgba(25,209,134,0.1)",color:"var(--accent)",border:"1px solid rgba(25,209,134,0.2)",marginLeft:6 },
 };
 
 export default function Register() {
@@ -286,14 +286,14 @@ export default function Register() {
               <button
                 onClick={handleUnstake}
                 disabled={isPending}
-                style={{ padding:"6px 14px", background:"var(--danger,#ef4444)", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:12, fontWeight:600, opacity: isPending ? 0.6 : 1 }}
+                style={{ padding:"6px 14px", background:"var(--danger,#EE4539)", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:12, fontWeight:600, opacity: isPending ? 0.6 : 1 }}
               >
                 Withdraw Stake
               </button>
             </div>
             {unstakeStatus && (
               <div style={{ marginTop:8, fontSize:12, fontFamily:"var(--font-mono)",
-                color: unstakeStatus.startsWith("✅") ? "var(--accent)" : unstakeStatus.startsWith("❌") ? "var(--danger,#ef4444)" : "var(--text-dim)",
+                color: unstakeStatus.startsWith("✅") ? "var(--accent)" : unstakeStatus.startsWith("❌") ? "var(--danger,#EE4539)" : "var(--text-dim)",
                 padding:"5px 8px", background:"var(--bg-3)", borderRadius:5 }}>
                 {unstakeStatus}
               </div>
@@ -406,7 +406,7 @@ export default function Register() {
           />
         )}
         {v2Status && (
-          <div style={{ marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)", padding: "8px 10px", borderRadius: 6, background: v2Status.startsWith("✅") ? "rgba(16,185,129,0.08)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.08)" : "var(--bg-3)", color: v2Status.startsWith("✅") ? "var(--accent)" : v2Status.startsWith("❌") ? "#ef4444" : "var(--text-dim)", border: `1px solid ${v2Status.startsWith("✅") ? "rgba(16,185,129,0.2)" : v2Status.startsWith("❌") ? "rgba(239,68,68,0.2)" : "var(--border)"}` }}>
+          <div style={{ marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)", padding: "8px 10px", borderRadius: 6, background: v2Status.startsWith("✅") ? "rgba(25,209,134,0.08)" : v2Status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-3)", color: v2Status.startsWith("✅") ? "var(--accent)" : v2Status.startsWith("❌") ? "#EE4539" : "var(--text-dim)", border: `1px solid ${v2Status.startsWith("✅") ? "rgba(25,209,134,0.2)" : v2Status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}` }}>
             {v2Status}
           </div>
         )}

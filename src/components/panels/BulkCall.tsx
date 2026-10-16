@@ -160,7 +160,7 @@ export default function BulkCall() {
               {r.hash ? (
                 <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'monospace', fontSize: '12px' }}>{r.hash.slice(0, 20)}...</a>
               ) : (
-                <span style={{ color: '#ef4444', fontSize: '12px' }}>{r.error}</span>
+                <span style={{ color: '#EE4539', fontSize: '12px' }}>{r.error}</span>
               )}
             </div>
           ))}

@@ -204,7 +204,7 @@ export default function Disputes() {
 
       {/* HIGH-04: withdrawPayout banner */}
       {hasPayout && (
-        <div className="cg-card mb-4" style={{border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.05)"}}>
+        <div className="cg-card mb-4" style={{border:"1px solid rgba(25,209,134,0.3)",background:"rgba(25,209,134,0.05)"}}>
           <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Dispute Payout Ready</div>
           <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{payoutAmt} USDC</strong> from resolved disputes ready to claim.</p>
           <button className="btn btn-primary" onClick={handleWithdrawPayout}>Claim {payoutAmt} USDC →</button>
@@ -291,7 +291,7 @@ export default function Disputes() {
             <div style={{
               padding: "8px 12px", borderRadius: 6, marginBottom: 12, fontSize: 12,
               background: "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger,#ef4444)" : "var(--text-dim)",
+              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger,#EE4539)" : "var(--text-dim)",
             }}>
               {status}
             </div>
@@ -329,7 +329,7 @@ export default function Disputes() {
           {disputeInfo && (
             <div style={{ background: "var(--bg-3)", borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
               {(disputeInfo as { error?: string }).error ? (
-                <div style={{ color: "var(--danger,#ef4444)", fontSize: 12 }}>{(disputeInfo as { error: string }).error}</div>
+                <div style={{ color: "var(--danger,#EE4539)", fontSize: 12 }}>{(disputeInfo as { error: string }).error}</div>
               ) : (
                 Object.entries(disputeInfo).map(([k, v]) => (
                   <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
@@ -354,8 +354,8 @@ export default function Disputes() {
               onClick={() => { setVoteChoice(false); handleVote(false); }}
               disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
               style={{
-                flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger,#ef4444)",
-                border: "1px solid var(--danger,#ef4444)", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: 13,
+                flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger,#EE4539)",
+                border: "1px solid var(--danger,#EE4539)", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: 13,
                 opacity: dqEnabled ? 1 : 0.5,
               }}
             >
@@ -366,7 +366,7 @@ export default function Disputes() {
           {voteStatus && (
             <div style={{
               padding: "8px 12px", borderRadius: 6, fontSize: 12, background: "var(--bg-3)",
-              color: voteStatus.startsWith("✅") ? "var(--accent)" : voteStatus.startsWith("❌") ? "var(--danger,#ef4444)" : "var(--text-dim)",
+              color: voteStatus.startsWith("✅") ? "var(--accent)" : voteStatus.startsWith("❌") ? "var(--danger,#EE4539)" : "var(--text-dim)",
             }}>
               {voteStatus}
             </div>

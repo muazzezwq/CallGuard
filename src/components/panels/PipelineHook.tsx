@@ -91,12 +91,12 @@ export default function PipelineHook() {
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-            background: isZero ? "rgba(239,68,68,.15)" : "rgba(16,185,129,.15)",
-            color: isZero ? "#ef4444" : "#10b981",
-            border: `1px solid ${isZero ? "rgba(239,68,68,.3)" : "rgba(16,185,129,.3)"}`,
+            background: isZero ? "rgba(238,69,57,.15)" : "rgba(25,209,134,.15)",
+            color: isZero ? "#EE4539" : "#19D186",
+            border: `1px solid ${isZero ? "rgba(238,69,57,.3)" : "rgba(25,209,134,.3)"}`,
           }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isZero ? "#ef4444" : "#10b981", display: "inline-block" }} />
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isZero ? "#EE4539" : "#19D186", display: "inline-block" }} />
           {isZero ? "Disabled" : "Active"}
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function PipelineHook() {
             href={`https://explorer.testnet.arc.io/address/${currentHook}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 11, color: "#3b82f6", marginTop: 6, display: "inline-block" }}
+            style={{ fontSize: 11, color: "#1F77EF", marginTop: 6, display: "inline-block" }}
           >
             View on ArcScan ↗
           </a>
@@ -120,7 +120,7 @@ export default function PipelineHook() {
       </div>
 
       {/* How it works */}
-      <div style={{ background: "rgba(59,130,246,.08)", border: "1px solid rgba(59,130,246,.2)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: "rgba(31,119,239,.08)", border: "1px solid rgba(31,119,239,.2)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 10 }}>How It Works</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
@@ -129,7 +129,7 @@ export default function PipelineHook() {
             { step: "3", label: "Call closes", desc: "submitReceipt or claimTimeout → afterCall(jobId, success) fires" },
           ].map(({ step, label, desc }) => (
             <div key={step} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(59,130,246,.2)", color: "#93c5fd", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(31,119,239,.2)", color: "#93c5fd", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                 {step}
               </div>
               <div>
@@ -164,7 +164,7 @@ export default function PipelineHook() {
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
                   padding: "9px 18px", borderRadius: 8, fontWeight: 600, fontSize: 12,
-                  background: "#10b981", color: "#fff", border: "none", cursor: "pointer",
+                  background: "#19D186", color: "#fff", border: "none", cursor: "pointer",
                   opacity: (txState === "pending" || txState === "mining") ? 0.6 : 1,
                   whiteSpace: "nowrap",
                 }}
@@ -178,25 +178,25 @@ export default function PipelineHook() {
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
                   padding: "8px 16px", borderRadius: 8, fontWeight: 600, fontSize: 12,
-                  background: "rgba(239,68,68,.15)", color: "#ef4444",
-                  border: "1px solid rgba(239,68,68,.3)", cursor: "pointer",
+                  background: "rgba(238,69,57,.15)", color: "#EE4539",
+                  border: "1px solid rgba(238,69,57,.3)", cursor: "pointer",
                 }}
               >
                 Disable Hook
               </button>
             )}
             {txState === "success" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#10b981" }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#19D186" }}>
                 Hook updated successfully.{" "}
                 {txHash && (
-                  <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6" }}>
+                  <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "#1F77EF" }}>
                     Tx ↗
                   </a>
                 )}
               </div>
             )}
             {txState === "error" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#ef4444" }}>Transaction failed. Please try again.</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#EE4539" }}>Transaction failed. Please try again.</div>
             )}
           </>
         )}

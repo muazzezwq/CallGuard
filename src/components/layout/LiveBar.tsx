@@ -71,7 +71,7 @@ export default function LiveBar() {
                 <linearGradient id="gaugeGrad" x1="0" x2="1" y1="0" y2="0">
                   <stop offset="0%" stopColor="#dc2626" />
                   <stop offset="50%" stopColor="#d97706" />
-                  <stop offset="100%" stopColor="#059669" />
+                  <stop offset="100%" stopColor="#0E9F6E" />
                 </linearGradient>
               </defs>
               <text x="60" y="66" textAnchor="middle" fontSize="10" fill="var(--text-dim)" fontFamily="var(--font-mono)">

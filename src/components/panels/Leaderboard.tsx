@@ -38,14 +38,14 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
   const rate = honorRate(p)
   const price = p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)) : 0
   const stake = p.stake ? Number(formatUnits(BigInt(p.stake), 6)) : 0
-  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--amber,#f59e0b)" : "#ef4444"
+  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--amber,#f59e0b)" : "#EE4539"
 
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
       borderRadius: 8, marginBottom: 6,
-      background: selected ? "rgba(16,185,129,0.07)" : isSelf ? "rgba(16,185,129,0.04)" : "var(--bg-3)",
-      border: `1px solid ${selected ? "var(--accent)" : isSelf ? "rgba(16,185,129,0.2)" : "transparent"}`,
+      background: selected ? "rgba(25,209,134,0.07)" : isSelf ? "rgba(25,209,134,0.04)" : "var(--bg-3)",
+      border: `1px solid ${selected ? "var(--accent)" : isSelf ? "rgba(25,209,134,0.2)" : "transparent"}`,
       cursor: "pointer", transition: "all .15s",
     }} onClick={() => onSelect(p.id)}>
       {/* rank */}
@@ -57,7 +57,7 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>Provider #{p.id}</span>
           {isSelf && <span style={{ fontSize: 9, fontWeight: 700, background: "var(--accent)", color: "#000", borderRadius: 4, padding: "1px 5px" }}>YOU</span>}
-          {!p.active && <span style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>INACTIVE</span>}
+          {!p.active && <span style={{ fontSize: 9, color: "#EE4539", fontWeight: 700 }}>INACTIVE</span>}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>
           {short(p.owner || "")} · {price.toFixed(4)} USDC/call · {Number(p.completedCalls)} completed

@@ -89,7 +89,7 @@ export default function Payments() {
 
       {/* CRITICAL-06: Provider claimable settlement */}
       {hasClaimable && (
-        <div className="cg-card mb-4" style={{border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.05)"}}>
+        <div className="cg-card mb-4" style={{border:"1px solid rgba(25,209,134,0.3)",background:"rgba(25,209,134,0.05)"}}>
           <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Claimable Settlement</div>
           <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{claimableAmt} USDC</strong> from completed calls ready to claim.</p>
           <button className="btn btn-primary" onClick={handleClaim}>Claim {claimableAmt} USDC →</button>

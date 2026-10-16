@@ -29,7 +29,7 @@ export default function ApiDocs() {
             <div key={e.path} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"var(--bg-2)",borderRadius:8}}>
               <span style={{
                 padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600,flexShrink:0,
-                background:e.method==="GET"?"rgba(16,185,129,0.15)":"rgba(59,130,246,0.15)",
+                background:e.method==="GET"?"rgba(25,209,134,0.15)":"rgba(31,119,239,0.15)",
                 color:e.method==="GET"?"var(--accent)":"#60a5fa"
               }}>{e.method}</span>
               <div style={{flex:1}}>
@@ -37,7 +37,7 @@ export default function ApiDocs() {
                 <div style={{fontSize:12,color:"var(--text-dim)",marginTop:2}}>{e.desc}</div>
               </div>
               {e.auth === "x402" && <span style={{padding:"2px 8px",borderRadius:4,fontSize:10,background:"rgba(245,158,11,0.15)",color:"var(--amber)",flexShrink:0}}>x402</span>}
-              {e.auth === true && <span style={{padding:"2px 8px",borderRadius:4,fontSize:10,background:"rgba(239,68,68,0.15)",color:"var(--red)",flexShrink:0}}>Auth</span>}
+              {e.auth === true && <span style={{padding:"2px 8px",borderRadius:4,fontSize:10,background:"rgba(238,69,57,0.15)",color:"var(--red)",flexShrink:0}}>Auth</span>}
             </div>
           ))}
         </div>

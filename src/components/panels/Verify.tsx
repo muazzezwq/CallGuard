@@ -20,8 +20,8 @@ const s: Record<string, React.CSSProperties> = {
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid var(--border)" },
   rowLabel: { fontSize: 12, color: "var(--text-dim)" },
   rowVal: { fontSize: 12, color: "var(--text)", fontWeight: 500, fontFamily: "var(--font-mono)" },
-  success: { padding: 16, background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.25)", borderRadius: 10 },
-  error: { padding: 16, background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.25)", borderRadius: 10 },
+  success: { padding: 16, background: "rgba(25,209,134,.08)", border: "1px solid rgba(25,209,134,.25)", borderRadius: 10 },
+  error: { padding: 16, background: "rgba(238,69,57,.08)", border: "1px solid rgba(238,69,57,.25)", borderRadius: 10 },
 };
 
 interface VerifyResult {
@@ -232,8 +232,8 @@ export default function Verify() {
         {result && (
           <div style={result.ok ? s.success : s.error}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              {result.ok ? <CheckCircle size={18} color="var(--accent)" /> : <XCircle size={18} color="#ef4444" />}
-              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent)" : "#ef4444" }}>
+              {result.ok ? <CheckCircle size={18} color="var(--accent)" /> : <XCircle size={18} color="#EE4539" />}
+              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent)" : "#EE4539" }}>
                 {result.ok ? "Receipt Verified" : "Verification Failed"}
               </span>
             </div>
@@ -308,7 +308,7 @@ export default function Verify() {
         {rcpStatus && (
           <div style={{
             marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)",
-            color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "#ef4444" : "var(--text-dim)",
+            color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "#EE4539" : "var(--text-dim)",
             padding: "7px 10px", background: "var(--bg-3)", borderRadius: 6,
           }}>
             {rcpStatus}

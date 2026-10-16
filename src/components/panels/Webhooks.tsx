@@ -28,7 +28,7 @@ const s = {
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius: 8, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#10b981,#059669)" : v === "danger" ? "rgba(239,68,68,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "#ef4444" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
+  btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius: 8, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "#EE4539" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
   whCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", marginBottom: 8 },
 };
 
@@ -96,7 +96,7 @@ export default function Webhooks() {
       <p style={s.sub}>Get POST notifications when calls open, complete, timeout, or get slashed. No backend needed to get started.</p>
 
       {/* Info */}
-      <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
+      <div style={{ background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
         <strong style={{ color: "var(--accent)" }}>Quick start:</strong> Use{" "}
         <a href="https://webhook.site" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>webhook.site</a>{" "}
         to get a free URL and see the exact payload. Then point it to your own server.
@@ -113,7 +113,7 @@ export default function Webhooks() {
           <label style={s.label}>Events to subscribe</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {EVENT_TYPES.map(ev => (
-              <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 99, background: selectedEvents.includes(ev) ? "rgba(16,185,129,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(16,185,129,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
+              <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 99, background: selectedEvents.includes(ev) ? "rgba(25,209,134,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(25,209,134,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
                 <input type="checkbox" style={{ width: 12, height: 12, accentColor: "var(--accent)" }} checked={selectedEvents.includes(ev)} onChange={() => toggleEvent(ev)} />
                 {ev}
               </label>
@@ -126,7 +126,7 @@ export default function Webhooks() {
         </button>
 
         {addStatus && (
-          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent)" : "#ef4444" }}>{addStatus}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent)" : "#EE4539" }}>{addStatus}</div>
         )}
       </div>
 
@@ -142,21 +142,21 @@ export default function Webhooks() {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wh.lastTest?.ok ? "var(--accent)" : wh.lastTest ? "#ef4444" : "var(--text-faint)", display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wh.lastTest?.ok ? "var(--accent)" : wh.lastTest ? "#EE4539" : "var(--text-faint)", display: "inline-block", flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{wh.url}</span>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
                   {wh.events.map(ev => (
-                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(16,185,129,0.1)", color: "var(--accent)", fontWeight: 600 }}>{ev}</span>
+                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(25,209,134,0.1)", color: "var(--accent)", fontWeight: 600 }}>{ev}</span>
                   ))}
                 </div>
                 {wh.lastTest && (
-                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent)" : "#ef4444" }}>
+                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent)" : "#EE4539" }}>
                     Last: {wh.lastTest.status} · {wh.lastTest.latency}ms · {new Date(wh.lastTest.time).toLocaleTimeString("en-US", { hour12: false })}
                   </div>
                 )}
                 {testResults[wh.id] && (
-                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent)" : "#ef4444" }}>
+                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent)" : "#EE4539" }}>
                     {testResults[wh.id]}
                   </div>
                 )}

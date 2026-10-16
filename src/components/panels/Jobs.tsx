@@ -278,7 +278,7 @@ export default function Jobs() {
     <div key="complete">
       <label style={s.label}>Job ID</label>
       <input style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
-      <div style={{ padding: 12, background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.2)", borderRadius: 8, fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
+      <div style={{ padding: 12, background: "rgba(25,209,134,.08)", border: "1px solid rgba(25,209,134,.2)", borderRadius: 8, fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
         <strong style={{ color: "var(--accent)" }}>Final step:</strong> Marks the job complete and releases USDC to the provider. Only the evaluator or client can call this.
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -353,7 +353,7 @@ export default function Jobs() {
         </div>
         {checkResult && (
           checkResult.error ? (
-            <div style={{ fontSize: 12, color: "#ef4444" }}>{checkResult.error}</div>
+            <div style={{ fontSize: 12, color: "#EE4539" }}>{checkResult.error}</div>
           ) : (
             <div style={{ display: "grid", gap: 4 }}>
               {Object.entries(checkResult).map(([k, v]) => (

@@ -38,11 +38,11 @@ function resolveColor(color: string): string {
   if (!color.startsWith("var(")) return color;
   const name = color.slice(4, color.lastIndexOf(")")).trim();
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || "#10b981";
+  return v || "#19D186";
 }
 
 /* ── Mini sparkline canvas ───────────────────────────── */
-function MiniChart({ values, color = "#10b981", height = 48 }: { values: number[]; color?: string; height?: number }) {
+function MiniChart({ values, color = "#19D186", height = 48 }: { values: number[]; color?: string; height?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current; if (!c) return;
@@ -134,7 +134,7 @@ export default function Analytics() {
   }, [loadAnalytics]);
 
   const honorColor = data?.honorRate != null
-    ? data.honorRate >= 80 ? "var(--accent)" : data.honorRate >= 50 ? "#f59e0b" : "#ef4444"
+    ? data.honorRate >= 80 ? "var(--accent)" : data.honorRate >= 50 ? "#f59e0b" : "#EE4539"
     : "var(--text-faint)";
 
   function ago(ts: string) {
@@ -147,7 +147,7 @@ export default function Analytics() {
   }
   function statusColor(st: string) {
     const s = String(st).toUpperCase();
-    return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "#ef4444" : "#f59e0b";
+    return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "#EE4539" : "#f59e0b";
   }
 
   return (
@@ -164,7 +164,7 @@ export default function Analytics() {
       </div>
 
       {error && (
-        <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 12, fontSize: 13, color: "#ef4444" }}>
+        <div style={{ background: "rgba(238,69,57,0.08)", border: "1px solid rgba(238,69,57,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 12, fontSize: 13, color: "#EE4539" }}>
           ⚠ {error} — showing cached data if available
         </div>
       )}
@@ -201,7 +201,7 @@ export default function Analytics() {
             <div style={s.sectionTitle}>Call Activity (last {data.recentCalls.length})</div>
             <div style={{ display:"flex",gap:12,fontSize:11 }}>
               <span style={{ color:"var(--accent)" }}>● Completed</span>
-              <span style={{ color:"#ef4444" }}>● Slashed</span>
+              <span style={{ color:"#EE4539" }}>● Slashed</span>
             </div>
           </div>
           <MiniChart
@@ -221,7 +221,7 @@ export default function Analytics() {
           return data.topProviders.map(p => {
             const pct = Math.round((p.total / maxTotal) * 100);
             const honor = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 100;
-            const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "#f59e0b" : "#ef4444";
+            const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "#f59e0b" : "#EE4539";
             return (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12 }}>
                 <span style={{ width: 44, color: "var(--text-faint)", flexShrink: 0 }}>#{p.id}</span>

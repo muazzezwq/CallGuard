@@ -139,7 +139,7 @@ export default function OnboardingWizard() {
     },
     highlight: {
       background: "var(--accent-bg)",
-      border: "1px solid rgba(16,185,129,0.2)",
+      border: "1px solid rgba(25,209,134,0.2)",
       borderRadius: 10,
       padding: "10px 14px",
       fontSize: 12,

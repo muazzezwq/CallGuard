@@ -158,7 +158,7 @@ export default function Mcp() {
           {tools.map(t => (
             <div key={t.name} style={{ padding:'12px 0', borderBottom:'1px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <code style={{ background:'rgba(16,185,129,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:4, fontSize:12, fontFamily:'monospace' }}>{t.name}</code>
+                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:4, fontSize:12, fontFamily:'monospace' }}>{t.name}</code>
               </div>
               <div style={{ fontSize:13, color:'var(--text-dim)', marginBottom:4 }}>{t.desc}</div>
               <code style={{ fontSize:11, color:'var(--text-faint)' }}>params: {t.params}</code>
@@ -201,7 +201,7 @@ export default function Mcp() {
             {x402Status && (
               <pre style={{
                 ...S.code,
-                color: x402Status.startsWith('❌') ? 'var(--danger,#ef4444)'
+                color: x402Status.startsWith('❌') ? 'var(--danger,#EE4539)'
                      : x402Status.startsWith('✅') ? 'var(--accent)'
                      : 'var(--text-dim)',
                 whiteSpace:'pre-wrap', wordBreak:'break-all',
@@ -245,7 +245,7 @@ export default function Mcp() {
               {testing ? '⏳ Running…' : '▶ Run Test'}
             </button>
             {testResult && (
-              <pre style={{ ...S.code, color: testResult.startsWith('Error') ? '#ef4444' : '#10b981', whiteSpace:'pre-wrap' }}>
+              <pre style={{ ...S.code, color: testResult.startsWith('Error') ? '#EE4539' : '#19D186', whiteSpace:'pre-wrap' }}>
                 {testResult}
               </pre>
             )}
@@ -260,7 +260,7 @@ export default function Mcp() {
 
           <label style={S.label}>Install</label>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'#10b981' }}>npm install @callguard/mcp-server</pre>
+            <pre style={{ ...S.code, color:'#19D186' }}>npm install @callguard/mcp-server</pre>
             <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
@@ -283,17 +283,17 @@ export default function Mcp() {
 
           <label style={S.label}>REST Base URL</label>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'#10b981' }}>https://arcsla.vercel.app/api</pre>
+            <pre style={{ ...S.code, color:'#19D186' }}>https://arcsla.vercel.app/api</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <label style={S.label}>Remote SSE Endpoint</label>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'#10b981' }}>https://arcsla.vercel.app/api/mcp-server</pre>
+            <pre style={{ ...S.code, color:'#19D186' }}>https://arcsla.vercel.app/api/mcp-server</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
-          <div style={{ background:'rgba(16,185,129,0.05)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:8, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>
+          <div style={{ background:'rgba(25,209,134,0.05)', border:'1px solid rgba(25,209,134,0.2)', borderRadius:8, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>
             Compatible with Claude Desktop, Cursor, Cline, Continue.dev, and any MCP v1.0+ client.
           </div>
         </div>

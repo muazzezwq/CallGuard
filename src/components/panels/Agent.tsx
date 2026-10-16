@@ -32,8 +32,8 @@ const s = {
   input: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
   btn: (variant = "default", disabled = false) => ({
     padding: "9px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
-    background: variant === "primary" ? "linear-gradient(135deg,#10b981,#059669)" : variant === "danger" ? "rgba(239,68,68,0.12)" : "var(--bg-3)",
-    color: variant === "primary" ? "#fff" : variant === "danger" ? "#ef4444" : "var(--text)",
+    background: variant === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : variant === "danger" ? "rgba(238,69,57,0.12)" : "var(--bg-3)",
+    color: variant === "primary" ? "#fff" : variant === "danger" ? "#EE4539" : "var(--text)",
     opacity: disabled ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6,
   }) as React.CSSProperties,
   stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const },
@@ -228,7 +228,7 @@ export default function Agent() {
 
       {/* Status */}
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: status.startsWith("✅") ? "rgba(16,185,129,0.08)" : status.startsWith("❌") ? "rgba(239,68,68,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(16,185,129,0.2)" : status.startsWith("❌") ? "rgba(239,68,68,0.2)" : "var(--border)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#ef4444" : "var(--text-dim)" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)" }}>
           {status}
         </div>
       )}
@@ -256,7 +256,7 @@ export default function Agent() {
               <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 6 }}>
                 Connected: {agentAddr.slice(0, 12)}…{agentAddr.slice(-6)}
                 {isPaused !== undefined && (
-                  <span style={{ marginLeft: 10, color: isPaused ? "#ef4444" : "var(--accent)", fontWeight: 600 }}>
+                  <span style={{ marginLeft: 10, color: isPaused ? "#EE4539" : "var(--accent)", fontWeight: 600 }}>
                     {isPaused ? "⏸ PAUSED" : "▶ ACTIVE"}
                   </span>
                 )}

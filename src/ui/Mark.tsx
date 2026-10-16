@@ -5,7 +5,7 @@ export function Mark({ size = 28, className }: { size?: number; className?: stri
     <svg viewBox="0 0 32 32" width={size} height={size} className={className} aria-hidden="true">
       <defs>
         <linearGradient id="cg-mark" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#34D399" />
+          <stop offset="0" stopColor="#1CE08E" />
           <stop offset="1" stopColor="#0E9F6E" />
         </linearGradient>
       </defs>

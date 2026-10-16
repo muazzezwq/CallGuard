@@ -15,8 +15,8 @@ const S = {
   label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
   input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
   btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  btnDanger: { padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  badge: (c: string) => ({ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: c === 'OPEN' ? '#10b98120' : c === 'RESOLVED' ? '#3b82f620' : '#6b728020', color: c === 'OPEN' ? '#10b981' : c === 'RESOLVED' ? '#3b82f6' : '#9ca3af' }),
+  btnDanger: { padding: '10px 20px', background: '#EE4539', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
+  badge: (c: string) => ({ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: c === 'OPEN' ? '#19D18620' : c === 'RESOLVED' ? '#1F77EF20' : '#6b728020', color: c === 'OPEN' ? '#19D186' : c === 'RESOLVED' ? '#1F77EF' : '#9ca3af' }),
   row: { display: 'flex', gap: '12px', marginBottom: '16px' },
   col: { flex: 1 },
 }
@@ -119,7 +119,7 @@ export default function Quality() {
       {tab === 'vote' && (
         <div style={S.card}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Vote on a Dispute</div>
-          <div style={{ background: '#3b82f615', border: '1px solid #3b82f640', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: '#3b82f6' }}>
+          <div style={{ background: '#1F77EF15', border: '1px solid #1F77EF40', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: '#1F77EF' }}>
             Your voting power = your staked USDC. Majority stake wins. Losing side's stake is redistributed.
           </div>
           <div style={{ ...S.row, marginBottom: '16px' }}>
@@ -131,10 +131,10 @@ export default function Quality() {
           <div style={{ marginBottom: '16px' }}>
             <div style={S.label}>Your Vote</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setVoteSupport(true)} style={{ ...S.btn, background: voteSupport ? '#10b981' : 'var(--bg-3)', color: voteSupport ? '#000' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
+              <button onClick={() => setVoteSupport(true)} style={{ ...S.btn, background: voteSupport ? '#19D186' : 'var(--bg-3)', color: voteSupport ? '#000' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
                 ✓ Support Caller
               </button>
-              <button onClick={() => setVoteSupport(false)} style={{ ...S.btn, background: !voteSupport ? '#ef4444' : 'var(--bg-3)', color: !voteSupport ? '#fff' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
+              <button onClick={() => setVoteSupport(false)} style={{ ...S.btn, background: !voteSupport ? '#EE4539' : 'var(--bg-3)', color: !voteSupport ? '#fff' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
                 ✗ Support Provider
               </button>
             </div>

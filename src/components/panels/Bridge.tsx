@@ -50,7 +50,7 @@ const s = {
   select: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, cursor: "pointer", boxSizing: "border-box" as const },
   btn: (disabled = false) => ({
     width: "100%", padding: "11px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer",
-    fontSize: 13, fontWeight: 600, background: disabled ? "var(--bg-3)" : "linear-gradient(135deg,#10b981,#059669)",
+    fontSize: 13, fontWeight: 600, background: disabled ? "var(--bg-3)" : "linear-gradient(135deg,#19D186,#0E9F6E)",
     color: disabled ? "var(--text-faint)" : "#fff", opacity: disabled ? 0.6 : 1, marginTop: 8,
   }),
   step: (active: boolean, done: boolean) => ({

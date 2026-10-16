@@ -60,7 +60,7 @@ const STATE_FILL: Record<SlaStageState, string> = {
   active: "var(--accent-2)",
   pending: "var(--border-hi)",
   failed: "var(--danger)",
-  info: "var(--info, #3b82f6)",
+  info: "var(--info, #1F77EF)",
 };
 
 /* Isometric projection: board (x, y) → screen, with y growing "into" the scene. */

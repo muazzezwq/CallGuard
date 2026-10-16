@@ -27,8 +27,8 @@ const CHAINS: { value: Chain; label: string; txCount: number; hint: string }[] =
 function RiskBadge({ honorRate, stake, price }: { honorRate: number; stake: bigint; price: bigint }) {
   const underfunded = stake < price;
   if (honorRate < 10) return (
-    <div style={{ background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13 }}>
-      <div style={{ fontWeight:700,color:"#ef4444",marginBottom:3 }}>⚠ High Risk Provider</div>
+    <div style={{ background:"rgba(238,69,57,0.08)",border:"1px solid rgba(238,69,57,0.25)",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13 }}>
+      <div style={{ fontWeight:700,color:"#EE4539",marginBottom:3 }}>⚠ High Risk Provider</div>
       <div style={{ color:"var(--text-dim)",fontSize:12 }}>This provider has a {honorRate}% honor rate. High chance of timeout.</div>
     </div>
   );
@@ -491,7 +491,7 @@ export default function CallBuilder() {
         {/* Left: form */}
         <SectionCard>
           {/* Gas-free info */}
-          <div style={{ background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--text-dim)",marginBottom:18 }}>
+          <div style={{ background:"rgba(25,209,134,0.06)",border:"1px solid rgba(25,209,134,0.2)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--text-dim)",marginBottom:18 }}>
             <strong style={{ color:"var(--accent)" }}>No gas required.</strong> Sign an EIP-3009 authorization off-chain. The facilitator pays gas and settles on Arc in a single transaction.
           </div>
 
@@ -563,7 +563,7 @@ export default function CallBuilder() {
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ padding:"12px 8px",borderRadius:8,border:"none",background:"var(--accent)",color:isCCTP?"#fff":"#000",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(16,185,129,0.3)" }}
+              style={{ padding:"12px 8px",borderRadius:8,border:"none",background:"var(--accent)",color:isCCTP?"#fff":"#000",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(25,209,134,0.3)" }}
             >
               {isCCTP ? "🌐 CCTP Call" : "⚡ Gas-free call"}<br/>
               <span style={{ fontSize:11,fontWeight:400,opacity:0.75 }}>{isCCTP ? "5-step bridge" : "Recommended"}</span>
@@ -574,7 +574,7 @@ export default function CallBuilder() {
             <button
               onClick={handleX402Call}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:8,border:"1px solid rgba(16,185,129,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
+              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:8,border:"1px solid rgba(25,209,134,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
             >
               ⚡ Call via x402 (EIP-3009, no gas)
             </button>
@@ -597,7 +597,7 @@ export default function CallBuilder() {
                 </select>
                 <p style={{ fontSize:12,color:"var(--text-dim)",marginTop:6 }}>{chainInfo.hint}</p>
                 <div style={{ marginTop:6 }}>
-                  <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(59,130,246,0.1)" : "rgba(16,185,129,0.1)",color: isCCTP ? "#3b82f6" : "var(--accent)" }}>
+                  <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(31,119,239,0.1)" : "rgba(25,209,134,0.1)",color: isCCTP ? "#1F77EF" : "var(--accent)" }}>
                     {isCCTP ? `5 steps — CCTP bridge` : "1 TX — EIP-3009 gasless"}
                   </span>
                 </div>
@@ -625,7 +625,7 @@ export default function CallBuilder() {
               <button
                 onClick={handleClaimTimeout}
                 disabled={isLoading}
-                style={{ padding:"10px 8px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(239,68,68,0.06)",color:"#ef4444",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
+                style={{ padding:"10px 8px",borderRadius:8,border:"1px solid rgba(238,69,57,0.3)",background:"rgba(238,69,57,0.06)",color:"#EE4539",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
               >
                 Claim timeout
               </button>
@@ -638,9 +638,9 @@ export default function CallBuilder() {
           {status && (
             <div style={{
               marginTop:14,borderRadius:8,padding:"10px 14px",fontSize:12,fontFamily:"var(--font-mono)",
-              background: status.startsWith("✅") ? "rgba(16,185,129,0.08)" : status.startsWith("❌") ? "rgba(239,68,68,0.08)" : "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#ef4444" : "var(--text-dim)",
-              border:`1px solid ${status.startsWith("✅") ? "rgba(16,185,129,0.2)" : status.startsWith("❌") ? "rgba(239,68,68,0.2)" : "var(--border)"}`,
+              background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-3)",
+              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)",
+              border:`1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`,
             }}>
               {status}
             </div>
@@ -650,7 +650,7 @@ export default function CallBuilder() {
         {/* Right panel */}
         <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
           {/* Execution summary — glassmorphism */}
-          <div style={{ background:"linear-gradient(135deg,rgba(16,185,129,0.07) 0%,rgba(59,130,246,0.05) 100%)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:14,padding:18,backdropFilter:"blur(12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.12)" }}>
+          <div style={{ background:"linear-gradient(135deg,rgba(25,209,134,0.07) 0%,rgba(31,119,239,0.05) 100%)",border:"1px solid rgba(25,209,134,0.25)",borderRadius:14,padding:18,backdropFilter:"blur(12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.12)" }}>
             <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:14 }}>
               <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"block" }} />
               <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--accent)",fontWeight:700 }}>Execution Summary</span>
@@ -678,9 +678,9 @@ export default function CallBuilder() {
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:10,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(16,185,129,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
-              onMouseEnter={e=>{if(!isLoading&&isConnected){(e.target as HTMLElement).style.transform="translateY(-2px)";(e.target as HTMLElement).style.boxShadow="0 6px 28px rgba(16,185,129,0.5)";}}}
-              onMouseLeave={e=>{(e.target as HTMLElement).style.transform="";(e.target as HTMLElement).style.boxShadow="0 4px 20px rgba(16,185,129,0.4)";}}
+              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#19D186,#0E9F6E)",color:"#fff",border:"none",borderRadius:10,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(25,209,134,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
+              onMouseEnter={e=>{if(!isLoading&&isConnected){(e.target as HTMLElement).style.transform="translateY(-2px)";(e.target as HTMLElement).style.boxShadow="0 6px 28px rgba(25,209,134,0.5)";}}}
+              onMouseLeave={e=>{(e.target as HTMLElement).style.transform="";(e.target as HTMLElement).style.boxShadow="0 4px 20px rgba(25,209,134,0.4)";}}
             >
               {isLoading ? "⏳ Processing..." : "Review & Execute →"}
             </button>
@@ -718,7 +718,7 @@ export default function CallBuilder() {
                     <span style={{ color:"var(--text-faint)",width:18 }}>#{r.i}</span>
                     {r.hash
                       ? <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{r.hash.slice(0,14)}…</a>
-                      : <span style={{ color:"#ef4444" }}>{r.error}</span>
+                      : <span style={{ color:"#EE4539" }}>{r.error}</span>
                     }
                   </div>
                 ))}

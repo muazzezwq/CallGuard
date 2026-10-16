@@ -76,7 +76,7 @@ export default function ContextualHint({ panel }: { panel: string }) {
       border: "1px solid var(--accent)",
       borderRadius: 12,
       padding: "14px 16px",
-      boxShadow: "0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(16,185,129,0.15)",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(25,209,134,0.15)",
       animation: "slideUp 0.3s ease",
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
@@ -102,8 +102,8 @@ export default function ContextualHint({ panel }: { panel: string }) {
         onClick={dismiss}
         style={{
           marginTop: 10,
-          background: "rgba(16,185,129,0.1)",
-          border: "1px solid rgba(16,185,129,0.2)",
+          background: "rgba(25,209,134,0.1)",
+          border: "1px solid rgba(25,209,134,0.2)",
           borderRadius: 6,
           padding: "4px 10px",
           fontSize: 11,

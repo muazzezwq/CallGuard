@@ -95,8 +95,8 @@ export default function ProviderProfile() {
       )}
 
       {error && (
-        <div style={{ ...S.card, border: '1px solid #ef444440' }}>
-          <div style={{ color: '#ef4444', fontSize: '14px' }}>Provider #{queried} not found or inactive.</div>
+        <div style={{ ...S.card, border: '1px solid #EE453940' }}>
+          <div style={{ color: '#EE4539', fontSize: '14px' }}>Provider #{queried} not found or inactive.</div>
         </div>
       )}
 
@@ -109,16 +109,16 @@ export default function ProviderProfile() {
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
               </div>
-              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '12px', background: isActive ? '#10b98120' : '#6b728020', color: isActive ? '#10b981' : '#9ca3af', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
+              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '12px', background: isActive ? '#19D18620' : '#6b728020', color: isActive ? '#19D186' : '#9ca3af', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#10b981' : honorRate > 50 ? '#f59e0b' : '#ef4444' }}>{honorRate}%</div></div>
+              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#19D186' : honorRate > 50 ? '#f59e0b' : '#EE4539' }}>{honorRate}%</div></div>
               <div style={S.stat}><div style={S.label}>Completed Calls</div><div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{completed}</div></div>
               <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>Price / Call</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(price).toFixed(3)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>SLA Window</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{slaWindow}s</div></div>
-              <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? '#ef4444' : 'var(--text)' }}>{slashed}</div></div>
+              <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? '#EE4539' : 'var(--text)' }}>{slashed}</div></div>
             </div>
 
             <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
@@ -129,7 +129,7 @@ export default function ProviderProfile() {
             <button
               onClick={handleCallProvider}
               disabled={!isActive}
-              style={{ flex: 1, padding: '12px', background: isActive ? 'var(--accent)' : 'var(--bg-3)', color: isActive ? '#000' : 'var(--text-faint)', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: isActive ? 'pointer' : 'not-allowed', boxShadow: isActive ? '0 0 16px rgba(16,185,129,0.25)' : 'none' }}
+              style={{ flex: 1, padding: '12px', background: isActive ? 'var(--accent)' : 'var(--bg-3)', color: isActive ? '#000' : 'var(--text-faint)', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: isActive ? 'pointer' : 'not-allowed', boxShadow: isActive ? '0 0 16px rgba(25,209,134,0.25)' : 'none' }}
             >
               ⚡ Call this Provider
             </button>
@@ -147,7 +147,7 @@ export default function ProviderProfile() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'monospace' }} value={shareUrl} readOnly />
               <button
-                style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? '#059669' : 'var(--accent)' }}
+                style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? '#0E9F6E' : 'var(--accent)' }}
                 onClick={handleCopy}
               >
                 {copied ? '✓ Copied' : 'Copy'}

@@ -56,7 +56,7 @@ export default function ProgressTracker() {
       }}>
         <div style={{
           height: "100%", width: `${pct}%`,
-          background: "linear-gradient(90deg,#10b981,#059669)",
+          background: "linear-gradient(90deg,#19D186,#0E9F6E)",
           borderRadius: 2,
           transition: "width 0.4s ease",
         }} />

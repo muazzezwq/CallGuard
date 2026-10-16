@@ -14,9 +14,9 @@ type Notif = {
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const TYPE_META: Record<Notif["type"], { icon: string; color: string; label: string }> = {
-  call:    { icon: "📡", color: "#3b82f6",  label: "Call Started"   },
-  slash:   { icon: "⚡", color: "#ef4444",  label: "Slashed"        },
-  receipt: { icon: "✅", color: "#10b981",  label: "Receipt"        },
+  call:    { icon: "📡", color: "#1F77EF",  label: "Call Started"   },
+  slash:   { icon: "⚡", color: "#EE4539",  label: "Slashed"        },
+  receipt: { icon: "✅", color: "#19D186",  label: "Receipt"        },
   dispute: { icon: "⚖️", color: "#f59e0b",  label: "Dispute"        },
   info:    { icon: "ℹ️", color: "var(--text-faint)", label: "Info"  },
 };
@@ -118,7 +118,7 @@ export default function Notifications() {
       </div>
 
       {/* Live indicator */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "block", animation: "pulse 2s infinite" }} />
         <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>Listening for contract events…</span>
         <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · CallSlashed</span>

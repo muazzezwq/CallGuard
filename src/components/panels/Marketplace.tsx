@@ -43,10 +43,10 @@ function SparklineCanvas({ completed, slashed, glow }: {
       const y = H - bh;
       const isLast = i === BARS - 1;
       const color = v > 0.7
-        ? `rgba(16,185,129,${isLast ? 1 : fade * 0.7})`
+        ? `rgba(25,209,134,${isLast ? 1 : fade * 0.7})`
         : v > 0.4
           ? `rgba(245,158,11,${isLast ? 1 : fade * 0.7})`
-          : `rgba(239,68,68,${isLast ? 1 : fade * 0.7})`;
+          : `rgba(238,69,57,${isLast ? 1 : fade * 0.7})`;
 
       if (glow && isLast) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
       ctx.fillStyle = color;
@@ -67,7 +67,7 @@ function HonorRing({ rate }: { rate: number }) {
   const R = 18, CX = 22, CY = 22, SW = 3.5;
   const circ = 2 * Math.PI * R;
   const dash = (rate / 100) * circ;
-  const col = rate >= 90 ? "#10b981" : rate >= 60 ? "#f59e0b" : "#ef4444";
+  const col = rate >= 90 ? "#19D186" : rate >= 60 ? "#f59e0b" : "#EE4539";
   return (
     <svg width={44} height={44} viewBox="0 0 44 44" className="mp-ring">
       <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />

@@ -173,7 +173,7 @@ export default function Nano() {
       </div>
 
       {/* How it works */}
-      <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.6' }}>
+      <div style={{ background: 'rgba(25,209,134,0.08)', border: '1px solid rgba(25,209,134,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.6' }}>
         <strong style={{ color: 'var(--accent)' }}>How it works:</strong>
         {' '}1. You click → 2. Facilitator signs EIP-3009 off-chain → 3. Circle Gateway verifies instantly → 4. Batch settles on-chain later.
         No wallet prompt. No gas. Payments batch into a single on-chain tx.

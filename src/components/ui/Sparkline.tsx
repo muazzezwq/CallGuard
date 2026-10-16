@@ -29,7 +29,7 @@ function buildPath(data: number[], W: number, H: number, fill: boolean): string 
   return d;
 }
 
-export default function Sparkline({ data, width = 680, height = 56, color = "#10b981" }: SparklineProps) {
+export default function Sparkline({ data, width = 680, height = 56, color = "#19D186" }: SparklineProps) {
   const lineRef = useRef<SVGPathElement>(null);
   const fillRef = useRef<SVGPathElement>(null);
   const gradId = `sg-${Math.random().toString(36).slice(2, 7)}`;

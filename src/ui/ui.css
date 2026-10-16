@@ -7,15 +7,15 @@
 .ui-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-family: var(--font-sans); font-weight: 600; letter-spacing: 0.005em;
-  border: 1px solid transparent; border-radius: var(--radius);
+  border: 1px solid transparent; border-radius: 999px;
   cursor: pointer; white-space: nowrap; user-select: none;
   transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .08s ease, opacity .15s ease;
 }
 .ui-btn:active { transform: translateY(1px); }
 .ui-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-.ui-btn--sm { height: 32px; padding: 0 12px; font-size: 12.5px; border-radius: 8px; }
-.ui-btn--md { height: 40px; padding: 0 16px; font-size: 13.5px; }
-.ui-btn--lg { height: 48px; padding: 0 22px; font-size: 15px; border-radius: var(--radius-lg); }
+.ui-btn--sm { height: 32px; padding: 0 14px; font-size: 12.5px; border-radius: 999px; }
+.ui-btn--md { height: 40px; padding: 0 18px; font-size: 13.5px; }
+.ui-btn--lg { height: 48px; padding: 0 24px; font-size: 15px; border-radius: 999px; }
 
 .ui-btn--primary { background: var(--accent); color: #06110d; }
 .ui-btn--primary:hover:not(:disabled) { background: var(--guard-hi); }
@@ -58,12 +58,13 @@
 .ui-badge--guard   { background: var(--accent-bg); color: var(--accent-ink); border-color: var(--accent-fg); }
 .ui-badge--slash   { background: var(--danger-bg); color: var(--danger); border-color: rgba(246,70,93,0.24); }
 .ui-badge--pending { background: var(--warn-bg); color: var(--warn); border-color: rgba(240,185,11,0.26); }
-.ui-badge--info    { background: var(--info-bg); color: var(--info); border-color: rgba(59,130,246,0.24); }
+.ui-badge--info    { background: var(--info-bg); color: var(--info); border-color: rgba(31,119,239,0.24); }
 
 /* Card / Surface ─────────────────────────────────────── */
 .ui-card {
   background: var(--surface-1); border: 1px solid var(--border);
   border-radius: var(--radius-lg); position: relative;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 .ui-card--pad { padding: 18px; }
 .ui-card--flush { padding: 0; }
@@ -152,7 +153,7 @@
 .ui-input:focus, .ui-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); background: var(--surface-1); }
 .ui-input--mono { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: -0.01em; }
 .ui-input--err { border-color: var(--danger); }
-.ui-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238DA0B8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.ui-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A9FB2' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
 /* Modal ──────────────────────────────────────────────── */
 .ui-modal-overlay {
@@ -221,6 +222,7 @@
 .ui-section {
   background: var(--surface-1); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 .ui-section + .ui-section { margin-top: 14px; }
 .ui-section__head {
@@ -240,6 +242,7 @@
   background: var(--surface-1); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 14px 16px;
   display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.20);
   transition: border-color .15s ease, background-color .15s ease;
 }
 .ui-statcard:hover { border-color: var(--border-hi); }
@@ -302,4 +305,11 @@
   .ui-btn, .ui-card--hover, .ui-copy { transition: none; }
   .ui-modal-overlay, .ui-modal { animation: none; }
   .ui-skel { animation: none; }
+}
+
+/* Light theme — cards rely on a soft shadow, border stays subtle */
+[data-theme="light"] .ui-card,
+[data-theme="light"] .ui-section,
+[data-theme="light"] .ui-statcard {
+  box-shadow: var(--shadow-md);
 }

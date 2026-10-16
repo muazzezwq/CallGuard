@@ -49,10 +49,10 @@ export default function RoleModal() {
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 14,
-            background: "linear-gradient(135deg,#10b981,#059669)",
+            background: "linear-gradient(135deg,#19D186,#0E9F6E)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, margin: "0 auto 16px",
-            boxShadow: "0 0 24px rgba(16,185,129,0.4)",
+            boxShadow: "0 0 24px rgba(25,209,134,0.4)",
           }}>⚡</div>
           <h2 style={{
             margin: "0 0 8px", fontSize: 20, fontWeight: 800,
@@ -75,7 +75,7 @@ export default function RoleModal() {
           }}
             onMouseEnter={e => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(16,185,129,0.06)";
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(25,209,134,0.06)";
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
@@ -104,8 +104,8 @@ export default function RoleModal() {
             textAlign: "left", transition: "all 0.18s", color: "var(--text)",
           }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "#3b82f6";
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(59,130,246,0.06)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "#1F77EF";
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(31,119,239,0.06)";
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
@@ -120,7 +120,7 @@ export default function RoleModal() {
               Use SLA-guaranteed APIs. Pay per request. Get refund if SLA is missed.
             </div>
             <div style={{
-              marginTop: 10, fontSize: 10, fontWeight: 600, color: "#3b82f6",
+              marginTop: 10, fontSize: 10, fontWeight: 600, color: "#1F77EF",
               textTransform: "uppercase", letterSpacing: "0.06em",
             }}>
               → Simple mode
