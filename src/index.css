@@ -23,6 +23,7 @@
 
   /* Accent — guard green is the single action colour (verified / settled) */
   --accent: #12B981;
+  --accent-ink: #12B981;
   --accent-dim: #0E9F6E;
   --accent-bg: rgba(18,185,129,0.10);
   --accent-fg: rgba(18,185,129,0.16);
@@ -31,6 +32,7 @@
 
   /* Secondary accent — cyan, for network/flow viz (never for primary actions) */
   --accent-2: #22D3EE;
+  --accent-2-ink: #22D3EE;
   --accent-2-bg: rgba(34,211,238,0.10);
 
   /* Semantic — red is slash, amber is pending */
@@ -84,12 +86,15 @@
   --text-faint: #8A9BAE;
   --text-low: #8A9BAE;
   --accent: #0E9F6E;
+  /* --accent-ink: small accent text on light surfaces (AA for <18px) */
+  --accent-ink: #0A7A55;
   --accent-dim: #0B855C;
   --accent-bg: rgba(14,159,110,0.10);
   --accent-fg: rgba(14,159,110,0.16);
   --guard: #0E9F6E;
   --guard-hi: #12B981;
   --accent-2: #0891B2;
+  --accent-2-ink: #0E7490;
   --accent-2-bg: rgba(8,145,178,0.10);
   --danger: #DC2626;
   --danger-bg: rgba(220,38,38,0.10);

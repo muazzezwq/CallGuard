@@ -64,7 +64,7 @@
 .tb-icon-btn svg { width: 16px; height: 16px; }
 
 .net-pill { padding: 5px 10px; font-size: 11.5px; }
-.net-pill.ok { background: var(--accent-bg); border-color: var(--accent-fg); color: var(--accent); }
+.net-pill.ok { background: var(--accent-bg); border-color: var(--accent-fg); color: var(--accent-ink); }
 
 .tb-balance { border-radius: 8px; padding: 5px 10px; gap: 6px; }
 .tb-balance-label { font-size: 9.5px; letter-spacing: 0.08em; color: var(--text-low); }
@@ -234,7 +234,7 @@
 .ov-2col .ui-section + .ui-section { margin-top: 0; }
 
 .ov-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-.c-accent { color: var(--accent); } .c-info { color: var(--info, #3b82f6); } .c-danger { color: var(--danger); }
+.c-accent { color: var(--accent-ink); } .c-info { color: var(--info, #3b82f6); } .c-danger { color: var(--danger); }
 
 /* legend */
 .ov-legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 16px 14px; }
@@ -252,7 +252,7 @@
   width: 28px; height: 28px; flex: 0 0 28px; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.ov-activity__ico--ok { background: var(--accent-bg); color: var(--accent); }
+.ov-activity__ico--ok { background: var(--accent-bg); color: var(--accent-ink); }
 .ov-activity__ico--info { background: rgba(59,130,246,0.12); color: #60a5fa; }
 .ov-activity__ico--danger { background: rgba(239,68,68,0.12); color: var(--danger); }
 .ov-activity__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -286,7 +286,7 @@
 
 .ov-iconbtn { background: transparent; border: 0; color: var(--text-faint); cursor: pointer; padding: 2px; display: inline-flex; }
 .ov-iconbtn:hover { color: var(--text); }
-.ov-linkbtn { background: none; border: 0; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+.ov-linkbtn { background: none; border: 0; color: var(--accent-ink); font-size: 12px; font-weight: 600; cursor: pointer; }
 
 /* welcome steps */
 .ov-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -306,7 +306,7 @@
 .ov-actions { display: flex; flex-direction: column; }
 .ov-actions__row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
 .ov-actions__icon { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
-.ov-actions__icon--accent { background: var(--accent-bg); color: var(--accent); }
+.ov-actions__icon--accent { background: var(--accent-bg); color: var(--accent-ink); }
 .ov-actions__icon--info { background: rgba(59,130,246,0.12); color: #60a5fa; }
 .ov-actions__icon--warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
 .ov-actions__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -338,7 +338,7 @@
 .ov-results__pid { color: var(--text-faint); width: 42px; }
 .ov-results__row a { color: var(--accent); font-family: var(--font-mono); }
 
-.ov-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent); font-weight: 600; }
+.ov-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent-ink); font-weight: 600; }
 
 /* top providers */
 .ov-rank { list-style: none; margin: 0; padding: 0; }
@@ -420,7 +420,7 @@
 }
 .tx-copy {
   margin-left: 8px; background: none; border: 0; padding: 0; cursor: pointer;
-  font-size: 11px; color: var(--accent); font-family: var(--font-sans);
+  font-size: 11px; color: var(--accent-ink); font-family: var(--font-sans);
 }
 .tx-flags { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 4px; }
 
@@ -433,8 +433,8 @@
   display: flex; flex-direction: column; gap: 2px; text-align: center; width: 112px;
 }
 .sla-canvas__name { font-size: 11.5px; font-weight: 600; color: var(--text-dim); }
-.sla-canvas__name--done { color: var(--accent); }
-.sla-canvas__name--active { color: var(--accent-2); }
+.sla-canvas__name--done { color: var(--accent-ink); }
+.sla-canvas__name--active { color: var(--accent-2-ink); }
 .sla-canvas__name--failed { color: var(--danger); }
 .sla-canvas__name--info { color: var(--info, #3b82f6); }
 .sla-canvas__sub { font-size: 10.5px; color: var(--text-dim); }

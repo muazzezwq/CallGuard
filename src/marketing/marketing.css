@@ -56,7 +56,7 @@
   font-size: clamp(38px, 5.2vw, 66px); line-height: 1.02; letter-spacing: -0.035em;
   font-weight: 700; color: var(--text); max-width: 14ch;
 }
-.mk-hero__title em { font-style: normal; color: var(--accent); }
+.mk-hero__title em { font-style: normal; color: var(--accent-ink); }
 .mk-hero__sub {
   margin-top: 22px; font-size: 17px; line-height: 1.6; color: var(--text-dim); max-width: 52ch;
 }
@@ -77,7 +77,7 @@
   display: inline-flex; align-items: center; gap: 8px;
   padding: 7px 13px; border-radius: 999px;
   background: var(--accent-bg); border: 1px solid var(--accent-fg);
-  font-size: 12.5px; font-weight: 600; color: var(--accent);
+  font-size: 12.5px; font-weight: 600; color: var(--accent-ink);
 }
 .mk-chip svg { flex: 0 0 auto; }
 
@@ -154,7 +154,7 @@
 .mk-ledger__amt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
 .mk-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
 .mk-status__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.mk-status--done { color: var(--accent); }
+.mk-status--done { color: var(--accent-ink); }
 .mk-status--slash { color: var(--danger); }
 .mk-status--open { color: var(--warn); }
 
@@ -191,8 +191,8 @@
   padding: 14px 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.75; color: var(--text-dim);
   overflow-x: auto;
 }
-.mk-code .cmd { color: var(--accent); }
-.mk-code .ok { color: var(--accent); }
+.mk-code .cmd { color: var(--accent-ink); }
+.mk-code .ok { color: var(--accent-ink); }
 .mk-code .warn { color: var(--danger); }
 .mk-code .dim { color: var(--text-faint); }
 
@@ -206,7 +206,7 @@
 .mk-cell:hover { border-color: var(--border-hi); }
 .mk-cell--wide { grid-column: span 3; }
 .mk-cell--half { grid-column: span 3; }
-.mk-cell__k { font-size: 12px; color: var(--accent); font-weight: 600; }
+.mk-cell__k { font-size: 12px; color: var(--accent-ink); font-weight: 600; }
 .mk-cell__t { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
 .mk-cell__d { font-size: 13px; line-height: 1.6; color: var(--text-dim); }
 .mk-cell__stats { display: flex; gap: 24px; margin-top: 6px; }
@@ -229,7 +229,7 @@
 .mk-band { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 40px; }
 .mk-band__cell { background: var(--surface-1); padding: 28px 24px; }
 .mk-band__v { font-size: clamp(30px, 4vw, 46px); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
-.mk-band__v--guard { color: var(--accent); }
+.mk-band__v--guard { color: var(--accent-ink); }
 .mk-band__l { margin-top: 8px; font-size: 13px; color: var(--text-dim); }
 
 /* compare */
@@ -239,7 +239,7 @@
 .mk-compare thead th { background: var(--surface-2); font-size: 12.5px; color: var(--text); }
 .mk-compare thead th:first-child { color: var(--text-faint); font-weight: 500; }
 .mk-compare td:first-child { color: var(--text-dim); }
-.mk-compare .yes { color: var(--accent); font-weight: 600; }
+.mk-compare .yes { color: var(--accent-ink); font-weight: 600; }
 .mk-compare .no { color: var(--text-faint); }
 
 /* contracts */
@@ -272,7 +272,7 @@
 .mk-prose h3 { font-size: 17px; font-weight: 650; margin: 26px 0 8px; }
 .mk-prose p, .mk-prose li { font-size: 15px; line-height: 1.7; color: var(--text-dim); }
 .mk-prose ul { margin: 10px 0 10px 20px; display: flex; flex-direction: column; gap: 7px; }
-.mk-prose code { font-family: var(--font-mono); font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; color: var(--accent); }
+.mk-prose code { font-family: var(--font-mono); font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; color: var(--accent-ink); }
 .mk-prose pre { margin-top: 14px; }
 .mk-page-head { padding: 64px 0 8px; }
 .mk-page-title { font-size: clamp(30px, 4vw, 46px); font-weight: 700; letter-spacing: -0.03em; }

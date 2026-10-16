@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { useModal } from "connectkit";
+import { Moon, Sun, Menu } from "lucide-react";
 import { Mark } from "../ui";
 import { useAppStore } from "../store/useAppStore";
 import { CONFIG } from "../lib/config";
@@ -64,14 +65,14 @@ export default function MarketingLayout() {
           <span className="mk-nav__spacer" />
           <div className="mk-nav__actions">
             <button className="mk-nav__link mk-nav__theme" onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
-              {theme === "dark" ? "☀" : "☾"}
+              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <a className="mk-nav__builton" href={CONFIG.explorerBase} target="_blank" rel="noreferrer">
               <span className="mk-nav__builton-dot" />
               Built on Arc
             </a>
             <button className="ui-btn ui-btn--primary ui-btn--md" onClick={launch}>Launch App</button>
-            <button className="mk-nav__toggle ui-btn ui-btn--secondary ui-btn--sm" onClick={() => setDrawer((d) => !d)} aria-label="Menu">☰</button>
+            <button className="mk-nav__toggle ui-btn ui-btn--secondary ui-btn--sm" onClick={() => setDrawer((d) => !d)} aria-label="Menu"><Menu size={15} /></button>
           </div>
         </div>
         {drawer && (
