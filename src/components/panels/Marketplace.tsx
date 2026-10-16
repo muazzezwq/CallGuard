@@ -76,7 +76,7 @@ function HonorRing({ rate }: { rate: number }) {
         transform={`rotate(-90 ${CX} ${CY})`}
         style={{ transition: "stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1)" }} />
       <text x={CX} y={CY + 4} textAnchor="middle" fontSize={7.5}
-        fill={col} fontFamily="monospace" fontWeight="bold">
+        fill={col} fontFamily="var(--font-mono)" fontWeight="bold">
         {rate}%
       </text>
     </svg>

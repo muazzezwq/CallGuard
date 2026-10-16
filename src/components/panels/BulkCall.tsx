@@ -158,7 +158,7 @@ export default function BulkCall() {
             <div key={r.i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <span style={{ color: 'var(--text-faint)', width: '20px' }}>#{r.i}</span>
               {r.hash ? (
-                <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'monospace', fontSize: '12px' }}>{r.hash.slice(0, 20)}...</a>
+                <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{r.hash.slice(0, 20)}...</a>
               ) : (
                 <span style={{ color: '#EE4539', fontSize: '12px' }}>{r.error}</span>
               )}

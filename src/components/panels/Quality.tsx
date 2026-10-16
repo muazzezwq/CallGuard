@@ -172,7 +172,7 @@ export default function Quality() {
         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Contract Info</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
           <span>DisputeQuality (retired)</span>
-          <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'monospace' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
+          <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
         </div>
       </div>
     </div>

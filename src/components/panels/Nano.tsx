@@ -12,11 +12,11 @@ const S = {
   wrap: { padding: '24px', maxWidth: '680px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
   sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
-  statCard: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', textAlign: 'center' as const },
-  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  btnSecondary: { padding: '10px 20px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  pre: { background: '#0a0e14', color: '#a8b5c8', fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', lineHeight: '1.7', padding: '16px', borderRadius: '8px', overflowX: 'auto' as const, border: '1px solid #1e2530', marginTop: '12px' },
+  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', marginBottom: '16px' },
+  statCard: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px', textAlign: 'center' as const },
+  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
+  btnSecondary: { padding: '10px 20px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
+  pre: { background: 'var(--bg-0)', color: 'var(--text)', fontFamily: 'var(--font-mono)', fontSize: '11px', lineHeight: '1.7', padding: '16px', borderRadius: '10px', overflowX: 'auto' as const, border: '1px solid var(--border)', marginTop: '12px' },
 }
 
 export default function Nano() {
@@ -160,15 +160,15 @@ export default function Nano() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Calls Made</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace' }}>{callCount}</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{callCount}</div>
         </div>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Pending Batch</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace' }}>{pending || '—'}</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>{pending || '—'}</div>
         </div>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Settled Balance</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'monospace' }}>{balance || '—'}</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{balance || '—'}</div>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ export default function Nano() {
       </div>
 
       {/* Output */}
-      <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-dim)', minHeight: '60px', whiteSpace: 'pre-wrap', marginBottom: '24px' }}>
+      <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-dim)', minHeight: '60px', whiteSpace: 'pre-wrap', marginBottom: '24px' }}>
         {output}
       </div>
 

@@ -158,7 +158,7 @@ export default function Mcp() {
           {tools.map(t => (
             <div key={t.name} style={{ padding:'12px 0', borderBottom:'1px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily:'monospace' }}>{t.name}</code>
+                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily: 'var(--font-mono)' }}>{t.name}</code>
               </div>
               <div style={{ fontSize:13, color:'var(--text-dim)', marginBottom:4 }}>{t.desc}</div>
               <code style={{ fontSize:11, color:'var(--text-faint)' }}>params: {t.params}</code>

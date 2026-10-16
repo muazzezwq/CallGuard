@@ -104,7 +104,7 @@ export default function PipelineHook() {
       {/* Current hook address */}
       <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 11, color: "#8899b4", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Current Hook Address</div>
-        <div style={{ fontFamily: "JetBrains Mono, Menlo, monospace", fontSize: 13, color: isZero ? "#8899b4" : "#e8edf5", wordBreak: "break-all" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: isZero ? "#8899b4" : "#e8edf5", wordBreak: "break-all" }}>
           {isZero ? "Not set (0x000...000)" : currentHook}
         </div>
         {!isZero && (
@@ -156,7 +156,7 @@ export default function PipelineHook() {
                 style={{
                   flex: 1, background: "rgba(255,255,255,.04)", border: "1px solid #1f2d42",
                   borderRadius: 8, padding: "9px 12px", color: "#e8edf5", fontSize: 12,
-                  fontFamily: "JetBrains Mono, monospace", outline: "none",
+                  fontFamily: "var(--font-mono)", outline: "none",
                 }}
               />
               <button
@@ -205,7 +205,7 @@ export default function PipelineHook() {
       {/* Interface spec */}
       <div style={{ background: "var(--surface-2, #131c2e)", border: "1px solid var(--border, #1f2d42)", borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e8edf5", marginBottom: 10 }}>IERC8183Hook Interface</div>
-        <pre style={{ fontFamily: "JetBrains Mono, Menlo, monospace", fontSize: 11, color: "#93c5fd", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
+        <pre style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93c5fd", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
 {`interface IERC8183Hook {
   function beforeCall(
     bytes32 jobId,
@@ -222,7 +222,7 @@ export default function PipelineHook() {
         </pre>
         <div style={{ marginTop: 10, fontSize: 11, color: "#8899b4" }}>
           Both hooks are called <strong>best-effort</strong> — the PayPerCall transaction continues even if the hook contract reverts.
-          <br />PayPerCall v7.1: <span style={{ fontFamily: "monospace", color: "#e8edf5" }}>{CONFIG.ppcAddress}</span>
+          <br />PayPerCall v7.1: <span style={{ fontFamily: "var(--font-mono)", color: "#e8edf5" }}>{CONFIG.ppcAddress}</span>
         </div>
       </div>
     </div>

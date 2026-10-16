@@ -107,7 +107,7 @@ export default function ProviderProfile() {
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent)20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
               </div>
               <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '12px', background: isActive ? '#19D18620' : '#6b728020', color: isActive ? '#19D186' : '#9ca3af', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>
@@ -145,7 +145,7 @@ export default function ProviderProfile() {
           <div style={S.card}>
             <div style={S.label}>Shareable Link</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'monospace' }} value={shareUrl} readOnly />
+              <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'var(--font-mono)' }} value={shareUrl} readOnly />
               <button
                 style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? '#0E9F6E' : 'var(--accent)' }}
                 onClick={handleCopy}

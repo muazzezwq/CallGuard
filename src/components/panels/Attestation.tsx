@@ -135,7 +135,7 @@ export default function Attestation() {
             {peekLoading ? 'Querying...' : 'Query →'}
           </button>
           {peekResult && (
-            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(peekResult, null, 2)}
             </div>
           )}
@@ -165,7 +165,7 @@ export default function Attestation() {
             {lookupLoading ? 'Looking up...' : 'Lookup →'}
           </button>
           {lookupResult && (
-            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(lookupResult, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2)}
             </div>
           )}
