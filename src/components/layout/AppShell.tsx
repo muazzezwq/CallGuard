@@ -61,7 +61,7 @@ function PanelLoader() {
 const MOBILE_NAV: { Icon: React.ComponentType<{ size?: number | string }>; label: string; id: PanelId }[] = [
   { Icon: House,  label: "Home",   id: "overview"    },
   { Icon: Store,  label: "Market", id: "marketplace" },
-  { Icon: Zap,    label: "Pay",    id: "calls"       },
+  { Icon: Zap,    label: "Calls",  id: "calls"       },
   { Icon: Wallet, label: "Wallet", id: "balance"     },
 ];
 
