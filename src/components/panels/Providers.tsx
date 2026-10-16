@@ -122,16 +122,18 @@ export default function Providers() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // getProvider returns a 9-field tuple:
+  // getProvider returns a named 9-field ProviderView tuple; viem decodes named tuples to an
+  // object, with positional indexes kept as a fallback for older shapes.
   // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
-  const raw = provData as readonly [string, string, bigint, bigint, number, number, boolean, number, number] | undefined;
-  const p = raw && raw[1] ? {
-    signer:          raw[1],
-    stakeAmount:     raw[2] ?? 0n,
-    pricePerCall:    raw[3] ?? 0n,
-    maxResponseTime: Number(raw[4] ?? 0n),
-    slashBps:        Number(raw[5] ?? 0n),
-    active:          raw[6] ?? false,
+  const r = provData as any;
+  const signer = r?.signer ?? r?.[1];
+  const p = signer ? {
+    signer:          signer as string,
+    stakeAmount:     (r?.stake ?? r?.[2] ?? 0n) as bigint,
+    pricePerCall:    (r?.pricePerCall ?? r?.[3] ?? 0n) as bigint,
+    maxResponseTime: Number(r?.maxResponseTime ?? r?.[4] ?? 0),
+    slashBps:        Number(r?.slashBps ?? r?.[5] ?? 0),
+    active:          Boolean(r?.active ?? r?.[6] ?? false),
   } : undefined;
   const shorten = (a: string) => `${a.slice(0,8)}…${a.slice(-6)}`;
 

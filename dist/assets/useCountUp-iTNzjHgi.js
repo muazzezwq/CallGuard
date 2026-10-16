@@ -1,0 +1,1 @@
+import{r as t}from"./index-CNFLZM1t.js";function p(e,n=800,u=!0){const[f,s]=t.useState(0),c=t.useRef(0);return t.useEffect(()=>{if(!u||e===c.current)return;if(c.current=e,e===0){s(0);return}let r=0;const a=e/(n/16),o=setInterval(()=>{r=Math.min(r+a,e),s(Math.round(r)),r>=e&&clearInterval(o)},16);return()=>clearInterval(o)},[e,n,u]),f}export{p as u};

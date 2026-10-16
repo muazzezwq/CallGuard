@@ -110,9 +110,11 @@ export default function Nano() {
       let total = 0n
       for (const id of ids) {
         try {
-          // HIGH-02 fix: getProvider returns indexed tuple [0]=owner [1]=signer [2]=stake [3]=pricePerCall [4]=maxResponseTime [5]=slashBps [6]=active
-          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as unknown as readonly [string, string, bigint, bigint, number, number, boolean]
-          if (p[6]) total += p[3] // active → add pricePerCall
+          // getProvider decodes to a named tuple object in viem; positional indexes are the fallback.
+          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as any
+          const isActive = p?.active ?? p?.[6]
+          const callPrice = p?.pricePerCall ?? p?.[3]
+          if (isActive) total += (callPrice ?? 0n) // active → add pricePerCall
         } catch { /* skip */ }
       }
 
