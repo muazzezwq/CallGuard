@@ -18,7 +18,8 @@ export function StatCard({
   className?: string;
 }) {
   const hasDelta = typeof delta === "number" && Number.isFinite(delta);
-  const up = hasDelta && (delta as number) >= 0;
+  const up = hasDelta ? (delta as number) >= 0 : true;
+  const showSpark = !!spark && spark.length > 1 && spark.some((v) => v > 0);
 
   return (
     <div className={clsx("ui-statcard", className)}>
@@ -36,9 +37,9 @@ export function StatCard({
         ) : (
           <span className="ui-statcard__delta is-flat">—</span>
         )}
-        {spark && spark.length > 1 && (
+        {showSpark && (
           <span className="ui-statcard__spark">
-            <Sparkline data={spark} height={34} color={up ? "var(--accent)" : "var(--danger)"} />
+            <Sparkline data={spark!} height={34} color={up ? "var(--accent)" : "var(--danger)"} />
           </span>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from "react";
-import { House, Store, Zap, ListChecks, Wallet } from "lucide-react";
+import { House, Store, Zap, Wallet } from "lucide-react";
 import { useAppStore, PanelId } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
@@ -59,11 +59,10 @@ function PanelLoader() {
 }
 
 const MOBILE_NAV: { Icon: React.ComponentType<{ size?: number | string }>; label: string; id: PanelId }[] = [
-  { Icon: House,      label: "Home",     id: "overview"    },
-  { Icon: Store,      label: "Market",   id: "marketplace" },
-  { Icon: Zap,        label: "Pay",      id: "calls"       },
-  { Icon: ListChecks, label: "Requests", id: "requests"    },
-  { Icon: Wallet,     label: "Wallet",   id: "balance"     },
+  { Icon: House,  label: "Home",   id: "overview"    },
+  { Icon: Store,  label: "Market", id: "marketplace" },
+  { Icon: Zap,    label: "Pay",    id: "calls"       },
+  { Icon: Wallet, label: "Wallet", id: "balance"     },
 ];
 
 const PANEL_LABELS: Record<string, string> = {
