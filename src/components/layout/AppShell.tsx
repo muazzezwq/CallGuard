@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from "react";
+import { House, Store, Zap, ListChecks, Wallet } from "lucide-react";
 import { useAppStore, PanelId } from "../../store/useAppStore";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
@@ -9,7 +10,6 @@ import CommandPalette from "./CommandPalette";
 import RoleModal from "./RoleModal";
 import UsdcBanner from "./UsdcBanner";
 import ContextualHint from "./ContextualHint";
-import ProgressTracker from "./ProgressTracker";
 import ErrorBoundary from "../ErrorBoundary";
 import { initTabTitleCounter } from "../../lib/utils";
 
@@ -58,22 +58,23 @@ function PanelLoader() {
   );
 }
 
-const MOBILE_NAV: { icon: string; label: string; id: PanelId }[] = [
-  { icon: "⌂",  label: "Home",     id: "overview"    },
-  { icon: "⊞",  label: "Market",   id: "marketplace" },
-  { icon: "⚡", label: "Pay",      id: "calls"       },
-  { icon: "≡",  label: "Requests", id: "requests"    },
+const MOBILE_NAV: { Icon: React.ComponentType<{ size?: number | string }>; label: string; id: PanelId }[] = [
+  { Icon: House,      label: "Home",     id: "overview"    },
+  { Icon: Store,      label: "Market",   id: "marketplace" },
+  { Icon: Zap,        label: "Pay",      id: "calls"       },
+  { Icon: ListChecks, label: "Requests", id: "requests"    },
+  { Icon: Wallet,     label: "Wallet",   id: "balance"     },
 ];
 
 const PANEL_LABELS: Record<string, string> = {
-  overview:"Overview", calls:"Call Builder", marketplace:"Services",
+  overview:"Overview", calls:"Call Builder", marketplace:"Marketplace",
   requests:"My Requests", providers:"Providers", receipts:"Receipts",
-  payments:"Payments", disputes:"Disputes", history:"Tx History",
-  quality:"Quality Disputes", agent:"Agent Loop", lending:"RepFi Lending",
+  payments:"Payments", disputes:"Disputes", history:"Transactions",
+  quality:"Quality Disputes", agent:"Agent Wallet", lending:"RepFi Lending",
   futures:"SLA Futures", attestation:"SLA Bridge", subscriptions:"Subscriptions",
-  admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Leaderboard",
-  apidocs:"API Docs", verify:"Verify", provprofile:"Provider Profile",
-  analytics:"Analytics", notifications:"Notifications", settings:"Settings",
+  admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Reputation",
+  apidocs:"API Docs", verify:"Verify", provprofile:"Provider details",
+  analytics:"Analytics", notifications:"Logs", settings:"Settings",
   jobs:"Jobs", bulkcall:"Bulk Call", register:"Register", nano:"Nanopayments",
   privacy:"Privacy", bridge:"Bridge", pipelinehook:"Pipeline Hook",
   passkey:"Passkey Wallet", balance:"Unified Balance",
@@ -175,7 +176,6 @@ export default function AppShell() {
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>
-        <ProgressTracker />
         <Sidebar onNav={handleNav} />
         <button
           className="sidebar-collapse-btn"
@@ -218,7 +218,7 @@ export default function AppShell() {
             className={`mbn-item${activePanel === item.id ? " active" : ""}`}
             onClick={() => { setPanel(item.id); setSidebarOpen(false); }}
           >
-            <span className="mbn-icon">{item.icon}</span>
+            <span className="mbn-icon"><item.Icon size={19} /></span>
             <span className="mbn-label">{item.label}</span>
             {(badges[item.id] ?? 0) > 0 && (
               <span className="mbn-badge">
@@ -227,10 +227,6 @@ export default function AppShell() {
             )}
           </button>
         ))}
-        <button className="mbn-item" onClick={() => setPaletteOpen(true)}>
-          <span className="mbn-icon">🔍</span>
-          <span className="mbn-label">Search</span>
-        </button>
       </nav>
     </div>
   );

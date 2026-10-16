@@ -286,8 +286,13 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
 }
 .app-sidebar.collapsed .sb-label,
 .app-sidebar.collapsed .sb-section-label,
+.app-sidebar.collapsed .sb-section,
 .app-sidebar.collapsed .sb-brand-text,
 .app-sidebar.collapsed .sb-badge,
+.app-sidebar.collapsed .sb-chev,
+.app-sidebar.collapsed .sb-sub,
+.app-sidebar.collapsed .sb-foot-text,
+.app-sidebar.collapsed .sb-grouplabel,
 .app-sidebar.collapsed .sb-adv-toggle span {
   display: none;
 }
@@ -298,6 +303,8 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
 .app-sidebar.collapsed .sb-icon {
   margin: 0;
 }
+.app-sidebar.collapsed .sb-foot { justify-content: center; padding: 9px 0; }
+.app-sidebar.collapsed .sb-progress { display: none; }
 .app-sidebar.collapsed:hover .sb-label,
 .app-sidebar.collapsed:hover .sb-section-label,
 .app-sidebar.collapsed:hover .sb-brand-text {

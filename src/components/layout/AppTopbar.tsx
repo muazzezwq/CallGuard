@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { Search, Moon, Sun, X } from "lucide-react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useModal } from "connectkit";
 import { toast } from "sonner";
 import { useAppStore } from "../../store/useAppStore";
 import { useUsdcBalance } from "../../hooks/useOnchain";
+import { Mark } from "../../ui";
 
 export default function AppTopbar({
   onHamburger,
@@ -46,7 +48,7 @@ export default function AppTopbar({
           <span /><span /><span />
         </button>
         <div className="tb-brand">
-          <div className="tb-brand-icon">⚡</div>
+          <div className="tb-brand-icon"><Mark size={22} /></div>
           <span className="tb-brand-name">CallGuard</span>
         </div>
         {panelLabel && (
@@ -88,7 +90,7 @@ export default function AppTopbar({
 
         {/* Theme toggle */}
         <button className="tb-icon-btn" title="Toggle theme" onClick={toggleTheme}>
-          {theme === "dark" ? "🌙" : "☀️"}
+          {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
         </button>
 
         {/* Connect / address */}
@@ -99,7 +101,7 @@ export default function AppTopbar({
         ) : (
           <>
             <div className="tb-addr-wrap tb-hide-sm">
-              {copied && <div className="tb-addr-tooltip">✓ Copied!</div>}
+              {copied && <div className="tb-addr-tooltip">Copied!</div>}
               <button className="tb-addr" title="Copy address" onClick={copy}>
                 {short}
               </button>
@@ -109,13 +111,13 @@ export default function AppTopbar({
               style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }}
               onClick={() => disconnect()}
               title="Disconnect"
-            >✕</button>
+            ><X size={14} /></button>
           </>
         )}
 
         {/* ⌘K */}
         <button className="tb-cmd tb-hide-xs" onClick={onCommandPalette} title="Command palette (Ctrl+K)">
-          <span>🔍</span>
+          <Search size={14} />
           <kbd>⌘K</kbd>
         </button>
       </div>
