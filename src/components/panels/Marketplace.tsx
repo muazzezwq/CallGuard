@@ -3,6 +3,8 @@ import { formatUnits } from "viem";
 import { useProviders } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import type { Provider } from "../../lib/subgraph";
+import { PageHeader, Chip, ChipRow, Select } from "../../ui";
+import { Search } from "lucide-react";
 
 type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "stake";
 type SortDir = "asc" | "desc";
@@ -395,11 +397,13 @@ export default function Marketplace() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [compareList, setCompareList] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<"grid" | "list">("list");
+  const [highRep, setHighRep] = useState(false);
 
   const filtered = useMemo(() => {
     let list = [...providers];
     if (activeOnly) list = list.filter(p => p.active);
+    if (highRep) list = list.filter(p => (p.reputation ?? 0) >= 90);
     if (search) list = list.filter(p =>
       String(p.id).includes(search) || p.owner.toLowerCase().includes(search.toLowerCase())
     );
@@ -408,7 +412,7 @@ export default function Marketplace() {
       return sortDir === "desc" ? bv - av : av - bv;
     });
     return list;
-  }, [providers, activeOnly, search, sortKey, sortDir]);
+  }, [providers, activeOnly, highRep, search, sortKey, sortDir]);
 
   const cmpProviders = useMemo(() => providers.filter(p => compareList.includes(p.id)), [providers, compareList]);
 
@@ -427,59 +431,45 @@ export default function Marketplace() {
   return (
     <div className="mp-root">
 
-      {/* ── Hero ── */}
-      <div className="mp-hero">
-        <ParticleCanvas />
-        <div className="mp-hero-body">
-          <div className="mp-hero-eyebrow">
-            <span className="mp-live-dot" />
-            <span>Arc Testnet · Live</span>
-          </div>
-          <h1 className="mp-hero-title">Browse Providers</h1>
-          <p className="mp-hero-sub">
-            Discover verified AI service providers, compare SLAs, and call with a single transaction.
-          </p>
-          {!isLoading && providers.length > 0 && <StatsBar providers={providers} />}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={<><span className="ov-live-dot" />Arc Testnet · Live</>}
+        title="Marketplace"
+        subtitle="Find and connect with the best providers."
+      />
 
-      {/* ── Controls ── */}
+      {/* ── Toolbar ── */}
       <div className="mp-controls">
         <div className="mp-search-wrap">
-          <span className="mp-search-icon">⌕</span>
+          <Search size={15} className="mp-search-icon" />
           <input
             className="mp-search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by ID or address…"
+            placeholder="Search providers…"
           />
-          {search && <button className="mp-search-x" onClick={() => setSearch("")}>✕</button>}
+          {search && <button className="mp-search-x" onClick={() => setSearch("")} aria-label="Clear search">✕</button>}
         </div>
 
+        <ChipRow>
+          <Chip active={!activeOnly && !highRep} onClick={() => { setActiveOnly(false); setHighRep(false); }}>All</Chip>
+          <Chip active={activeOnly} onClick={() => setActiveOnly(o => !o)}>Active</Chip>
+          <Chip active={highRep} onClick={() => setHighRep(o => !o)}>High reputation</Chip>
+        </ChipRow>
+
         <div className="mp-ctrl-right">
-          {/* active toggle */}
-          <button
-            className={`mp-active-toggle${activeOnly ? " mp-active-on" : ""}`}
-            onClick={() => setActiveOnly(o => !o)}
+          <Select
+            value={sortKey}
+            onChange={e => { setSortKey(e.target.value as SortKey); setSortDir("desc"); }}
+            aria-label="Sort providers"
           >
-            <span className="mp-active-knob" />
-            <span className="mp-active-lbl">Active only</span>
-          </button>
-
-          {/* sort */}
-          <div className="mp-sort-group">
-            {(["reputation", "pricePerCall", "completedCalls", "stake"] as SortKey[]).map(k => (
-              <SortBtn
-                key={k} label={k === "reputation" ? "Honor" : k === "pricePerCall" ? "Price" : k === "completedCalls" ? "Calls" : "Stake"}
-                active={sortKey === k} dir={sortDir} onClick={() => toggleSort(k)}
-              />
-            ))}
-          </div>
-
-          {/* view toggle */}
+            <option value="reputation">Top rated</option>
+            <option value="pricePerCall">Lowest price</option>
+            <option value="completedCalls">Most calls</option>
+            <option value="stake">Most stake</option>
+          </Select>
           <div className="mp-view-grp">
-            <button className={`mp-view-btn${view === "grid" ? " mp-view-on" : ""}`} onClick={() => setView("grid")}>⊞</button>
-            <button className={`mp-view-btn${view === "list" ? " mp-view-on" : ""}`} onClick={() => setView("list")}>≡</button>
+            <button className={`mp-view-btn${view === "list" ? " mp-view-on" : ""}`} onClick={() => setView("list")} aria-label="List view">≡</button>
+            <button className={`mp-view-btn${view === "grid" ? " mp-view-on" : ""}`} onClick={() => setView("grid")} aria-label="Grid view">⊞</button>
           </div>
         </div>
       </div>
