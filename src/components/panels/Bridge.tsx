@@ -49,7 +49,7 @@ const s = {
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
   select: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, cursor: "pointer", boxSizing: "border-box" as const },
   btn: (disabled = false) => ({
-    width: "100%", padding: "11px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer",
+    width: "100%", padding: "11px 16px", borderRadius:999, border: "none", cursor: disabled ? "not-allowed" : "pointer",
     fontSize: 13, fontWeight: 600, background: disabled ? "var(--bg-3)" : "linear-gradient(135deg,#19D186,#0E9F6E)",
     color: disabled ? "var(--text-faint)" : "#fff", opacity: disabled ? 0.6 : 1, marginTop: 8,
   }),
@@ -275,7 +275,7 @@ export default function Bridge() {
 
         {/* Progress steps */}
         {step !== "idle" && (
-          <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 8, background: "var(--bg-1)", border: "1px solid var(--border)" }}>
+          <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius:14, background: "var(--bg-1)", border: "1px solid var(--border)" }}>
             {steps.map(([label, activeSteps], i) => {
               const done = currentIdx > i + (step === "done" ? 0 : 0) && (step !== "error");
               const active = activeSteps.includes(step) || (step === "done" && i === steps.length - 1);
@@ -308,7 +308,7 @@ export default function Bridge() {
         {(step === "done" || step === "error") && (
           <button
             onClick={() => { setStep("idle"); setLog([]); setBurnHash(null); setAttestation(null); }}
-            style={{ width: "100%", padding: "8px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", cursor: "pointer", fontSize: 12, marginTop: 6 }}
+            style={{ width: "100%", padding: "8px", borderRadius:999, border: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", cursor: "pointer", fontSize: 12, marginTop: 6 }}
           >
             Start new bridge
           </button>
@@ -333,7 +333,7 @@ export default function Bridge() {
       </div>
 
       {/* Info */}
-      <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 8, background: "var(--bg-2)", border: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
+      <div style={{ marginTop: 16, padding: "12px 14px", borderRadius:14, background: "var(--bg-2)", border: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
         <strong style={{ color: "var(--text)" }}>How it works:</strong><br />
         1. Approve USDC on the source chain<br />
         2. depositForBurn → Circle burns USDC and issues a signed attestation<br />

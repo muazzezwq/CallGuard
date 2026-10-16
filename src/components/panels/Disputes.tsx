@@ -355,7 +355,7 @@ export default function Disputes() {
               disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
               style={{
                 flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger,#EE4539)",
-                border: "1px solid var(--danger,#EE4539)", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: 13,
+                border: "1px solid var(--danger,#EE4539)", borderRadius:999, fontWeight: 600, cursor: "pointer", fontSize: 13,
                 opacity: dqEnabled ? 1 : 0.5,
               }}
             >

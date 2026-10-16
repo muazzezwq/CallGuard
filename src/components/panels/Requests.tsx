@@ -160,7 +160,7 @@ export default function Requests() {
             disabled={txPending || !address}
             style={{
               padding: "9px 18px", background: "var(--danger,#EE4539)", color: "#fff",
-              border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer",
+              border: "none", borderRadius:999, fontWeight: 600, cursor: "pointer",
               fontSize: 13, opacity: txPending ? 0.6 : 1, whiteSpace: "nowrap"
             }}
           >

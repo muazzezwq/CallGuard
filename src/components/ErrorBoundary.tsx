@@ -44,7 +44,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+              padding: "8px 16px", borderRadius:999, border: "none", cursor: "pointer",
               fontSize: 13, fontWeight: 600, background: "var(--accent)", color: "#fff",
             }}
           >Retry</button>

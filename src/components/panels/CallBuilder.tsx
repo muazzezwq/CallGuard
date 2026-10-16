@@ -502,7 +502,7 @@ export default function CallBuilder() {
               <select
                 value={providerId}
                 onChange={e => setProviderId(e.target.value)}
-                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
+                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
               >
                 {!providers.some(p => String(p.id) === providerId) && providerId && (
                   <option value={providerId}>#{providerId}{providerNotFound ? " · not found" : ""}</option>
@@ -518,7 +518,7 @@ export default function CallBuilder() {
               <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Request payload</label>
               <input
                 type="text" value={payload} onChange={e => setPayload(e.target.value)}
-                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
+                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
                 placeholder="ping"
               />
             </div>
@@ -546,7 +546,7 @@ export default function CallBuilder() {
             <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Call ID (for receipt / timeout)</label>
             <input
               type="text" value={callIdInput} onChange={e => setCallIdInput(e.target.value)}
-              style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
+              style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
               placeholder="Auto-filled after call"
             />
           </div>
@@ -556,14 +556,14 @@ export default function CallBuilder() {
             <button
               onClick={handleCall}
               disabled={isLoading || !isConnected || isCCTP}
-              style={{ padding:"12px 8px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected||isCCTP ? "not-allowed":"pointer",opacity: isLoading||!isConnected||isCCTP ? 0.4:1 }}
+              style={{ padding:"12px 8px",borderRadius:999,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected||isCCTP ? "not-allowed":"pointer",opacity: isLoading||!isConnected||isCCTP ? 0.4:1 }}
             >
               Standard call<br/><span style={{ fontSize:11,fontWeight:400,color:"var(--text-dim)" }}>MetaMask approval</span>
             </button>
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ padding:"12px 8px",borderRadius:8,border:"none",background:"var(--accent)",color:isCCTP?"#fff":"#000",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(25,209,134,0.3)" }}
+              style={{ padding:"12px 8px",borderRadius:999,border:"none",background:"var(--accent)",color:isCCTP?"#fff":"#000",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(25,209,134,0.3)" }}
             >
               {isCCTP ? "🌐 CCTP Call" : "⚡ Gas-free call"}<br/>
               <span style={{ fontSize:11,fontWeight:400,opacity:0.75 }}>{isCCTP ? "5-step bridge" : "Recommended"}</span>
@@ -574,7 +574,7 @@ export default function CallBuilder() {
             <button
               onClick={handleX402Call}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:8,border:"1px solid rgba(25,209,134,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
+              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:999,border:"1px solid rgba(25,209,134,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
             >
               ⚡ Call via x402 (EIP-3009, no gas)
             </button>
@@ -610,7 +610,7 @@ export default function CallBuilder() {
               <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Response payload</label>
               <input
                 type="text" value={responsePayload} onChange={e => setResponsePayload(e.target.value)}
-                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
+                style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
                 placeholder="pong"
               />
             </div>
@@ -618,14 +618,14 @@ export default function CallBuilder() {
               <button
                 onClick={handleSubmitReceipt}
                 disabled={isLoading || !isConnected}
-                style={{ padding:"10px 8px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontWeight:600,fontSize:12,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1 }}
+                style={{ padding:"10px 8px",borderRadius:999,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontWeight:600,fontSize:12,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1 }}
               >
                 Submit receipt (EIP-712)
               </button>
               <button
                 onClick={handleClaimTimeout}
                 disabled={isLoading}
-                style={{ padding:"10px 8px",borderRadius:8,border:"1px solid rgba(238,69,57,0.3)",background:"rgba(238,69,57,0.06)",color:"#EE4539",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
+                style={{ padding:"10px 8px",borderRadius:999,border:"1px solid rgba(238,69,57,0.3)",background:"rgba(238,69,57,0.06)",color:"#EE4539",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
               >
                 Claim timeout
               </button>
@@ -678,7 +678,7 @@ export default function CallBuilder() {
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#19D186,#0E9F6E)",color:"#fff",border:"none",borderRadius:10,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(25,209,134,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
+              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#19D186,#0E9F6E)",color:"#fff",border:"none",borderRadius:999,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(25,209,134,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
               onMouseEnter={e=>{if(!isLoading&&isConnected){(e.target as HTMLElement).style.transform="translateY(-2px)";(e.target as HTMLElement).style.boxShadow="0 6px 28px rgba(25,209,134,0.5)";}}}
               onMouseLeave={e=>{(e.target as HTMLElement).style.transform="";(e.target as HTMLElement).style.boxShadow="0 4px 20px rgba(25,209,134,0.4)";}}
             >
@@ -707,7 +707,7 @@ export default function CallBuilder() {
             <button
               onClick={handleBatch}
               disabled={batchRunning || !isConnected}
-              style={{ width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700,cursor: batchRunning||!isConnected ? "not-allowed":"pointer",opacity: batchRunning||!isConnected ? 0.5:1 }}
+              style={{ width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:999,padding:"10px",fontSize:13,fontWeight:700,cursor: batchRunning||!isConnected ? "not-allowed":"pointer",opacity: batchRunning||!isConnected ? 0.5:1 }}
             >
               {batchRunning ? `Running (${batchResults.length}/${batchCount})…` : `Run ${batchCount} calls →`}
             </button>

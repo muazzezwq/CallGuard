@@ -142,7 +142,7 @@ export default function Leaderboard() {
 
       {/* Compare strip */}
       {compareSet.size > 0 && (
-        <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+        <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "12px 16px", marginBottom: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 10 }}>
             Comparing ({compareSet.size}/3)
           </div>
@@ -176,7 +176,7 @@ export default function Leaderboard() {
                 setPanel("calls");
               }
             }}
-            style={{ marginTop: 10, padding: "7px 16px", background: "var(--accent)", color: "#000", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
+            style={{ marginTop: 10, padding: "7px 16px", background: "var(--accent)", color: "#000", border: "none", borderRadius:999, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
           >
             Use Best Provider →
           </button>

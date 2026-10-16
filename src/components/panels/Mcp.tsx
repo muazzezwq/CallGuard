@@ -143,7 +143,7 @@ export default function Mcp() {
       <div style={{ display:'flex', gap:4, background:'var(--bg-2)', borderRadius:14, padding:4, marginBottom:20, width:'fit-content', flexWrap:'wrap' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding:'7px 14px', borderRadius:7, border:'none', cursor:'pointer',
+            padding:'7px 14px', borderRadius:999, border:'none', cursor:'pointer',
             fontSize:13, fontWeight:600,
             background: tab===t.id ? 'var(--accent)' : 'transparent',
             color:       tab===t.id ? '#000'           : 'var(--text-dim)',

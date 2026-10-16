@@ -31,7 +31,7 @@ const s = {
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
   btn: (variant = "default", disabled = false) => ({
-    padding: "9px 16px", borderRadius: 8, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
+    padding: "9px 16px", borderRadius:999, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
     background: variant === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : variant === "danger" ? "rgba(238,69,57,0.12)" : "var(--bg-3)",
     color: variant === "primary" ? "#fff" : variant === "danger" ? "#EE4539" : "var(--text)",
     opacity: disabled ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6,
@@ -39,7 +39,7 @@ const s = {
   stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const },
   statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-display)" },
   statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
-  tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 4 },
+  tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
   tab: (active: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: active ? "var(--accent)" : "transparent", color: active ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
 };
 

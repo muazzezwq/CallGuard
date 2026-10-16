@@ -170,7 +170,7 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare, top }: {
           className="mp-btn-profile"
           onClick={() => onProfile(p.id)}
           title="View profile"
-          style={{ padding:"0 10px",borderRadius:7,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text-dim)",fontSize:12,cursor:"pointer",height:36,display:"inline-flex",alignItems:"center" }}
+          style={{ padding:"0 10px",borderRadius:999,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text-dim)",fontSize:12,cursor:"pointer",height:36,display:"inline-flex",alignItems:"center" }}
         >
           👤
         </button>

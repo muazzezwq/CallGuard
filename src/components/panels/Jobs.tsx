@@ -30,7 +30,7 @@ const s: Record<string, React.CSSProperties> = {
   label: { fontSize: 12, color: "var(--text-dim)", marginBottom: 5, display: "block" },
   input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius:10, padding: "9px 12px", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
   btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius:999, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
-  btnSecondary: { background: "var(--bg-3)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
+  btnSecondary: { background: "var(--bg-3)", color: "var(--text)", border: "1px solid var(--border)", borderRadius:999, padding: "8px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
   output: { background: "var(--bg-0)", border: "1px solid var(--border)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" as const, minHeight: 60, marginTop: 10 },
 };
 
