@@ -43,3 +43,8 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - Register/BulkCall/Bridge/Agent/Privacy: normalized leftover radii (cards -> 14, chips/buttons -> 999) and tokenized Privacy danger color/tag.
 - Nanopayments (Nano) fixed earlier; SLA Bridge (Attestation) and Settings already use project classes + tokens; left as-is.
 - typecheck + build pass. Inventory rows 13, 14, 16, 17, 24, 27, 29, 30, 34 -> `done` (26 total). Next: Batch 4 (T5 DETAIL + T6 DOCS: ProviderProfile, Verify, Mcp, ApiDocs).
+
+## Phase 5 — Batch 4 (T5 DETAIL + T6 DOCS)
+- Provider details: tokenized status badge + avatar (fixed invalid `var(--accent)20`).
+- Verify Receipt / API-MCP / API Docs: normalized leftover radii (cards -> 14, tags -> 999).
+- typecheck + build pass. Inventory rows 8, 9, 10, 28 -> `done` (30 total). Next: Batch 5 (T7 HYBRID: Webhooks, Pipeline Hook, RepFi Lending, SLA Futures).

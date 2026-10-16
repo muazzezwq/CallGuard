@@ -104,12 +104,12 @@ export default function ProviderProfile() {
         <>
           <div style={S.card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent)20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--accent-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
               </div>
-              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '12px', background: isActive ? '#19D18620' : '#6b728020', color: isActive ? '#19D186' : '#9ca3af', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
+              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '999px', background: isActive ? 'var(--accent-bg)' : 'var(--bg-3)', color: isActive ? 'var(--accent)' : 'var(--text-dim)', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>

@@ -17,9 +17,9 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 5 | Receipts | `receipts` | `src/components/panels/Receipts.tsx` | useSubgraph + fetch | done |
 | 6 | Providers | `providers` | `src/components/panels/Providers.tsx` | fetch `/api` + lib/config | done |
 | 7 | Rankings | `leaderboard` | `src/components/panels/Leaderboard.tsx` | useSubgraph | done |
-| 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | lib/config | todo |
-| 9 | API / MCP | `mcp` | `src/components/panels/Mcp.tsx` | useSubgraph + fetch `/api` + lib/config | todo |
-| 10 | API Docs | `apidocs` | `src/components/panels/ApiDocs.tsx` | fetch `/api` | todo |
+| 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | lib/config | done |
+| 9 | API / MCP | `mcp` | `src/components/panels/Mcp.tsx` | useSubgraph + fetch `/api` + lib/config | done |
+| 10 | API Docs | `apidocs` | `src/components/panels/ApiDocs.tsx` | fetch `/api` | done |
 | 11 | Webhooks | `webhooks` | `src/components/panels/Webhooks.tsx` | fetch | todo |
 | 12 | Pipeline Hook | `pipelinehook` | `src/components/panels/PipelineHook.tsx` | fetch + lib/config | todo |
 | 13 | Nanopayments | `nano` | `src/components/panels/Nano.tsx` | fetch `/api` + lib/config | done |
@@ -37,7 +37,7 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 25 | Subscriptions | `subscriptions` | `src/components/panels/Subscriptions.tsx` | useSubgraph | done |
 | 26 | Jobs | `jobs` | `src/components/panels/Jobs.tsx` | lib/config | done |
 | 27 | Bulk Call | `bulkcall` | `src/components/panels/BulkCall.tsx` | lib/config | done |
-| 28 | Verify Receipt | `verify` | `src/components/panels/Verify.tsx` | fetch `/api` + lib/config | todo |
+| 28 | Verify Receipt | `verify` | `src/components/panels/Verify.tsx` | fetch `/api` + lib/config | done |
 | 29 | Register | `register` | `src/components/panels/Register.tsx` | lib/config | done |
 | 30 | Privacy | `privacy` | `src/components/panels/Privacy.tsx` | static / local | done |
 | 31 | Admin Panel | `admin` | `src/components/panels/AdminPanel.tsx` | lib/config | done |

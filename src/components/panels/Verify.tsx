@@ -309,7 +309,7 @@ export default function Verify() {
           <div style={{
             marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)",
             color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "#EE4539" : "var(--text-dim)",
-            padding: "7px 10px", background: "var(--bg-3)", borderRadius: 6,
+            padding: "7px 10px", background: "var(--bg-3)", borderRadius: 10,
           }}>
             {rcpStatus}
             {rcpTxHash && (

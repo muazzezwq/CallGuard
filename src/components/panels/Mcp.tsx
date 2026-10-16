@@ -293,7 +293,7 @@ export default function Mcp() {
             <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
-          <div style={{ background:'rgba(25,209,134,0.05)', border:'1px solid rgba(25,209,134,0.2)', borderRadius:8, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>
+          <div style={{ background:'rgba(25,209,134,0.05)', border:'1px solid rgba(25,209,134,0.2)', borderRadius:14, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>
             Compatible with Claude Desktop, Cursor, Cline, Continue.dev, and any MCP v1.0+ client.
           </div>
         </div>
