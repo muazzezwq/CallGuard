@@ -3101,7 +3101,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   color: var(--text-muted);
   font-size: 0.9rem;
 }
-.mono { font-family: monospace; }
+.mono { font-family: var(--font-mono); }
 
 /* ══════════════════════════════════════════════
    MARKETPLACE PREMIUM UI  (.mp-*)

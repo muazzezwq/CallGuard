@@ -464,3 +464,15 @@
   .tx-row__meta { grid-column: 2 / span 2; flex-direction: row; justify-content: space-between; }
   .tx-row__amt { grid-column: 2; }
 }
+
+/* ── Unified Balance panel ── */
+.ub-amount { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.ub-note { font-size: 12px; color: var(--text-dim); margin: 0; }
+.ub-error { font-size: 13px; color: var(--danger); }
+
+/* ── Subscriptions panel ── */
+.sub-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-faint); text-transform: uppercase; }
+.sub-meta { font-size: 12px; color: var(--text-dim); }
+.sub-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 14px; }
+.sub-row__title { font-weight: 600; font-size: 14px; color: var(--text); }
+.sub-total { font-size: 13px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }

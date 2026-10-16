@@ -9,6 +9,8 @@
 
 import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
+import { PageHeader, SectionCard, StatCard, Button, EmptyState, Skeleton } from "../ui";
+import { RefreshCw } from "lucide-react";
 
 interface ChainBalance {
   chain?: { id?: number; name?: string };
@@ -42,79 +44,78 @@ export default function UnifiedBalance() {
     }
   }, [address]);
 
-  if (!isConnected) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <p className="text-xs text-zinc-500 text-center">Connect your wallet to see Unified Balance</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">
-            UB
-          </div>
-          <div>
-            <h3 className="text-white font-semibold text-sm">Gateway Unified Balance</h3>
-            <p className="text-xs text-zinc-400">USDC across all chains — one balance</p>
-          </div>
-        </div>
-        <button
-          onClick={fetchBalance}
-          disabled={loading}
-          className="rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1.5 text-xs font-medium text-white transition-colors"
-        >
-          {loading ? "Loading..." : "Fetch"}
-        </button>
-      </div>
+    <div className="ov-page">
+      <PageHeader
+        title="Unified Balance"
+        subtitle="USDC across all chains — one balance."
+        actions={
+          <Button variant="secondary" size="sm" onClick={fetchBalance} disabled={loading || !isConnected}>
+            <RefreshCw size={14} /> {loading ? "Loading…" : "Fetch"}
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400">
-          {error}
+      {!isConnected && (
+        <SectionCard>
+          <EmptyState
+            title="Connect your wallet"
+            description="Connect your wallet to see your unified Gateway balance."
+          />
+        </SectionCard>
+      )}
+
+      {isConnected && error && (
+        <SectionCard>
+          <div className="ub-error">{error}</div>
+        </SectionCard>
+      )}
+
+      {isConnected && loading && !data && (
+        <div className="ov-grid4">
+          <StatCard label="Total Unified Balance" value="—" loading />
         </div>
       )}
 
-      {data && (
-        <div className="space-y-3">
-          <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4 flex items-center justify-between">
-            <span className="text-sm text-zinc-300">Total Unified Balance</span>
-            <span className="text-lg font-bold text-white">
-              {data.total ? `${parseFloat(data.total).toFixed(2)} USDC` : "—"}
-            </span>
+      {isConnected && data && (
+        <>
+          <div className="ov-grid4">
+            <StatCard
+              label="Total Unified Balance"
+              value={data.total ? `${parseFloat(data.total).toFixed(2)} USDC` : "—"}
+              unavailable={!data.total}
+            />
           </div>
 
           {data.chains && data.chains.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500 font-medium">Chain Breakdown</p>
-              {data.chains.map((c, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                  <span className="text-xs text-zinc-400">
-                    {c.chain?.name ?? `Chain ${c.chain?.id ?? i}`}
-                  </span>
-                  <span className="text-xs text-white font-mono">
-                    {c.balance ? `${parseFloat(c.balance).toFixed(6)} USDC` : "0 USDC"}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <SectionCard title="Chain Breakdown" bodyClass="ui-section__body--flush">
+              <ul className="ov-health">
+                {data.chains.map((c, i) => (
+                  <li key={i} className="ov-health__row">
+                    <span className="ov-health__name">{c.chain?.name ?? `Chain ${c.chain?.id ?? i}`}</span>
+                    <span className="mono ub-amount">
+                      {c.balance ? `${parseFloat(c.balance).toFixed(6)} USDC` : "0 USDC"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
           )}
-        </div>
+        </>
       )}
 
-      {!data && !loading && !error && (
-        <p className="text-xs text-zinc-500 text-center py-2">
-          Press the "Fetch" button to see your balance.
-        </p>
+      {isConnected && !data && !loading && !error && (
+        <SectionCard>
+          <EmptyState
+            title="No balance loaded"
+            description={'Press "Fetch" to see your balance across chains.'}
+          />
+        </SectionCard>
       )}
 
-      <div className="border-t border-white/5 pt-3">
-        <p className="text-xs text-zinc-500">
-          Circle Gateway — combined cross-chain USDC balance. No Kit Key required.
-        </p>
-      </div>
+      <SectionCard>
+        <p className="ub-note">Circle Gateway — combined cross-chain USDC balance. No Kit Key required.</p>
+      </SectionCard>
     </div>
   );
 }
