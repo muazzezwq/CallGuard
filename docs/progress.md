@@ -60,3 +60,9 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - `MarketingLayout.tsx` navbar remapped to spec: Home (`/`, green underline active) · Product (`/#product`) · Developers (`/#developers`) · Ecosystem (`/#ecosystem`) · Docs (`/docs`); "Built on Arc" now an outline pill.
 - HowItWorks / Docs / Providers / Security / About already tokenized from Phase 3; verified, no change.
 - Verified: typecheck + build pass; landing + all marketing routes render, console clean; dark + light both correct; #product/#developers/#ecosystem anchors present; 4 product cards, 4 dev cards, 4 stat cells. Next: Phase 7 (3D hero), then Phase 8 (final pass + dist rebuild).
+
+## Phase 7 — 3D hero scene
+- Added pins (React 18 compatible): `three@0.169.0`, `@react-three/fiber@8.17.10`, `@react-three/drei@9.114.3`, `@react-three/postprocessing@2.16.3`, dev `@types/three@0.169.0`. `bun.lock` + `package-lock.json` synced.
+- New `src/marketing/HeroScene.tsx` (own chunk, lazy): emissive green hexagonal-prism core + translucent hex ring; 40-60 instanced hex-prism nodes (green/blue, split into two InstancedMeshes); edge `lineSegments`; 7 travelling light pulses; 260-point particle shell; drei `Html` chips (AI Agents / Providers / Callers); Bloom via EffectComposer. Motion: slow auto-rotation, eased mouse parallax, slight zoom-out on scroll, dpr [1,1.5].
+- `Landing.tsx` `HeroArt`: `React.lazy` + `Suspense`, chooses scene only when WebGL exists, not reduced-motion, and not low-end (`hardwareConcurrency<=4 || deviceMemory<=4`); otherwise the `NetworkGraph` SVG fallback. 24 nodes on <700px, 48 otherwise. IntersectionObserver pauses the canvas (`frameloop "never"`) when off-screen. One canvas on the page.
+- typecheck + build pass. Next: Phase 8 final pass.

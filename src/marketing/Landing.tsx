@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSubgraph } from "../hooks/useSubgraph";
-import { CONFIG } from "../lib/config";
 import { useReveal } from "./useReveal";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 import { NetworkGraph } from "../components/viz/NetworkGraph";
 import {
   Lock, FileCheck2, ShieldCheck, Zap, Terminal, Webhook, Workflow, BadgeCheck,
   Check, Copy,
 } from "lucide-react";
+
+const HeroScene = lazy(() => import("./HeroScene"));
 
 const HERO_CHIPS = [
   { label: "On-chain Escrow",  Icon: Lock },
@@ -76,6 +78,65 @@ function Num({ value }: { value: number }) {
   return <>{value.toLocaleString("en-US")}</>;
 }
 
+const ART_LABELS = ["AI Agents", "Providers", "Callers"];
+
+function supportsWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(
+      window.WebGLRenderingContext &&
+      (c.getContext("webgl") || c.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/* Low-end guard: WebGL may exist but be software-rendered / underpowered. */
+function isLowEnd() {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const cores = nav.hardwareConcurrency ?? 8;
+  const mem = nav.deviceMemory ?? 8;
+  return cores <= 4 || mem <= 4;
+}
+
+function HeroArt() {
+  const reduce = useReducedMotion();
+  const [ready, setReady] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [count, setCount] = useState(48);
+  const [scene, setScene] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCount(window.innerWidth < 700 ? 24 : 48);
+    setScene(supportsWebGL() && !isLowEnd());
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(([e]) => setPaused(!e.isIntersecting), { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const fallback = <div className="viz3d-fallback"><NetworkGraph labels={ART_LABELS} seed={11} height={420} /></div>;
+
+  return (
+    <div className="viz3d-wrap" ref={box}>
+      {ready && scene && !reduce ? (
+        <Suspense fallback={fallback}>
+          <HeroScene paused={paused} count={count} />
+        </Suspense>
+      ) : (
+        fallback
+      )}
+    </div>
+  );
+}
+
 export default function Landing() {
   const { launch } = useOutletContext<{ launch: () => void }>();
   const { data } = useSubgraph<{ calls: Call[]; providers: Prov[] }>(Q, { enabled: true });
@@ -135,7 +196,7 @@ export default function Landing() {
           </div>
 
           <div className="mk-hero__art">
-            <NetworkGraph labels={["AI Agents", "Providers", "Callers"]} seed={11} height={420} />
+            <HeroArt />
           </div>
         </div>
 
