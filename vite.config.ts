@@ -10,5 +10,20 @@ export default defineConfig({
     allowedHosts: "all",
   },
   root: ".",
-  build: { outDir: "dist" },
+  build: {
+    outDir: "dist",
+    rollupOptions: {
+      output: {
+        // Long-term-cacheable vendor groups. Object form lets Rollup resolve each
+        // package and its deps into the named chunk (imports/provider code untouched).
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-web3": ["wagmi", "viem", "connectkit"],
+          "vendor-charts": ["recharts"],
+          "vendor-motion": ["framer-motion"],
+          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei"],
+        },
+      },
+    },
+  },
 });
