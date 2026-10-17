@@ -89,3 +89,10 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - WebGL scene confirmed live by GPU readback (`gl.readPixels`): 13 draw calls / 2280 tris, bright green core (`max` sum 506) over a soft bloom haze; corners `(0,26,13)`. The harness screenshot does **not** composite the WebGL surface (DOM chips show, canvas pixels do not), so visual proof uses the readback plus the SVG fallback capture.
 - Reduced-motion / low-end fallback verified by forcing the fallback branch: `NetworkGraph` SVG renders the "C" core + nodes (capturable). Screenshot `docs/screenshots/landing-fallback-1280-dark.png`.
 - Decisions logged; typecheck + build pass; `dist/` rebuilt. Next: delete `tmp-screenshots`, finalize.
+
+## Phase E — Finalize (SPEC_6)
+- `git grep -n "mock(\|AutoConnect\|autoConnect\|MOCK" -- src` -> no matches; `main` has no mock-wallet code.
+- `git branch --list tmp-screenshots` and the remote list -> none; the throwaway branch is gone.
+- `bun run typecheck` -> exit 0; `bun run build` -> exit 0; `dist/` byte-identical (no rebuild needed, already current).
+- Inventory final: **34/34 panels done** + 6/6 marketing pages done; `docs/audit.md` 20 done / 0 partial / 0 missing.
+- Task complete. No unfinished items.
