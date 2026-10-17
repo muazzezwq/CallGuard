@@ -3,6 +3,9 @@ import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits, parseUnits } from "viem";
 import { useState } from "react";
 import { CONFIG, USDC_ABI, PPC_ABI, arcTestnet } from "../../lib/config";
+import { errText } from "../../lib/utils";
+
+type PayCall = { id: string; providerId?: string | number; amount?: string; completedAt?: string };
 
 export default function Payments() {
   const { address, isConnected } = useAccount();
@@ -32,13 +35,13 @@ export default function Payments() {
 
   const { writeContractAsync } = useWriteContract();
 
-  const { data, loading } = useSubgraph<{calls:any[]}>(address ? `{
+  const { data, loading } = useSubgraph<{calls: PayCall[]}>(address ? `{
     calls(where:{caller:"${address.toLowerCase()}",status:"COMPLETED"} orderBy:completedAt orderDirection:desc first:20){
       id providerId amount completedAt
     }
   }` : "", { enabled: !!address, pollInterval: 30000 });
 
-  const totalSpent = (data?.calls ?? []).reduce((s:number,c:any)=>s+Number(formatUnits(BigInt(c.amount??0),6)),0);
+  const totalSpent = (data?.calls ?? []).reduce((s:number,c: PayCall)=>s+Number(formatUnits(BigInt(c.amount??0),6)),0);
 
   // CRITICAL-06: claim() pull settlement
   const handleClaim = async () => {
@@ -53,7 +56,7 @@ export default function Payments() {
       });
       setStatus("Claimed!");
       void refetchClaimable();
-    } catch(e:unknown){ const err = e as any; setStatus(err?.shortMessage || (err instanceof Error ? err.message : String(err)) || "Transaction failed"); }
+    } catch(e:unknown){ setStatus(errText(e) || "Transaction failed"); }
   };
 
   const handleSend = async () => {
@@ -72,7 +75,7 @@ export default function Payments() {
       });
       setStatus("Sent!");
       setSendTo(""); setSendAmt("");
-    } catch(e:unknown){ const err = e as any; setStatus(err?.shortMessage || (err instanceof Error ? err.message : String(err)) || "Transaction failed"); }
+    } catch(e:unknown){ setStatus(errText(e) || "Transaction failed"); }
   };
 
   const balance = balanceData ? formatUnits(balanceData as bigint, 6) : "—";
@@ -115,7 +118,7 @@ export default function Payments() {
         <div className="cg-card">
           <div className="card-title mb-3">Recent Payments</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {(data?.calls??[]).map((c:any)=>(
+            {(data?.calls??[]).map((c: PayCall)=>(
               <div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
                 <span className="text-dim text-sm">Provider #{c.providerId}</span>
                 <span className="text-sm" style={{color:"var(--red)"}}>−{formatUnits(BigInt(c.amount??0),6)} USDC</span>

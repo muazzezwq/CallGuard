@@ -78,6 +78,13 @@ export default tseslint.config(
       // TypeScript already resolves identifiers; core no-undef only produces
       // false positives on type-only names and ambient globals in TS files.
       "no-undef": "off",
+      // The TS-aware rule supersedes the core one; running both double-reports
+      // the same unused binding. Ignore `_`-prefixed unused args by convention.
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },

@@ -25,12 +25,13 @@ export const CCTP_CONFIG = {
 export async function switchToChain(chainKey: string): Promise<void> {
   const chain = CCTP_CONFIG.chains[chainKey];
   if (!chain) throw new Error(`Unknown chain: ${chainKey}`);
-  const provider = (window as any).ethereum;
+  const provider = (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
   if (!provider) throw new Error("No wallet provider found");
   try {
     await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chain.chainIdHex }] });
-  } catch (err: any) {
-    if (err.code === 4902 || err.code === -32603) {
+  } catch (err: unknown) {
+    const code = (err as { code?: number }).code;
+    if (code === 4902 || code === -32603) {
       await provider.request({
         method: "wallet_addEthereumChain",
         params: [{
@@ -43,7 +44,7 @@ export async function switchToChain(chainKey: string): Promise<void> {
           blockExplorerUrls: [chain.explorer],
         }],
       });
-    } else if (err.code === 4001) {
+    } else if (code === 4001) {
       throw new Error("Chain switch rejected by user.");
     } else {
       throw err;
@@ -62,7 +63,7 @@ export async function waitForAttestation(sourceDomain: number, burnTxHash: strin
       if (msg?.status === "complete" && msg?.attestation && msg?.attestation !== "PENDING") {
         return { message: msg.message, attestation: msg.attestation };
       }
-    } catch {}
+    } catch { /* transient fetch/parse error — retry */ }
     await new Promise(r => setTimeout(r, 3000));
   }
   throw new Error("Attestation timeout. Burn TX succeeded — check ArcScan in a few minutes.");

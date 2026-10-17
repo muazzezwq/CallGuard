@@ -4,12 +4,14 @@ import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
 import { useAppStore } from "../../store/useAppStore";
 
+type Receipt = { id: string; providerId?: string | number; amount?: string; status?: string; completedAt?: string; responseHash?: string; requestHash?: string };
+
 export default function Receipts() {
   const { address } = useAccount();
   const [copied, setCopied] = useState<string|null>(null);
   const openVerify = useAppStore(s => s.openVerify);
 
-  const { data, loading, refetch } = useSubgraph<{calls:any[]}>(address ? `{
+  const { data, loading, refetch } = useSubgraph<{calls: Receipt[]}>(address ? `{
     calls(where:{caller:"${address.toLowerCase()}",status_in:["COMPLETED","SLASHED"]}
       orderBy:completedAt orderDirection:desc first:50){
       id providerId amount status completedAt responseHash requestHash

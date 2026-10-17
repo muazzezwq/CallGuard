@@ -11,7 +11,7 @@ const PPC_HOOK_ABI = [
 type TxState = "idle" | "pending" | "mining" | "success" | "error";
 
 export default function PipelineHook() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const [hookInput, setHookInput] = useState("");
   const [txState, setTxState] = useState<TxState>("idle");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();

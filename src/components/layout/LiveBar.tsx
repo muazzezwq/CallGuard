@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { CONFIG } from "../../lib/config";
 
 const HONOR_QUERY = `{ calls(first:200,orderBy:createdAt,orderDirection:desc){status} }`;
 

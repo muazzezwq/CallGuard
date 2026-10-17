@@ -6,16 +6,6 @@ import { CONFIG } from '../../lib/config'
 
 const QUERY = `{ providers(first:5 orderBy:completedCalls orderDirection:desc) { id pricePerCall completedCalls slashedCalls } }`
 
-const USDC_ABI = [
-  { name:"transferWithAuthorization", type:"function", stateMutability:"nonpayable",
-    inputs:[
-      {name:"from",type:"address"},{name:"to",type:"address"},
-      {name:"value",type:"uint256"},{name:"validAfter",type:"uint256"},
-      {name:"validBefore",type:"uint256"},{name:"nonce",type:"bytes32"},
-      {name:"v",type:"uint8"},{name:"r",type:"bytes32"},{name:"s",type:"bytes32"},
-    ], outputs:[] },
-] as const;
-
 const S = {
   card: { background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:14, padding:20, marginBottom:16 },
   label: { fontSize:11, fontWeight:600 as const, letterSpacing:'0.08em', color:'var(--text-faint)', textTransform:'uppercase' as const, marginBottom:6, display:'block' as const },

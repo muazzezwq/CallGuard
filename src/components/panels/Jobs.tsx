@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAccount, useWalletClient, usePublicClient } from "wagmi";
-import { parseUnits, keccak256, toHex, encodeFunctionData } from "viem";
+import { parseUnits, keccak256, toHex } from "viem";
 // MEDIUM-09: import USDC_ABI from config
 import { CONFIG, USDC_ABI } from "../../lib/config";
-import { CheckCircle, ChevronRight, AlertTriangle } from "lucide-react";
+import { errText } from "../../lib/utils";
+import { CheckCircle } from "lucide-react";
 
 const JOBS_ABI = [
   { name: "createJob", type: "function", inputs: [{ name: "provider", type: "address" }, { name: "client", type: "address" }, { name: "expiredAt", type: "uint256" }, { name: "description", type: "string" }, { name: "evaluator", type: "address" }], outputs: [{ name: "jobId", type: "uint256" }], stateMutability: "nonpayable" },
@@ -50,12 +51,11 @@ export default function Jobs() {
   const [budget, setBudget] = useState("");
   const [deliverable, setDeliverable] = useState("");
   const [checkId, setCheckId] = useState("");
-  const [checkResult, setCheckResult] = useState<any>(null);
+  const [checkResult, setCheckResult] = useState<{ error?: string; provider?: string; client?: string; budget?: string; status?: string } | null>(null);
 
   function log(msg: string) { setOutput(prev => prev + (prev ? "\n" : "") + msg); }
   function clearLog() { setOutput(""); }
 
-  function txLink(hash: string) { return `https://explorer.testnet.arc.io/tx/${hash}`; }
 
   async function doCreateJob() {
     if (!walletClient || !address) { log("Connect wallet first"); return; }
@@ -73,8 +73,8 @@ export default function Jobs() {
       const receipt = await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job created\ntx: ${hash.slice(0, 12)}...\nBlock: ${receipt.blockNumber}\n\nNext: set a budget for this job.`);
       setStep(1);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -95,8 +95,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Budget set — ${budget} USDC for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: fund the escrow.`);
       setStep(2);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -135,8 +135,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Escrow funded for job #${jobId}\ntx: ${hash.slice(0, 12)}...\n\nNext: provider submits deliverable.`);
       setStep(3);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -158,8 +158,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Deliverable submitted for job #${jobId}\nhash: ${deliverableHash.slice(0, 12)}...\ntx: ${hash.slice(0, 12)}...\n\nNext: evaluator approves and settles.`);
       setStep(4);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -180,8 +180,8 @@ export default function Jobs() {
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} completed and settled!\ntx: ${hash.slice(0, 12)}...\n\nUSDC released to provider.`);
       setStep(5);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -199,8 +199,8 @@ export default function Jobs() {
       });
       await publicClient!.waitForTransactionReceipt({ hash });
       log(`✓ Job #${jobId} cancelled\ntx: ${hash.slice(0, 12)}...`);
-    } catch (_err: unknown) { const e = _err as any;
-      log("Error: " + ((e instanceof Error ? (e instanceof Error ? e.message : String(e)) : String(e))));
+    } catch (_err: unknown) {
+      log("Error: " + (_err instanceof Error ? _err.message : String(_err)));
     }
     setLoading(false);
   }
@@ -213,7 +213,7 @@ export default function Jobs() {
         abi: JOBS_ABI,
         functionName: "doCheckJob",
         args: [BigInt(checkId)],
-      }) as any;
+      }) as { provider?: string; client?: string; budget?: bigint | string; status?: bigint | number };
       const statusNames = ["NONE", "CREATED", "FUNDED", "SUBMITTED", "COMPLETED", "CANCELLED"];
       setCheckResult({
         provider: result?.provider || "—",
@@ -221,8 +221,8 @@ export default function Jobs() {
         budget: result?.budget ? (Number(result.budget) / 1e6).toFixed(4) + " USDC" : "—",
         status: statusNames[Number(result?.status)] || "UNKNOWN",
       });
-    } catch (_err: unknown) { const e = _err as any;
-      setCheckResult({ error: e.shortMessage || (e instanceof Error ? e.message : String(e)) });
+    } catch (_err: unknown) {
+      setCheckResult({ error: errText(_err) });
     }
   }
 

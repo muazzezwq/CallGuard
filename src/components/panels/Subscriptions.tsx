@@ -20,7 +20,7 @@ export default function Subscriptions() {
   const [subscribing] = useState<string | null>(null)
   const [callsToPreBuy, setCallsToPreBuy] = useState(10)
 
-  const providers = (data as any)?.providers || []
+  const providers = (data as { providers?: { id: string; pricePerCall: string; completedCalls?: string | number }[] })?.providers || []
 
   function subscribe(_providerId: string, _pricePerCall: string) {
     toast.info("Subscriptions aren't live on Arc Testnet yet — pre-buying calls is coming soon.")
@@ -73,7 +73,7 @@ export default function Subscriptions() {
           <EmptyState title="No active providers" description="No active providers indexed yet." />
         ) : (
           <div style={{ display: 'grid', gap: 8 }}>
-            {providers.map((p: any) => {
+            {providers.map((p) => {
               const price = Number(formatUnits(BigInt(p.pricePerCall || '0'), 6))
               const total = (price * callsToPreBuy).toFixed(2)
               const alreadySub = subs.some(s => s.providerId === p.id)

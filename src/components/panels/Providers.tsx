@@ -126,7 +126,7 @@ export default function Providers() {
   // getProvider returns a named 9-field ProviderView tuple; viem decodes named tuples to an
   // object, with positional indexes kept as a fallback for older shapes.
   // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
-  const r = provData as any;
+  const r = provData as Record<string | number, unknown> | undefined;
   const signer = r?.signer ?? r?.[1];
   const p = signer ? {
     signer:          signer as string,

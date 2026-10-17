@@ -50,7 +50,7 @@ export default function Notifications() {
     abi: PPC_ABI,
     eventName: "CallStarted",
     onLogs: logs => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       push({
         type: "call",
         msg: `Call started → Provider #${a.providerId}`,
@@ -66,7 +66,7 @@ export default function Notifications() {
     abi: PPC_ABI,
     eventName: "ReceiptSubmitted",
     onLogs: logs => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       push({
         type: "receipt",
         msg: `Receipt submitted`,
@@ -82,7 +82,7 @@ export default function Notifications() {
     abi: PPC_ABI,
     eventName: "CallSlashed",
     onLogs: logs => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       push({
         type: "slash",
         msg: `Deadline missed — provider slashed ${Number(a.slashed || 0) / 1e6} USDC`,

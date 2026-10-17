@@ -127,18 +127,22 @@ export default function AppShell() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "Escape") { setSidebarOpen(false); setPaletteOpen(false); return; }
       // g+o, g+c etc via data attribute trick
-      if ((window as any).__cgLastKey === "g") {
+      const w = window as unknown as Window & {
+        __cgLastKey?: string | null;
+        __cgLastKeyTimer?: ReturnType<typeof setTimeout>;
+      };
+      if (w.__cgLastKey === "g") {
         const map: Record<string, PanelId> = {
           o: "overview", c: "calls", m: "marketplace",
           r: "requests", p: "providers", e: "receipts",
           y: "payments", d: "disputes", h: "history",
           a: "analytics", n: "notifications",
         };
-        if (map[e.key]) { setPanel(map[e.key]); (window as any).__cgLastKey = null; e.preventDefault(); return; }
+        if (map[e.key]) { setPanel(map[e.key]); w.__cgLastKey = null; e.preventDefault(); return; }
       }
-      (window as any).__cgLastKey = e.key;
-      if ((window as any).__cgLastKeyTimer) clearTimeout((window as any).__cgLastKeyTimer);
-      (window as any).__cgLastKeyTimer = setTimeout(() => { (window as any).__cgLastKey = null; }, 800);
+      w.__cgLastKey = e.key;
+      if (w.__cgLastKeyTimer) clearTimeout(w.__cgLastKeyTimer);
+      w.__cgLastKeyTimer = setTimeout(() => { w.__cgLastKey = null; }, 800);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

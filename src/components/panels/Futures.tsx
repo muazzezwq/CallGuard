@@ -1,11 +1,10 @@
 import { useState, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
-import { arcTestnet, CONFIG, USDC_ABI } from "../../lib/config";
-import { Package, ShoppingCart, Flame, RefreshCw } from "lucide-react";
+import { parseUnits } from "viem";
+import { arcTestnet, CONFIG } from "../../lib/config";
+import { Package, Flame } from "lucide-react";
 
 const FUTURES_ADDR = CONFIG.slaFuturesAddress;
-const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const FUTURES_ABI = [
   { name: "mintCapacity",  type: "function", stateMutability: "nonpayable", inputs: [{ name: "providerId", type: "uint256" }, { name: "pricePerCall", type: "uint256" }, { name: "totalSlots", type: "uint256" }, { name: "deadline", type: "uint64" }], outputs: [{ name: "", type: "uint256" }] },
@@ -37,7 +36,7 @@ const s = {
 type Tab = "browse" | "myslots" | "mint";
 
 export default function Futures() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const [tab, setTab] = useState<Tab>("browse");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -248,11 +247,11 @@ export default function Futures() {
 
 function BatchCard({ batchId }: { batchId: number }) {
   const { data } = useReadContract({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "batches", args: [BigInt(batchId)], chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
-  const b = data as any;
+  const b = data as { pricePerCall?: bigint; deadline?: bigint; totalSlots?: bigint; soldSlots?: bigint; providerId?: bigint | number; active?: boolean } | undefined;
   if (!b) return <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>Loading batch #{batchId}…</div>;
   const price = (Number(b.pricePerCall) / 1e6).toFixed(4);
   const deadline = new Date(Number(b.deadline) * 1000).toLocaleDateString();
-  const fill = b.totalSlots > 0 ? Math.round((Number(b.soldSlots) / Number(b.totalSlots)) * 100) : 0;
+  const fill = Number(b.totalSlots ?? 0) > 0 ? Math.round((Number(b.soldSlots) / Number(b.totalSlots)) * 100) : 0;
   return (
     <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useState, useCallback } from "react";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { arcTestnet, CONFIG, USDC_ABI, REPUTATION_LOAN_ABI } from "../../lib/config";
-import { TrendingUp, DollarSign, RefreshCw, AlertTriangle } from "lucide-react";
 
 // CRITICAL-01 fix: use v2 address from CONFIG, not hardcoded v1 address
 const RL_ADDR = CONFIG.reputationLoanAddress;
@@ -10,6 +9,15 @@ const RL_ADDR = CONFIG.reputationLoanAddress;
 // CRITICAL-02 fix: use canonical REPUTATION_LOAN_ABI from config
 // repay(loanId, amount) — 2 arguments, not 1
 const RL_ABI = REPUTATION_LOAN_ABI;
+
+type Loan = {
+  borrower?: string;
+  principal?: bigint | number;
+  startTime?: bigint | number;
+  duration?: bigint | number;
+  providerId?: bigint | number;
+  active?: boolean;
+};
 
 const s = {
   page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
@@ -38,17 +46,15 @@ export default function Lending() {
   const [borrowAmt, setBorrowAmt] = useState("5");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loans, setLoans] = useState<any[]>([]);
-  const [loansLoading, setLoansLoading] = useState(false);
 
   const { writeContractAsync } = useWriteContract();
 
   // CRITICAL-02: REPUTATION_LOAN_ABI uses totalAssets, not poolBalance
   const { data: poolBalance, refetch: refetchPool } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "totalAssets", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
-  const { data: totalShares, refetch: refetchShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "totalShares", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
+  const { refetch: refetchShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "totalShares", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
   // CRITICAL-02: lpPositions(address) returns {shares, depositTime} — no balanceOf
   const { data: lpPos, refetch: refetchMyShares } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "lpPositions", args: address ? [address] : undefined, chainId: arcTestnet.id, query: { enabled: !!address, refetchInterval: 20_000 } });
-  const myShares = (lpPos as any)?.shares;
+  const myShares = (lpPos as { shares?: bigint } | undefined)?.shares;
   const { data: loanCount } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "loanCount", chainId: arcTestnet.id, query: { refetchInterval: 20_000 } });
   // interestRate not in REPUTATION_LOAN_ABI v2 — use fixed display value
   const interestRate = undefined;
@@ -113,7 +119,6 @@ export default function Lending() {
   }, [isConnected, writeContractAsync, refetchAll]);
 
   const pool = poolBalance ? Number(formatUnits(poolBalance as bigint, 6)).toFixed(2) : "—";
-  const shares = totalShares ? String(totalShares) : "—";
   const mine = myShares ? String(myShares) : "0";
   const apr = interestRate ? (Number(interestRate) / 100).toFixed(1) : "—";
 
@@ -215,7 +220,7 @@ export default function Lending() {
 
 function LoanRow({ loanId, addr, onRepay, loading }: { loanId: number; addr: string; onRepay: (id: number, total: bigint) => void; loading: boolean }) {
   const { data } = useReadContract({ address: RL_ADDR, abi: RL_ABI, functionName: "loans", args: [BigInt(loanId)], chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
-  const loan = data as any;
+  const loan = data as Loan | undefined;
   if (!loan || loan.borrower?.toLowerCase() !== addr?.toLowerCase()) return null;
   const principal = BigInt(loan.principal ?? 0);
   const deadline = loan.startTime && loan.duration ? new Date((Number(loan.startTime) + Number(loan.duration)) * 1000).toLocaleDateString() : "—";

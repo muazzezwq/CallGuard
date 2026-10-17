@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { keccak256, toBytes } from "viem";
 import { CONFIG, PPC_ABI } from "../../lib/config";
+import { errText } from "../../lib/utils";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -97,10 +98,10 @@ export default function Verify() {
         args: [callId as `0x${string}`, responseHash, respondedAt, signature],
       }, {
         onSuccess: (h) => { setRcpTxHash(h); setRcpStatus("⏳ Waiting for confirmation..."); },
-        onError: (e: any) => setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
+        onError: (e: unknown) => setRcpStatus(`❌ ${errText(e)}`),
       });
-    } catch (_err: unknown) { const e = _err as any;
-      setRcpStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setRcpStatus(`❌ ${errText(_err)}`);
     }
   }, [rcpCallId, rcpPayload, address, walletClient, writeReceipt]);
 
@@ -156,7 +157,7 @@ export default function Verify() {
             abi: PPC_ABI,
             functionName: "getCall",
             args: [val as `0x${string}`],
-          }) as unknown as any;
+          }) as unknown as Record<string | number, unknown>;
           const provId = data?.providerId ?? data?.[0];
           const amt    = data?.amount     ?? data?.[2];
           const st     = data?.status     ?? data?.[7];
@@ -192,8 +193,8 @@ export default function Verify() {
       }
 
       setResult({ ok: false, error: d.error || "Receipt not found on-chain." });
-    } catch (_err: unknown) { const e = _err as any;
-      setResult({ ok: false, error: (e instanceof Error ? e.message : String(e)) });
+    } catch (_err: unknown) {
+      setResult({ ok: false, error: (_err instanceof Error ? _err.message : String(_err)) });
     }
     setLoading(false);
   }

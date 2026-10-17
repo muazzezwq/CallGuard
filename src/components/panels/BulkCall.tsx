@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { parseUnits, stringToBytes, keccak256 } from 'viem'
+import { useAccount, useWriteContract } from 'wagmi'
+import { stringToBytes, keccak256 } from 'viem'
 import { CONFIG, PPC_ABI } from '../../lib/config'
+import { errText } from '../../lib/utils'
 
 const ADDR = CONFIG.ppcAddress as `0x${string}`
 const S = {
@@ -24,7 +25,7 @@ export default function BulkCall() {
   const [results, setResults] = useState<{ i: number; hash?: string; error?: string }[]>([])
   const [running, setRunning] = useState(false)
   const [csvRows, setCsvRows] = useState<CsvRow[]>([])
-  const [csvMode, setCsvMode] = useState(false)
+  const [, setCsvMode] = useState(false)
   const { writeContractAsync } = useWriteContract()
 
   function parseCsvFile(file: File) {
@@ -51,8 +52,8 @@ export default function BulkCall() {
         const requestHash = keccak256(stringToBytes(`${r.payload}-${i}-${Date.now()}`));
         const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: "callService", args: [BigInt(r.provider_id), requestHash] });
         setResults(prev => [...prev, { i: i + 1, hash }]);
-      } catch (_err: unknown) { const e = _err as any;
-        setResults(prev => [...prev, { i: i + 1, error: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
+      } catch (_err: unknown) {
+        setResults(prev => [...prev, { i: i + 1, error: errText(_err) }]);
       }
       await new Promise(res => setTimeout(res, 800));
     }
@@ -75,8 +76,8 @@ export default function BulkCall() {
           args: [BigInt(providerId), requestHash],
         })
         setResults(r => [...r, { i: i + 1, hash }])
-      } catch (_err: unknown) { const e = _err as any;
-        setResults(r => [...r, { i: i + 1, error: e.shortMessage || (e instanceof Error ? e.message : String(e)) }])
+      } catch (_err: unknown) {
+        setResults(r => [...r, { i: i + 1, error: errText(_err) }])
       }
       await new Promise(res => setTimeout(res, 1000))
     }

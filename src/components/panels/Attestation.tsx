@@ -30,9 +30,9 @@ export default function Attestation() {
   const [providerId, setProviderId] = useState('1')
   const [callId, setCallId] = useState('')
   const [lookupId, setLookupId] = useState('')
-  const [peekResult, setPeekResult] = useState<any>(null)
+  const [peekResult, setPeekResult] = useState<unknown>(null)
   const [peekLoading, setPeekLoading] = useState(false)
-  const [lookupResult, setLookupResult] = useState<any>(null)
+  const [lookupResult, setLookupResult] = useState<unknown>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
 
@@ -91,7 +91,7 @@ export default function Attestation() {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)) }
   }
 
-  const tabs = [{ id: 'peek', label: 'Peek (Free)' }, { id: 'issue', label: 'Issue On-chain' }, { id: 'lookup', label: 'Lookup' }]
+  const tabs: { id: 'peek' | 'issue' | 'lookup'; label: string }[] = [{ id: 'peek', label: 'Peek (Free)' }, { id: 'issue', label: 'Issue On-chain' }, { id: 'lookup', label: 'Lookup' }]
 
   return (
     <div style={S.wrap}>
@@ -114,7 +114,7 @@ export default function Attestation() {
 
       <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
         ))}
       </div>
 
@@ -134,7 +134,7 @@ export default function Attestation() {
           <button style={S.btn} onClick={peek} disabled={peekLoading}>
             {peekLoading ? 'Querying...' : 'Query →'}
           </button>
-          {peekResult && (
+          {peekResult != null && (
             <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(peekResult, null, 2)}
             </div>
@@ -164,7 +164,7 @@ export default function Attestation() {
           <button style={S.btn} onClick={lookup} disabled={lookupLoading}>
             {lookupLoading ? 'Looking up...' : 'Lookup →'}
           </button>
-          {lookupResult && (
+          {lookupResult != null && (
             <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(lookupResult, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2)}
             </div>

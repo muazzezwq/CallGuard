@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
-import { PageHeader, SectionCard, StatCard, Button, EmptyState, Skeleton } from "../ui";
+import { PageHeader, SectionCard, StatCard, Button, EmptyState } from "../ui";
 import { RefreshCw } from "lucide-react";
 
 interface ChainBalance {

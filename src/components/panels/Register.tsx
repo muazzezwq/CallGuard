@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
 import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
+import { errText } from "../../lib/utils";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import ArcFeeNotice from "../ArcFeeNotice";
@@ -74,7 +75,7 @@ const s = {
 
 export default function Register() {
   const { address } = useAccount();
-  const identityAddr = (CONFIG as any).identityRegistryAddress as `0x${string}` | undefined;
+  const identityAddr = CONFIG.identityRegistryAddress as `0x${string}` | undefined;
   const [signerAddr, setSignerAddr] = useState("");
   const [stake, setStake] = useState("10");
   const [price, setPrice] = useState("1");
@@ -114,7 +115,7 @@ export default function Register() {
     query: { enabled: alreadyRegistered },
   });
 
-  const provInfo = providerData as any;
+  const provInfo = providerData as { stake?: bigint | number; pricePerCall?: bigint | number; maxResponseTime?: bigint | number } | undefined;
   const currentStake = provInfo?.stake ? formatUnits(provInfo.stake as bigint, 6) : "0";
 
   // Allowance
@@ -142,23 +143,23 @@ export default function Register() {
       args: [(providerId as bigint)],
     }, {
       onSuccess: (h) => { setUnstakeHash(h); setUnstakeStatus("⏳ Waiting for confirmation..."); },
-      onError: (e: any) => setUnstakeStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
+      onError: (e: unknown) => setUnstakeStatus(`❌ ${errText(e)}`),
     });
-  }, [address, currentStake, writeContract]);
+  }, [address, currentStake, writeContract, providerId]);
 
   useEffect(() => {
     if (unstakeTxSuccess) {
       setUnstakeStatus(`✅ Stake withdrawn — ${currentStake} USDC returned`);
       refetchProvider();
     }
-  }, [unstakeTxSuccess]);
+  }, [unstakeTxSuccess, currentStake, refetchProvider]);
 
   useEffect(() => {
     if (txSuccess) {
       if (step === "approving") { setStep("registering"); refetchAllowance(); }
       else if (step === "registering") setStep("done");
     }
-  }, [txSuccess, step]);
+  }, [txSuccess, step, refetchAllowance]);
 
   // Live calculator
   const stakeNum = parseFloat(stake) || 0;
@@ -182,7 +183,7 @@ export default function Register() {
       args: [CONFIG.registryAddress as `0x${string}`, stakeAmount],
     }, {
       onSuccess: h => setHash(h),
-      onError: (e: any) => { setStep("idle"); toast.error(e.shortMessage || (e instanceof Error ? e.message : "Approval failed")); },
+      onError: (e: unknown) => { setStep("idle"); toast.error(errText(e) || "Approval failed"); },
     });
   };
 
@@ -196,7 +197,7 @@ export default function Register() {
     args: [signerAddr as `0x${string}`, stakeAmount, priceAmount, parseInt(slaWindow), slashBps, parseInt(maxConcurrent) || 0, endpoint || ""],
     }, {
       onSuccess: h => setHash(h),
-      onError: (e: any) => { setStep("idle"); toast.error(e.shortMessage || (e instanceof Error ? e.message : "Registration failed")); },
+      onError: (e: unknown) => { setStep("idle"); toast.error(errText(e) || "Registration failed"); },
     });
   };
 
@@ -207,7 +208,7 @@ export default function Register() {
     setV2Status("⏳ Step 1/3 — Minting ERC-8004 identity NFT…");
     try {
       // Step 1: mint identity NFT
-      const identityAddr = (CONFIG as any).identityRegistryAddress as `0x${string}`;
+      const identityAddr = CONFIG.identityRegistryAddress;
       if (!identityAddr) { setV2Status("❌ Identity registry address not configured (identityRegistryAddress in config)"); setV2Step("idle"); return; }
       const mintHash = await walletClient.writeContract({ address: identityAddr, abi: IDENTITY_REGISTRY_ABI, functionName: "register", args: [endpoint || "https://callguard.vercel.app/provider"] });
       setV2Status("⏳ Step 1/3 — Waiting for NFT confirmation…");
@@ -228,7 +229,7 @@ export default function Register() {
           }
         }
         if (!tokenId) tokenId = BigInt(1); // fallback
-      } catch (waitErr) {
+      } catch {
         setV2Status("❌ Timed out waiting for NFT mint TX. Check explorer."); setV2Step("idle"); return;
       }
       if (!tokenId) { setV2Status("❌ Could not read NFT tokenId from logs"); setV2Step("idle"); return; }
@@ -249,11 +250,11 @@ export default function Register() {
       });
       setV2Status(`✅ Registered with NFT #${tokenId}! TX: ${regHash.slice(0, 14)}…`);
       setV2Step("done");
-    } catch (_err: unknown) { const e = _err as any;
-      setV2Status("❌ " + (e.shortMessage || (e instanceof Error ? e.message : String(e)) || "Failed"));
+    } catch (_err: unknown) {
+      setV2Status("❌ " + (errText(_err) || "Failed"));
       setV2Step("idle");
     }
-  }, [walletClient, address, alreadyRegistered, providerId, endpoint, signerAddr, stakeAmount, priceAmount, slaWindow, slashBps, maxConcurrent]);
+  }, [walletClient, address, alreadyRegistered, providerId, endpoint, signerAddr, stakeAmount, priceAmount, slaWindow, slashBps, maxConcurrent, publicClient]);
 
   if (step === "done") return (
     <div style={s.page}>
@@ -280,7 +281,7 @@ export default function Register() {
             <div style={{ marginTop:4, fontSize:11, color:"var(--text-dim)" }}>
               Stake: {currentStake} USDC ·
               Price: {provInfo?.pricePerCall ? formatUnits(provInfo.pricePerCall as bigint, 6) : "—"} USDC/call ·
-              SLA: {provInfo?.maxResponseTime ?? "—"}s
+              SLA: {provInfo?.maxResponseTime != null ? String(provInfo.maxResponseTime) : "—"}s
             </div>
             <div style={{ marginTop:10, display:"flex", gap:8 }}>
               <button

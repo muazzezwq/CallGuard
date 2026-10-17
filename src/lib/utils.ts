@@ -41,6 +41,19 @@ export function friendlyError(e: unknown): string {
   return (err.message || "transaction reverted").slice(0, 200);
 }
 
+// ── errText ───────────────────────────────────────────────────────────────
+// viem errors surface a `shortMessage`; fall back to `message`, then stringify.
+// Returns "" for null/undefined so callers can append their own fallback.
+export function errText(e: unknown): string {
+  if (e && typeof e === "object") {
+    const o = e as { shortMessage?: unknown; message?: unknown };
+    if (typeof o.shortMessage === "string" && o.shortMessage) return o.shortMessage;
+    if (typeof o.message === "string" && o.message) return o.message;
+  }
+  if (e instanceof Error) return e.message;
+  return e == null ? "" : String(e);
+}
+
 // ── waitWithFinality ───────────────────────────────────────────────────────
 export async function waitWithFinality(
   waitFn: () => Promise<unknown>

@@ -63,7 +63,7 @@ export default function ProviderProfile() {
     args: [validId ? BigInt(queried) : BigInt(0)], query: { enabled: validId },
   })
 
-  const p = provider as any
+  const p = provider as Record<string | number, unknown> | undefined
   // viem decodes tuples as array + named object; support both shapes
   const stake = p?.stake ?? p?.[2] ? formatUnits((p?.stake ?? p[2]) as bigint, 6) : '0'
   const price = p?.pricePerCall ?? p?.[3] ? formatUnits((p?.pricePerCall ?? p[3]) as bigint, 6) : '0'
@@ -73,6 +73,7 @@ export default function ProviderProfile() {
   const total = completed + slashed
   const honorRate = total > 0 ? Math.round((completed / total) * 100) : 0
   const isActive = p?.active
+  const signer = (p?.signer ?? p?.[1]) as string | undefined
 
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/app?provider=${queried}` : ''
   const handleCopy = () => {
@@ -109,7 +110,7 @@ export default function ProviderProfile() {
               <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--accent-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{p.signer?.slice(0, 10)}...{p.signer?.slice(-6)}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{signer?.slice(0, 10)}...{signer?.slice(-6)}</div>
               </div>
               <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '999px', background: isActive ? 'var(--accent-bg)' : 'var(--bg-3)', color: isActive ? 'var(--accent)' : 'var(--text-dim)', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>

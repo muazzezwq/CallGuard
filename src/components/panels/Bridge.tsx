@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useAccount, useWalletClient, usePublicClient } from "wagmi";
-import { parseUnits, formatUnits, createPublicClient, http, defineChain } from "viem";
+import { parseUnits } from "viem";
 import { CONFIG } from "../../lib/config";
 
 // CCTP supported source chains → Arc Testnet
@@ -81,7 +81,7 @@ export default function Bridge() {
   const [step, setStep] = useState<Step>("idle");
   const [log, setLog] = useState<string[]>([]);
   const [burnHash, setBurnHash] = useState<string | null>(null);
-  const [attestation, setAttestation] = useState<string | null>(null);
+  const [, setAttestation] = useState<string | null>(null);
 
   const src = SOURCE_CHAINS[srcIdx];
 
@@ -280,7 +280,6 @@ export default function Bridge() {
         {step !== "idle" && (
           <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius:14, background: "var(--bg-1)", border: "1px solid var(--border)" }}>
             {steps.map(([label, activeSteps], i) => {
-              const done = currentIdx > i + (step === "done" ? 0 : 0) && (step !== "error");
               const active = activeSteps.includes(step) || (step === "done" && i === steps.length - 1);
               const isDone = (step === "done" && i < 4) || (currentIdx > i && step !== "error");
               return (

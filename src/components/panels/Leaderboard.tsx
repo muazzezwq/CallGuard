@@ -20,7 +20,7 @@ const PRICE_QUERY = `{
   }
 }`
 
-function honorRate(p: any) {
+function honorRate(p: Prov) {
   const total = Number(p.completedCalls) + Number(p.slashedCalls)
   return total > 0 ? Math.round((Number(p.completedCalls) / total) * 100) : 100
 }
@@ -32,12 +32,21 @@ function short(addr: string, n = 4) {
 
 const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" }
 
+type Prov = {
+  id: string
+  owner?: string
+  completedCalls?: string | number
+  slashedCalls?: string | number
+  pricePerCall?: string | number
+  stake?: string | number
+  active?: boolean
+}
+
 function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
-  p: any; rank: number; isSelf: boolean; onSelect: (id: string) => void; selected: boolean
+  p: Prov; rank: number; isSelf: boolean; onSelect: (id: string) => void; selected: boolean
 }) {
   const rate = honorRate(p)
   const price = p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)) : 0
-  const stake = p.stake ? Number(formatUnits(BigInt(p.stake), 6)) : 0
   const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "#EE4539"
 
   return (
@@ -97,9 +106,9 @@ export default function Leaderboard() {
   const { data: slashData, loading: slashLoading } = useSubgraph(SLASH_QUERY, { pollInterval: 60_000 })
   const { data: priceData, loading: priceLoading } = useSubgraph(PRICE_QUERY, { pollInterval: 60_000 })
 
-  const topProviders = (topData as any)?.providers || []
-  const slashProviders = ((slashData as any)?.providers || []).filter((p: any) => Number(p.slashedCalls) > 0)
-  const priceProviders = (priceData as any)?.providers || []
+  const topProviders = (topData as { providers?: Prov[] })?.providers || []
+  const slashProviders = ((slashData as { providers?: Prov[] })?.providers || []).filter((p: Prov) => Number(p.slashedCalls) > 0)
+  const priceProviders = (priceData as { providers?: Prov[] })?.providers || []
 
   const myAddr = address?.toLowerCase()
 
@@ -111,7 +120,7 @@ export default function Leaderboard() {
     })
   }
 
-  const tabs = [
+  const tabs: { id: 'top' | 'price' | 'slash'; label: string }[] = [
     { id: 'top', label: '🏆 Top Providers' },
     { id: 'price', label: '💰 Best Price' },
     { id: 'slash', label: '⚡ Most Slashed' },
@@ -126,7 +135,7 @@ export default function Leaderboard() {
   const list = activeList()
 
   // compare card
-  const compareProviders = topProviders.filter((p: any) => compareSet.has(p.id))
+  const compareProviders = topProviders.filter((p: Prov) => compareSet.has(p.id))
 
   return (
     <div style={{ padding: 24, maxWidth: 760 }}>
@@ -141,7 +150,7 @@ export default function Leaderboard() {
       {/* Tabs */}
       <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? " active" : ""}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? " active" : ""}`}>{t.label}</button>
         ))}
       </div>
 
@@ -152,7 +161,7 @@ export default function Leaderboard() {
             Comparing ({compareSet.size}/3)
           </div>
           <div style={{ display: "flex", gap: 12, overflowX: "auto" as const }}>
-            {compareProviders.map((p: any) => (
+            {compareProviders.map((p: Prov) => (
               <div key={p.id} style={{ flex: 1, minWidth: 140, background: "var(--bg-3)", borderRadius: 8, padding: "10px 12px" }}>
                 <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Provider #{p.id}</div>
                 {[
@@ -175,7 +184,7 @@ export default function Leaderboard() {
           </div>
           <button
             onClick={() => {
-              const best = compareProviders.sort((a: any, b: any) => honorRate(b) - honorRate(a))[0]
+              const best = compareProviders.sort((a: Prov, b: Prov) => honorRate(b) - honorRate(a))[0]
               if (best) {
                 sessionStorage.setItem("callbuilder_provider", String(best.id));
                 setPanel("calls");
@@ -194,7 +203,7 @@ export default function Leaderboard() {
       ) : list.length === 0 ? (
         <div style={{ textAlign: "center", padding: 32, color: "var(--text-dim)" }}>No data yet.</div>
       ) : (
-        list.map((p: any, i: number) => (
+        list.map((p: Prov, i: number) => (
           <ProviderRow
             key={p.id}
             p={p}

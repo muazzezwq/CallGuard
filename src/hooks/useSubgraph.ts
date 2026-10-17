@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { fetchProviders, fetchNetworkStats, fetchRecentActivity } from "../lib/subgraph";
 import { CONFIG } from "../lib/config";
 
@@ -13,7 +13,6 @@ export function useSubgraph<T = Record<string, unknown>>(
   query: string,
   options?: SubgraphOptions
 ) {
-  const qc = useQueryClient();
   const refetchInterval = options?.pollInterval ?? 30_000;
   const enabled = options?.enabled !== false && !!query;
 

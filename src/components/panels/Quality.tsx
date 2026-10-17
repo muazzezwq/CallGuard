@@ -74,7 +74,7 @@ export default function Quality() {
     toast.info("Becoming an arbiter requires holding USDC and participating in vote windows. Call the vote() function when a dispute is open.");
   }
 
-  const tabs = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]
+  const tabs: { id: 'open' | 'vote' | 'stake'; label: string }[] = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]
 
   return (
     <div style={S.wrap}>
@@ -89,7 +89,7 @@ export default function Quality() {
 
       <div className="cg-tabs">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
         ))}
       </div>
 

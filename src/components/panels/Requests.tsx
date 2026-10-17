@@ -1,9 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
 // MEDIUM-09: import canonical ABI from config (was local duplicate)
 import { CONFIG, PPC_ABI } from "../../lib/config";
+import { errText } from "../../lib/utils";
+
+type Call = {
+  id: string; providerId?: string | number; caller?: string; amount?: string; status?: string;
+  createdAt?: string; completedAt?: string; refunded?: string | number; slashed?: string | number;
+  requestHash?: string; responseHash?: string;
+};
 
 const STATUS_COLORS: Record<string, string> = {
   STARTED:   "var(--warn)",
@@ -12,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
   REFUNDED:  "var(--text-dim)",
 };
 
-function exportCalls(calls: any[], fmt: "csv" | "json") {
+function exportCalls(calls: Call[], fmt: "csv" | "json") {
   if (!calls.length) return;
   let content: string;
   let mime: string;
@@ -52,12 +59,12 @@ export default function Requests() {
     }
   }`;
 
-  const { data, loading, refetch } = useSubgraph<{ calls: any[] }>(address ? q : "", {
+  const { data, loading, refetch } = useSubgraph<{ calls: Call[] }>(address ? q : "", {
     enabled: !!address,
     pollInterval: 15000,
   });
 
-  const calls = data?.calls ?? [];
+  const calls = useMemo(() => data?.calls ?? [], [data]);
   const filtered = filter === "all" ? calls
     : filter === "open" ? calls.filter(c => c.status === "STARTED")
     : filter === "completed" ? calls.filter(c => c.status === "COMPLETED")
@@ -84,10 +91,10 @@ export default function Requests() {
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
       }, {
-        onError: (e: any) => setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`),
+        onError: (e: unknown) => setTimeoutStatus(`❌ ${errText(e)}`),
       });
-    } catch (_err: unknown) { const e = _err as any;
-      setTimeoutStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setTimeoutStatus(`❌ ${errText(_err)}`);
     }
   }, [timeoutCallId, address, writeContract]);
 
@@ -246,7 +253,7 @@ export default function Requests() {
                 </span>
               </div>
               <div className="call-row-right">
-                <span className="status-badge" style={{color: STATUS_COLORS[call.status] ?? "var(--text-dim)"}}>
+                <span className="status-badge" style={{color: STATUS_COLORS[call.status ?? ""] ?? "var(--text-dim)"}}>
                   {call.status}
                 </span>
                 {isOpen && (() => {

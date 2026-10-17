@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import { Info } from "lucide-react";
+import type { PublicClient } from "viem";
 import { arcTestnet } from "../lib/config";
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   args: readonly unknown[];
   enabled?: boolean;
 };
+
+type EstimateArgs = Parameters<PublicClient["estimateContractGas"]>[0];
 
 // Arc's native gas token is USDC (18-decimal wei). MetaMask cannot render a
 // human-readable fee for it, so it shows "Network fee: Unavailable" on every
@@ -36,7 +39,7 @@ export default function ArcFeeNotice({ address, abi, functionName, args, enabled
     if (!enabled || !publicClient || !account) { setFeeUsd(null); setErr(false); return; }
     let alive = true;
     Promise.all([
-      publicClient.estimateContractGas({ address, abi, functionName, args, account } as any),
+      publicClient.estimateContractGas({ address, abi, functionName, args, account } as unknown as EstimateArgs),
       publicClient.getGasPrice(),
     ])
       .then(([gas, price]) => {
@@ -46,6 +49,9 @@ export default function ArcFeeNotice({ address, abi, functionName, args, enabled
       })
       .catch(() => { if (alive) { setFeeUsd(null); setErr(true); } });
     return () => { alive = false; };
+    // argsKey is a stable hash of `args`; depending on `args`/`abi` directly would
+    // re-run the estimate on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, publicClient, account, address, functionName, argsKey]);
 
   if (!enabled) return null;

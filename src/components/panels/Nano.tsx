@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
-import { parseUnits, encodeFunctionData, keccak256, toBytes } from 'viem'
+import { encodeFunctionData, keccak256, toBytes } from 'viem'
 // MEDIUM-09: import canonical ABIs from config
 import { CONFIG, PPC_ABI, USDC_ABI, REGISTRY_ABI } from '../../lib/config'
 
@@ -35,7 +35,7 @@ export default function Nano() {
   const [multiResult, setMultiResult] = useState('')
   const [multiLoading, setMultiLoading] = useState(false)
 
-  async function refreshBalance() {
+  const refreshBalance = useCallback(async () => {
     if (!address) return
     try {
       const res = await fetch(`/api/nano-balance?address=${address}`)
@@ -45,7 +45,7 @@ export default function Nano() {
       else if (data.balance !== undefined) setBalance(data.balance)
       if (data.pending !== undefined) setPending(data.pending)
     } catch { setBalance('—') }
-  }
+  }, [address])
 
   async function makeNanoCall() {
     if (!address || loading) return
@@ -111,9 +111,9 @@ export default function Nano() {
       for (const id of ids) {
         try {
           // getProvider decodes to a named tuple object in viem; positional indexes are the fallback.
-          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as any
+          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as Record<string | number, unknown> | undefined
           const isActive = p?.active ?? p?.[6]
-          const callPrice = p?.pricePerCall ?? p?.[3]
+          const callPrice = (p?.pricePerCall ?? p?.[3] ?? 0n) as bigint
           if (isActive) total += (callPrice ?? 0n) // active → add pricePerCall
         } catch { /* skip */ }
       }
@@ -149,7 +149,7 @@ export default function Nano() {
     setMultiLoading(false)
   }
 
-  useEffect(() => { if (address) refreshBalance() }, [address])
+  useEffect(() => { if (address) refreshBalance() }, [address, refreshBalance])
 
   return (
     <div style={S.wrap}>

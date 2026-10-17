@@ -21,7 +21,7 @@ export default function UsdcBanner() {
   useEffect(() => {
     if (isConnected) markStep("wallet");
     if (usdc !== null && usdc >= 1) markStep("usdc");
-  }, [isConnected, usdc]);
+  }, [isConnected, usdc, markStep]);
 
   if (!isConnected || usdc === null || usdc >= 1) return null;
 

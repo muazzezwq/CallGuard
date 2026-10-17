@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Plus, Trash2, Send, ExternalLink, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Send } from "lucide-react";
 
 interface WebhookEntry {
   id: string;

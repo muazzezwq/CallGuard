@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, type ComponentType } from "react";
 import { useCountUp } from "../../hooks/useCountUp";
 import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from "wagmi";
 import { formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
+import { errText } from "../../lib/utils";
 import {
   PageHeader, SectionCard, StatCard, Stepper, Sparkline, Button,
   Badge, Field, Input,
@@ -37,8 +38,17 @@ const SUBGRAPH = `{
 const OPEN_STATES = new Set(["STARTED", "OPEN", "PENDING"]);
 const DAY = 86400;
 
+type SgCall = {
+  id?: string;
+  status?: string;
+  providerId?: string | number;
+  caller?: string;
+  amount?: string;
+  createdAt?: string;
+};
+
 /* 24h hourly buckets from subgraph calls */
-function buildActivityChart(calls: { createdAt: string }[]): { hour: number; count: number }[] {
+function buildActivityChart(calls: { createdAt?: string }[]): { hour: number; count: number }[] {
   const nowTs = Math.floor(Date.now() / 1000);
   const buckets: number[] = new Array(24).fill(0);
   calls.forEach(c => {
@@ -53,7 +63,7 @@ function buildActivityChart(calls: { createdAt: string }[]): { hour: number; cou
 }
 
 /* 7-day daily buckets, oldest → newest */
-function weeklySeries(calls: { createdAt: string }[]): { series: number[]; last7: number; prev7: number } {
+function weeklySeries(calls: { createdAt?: string }[]): { series: number[]; last7: number; prev7: number } {
   const nowTs = Math.floor(Date.now() / 1000);
   const series = new Array(7).fill(0);
   let last7 = 0, prev7 = 0;
@@ -87,11 +97,11 @@ export default function Overview() {
   const { data: providerCountRaw } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
   const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
 
-  const sgProviders: any[] = (sg as any)?.providers ?? [];
-  const sgCalls: any[] = (sg as any)?.calls ?? [];
+  const sgProviders = ((sg as { providers?: { id: string; completedCalls: string; slashedCalls: string }[] })?.providers) ?? [];
+  const sgCalls: SgCall[] = useMemo(() => (sg as { calls?: SgCall[] })?.calls ?? [], [sg]);
   const providerCount = providerCountRaw ? Math.max(0, Number(providerCountRaw) - 1) : sgProviders.length;
   const callsNum = sgCalls.length;
-  const completedNum = sgCalls.filter((c: any) => c.status === "COMPLETED").length;
+  const completedNum = sgCalls.filter((c: SgCall) => c.status === "COMPLETED").length;
 
   const animProviders = useCountUp(providerCount);
   const animCalls = useCountUp(callsNum);
@@ -104,8 +114,8 @@ export default function Overview() {
   const callsDelta = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : null;
 
   const escrowRaw = sgCalls
-    .filter((c: any) => OPEN_STATES.has(c.status))
-    .reduce((sum: bigint, c: any) => sum + BigInt(c.amount || "0"), 0n);
+    .filter((c: SgCall) => OPEN_STATES.has(c.status ?? ""))
+    .reduce((sum: bigint, c: SgCall) => sum + BigInt(c.amount || "0"), 0n);
   const escrowUsdc = callsNum > 0 ? Number(formatUnits(escrowRaw, 6)) : null;
 
   const allCalls = sgCalls;
@@ -145,7 +155,7 @@ export default function Overview() {
     abi: PPC_ABI,
     eventName: "CallStarted",
     onLogs: (logs) => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       pushEvent(`Call → Provider #${a.providerId}`, `${a.amount ? Number(formatUnits(BigInt(a.amount), 6)).toFixed(4) : "?"} USDC · ${String(a.callId || "").slice(0, 10)}…`);
     }),
   });
@@ -154,7 +164,7 @@ export default function Overview() {
     abi: PPC_ABI,
     eventName: "ReceiptSubmitted",
     onLogs: (logs) => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       pushEvent("Receipt submitted", `callId: ${String(a.callId || "").slice(0, 10)}…`);
     }),
   });
@@ -163,7 +173,7 @@ export default function Overview() {
     abi: PPC_ABI,
     eventName: "CallSlashed",
     onLogs: (logs) => logs.forEach(l => {
-      const a = l.args as any;
+      const a = l.args;
       pushEvent("Deadline missed — provider slashed", `${Number(a.slashed || 0) / 1e6} USDC · refund ${Number(a.refunded || 0) / 1e6}`);
     }),
   });
@@ -218,8 +228,7 @@ export default function Overview() {
           });
           setMultiResults(r => [...r, { pid, hash }]);
         } catch (_err: unknown) {
-          const e = _err as any;
-          setMultiResults(r => [...r, { pid, err: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
+          setMultiResults(r => [...r, { pid, err: errText(_err) }]);
         }
         await new Promise(r => setTimeout(r, 600));
       }
@@ -231,11 +240,11 @@ export default function Overview() {
 
   useEffect(() => {
     if (isConnected) markStep("wallet");
-    if (sgCalls.some((c: any) => c.caller?.toLowerCase() === address?.toLowerCase())) markStep("action");
-    if (sgCalls.some((c: any) => c.status === "COMPLETED" && c.caller?.toLowerCase() === address?.toLowerCase())) markStep("receipt");
-  }, [isConnected, sgCalls, address]);
+    if (sgCalls.some((c: SgCall) => c.caller?.toLowerCase() === address?.toLowerCase())) markStep("action");
+    if (sgCalls.some((c: SgCall) => c.status === "COMPLETED" && c.caller?.toLowerCase() === address?.toLowerCase())) markStep("receipt");
+  }, [isConnected, sgCalls, address, markStep]);
 
-  const myActivity = sgCalls.filter((c: any) =>
+  const myActivity = sgCalls.filter((c: SgCall) =>
     c.caller?.toLowerCase() === address?.toLowerCase()
   ).slice(0, 5);
 
@@ -310,7 +319,7 @@ export default function Overview() {
             <div className="ov-empty">No calls yet — the ledger fills as the network runs.</div>
           ) : (
             <ul className="ov-activity">
-              {activities.map((a: any) => {
+              {activities.map((a: SgCall) => {
                 const tone = a.status === "SLASHED" ? "slash" : a.status === "COMPLETED" ? "guard" : "info";
                 const label = a.status === "COMPLETED" ? "Call completed" : a.status === "SLASHED" ? "SLA timeout" : "Call started";
                 return (
@@ -434,7 +443,7 @@ export default function Overview() {
       {isConnected && myActivity.length > 0 && (
         <SectionCard title="My Activity" action={<button className="ov-linkbtn" onClick={() => setPanel("requests")}>My requests</button>} bodyClass="ui-section__body--flush">
           <ul className="ov-activity">
-            {myActivity.map((c: any) => (
+            {myActivity.map((c: SgCall) => (
               <li key={c.id} className="ov-activity__row">
                 <span className={`ov-activity__ico ov-activity__ico--${c.status === "SLASHED" ? "danger" : c.status === "STARTED" ? "info" : "ok"}`}>
                   <ReceiptText size={15} />
@@ -460,7 +469,7 @@ export default function Overview() {
               <span className="ov-actions__sub">Pay per request · EIP-3009 gasless</span>
             </span>
             <div className="ov-actions__ctrl">
-              <Input value={callProvider} onChange={(e: any) => setCallProvider(e.target.value)} placeholder="Provider ID" className="ov-input-sm" />
+              <Input value={callProvider} onChange={(e) => setCallProvider(e.target.value)} placeholder="Provider ID" className="ov-input-sm" />
               <Button variant="primary" size="sm" onClick={() => setPanel("calls")}>Quick Call</Button>
             </div>
           </div>
@@ -486,8 +495,8 @@ export default function Overview() {
             {autoOpen && (
               <div className="ov-accordion__body">
                 <div className="ov-form2">
-                  <Field label="Max price (USDC)"><Input value={autoMaxPrice} onChange={(e: any) => setAutoMaxPrice(e.target.value)} placeholder="2.0" /></Field>
-                  <Field label="Min reputation %"><Input value={autoMinRep} onChange={(e: any) => setAutoMinRep(e.target.value)} placeholder="50" /></Field>
+                  <Field label="Max price (USDC)"><Input value={autoMaxPrice} onChange={(e) => setAutoMaxPrice(e.target.value)} placeholder="2.0" /></Field>
+                  <Field label="Min reputation %"><Input value={autoMinRep} onChange={(e) => setAutoMinRep(e.target.value)} placeholder="50" /></Field>
                 </div>
                 <Button variant="primary" size="sm" onClick={runAutoRouter} disabled={autoLoading} className="ov-full">
                   {autoLoading ? <><RefreshCw size={13} /> Finding best provider…</> : <><Zap size={13} /> Find best provider</>}
@@ -508,8 +517,8 @@ export default function Overview() {
             </button>
             {multiOpen && (
               <div className="ov-accordion__body">
-                <Field label="Provider IDs (comma separated)"><Input value={multiProvider} onChange={(e: any) => setMultiProvider(e.target.value)} placeholder="1,2,3" /></Field>
-                <Field label="Request payload"><Input value={multiPayload} onChange={(e: any) => setMultiPayload(e.target.value)} placeholder="ping" /></Field>
+                <Field label="Provider IDs (comma separated)"><Input value={multiProvider} onChange={(e) => setMultiProvider(e.target.value)} placeholder="1,2,3" /></Field>
+                <Field label="Request payload"><Input value={multiPayload} onChange={(e) => setMultiPayload(e.target.value)} placeholder="ping" /></Field>
                 <div className="ov-stepper-row">
                   <span className="ov-actions__sub">Calls per provider</span>
                   <div className="ov-stepper">
@@ -561,7 +570,7 @@ export default function Overview() {
                 </span>
               </li>
             ))}
-            {activities.map((a: any) => (
+            {activities.map((a: SgCall) => (
               <li key={a.id} className="ov-activity__row">
                 <span className={`ov-activity__ico ov-activity__ico--${a.status === "SLASHED" ? "danger" : a.status === "STARTED" ? "info" : "ok"}`}>
                   <Radio size={15} />
@@ -584,7 +593,7 @@ export default function Overview() {
       {topProviders.length > 0 && (
         <SectionCard title="Top Providers" bodyClass="ui-section__body--flush">
           <ul className="ov-rank">
-            {topProviders.map((p: { id: string; completedCalls: string; slashedCalls: string }, i: number) => {
+            {topProviders.map((p, i) => {
               const total = parseInt(p.completedCalls || "0") + parseInt(p.slashedCalls || "0") + 3;
               const rep = Math.round(((parseInt(p.completedCalls || "0") + 2) / total) * 100);
               return (
@@ -650,7 +659,7 @@ export default function Overview() {
 
 /* Lazy import keeps the viz module out of the initial bundle path of other panels. */
 function NetworkGraphBox() {
-  const [Cmp, setCmp] = useState<null | ((p: any) => JSX.Element)>(null);
+  const [Cmp, setCmp] = useState<null | ComponentType<{ labels: string[]; seed: number; height: number; nodeScale: number }>>(null);
   useEffect(() => {
     import("../viz/NetworkGraph").then(m => setCmp(() => m.NetworkGraph));
   }, []);

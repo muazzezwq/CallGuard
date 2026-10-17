@@ -132,7 +132,7 @@ export default function Disputes() {
       const msg = (e as { shortMessage?: string })?.shortMessage ?? (e instanceof Error ? e.message : String(e));
       setStatus(`❌ ${msg}`);
     }
-  }, [dqEnabled, callIdInput, evidence, isConnected, writeContractAsync, refetchHistory]);
+  }, [dqEnabled, callIdInput, evidence, isConnected, writeContractAsync, refetchHistory, providerIdInput]);
 
   // Fetch dispute info for voting
   const fetchDisputeInfo = useCallback(async () => {

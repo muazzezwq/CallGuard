@@ -1,4 +1,4 @@
-import { useReadContract, useWriteContract, useAccount, useBalance } from "wagmi";
+import { useReadContract, useBalance } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 // MEDIUM-09: use canonical ABIs from config — no local duplicates
 import { CONFIG, REGISTRY_ABI } from "../lib/config";

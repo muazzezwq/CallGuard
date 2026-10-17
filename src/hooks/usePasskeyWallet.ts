@@ -56,7 +56,7 @@ export function usePasskeyWallet(): PasskeyWalletState {
 
   const getTransports = useCallback(async () => {
     if (!clientKey) throw new Error("VITE_CLIENT_KEY is not set in .env");
-    // @ts-ignore — @circle-fin/modular-wallets-core is an optional peer dependency.
+    // @circle-fin/modular-wallets-core is an optional peer dependency.
     // Install with: bun add @circle-fin/modular-wallets-core
     const mod = await import("@circle-fin/modular-wallets-core" as string) as {
       toModularTransport: (url: string, key: string) => unknown;
@@ -73,7 +73,6 @@ export function usePasskeyWallet(): PasskeyWalletState {
     setError(null);
     try {
       const { modular, passkey } = await getTransports();
-      // @ts-ignore
       const {
         toCircleSmartAccount,
         toWebAuthnCredential,
@@ -81,7 +80,7 @@ export function usePasskeyWallet(): PasskeyWalletState {
       } = await import("@circle-fin/modular-wallets-core" as string) as Record<string, unknown>;
       const { createPublicClient } = await import("viem");
 
-      const credential = await (toWebAuthnCredential as Function)({
+      const credential = await (toWebAuthnCredential as (opts: { transport: unknown; mode: unknown; username?: string }) => Promise<unknown>)({
         transport: passkey,
         mode: (WebAuthnMode as Record<string,unknown>).Register,
         username,
@@ -90,8 +89,8 @@ export function usePasskeyWallet(): PasskeyWalletState {
       // Persist credential to sessionStorage (dev only — use httpOnly cookie in production)
       sessionStorage.setItem("cg_passkey_credential", JSON.stringify(credential));
 
-      const publicClient = (createPublicClient as Function)({ transport: modular });
-      const acc = await (toCircleSmartAccount as Function)({ client: publicClient, credential });
+      const publicClient = (createPublicClient as (opts: { transport: unknown }) => unknown)({ transport: modular });
+      const acc = await (toCircleSmartAccount as (opts: { client: unknown; credential: unknown }) => Promise<{ address: string }>)({ client: publicClient, credential });
 
       setAccount(acc);
       setAddress((acc as {address: string}).address as `0x${string}`);
@@ -108,7 +107,6 @@ export function usePasskeyWallet(): PasskeyWalletState {
     setError(null);
     try {
       const { modular, passkey } = await getTransports();
-      // @ts-ignore
       const {
         toCircleSmartAccount,
         toWebAuthnCredential,
@@ -116,15 +114,15 @@ export function usePasskeyWallet(): PasskeyWalletState {
       } = await import("@circle-fin/modular-wallets-core" as string) as Record<string, unknown>;
       const { createPublicClient } = await import("viem");
 
-      const credential = await (toWebAuthnCredential as Function)({
+      const credential = await (toWebAuthnCredential as (opts: { transport: unknown; mode: unknown }) => Promise<unknown>)({
         transport: passkey,
         mode: (WebAuthnMode as Record<string,unknown>).Login,
       });
 
       sessionStorage.setItem("cg_passkey_credential", JSON.stringify(credential));
 
-      const publicClient = (createPublicClient as Function)({ transport: modular });
-      const acc = await (toCircleSmartAccount as Function)({ client: publicClient, credential });
+      const publicClient = (createPublicClient as (opts: { transport: unknown }) => unknown)({ transport: modular });
+      const acc = await (toCircleSmartAccount as (opts: { client: unknown; credential: unknown }) => Promise<{ address: string }>)({ client: publicClient, credential });
 
       setAccount(acc);
       setAddress((acc as {address: string}).address as `0x${string}`);
@@ -149,8 +147,7 @@ export function usePasskeyWallet(): PasskeyWalletState {
       const { modular } = await getTransports();
       const { createWalletClient } = await import("viem");
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const walletClient = (createWalletClient as any)({
+      const walletClient = (createWalletClient as (opts: { account: unknown; transport: unknown }) => unknown)({
         account,
         transport: modular,
       });

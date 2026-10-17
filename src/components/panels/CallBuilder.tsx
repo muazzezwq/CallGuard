@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
-import { parseUnits, formatUnits, keccak256, stringToBytes, maxUint256, pad, decodeEventLog } from "viem";
+import { formatUnits, keccak256, stringToBytes, maxUint256, pad, decodeEventLog } from "viem";
 // MEDIUM-09: import canonical ABIs from config — eliminates local duplicates
 import { arcTestnet, CONFIG, REGISTRY_ABI, PPC_ABI } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
@@ -9,7 +9,7 @@ import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, ME
 import { useBudgetCap } from "../../hooks/useBudgetCap";
 import { useProviders } from "../../hooks/useSubgraph";
 import { PageHeader, SectionCard, Tabs } from "../../ui";
-import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx } from "../../lib/utils";
+import { friendlyError, tryClientAutoReceipt, checkNoPendingTx, setPendingTx, clearPendingTx, errText } from "../../lib/utils";
 
 // Aliases for local readability — both reference the same canonical PPC_ABI from config
 const SUBMIT_RECEIPT_ABI = PPC_ABI;  // contains submitReceipt with correct respondedAt uint64
@@ -88,7 +88,7 @@ export default function CallBuilder() {
   // getProvider returns a named 9-field ProviderView tuple. viem decodes named tuples to an
   // object, so read by name and fall back to positional indexes for older shapes.
   // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
-  const raw = providerData as any;
+  const raw = providerData as Record<string | number, unknown> | undefined;
   const owner     = (raw?.owner ?? raw?.[0]) as string | undefined;
   const price     = (raw?.pricePerCall ?? raw?.[3] ?? BigInt(0)) as bigint;
   const slaWindow = Number(raw?.maxResponseTime ?? raw?.[4] ?? 0);
@@ -208,7 +208,7 @@ export default function CallBuilder() {
             try {
               const decoded = decodeEventLog({ abi: CALL_STARTED_ABI, data: log.data, topics: log.topics });
               if (decoded.eventName === "CallStarted") {
-                realCallId = (decoded.args as any).callId as `0x${string}`;
+                realCallId = (decoded.args as { callId?: `0x${string}` }).callId as `0x${string}`;
                 break;
               }
             } catch { /* not CallStarted log */ }
@@ -225,12 +225,12 @@ export default function CallBuilder() {
           );
         }).catch(() => clearPendingTx());
       }
-    } catch (_err: unknown) { const e = _err as any;
+    } catch (_err: unknown) {
       clearPendingTx();
-      setStatus(`❌ ${friendlyError(e)}`);
+      setStatus(`❌ ${friendlyError(_err)}`);
       setIsLoading(false);
     }
-  }, [isConnected, address, active, payload, providerIdNum, writeContractAsync, checkBudget, spendBudget, price]);
+  }, [isConnected, address, active, payload, providerIdNum, writeContractAsync, checkBudget, spendBudget, price, publicClient]);
 
   // ── CCTP cross-chain call ───────────────────────────────────────
   const handleCCTPCall = useCallback(async () => {
@@ -266,7 +266,7 @@ export default function CallBuilder() {
           abi: USDC_APPROVE_ABI,
           functionName: "approve",
           args: [CCTP_CONFIG.contracts.TokenMessengerV2 as `0x${string}`, maxUint256],
-          chainId: sourceChain.chainId as any,
+          chainId: sourceChain.chainId,
         });
         setStatus("✅ USDC approved.");
         await new Promise(r => setTimeout(r, 2000));
@@ -279,7 +279,7 @@ export default function CallBuilder() {
         abi: TOKEN_MESSENGER_ABI,
         functionName: "depositForBurn",
         args: [amount, CCTP_CONFIG.domains.arc, mintRecipient, sourceUsdcAddr, "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`, BigInt(0), 1000],
-        chainId: sourceChain.chainId as any,
+        chainId: sourceChain.chainId,
       });
       setStatus(`✅ Burned — TX: ${burnHash.slice(0,12)}... Step 4/5: Waiting for attestation (~20s)...`);
 
@@ -297,8 +297,8 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus(`✅ Cross-chain call complete! TX: ${mintHash.slice(0,12)}...`);
-    } catch (_err: unknown) { const e = _err as any;
-      setStatus(`❌ CCTP failed: ${(e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setStatus(`❌ CCTP failed: ${_err instanceof Error ? _err.message : String(_err)}`);
     }
     setIsLoading(false);
   }, [isConnected, address, chain, price, writeContractAsync]);
@@ -318,8 +318,8 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("⏳ Waiting for confirmation...");
-    } catch (_err: unknown) { const e = _err as any;
-      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setStatus(`❌ ${errText(_err)}`);
       setIsLoading(false);
     }
   }, [callIdInput, lastCallId, writeContractAsync]);
@@ -355,8 +355,8 @@ export default function CallBuilder() {
         chainId: arcTestnet.id,
       });
       setStatus("✅ Receipt submitted — escrow released.");
-    } catch (_err: unknown) { const e = _err as any;
-      setStatus(`❌ ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setStatus(`❌ ${errText(_err)}`);
     }
     setIsLoading(false);
   }, [callIdInput, lastCallId, responsePayload, walletClient, address, writeContractAsync]);
@@ -371,12 +371,10 @@ export default function CallBuilder() {
     try {
       // Step 1 — x402 handshake
       const facilitatorUrl = CONFIG.facilitatorUrl;
-      let x402Terms: any = null;
       try {
         const fRes = await fetch(`${facilitatorUrl}/api/service`);
         const fBody = await fRes.json();
         if (fRes.status === 402 && fBody.accepts?.[0]) {
-          x402Terms = fBody.accepts[0];
           setStatus("⚡ x402: Got HTTP 402 → signing EIP-3009 authorization…");
         } else {
           setStatus("⚡ x402: Facilitator responded → signing EIP-3009…");
@@ -432,8 +430,8 @@ export default function CallBuilder() {
         setStatus(`✅ x402 call settled! callId: ${String(callId).slice(0,14)}…`);
         if (facData.callId) setLastCallId(facData.callId);
       }
-    } catch (_err: unknown) { const e = _err as any;
-      setStatus(`❌ x402 failed: ${e.shortMessage || (e instanceof Error ? e.message : String(e))}`);
+    } catch (_err: unknown) {
+      setStatus(`❌ x402 failed: ${errText(_err)}`);
     }
     setIsLoading(false);
   }, [isConnected, address, walletClient, active, payload, providerIdNum, price, writeContractAsync]);
@@ -454,8 +452,8 @@ export default function CallBuilder() {
           chainId: arcTestnet.id,
         });
         setBatchResults(r => [...r, { i: i + 1, hash }]);
-      } catch (_err: unknown) { const e = _err as any;
-        setBatchResults(r => [...r, { i: i + 1, error: e.shortMessage || (e instanceof Error ? e.message : String(e)) }]);
+      } catch (_err: unknown) {
+        setBatchResults(r => [...r, { i: i + 1, error: errText(_err) }]);
       }
       await new Promise(r => setTimeout(r, 800));
     }
