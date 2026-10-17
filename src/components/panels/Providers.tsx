@@ -3,6 +3,7 @@ import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { CONFIG, REGISTRY_ABI } from "../../lib/config";
 import { ExternalLink, Copy, Check, ChevronDown, ChevronUp, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { ErrorState, Button } from "../../ui";
 
 type UptimeStatus = "idle" | "checking" | "online" | "offline";
 
@@ -108,7 +109,7 @@ export default function Providers() {
     setUptimeDetail(r.detail);
   }, [lookupId]);
 
-  const { data: provData, isLoading: provLoading, isError: provError } = useReadContract({
+  const { data: provData, isLoading: provLoading, isError: provError, refetch: refetchProv } = useReadContract({
     address: CONFIG.registryAddress as `0x${string}`,
     abi: REGISTRY_ABI,
     functionName: "getProvider",
@@ -187,7 +188,10 @@ export default function Providers() {
             </div>
           </div>
         ) : provError ? (
-          <div style={{ color:"var(--danger,#EE4539)",fontSize:12 }}>Provider #{lookupId} not found.</div>
+          <ErrorState
+            title={`Provider #${lookupId} not found.`}
+            action={<Button variant="secondary" size="sm" onClick={() => refetchProv()}>Retry</Button>}
+          />
         ) : (
           <div style={{ color:"var(--text-faint)",fontSize:12 }}>
             {provLoading ? `Loading provider #${lookupId}…` : "Enter a provider ID to inspect its on-chain record."}

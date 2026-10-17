@@ -37,3 +37,21 @@ Notes:
 - "View on Explorer" / "Transaction Hash" (4d) is intentionally omitted: `subgraph/schema.graphql`
   `Call` (lines 21-34) has no `txHash`, only `callId` (bytes32); `txHash` lives on unrelated
   event entities. Adding a link would invent data.
+
+## Phase B — shared `<ErrorState>` adoption
+
+Replaced ad-hoc fetch-error markup (custom red banners/cards) with the shared
+`src/ui/ErrorState.tsx`, keeping the existing message text and adding a Retry
+action where the query exposes `refetch`/a loader:
+
+| Panel | Before | After |
+|---|---|---|
+| `Analytics.tsx` | inline red banner `⚠ {error} — showing cached data…` | `<ErrorState>` with same message + Retry (`loadAnalytics`) |
+| `ProviderProfile.tsx` | red-bordered card "Provider #N not found or inactive." | `<ErrorState>` with same title + Retry (`refetch()`) |
+| `Providers.tsx` | inline red text "Provider #N not found." | `<ErrorState>` with same title + Retry (`refetchProv()`) |
+
+Not converted (not panel-load failures — they are results of a user action/form
+state, so a full-surface ErrorState would be wrong): `CallBuilder` provider
+"not found" form notice + facilitator fallback notice, `Agent`/`BulkCall`/
+`Bridge` per-action result lines, `AdminPanel` tx `StatusBadge`, `Jobs`/
+`Disputes` lookup-result rows, `Nano`/`Attestation`/`Verify` toast+output.

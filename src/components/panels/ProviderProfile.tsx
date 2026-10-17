@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useReadContract } from 'wagmi'
 import { formatUnits } from 'viem'
 import { CONFIG, REGISTRY_ABI } from '../../lib/config'
+import { ErrorState } from '../../ui'
 import { useAppStore } from '../../store/useAppStore'
 
 const REGISTRY = CONFIG.registryAddress as `0x${string}`
@@ -44,7 +45,7 @@ export default function ProviderProfile() {
   }, [queried, setPanel])
 
   const validId = /^\d+$/.test(queried) && queried !== ''
-  const { data: provider, isLoading, error } = useReadContract({
+  const { data: provider, isLoading, error, refetch } = useReadContract({
     address: REGISTRY,
     abi: REGISTRY_ABI,
     functionName: 'getProvider',
@@ -95,9 +96,10 @@ export default function ProviderProfile() {
       )}
 
       {error && (
-        <div style={{ ...S.card, border: '1px solid #EE453940' }}>
-          <div style={{ color: '#EE4539', fontSize: '14px' }}>Provider #{queried} not found or inactive.</div>
-        </div>
+        <ErrorState
+          title={`Provider #${queried} not found or inactive.`}
+          action={<button style={S.btn} onClick={() => refetch()}>Retry</button>}
+        />
       )}
 
       {p && !isLoading && (

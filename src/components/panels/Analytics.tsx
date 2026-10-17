@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRef } from "react";
 import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
+import { ErrorState } from "../../ui";
 import { CONFIG } from "../../lib/config";
 const SUBGRAPH_URL = CONFIG.subgraphUrl;
 
@@ -164,9 +165,16 @@ export default function Analytics() {
       </div>
 
       {error && (
-        <div style={{ background: "rgba(238,69,57,0.08)", border: "1px solid rgba(238,69,57,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 12, fontSize: 13, color: "#EE4539" }}>
-          ⚠ {error} — showing cached data if available
-        </div>
+        <ErrorState
+          icon={<RefreshCw size={20} />}
+          title="Couldn't load analytics"
+          description={`${error} — showing cached data if available`}
+          action={
+            <button style={s.btn} onClick={loadAnalytics} disabled={loading}>
+              <RefreshCw size={13} /> Retry
+            </button>
+          }
+        />
       )}
 
       {/* Stats grid */}
