@@ -227,7 +227,11 @@ export default function Requests() {
             <div
               key={call.id}
               className="call-row"
+              role="button"
+              tabIndex={isOpen ? 0 : -1}
+              aria-disabled={!isOpen}
               onClick={() => isOpen && fillTimeout(call.id)}
+              onKeyDown={e => { if (isOpen && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); fillTimeout(call.id); } }}
               style={{ cursor: isOpen ? "pointer" : "default" }}
               title={isOpen ? "Click to fill timeout claim" : undefined}
             >

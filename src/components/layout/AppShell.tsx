@@ -171,7 +171,7 @@ export default function AppShell() {
       />
 
       {/* ── Sidebar overlay (mobile) ── */}
-      <div className={`sidebar-overlay${sidebarOpen ? " active" : ""}`} onClick={() => setSidebarOpen(false)} />
+      <div role="presentation" className={`sidebar-overlay${sidebarOpen ? " active" : ""}`} onClick={() => setSidebarOpen(false)} />
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>

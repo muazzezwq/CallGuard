@@ -75,6 +75,9 @@ export default tseslint.config(
     rules: {
       ...demotedRules,
       ...correctnessRules,
+      // TypeScript already resolves identifiers; core no-undef only produces
+      // false positives on type-only names and ambient globals in TS files.
+      "no-undef": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },

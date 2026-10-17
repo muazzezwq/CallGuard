@@ -247,9 +247,9 @@ export default function Agent() {
         <>
           <div style={s.section}>
             <div style={s.sectionTitle}>AGENT WALLET ADDRESS</div>
-            <label style={s.label}>Agent Wallet Contract</label>
+            <label style={s.label} htmlFor="ag-wallet">Agent Wallet Contract</label>
             <div style={{ display: "flex", gap: 8 }}>
-              <input style={{ ...s.input, flex: 1 }} value={addrInput} onChange={e => setAddrInput(e.target.value)} placeholder="0x…" />
+              <input id="ag-wallet" style={{ ...s.input, flex: 1 }} value={addrInput} onChange={e => setAddrInput(e.target.value)} placeholder="0x…" />
               <button style={s.btn("primary")} onClick={connectAddr}>Connect</button>
             </div>
             {agentAddr && (
@@ -266,8 +266,8 @@ export default function Agent() {
 
           <div style={s.section}>
             <div style={s.sectionTitle}>DEPOSIT / WITHDRAW</div>
-            <label style={s.label}>Amount (USDC)</label>
-            <input style={s.input} type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="1.0" />
+            <label style={s.label} htmlFor="ag-amount">Amount (USDC)</label>
+            <input id="ag-amount" style={s.input} type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="1.0" />
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button style={s.btn("primary", loading || !isConnected)} onClick={handleDeposit} disabled={loading || !isConnected}>
                 {loading ? "⏳" : "Deposit"}
@@ -290,10 +290,10 @@ export default function Agent() {
           <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>
             Agent scores providers by honor rate, price, and stake. Picks the best and calls autonomously.
           </p>
-          <label style={s.label}>Request payload</label>
-          <input style={s.input} value={autoPayload} onChange={e => setAutoPayload(e.target.value)} placeholder="ping" />
-          <label style={{ ...s.label, marginTop: 10 }}>Max price per call (USDC)</label>
-          <input style={s.input} type="number" min="0.001" step="0.01" value={autoMaxPrice} onChange={e => setAutoMaxPrice(e.target.value)} />
+          <label style={s.label} htmlFor="ag-auto-payload">Request payload</label>
+          <input id="ag-auto-payload" style={s.input} value={autoPayload} onChange={e => setAutoPayload(e.target.value)} placeholder="ping" />
+          <label style={{ ...s.label, marginTop: 10 }} htmlFor="ag-auto-maxprice">Max price per call (USDC)</label>
+          <input id="ag-auto-maxprice" style={s.input} type="number" min="0.001" step="0.01" value={autoMaxPrice} onChange={e => setAutoMaxPrice(e.target.value)} />
           <button
             style={{ ...s.btn("primary", autoRunning || !isConnected), marginTop: 12, width: "100%" }}
             onClick={handleAutoRoute}
@@ -316,13 +316,13 @@ export default function Agent() {
             <div style={s.sectionTitle}>SPENDING LIMITS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={s.label}>Daily limit (USDC){currentDailyLimit ? ` · current: ${formatUnits(currentDailyLimit as bigint, 6)}` : ""}</label>
-                <input style={s.input} type="number" min="0" step="1" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
+                <label style={s.label} htmlFor="ag-daily">Daily limit (USDC){currentDailyLimit ? ` · current: ${formatUnits(currentDailyLimit as bigint, 6)}` : ""}</label>
+                <input id="ag-daily" style={s.input} type="number" min="0" step="1" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
                 <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 8 }} onClick={handleSetDailyLimit} disabled={loading || !isConnected}>Set</button>
               </div>
               <div>
-                <label style={s.label}>Max per call (USDC){currentMaxPerCall ? ` · current: ${formatUnits(currentMaxPerCall as bigint, 6)}` : ""}</label>
-                <input style={s.input} type="number" min="0" step="0.1" value={maxPerCall} onChange={e => setMaxPerCall(e.target.value)} />
+                <label style={s.label} htmlFor="ag-maxpercall">Max per call (USDC){currentMaxPerCall ? ` · current: ${formatUnits(currentMaxPerCall as bigint, 6)}` : ""}</label>
+                <input id="ag-maxpercall" style={s.input} type="number" min="0" step="0.1" value={maxPerCall} onChange={e => setMaxPerCall(e.target.value)} />
                 <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 8 }} onClick={handleSetMaxPerCall} disabled={loading || !isConnected}>Set</button>
               </div>
             </div>
@@ -330,8 +330,8 @@ export default function Agent() {
 
           <div style={s.section}>
             <div style={s.sectionTitle}>PROVIDER WHITELIST</div>
-            <label style={s.label}>Provider ID</label>
-            <input style={s.input} type="number" min="1" value={whitelistId} onChange={e => setWhitelistId(e.target.value)} placeholder="1" />
+            <label style={s.label} htmlFor="ag-whitelist">Provider ID</label>
+            <input id="ag-whitelist" style={s.input} type="number" min="1" value={whitelistId} onChange={e => setWhitelistId(e.target.value)} placeholder="1" />
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button style={s.btn("primary", loading || !isConnected)} onClick={() => handleWhitelist(true)} disabled={loading || !isConnected}>Add to whitelist</button>
               <button style={s.btn("danger", loading || !isConnected)} onClick={() => handleWhitelist(false)} disabled={loading || !isConnected}>Remove</button>

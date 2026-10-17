@@ -210,9 +210,10 @@ export default function Verify() {
       </div>
 
       <div style={s.card}>
-        <label style={s.label}>Call ID or Transaction Hash</label>
+        <label style={s.label} htmlFor="vf-input">Call ID or Transaction Hash</label>
         <div style={{ display: "flex", gap: 8, marginBottom: result ? 16 : 0 }}>
           <input
+            id="vf-input"
             style={{ ...s.input, flex: 1 }}
             placeholder="0x... (call ID, response hash, or TX hash)"
             value={input}
@@ -284,15 +285,17 @@ export default function Verify() {
         <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>
           Providers use this to sign and submit a receipt on-chain, releasing escrow payment.
         </div>
-        <label style={s.label}>Call ID</label>
+        <label style={s.label} htmlFor="vf-rcp-callid">Call ID</label>
         <input
+          id="vf-rcp-callid"
           style={{ ...s.input, marginBottom: 10 }}
           value={rcpCallId}
           onChange={e => setRcpCallId(e.target.value)}
           placeholder="0x... (32-byte call ID)"
         />
-        <label style={s.label}>Response payload</label>
+        <label style={s.label} htmlFor="vf-rcp-payload">Response payload</label>
         <input
+          id="vf-rcp-payload"
           style={{ ...s.input, marginBottom: 12 }}
           value={rcpPayload}
           onChange={e => setRcpPayload(e.target.value)}

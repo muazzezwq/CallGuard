@@ -89,12 +89,12 @@ export default function CommandPalette({ open, onClose }: Props) {
 
   return (
     <div
+      role="presentation"
       style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "15vh", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         style={{ width: "min(560px, 94vw)", background: "var(--bg-2)", border: "1px solid var(--border-hi)", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.6)" }}
-        onClick={e => e.stopPropagation()}
       >
         {/* Search input */}
         <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid var(--border)", gap: 10 }}>

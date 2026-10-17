@@ -168,12 +168,12 @@ export default function Futures() {
             <div style={{ ...s.sectionTitle, marginBottom: 10 }}>BUY SLOTS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
-                <label style={s.label}>Batch ID</label>
-                <input style={s.input} type="number" min="1" value={buyBatchId} onChange={e => setBuyBatchId(e.target.value)} />
+                <label style={s.label} htmlFor="fut-buy-batch">Batch ID</label>
+                <input id="fut-buy-batch" style={s.input} type="number" min="1" value={buyBatchId} onChange={e => setBuyBatchId(e.target.value)} />
               </div>
               <div>
-                <label style={s.label}>Amount</label>
-                <input style={s.input} type="number" min="1" value={buyAmount} onChange={e => setBuyAmount(e.target.value)} />
+                <label style={s.label} htmlFor="fut-buy-amount">Amount</label>
+                <input id="fut-buy-amount" style={s.input} type="number" min="1" value={buyAmount} onChange={e => setBuyAmount(e.target.value)} />
               </div>
             </div>
             <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleBuySlots} disabled={loading || !isConnected}>
@@ -188,8 +188,8 @@ export default function Futures() {
         <div style={s.section}>
           <div style={s.sectionTitle}>BURN SLOT — USE PRIORITY CALL</div>
           <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Burn a slot to call the provider at the pre-agreed price, bypassing queue.</p>
-          <label style={s.label}>Batch ID</label>
-          <input style={s.input} type="number" min="1" value={burnBatchId} onChange={e => setBurnBatchId(e.target.value)} />
+          <label style={s.label} htmlFor="fut-burn-batch">Batch ID</label>
+          <input id="fut-burn-batch" style={s.input} type="number" min="1" value={burnBatchId} onChange={e => setBurnBatchId(e.target.value)} />
           <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleBurnSlot} disabled={loading || !isConnected}>
             <Flame size={14} /> Burn slot & call
           </button>
@@ -202,20 +202,20 @@ export default function Futures() {
           <div style={s.sectionTitle}>MINT CAPACITY BATCH (providers only)</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
             <div>
-              <label style={s.label}>Your Provider ID</label>
-              <input style={s.input} type="number" min="1" value={mintPid} onChange={e => setMintPid(e.target.value)} />
+              <label style={s.label} htmlFor="fut-mint-pid">Your Provider ID</label>
+              <input id="fut-mint-pid" style={s.input} type="number" min="1" value={mintPid} onChange={e => setMintPid(e.target.value)} />
             </div>
             <div>
-              <label style={s.label}>Price per call (USDC)</label>
-              <input style={s.input} type="number" min="0.001" step="0.01" value={mintPrice} onChange={e => setMintPrice(e.target.value)} />
+              <label style={s.label} htmlFor="fut-mint-price">Price per call (USDC)</label>
+              <input id="fut-mint-price" style={s.input} type="number" min="0.001" step="0.01" value={mintPrice} onChange={e => setMintPrice(e.target.value)} />
             </div>
             <div>
-              <label style={s.label}>Total slots</label>
-              <input style={s.input} type="number" min="1" value={mintSlots} onChange={e => setMintSlots(e.target.value)} />
+              <label style={s.label} htmlFor="fut-mint-slots">Total slots</label>
+              <input id="fut-mint-slots" style={s.input} type="number" min="1" value={mintSlots} onChange={e => setMintSlots(e.target.value)} />
             </div>
             <div>
-              <label style={s.label}>Deadline</label>
-              <input style={{ ...s.input, fontFamily: "var(--font-sans)" }} type="date" value={mintDeadline} onChange={e => setMintDeadline(e.target.value)} />
+              <label style={s.label} htmlFor="fut-mint-deadline">Deadline</label>
+              <input id="fut-mint-deadline" style={{ ...s.input, fontFamily: "var(--font-sans)" }} type="date" value={mintDeadline} onChange={e => setMintDeadline(e.target.value)} />
             </div>
           </div>
           <button style={{ ...s.btn("primary", loading || !isConnected), width: "100%" }} onClick={handleMint} disabled={loading || !isConnected}>
@@ -225,18 +225,18 @@ export default function Futures() {
           <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
             <div style={s.sectionTitle}>CLAIM PROCEEDS (provider)</div>
             <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>Claim your USDC from sold slots. Funds are held in escrow until you claim.</p>
-            <label style={s.label}>Batch ID</label>
+            <label style={s.label} htmlFor="fut-claim-batch">Batch ID</label>
             <div style={{ display: "flex", gap: 8 }}>
-              <input style={{ ...s.input, flex: 1 }} type="number" min="1" value={claimBatchId} onChange={e => setClaimBatchId(e.target.value)} />
+              <input id="fut-claim-batch" style={{ ...s.input, flex: 1 }} type="number" min="1" value={claimBatchId} onChange={e => setClaimBatchId(e.target.value)} />
               <button style={s.btn("primary", loading || !isConnected)} onClick={handleClaimProceeds} disabled={loading || !isConnected}>Claim</button>
             </div>
           </div>
 
           <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
             <div style={s.sectionTitle}>CANCEL BATCH</div>
-            <label style={s.label}>Batch ID</label>
+            <label style={s.label} htmlFor="fut-cancel-batch">Batch ID</label>
             <div style={{ display: "flex", gap: 8 }}>
-              <input style={{ ...s.input, flex: 1 }} type="number" min="1" value={cancelBatchId} onChange={e => setCancelBatchId(e.target.value)} />
+              <input id="fut-cancel-batch" style={{ ...s.input, flex: 1 }} type="number" min="1" value={cancelBatchId} onChange={e => setCancelBatchId(e.target.value)} />
               <button style={s.btn("default", loading || !isConnected)} onClick={handleCancel} disabled={loading || !isConnected}>Cancel</button>
             </div>
           </div>

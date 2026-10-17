@@ -119,8 +119,12 @@ export default function BulkCall() {
           Bulk from CSV
         </div>
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Select CSV file to upload"
           style={{ border: "2px dashed var(--border)", borderRadius: 14, padding: 24, textAlign: "center" as const, cursor: "pointer" }}
           onClick={() => document.getElementById("bulkCsvInput")?.click()}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); document.getElementById("bulkCsvInput")?.click(); } }}
           onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) parseCsvFile(f); }}
         >

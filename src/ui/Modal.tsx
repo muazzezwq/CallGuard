@@ -13,8 +13,8 @@ export function Modal({
 
   if (!open) return null;
   return (
-    <div className="ui-modal-overlay" onClick={onClose}>
-      <div className="ui-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+    <div className="ui-modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ui-modal" role="dialog" aria-modal="true">
         {title && (
           <div className="ui-modal__head">
             <span className="ui-modal__title">{title}</span>

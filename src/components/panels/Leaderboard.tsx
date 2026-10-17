@@ -41,13 +41,18 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
   const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "#EE4539"
 
   return (
-    <div style={{
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(p.id)}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(p.id); } }}
+      style={{
       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
       borderRadius: 8, marginBottom: 6,
       background: selected ? "rgba(25,209,134,0.07)" : isSelf ? "rgba(25,209,134,0.04)" : "var(--bg-3)",
       border: `1px solid ${selected ? "var(--accent)" : isSelf ? "rgba(25,209,134,0.2)" : "transparent"}`,
       cursor: "pointer", transition: "all .15s",
-    }} onClick={() => onSelect(p.id)}>
+    }}>
       {/* rank */}
       <div style={{ width: 28, textAlign: "center", fontSize: rank <= 3 ? 18 : 13, fontWeight: 700, color: rank <= 3 ? "" : "var(--text-faint)", flexShrink: 0 }}>
         {MEDAL[rank] ?? rank}

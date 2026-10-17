@@ -201,7 +201,14 @@ export default function Providers() {
 
       {/* Setup Guide */}
       <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:12,overflow:"hidden" }}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }} onClick={() => setSetupOpen(o => !o)}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={setupOpen}
+          style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }}
+          onClick={() => setSetupOpen(o => !o)}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSetupOpen(o => !o); } }}
+        >
           <div style={{ fontSize:13,fontWeight:600,color:"var(--text)" }}>Provider Setup Guide</div>
           {setupOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
         </div>
@@ -223,7 +230,14 @@ export default function Providers() {
 
       {/* SDK Quick Integration */}
       <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:12,overflow:"hidden" }}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }} onClick={() => setSdkOpen(o => !o)}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={sdkOpen}
+          style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }}
+          onClick={() => setSdkOpen(o => !o)}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSdkOpen(o => !o); } }}
+        >
           <div style={{ fontSize:13,fontWeight:600,color:"var(--text)" }}>SDK — Quick Integration</div>
           {sdkOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
         </div>

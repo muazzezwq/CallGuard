@@ -148,14 +148,14 @@ export default function Lending() {
         <div style={s.section}>
           <div style={s.sectionTitle}>LEND TO POOL — EARN YIELD</div>
           <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Deposit USDC into the reputation loan pool. Earn interest when providers borrow to increase stake.</p>
-          <label style={s.label}>Deposit amount (USDC)</label>
-          <input style={s.input} type="number" min="1" step="1" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} />
+          <label style={s.label} htmlFor="ln-deposit">Deposit amount (USDC)</label>
+          <input id="ln-deposit" style={s.input} type="number" min="1" step="1" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} />
           <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleDeposit} disabled={loading || !isConnected}>
             {loading ? "⏳" : "Deposit to pool"}
           </button>
           <div style={{ ...s.sectionTitle, marginTop: 20, marginBottom: 10 }}>WITHDRAW SHARES</div>
-          <label style={s.label}>Shares to redeem (1 share ≈ 1 USDC + interest)</label>
-          <input style={s.input} type="number" min="0" value={withdrawShares} onChange={e => setWithdrawShares(e.target.value)} />
+          <label style={s.label} htmlFor="ln-withdraw">Shares to redeem (1 share ≈ 1 USDC + interest)</label>
+          <input id="ln-withdraw" style={s.input} type="number" min="0" value={withdrawShares} onChange={e => setWithdrawShares(e.target.value)} />
           <button style={{ ...s.btn("default", loading || !isConnected), marginTop: 10 }} onClick={handleWithdraw} disabled={loading || !isConnected}>
             {loading ? "⏳" : "Withdraw shares"}
           </button>
@@ -171,12 +171,12 @@ export default function Lending() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
             <div>
-              <label style={s.label}>Your Provider ID</label>
-              <input style={s.input} type="number" min="1" value={borrowPid} onChange={e => setBorrowPid(e.target.value)} />
+              <label style={s.label} htmlFor="ln-borrow-pid">Your Provider ID</label>
+              <input id="ln-borrow-pid" style={s.input} type="number" min="1" value={borrowPid} onChange={e => setBorrowPid(e.target.value)} />
             </div>
             <div>
-              <label style={s.label}>Borrow amount (USDC)</label>
-              <input style={s.input} type="number" min="1" step="1" value={borrowAmt} onChange={e => setBorrowAmt(e.target.value)} />
+              <label style={s.label} htmlFor="ln-borrow-amt">Borrow amount (USDC)</label>
+              <input id="ln-borrow-amt" style={s.input} type="number" min="1" step="1" value={borrowAmt} onChange={e => setBorrowAmt(e.target.value)} />
             </div>
           </div>
           <button style={{ ...s.btn("primary", loading || !isConnected), width: "100%" }} onClick={handleBorrow} disabled={loading || !isConnected}>

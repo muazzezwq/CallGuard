@@ -176,11 +176,12 @@ export default function Mcp() {
               Probes an endpoint for HTTP 402, signs transferWithAuthorization, submits payment header.
             </div>
 
-            <label style={S.label}>Endpoint URL</label>
-            <input className="cg-input" value={x402Url} onChange={e=>setX402Url(e.target.value)} placeholder="https://…/api/call-service" style={{ marginBottom:10 }}/>
+            <label style={S.label} htmlFor="mcp-x402-url">Endpoint URL</label>
+            <input id="mcp-x402-url" className="cg-input" value={x402Url} onChange={e=>setX402Url(e.target.value)} placeholder="https://…/api/call-service" style={{ marginBottom:10 }}/>
 
-            <label style={S.label}>Request Payload (JSON)</label>
+            <label style={S.label} htmlFor="mcp-x402-payload">Request Payload (JSON)</label>
             <textarea
+              id="mcp-x402-payload"
               className="cg-input"
               value={x402Payload}
               onChange={e=>setX402Payload(e.target.value)}
@@ -258,13 +259,13 @@ export default function Mcp() {
         <div style={S.card}>
           <div style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>MCP Server Setup</div>
 
-          <label style={S.label}>Install</label>
+          <div style={S.label}>Install</div>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'var(--accent)' }}>npm install @callguard/mcp-server</pre>
             <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
-          <label style={S.label}>Claude Desktop Config</label>
+          <div style={S.label}>Claude Desktop Config</div>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'var(--text)' }}>{`{
   "mcpServers": {
@@ -281,13 +282,13 @@ export default function Mcp() {
             <button onClick={() => copyText(`{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`)} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
-          <label style={S.label}>REST Base URL</label>
+          <div style={S.label}>REST Base URL</div>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'var(--accent)' }}>https://arcsla.vercel.app/api</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
-          <label style={S.label}>Remote SSE Endpoint</label>
+          <div style={S.label}>Remote SSE Endpoint</div>
           <div style={{ position:'relative' }}>
             <pre style={{ ...S.code, color:'var(--accent)' }}>https://arcsla.vercel.app/api/mcp-server</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>

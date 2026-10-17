@@ -256,8 +256,9 @@ export default function Disputes() {
             <strong style={{ color: "var(--text)" }}>How it works:</strong> Submit the call ID and evidence. Community arbiters vote (stake-weighted majority). Bond: <strong>{callerBondUSDC} USDC</strong> from your wallet.
           </div>
           <div className="form-group mb-3">
-            <label className="form-label">Call ID (0x bytes32)</label>
+            <label className="form-label" htmlFor="dp-callid">Call ID (0x bytes32)</label>
             <input
+              id="dp-callid"
               className="cg-input mono"
               placeholder="0xabc123... (32-byte hex)"
               value={callIdInput}
@@ -265,8 +266,9 @@ export default function Disputes() {
             />
           </div>
           <div className="form-group mb-3">
-            <label className="form-label">Provider ID</label>
+            <label className="form-label" htmlFor="dp-provider">Provider ID</label>
             <input
+              id="dp-provider"
               className="cg-input mono"
               placeholder="e.g. 1"
               type="number" min="1"
@@ -275,8 +277,9 @@ export default function Disputes() {
             />
           </div>
           <div className="form-group mb-3">
-            <label className="form-label">Evidence (description or IPFS URI)</label>
+            <label className="form-label" htmlFor="dp-evidence">Evidence (description or IPFS URI)</label>
             <textarea
+              id="dp-evidence"
               className="cg-input"
               rows={3}
               placeholder="Describe why the response was inadequate, or paste an IPFS hash with evidence..."

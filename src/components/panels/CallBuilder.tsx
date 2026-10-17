@@ -498,8 +498,9 @@ export default function CallBuilder() {
           {/* Provider + Payload */}
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16 }}>
             <div>
-              <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Provider</label>
+              <label htmlFor="cb-provider" style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Provider</label>
               <select
+                id="cb-provider"
                 value={providerId}
                 onChange={e => setProviderId(e.target.value)}
                 style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
@@ -515,8 +516,9 @@ export default function CallBuilder() {
               </select>
             </div>
             <div>
-              <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Request payload</label>
+              <label htmlFor="cb-payload" style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Request payload</label>
               <input
+                id="cb-payload"
                 type="text" value={payload} onChange={e => setPayload(e.target.value)}
                 style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
                 placeholder="ping"
@@ -543,8 +545,9 @@ export default function CallBuilder() {
 
           {/* Call ID */}
           <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Call ID (for receipt / timeout)</label>
+            <label htmlFor="cb-callid" style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Call ID (for receipt / timeout)</label>
             <input
+              id="cb-callid"
               type="text" value={callIdInput} onChange={e => setCallIdInput(e.target.value)}
               style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const }}
               placeholder="Auto-filled after call"
@@ -585,8 +588,9 @@ export default function CallBuilder() {
             <>
               {/* Chain select */}
               <div style={{ marginBottom:16 }}>
-                <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Pay from chain</label>
+                <label htmlFor="cb-chain" style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Pay from chain</label>
                 <select
+                  id="cb-chain"
                   value={chain}
                   onChange={e => setChain(e.target.value as Chain)}
                   style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13 }}
@@ -607,8 +611,9 @@ export default function CallBuilder() {
               <div style={{ borderTop:"1px solid var(--border)",paddingTop:16 }}>
             <div style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,marginBottom:10 }}>Provider actions</div>
             <div style={{ marginBottom:10 }}>
-              <label style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Response payload</label>
+              <label htmlFor="cb-response" style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text-faint)",fontWeight:600,display:"block",marginBottom:6 }}>Response payload</label>
               <input
+                id="cb-response"
                 type="text" value={responsePayload} onChange={e => setResponsePayload(e.target.value)}
                 style={{ width:"100%",background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",color:"var(--text)",fontSize:13,boxSizing:"border-box" as const }}
                 placeholder="pong"

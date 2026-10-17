@@ -229,10 +229,10 @@ export default function Jobs() {
   const stepContent = [
     // Step 0: Create
     <div key="create">
-      <label style={s.label}>Provider Address</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="0x... provider wallet address" value={providerAddr} onChange={e => setProviderAddr(e.target.value)} />
-      <label style={s.label}>Job Description</label>
-      <textarea style={{ ...s.input, minHeight: 70, resize: "vertical" as const }} placeholder="Describe the work to be done..." value={description} onChange={e => setDescription(e.target.value)} />
+      <label style={s.label} htmlFor="jb-provider">Provider Address</label>
+      <input id="jb-provider" style={{ ...s.input, marginBottom: 10 }} placeholder="0x... provider wallet address" value={providerAddr} onChange={e => setProviderAddr(e.target.value)} />
+      <label style={s.label} htmlFor="jb-description">Job Description</label>
+      <textarea id="jb-description" style={{ ...s.input, minHeight: 70, resize: "vertical" as const }} placeholder="Describe the work to be done..." value={description} onChange={e => setDescription(e.target.value)} />
       <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
         <button style={s.btn} onClick={doCreateJob} disabled={loading || !address}>
           {loading ? "Creating..." : "Create Job →"}
@@ -242,10 +242,10 @@ export default function Jobs() {
 
     // Step 1: Set Budget
     <div key="budget">
-      <label style={s.label}>Job ID</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID (from step 1)" value={jobId} onChange={e => setJobId(e.target.value)} />
-      <label style={s.label}>Budget (USDC)</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="e.g. 10" type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} />
+      <label style={s.label} htmlFor="jb-id-budget">Job ID</label>
+      <input id="jb-id-budget" style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID (from step 1)" value={jobId} onChange={e => setJobId(e.target.value)} />
+      <label style={s.label} htmlFor="jb-budget">Budget (USDC)</label>
+      <input id="jb-budget" style={{ ...s.input, marginBottom: 10 }} placeholder="e.g. 10" type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} />
       <button style={s.btn} onClick={doSetBudget} disabled={loading || !address}>
         {loading ? "Setting..." : "Set Budget →"}
       </button>
@@ -253,8 +253,8 @@ export default function Jobs() {
 
     // Step 2: Fund
     <div key="fund">
-      <label style={s.label}>Job ID</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
+      <label style={s.label} htmlFor="jb-id-fund">Job ID</label>
+      <input id="jb-id-fund" style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
       <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
         This will approve USDC (if needed) and fund the job escrow.
       </div>
@@ -265,10 +265,10 @@ export default function Jobs() {
 
     // Step 3: Submit
     <div key="submit">
-      <label style={s.label}>Job ID</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
-      <label style={s.label}>Deliverable (hashed on-chain)</label>
-      <textarea style={{ ...s.input, minHeight: 60, resize: "vertical" as const, marginBottom: 10 }} placeholder="Deliverable content or IPFS hash..." value={deliverable} onChange={e => setDeliverable(e.target.value)} />
+      <label style={s.label} htmlFor="jb-id-submit">Job ID</label>
+      <input id="jb-id-submit" style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
+      <label style={s.label} htmlFor="jb-deliverable">Deliverable (hashed on-chain)</label>
+      <textarea id="jb-deliverable" style={{ ...s.input, minHeight: 60, resize: "vertical" as const, marginBottom: 10 }} placeholder="Deliverable content or IPFS hash..." value={deliverable} onChange={e => setDeliverable(e.target.value)} />
       <button style={s.btn} onClick={doSubmitJob} disabled={loading || !address}>
         {loading ? "Submitting..." : "Submit Deliverable →"}
       </button>
@@ -276,8 +276,8 @@ export default function Jobs() {
 
     // Step 4: Complete
     <div key="complete">
-      <label style={s.label}>Job ID</label>
-      <input style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
+      <label style={s.label} htmlFor="jb-id-complete">Job ID</label>
+      <input id="jb-id-complete" style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
       <div style={{ padding: 12, background: "rgba(25,209,134,.08)", border: "1px solid rgba(25,209,134,.2)", borderRadius: 8, fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
         <strong style={{ color: "var(--accent)" }}>Final step:</strong> Marks the job complete and releases USDC to the provider. Only the evaluator or client can call this.
       </div>
@@ -315,8 +315,12 @@ export default function Jobs() {
         {STEPS.map((label, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center" }}>
             <div
+              role="button"
+              tabIndex={i <= step ? 0 : -1}
+              aria-disabled={i > step}
               style={{ cursor: i <= step ? "pointer" : "default", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 4 }}
               onClick={() => i <= step && setStep(i)}
+              onKeyDown={e => { if (i <= step && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setStep(i); } }}
             >
               <div style={{
                 width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",

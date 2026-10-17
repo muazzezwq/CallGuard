@@ -203,8 +203,8 @@ function CompareModal({ providers, onClose, onCall }: {
   ];
 
   return (
-    <div className="mp-overlay" onClick={onClose}>
-      <div className="mp-modal" onClick={e => e.stopPropagation()}>
+    <div className="mp-overlay" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="mp-modal">
         <div className="mp-modal-head">
           <div>
             <div className="mp-modal-title">Provider Comparison</div>

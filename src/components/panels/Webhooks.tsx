@@ -106,12 +106,12 @@ export default function Webhooks() {
       {/* Add webhook */}
       <div style={s.section}>
         <div style={s.sectionTitle}>ADD WEBHOOK</div>
-        <label style={s.label}>Endpoint URL</label>
-        <input style={s.input} type="url" value={urlInput} onChange={e => setUrlInput(e.target.value)} placeholder="https://your-server.com/webhook or https://webhook.site/…" />
+        <label style={s.label} htmlFor="wh-url">Endpoint URL</label>
+        <input id="wh-url" style={s.input} type="url" value={urlInput} onChange={e => setUrlInput(e.target.value)} placeholder="https://your-server.com/webhook or https://webhook.site/…" />
 
         <div style={{ marginTop: 12, marginBottom: 12 }}>
-          <label style={s.label}>Events to subscribe</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={s.label} id="wh-events-label">Events to subscribe</div>
+          <div role="group" aria-labelledby="wh-events-label" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {EVENT_TYPES.map(ev => (
               <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 999, background: selectedEvents.includes(ev) ? "rgba(25,209,134,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(25,209,134,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
                 <input type="checkbox" style={{ width: 12, height: 12, accentColor: "var(--accent)" }} checked={selectedEvents.includes(ev)} onChange={() => toggleEvent(ev)} />

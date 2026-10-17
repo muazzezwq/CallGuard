@@ -220,8 +220,9 @@ export default function Bridge() {
       <div style={s.card}>
         {/* Source chain selector */}
         <div style={{ marginBottom: 14 }}>
-          <label style={s.label}>Source Chain</label>
+          <label style={s.label} htmlFor="br-source">Source Chain</label>
           <select
+            id="br-source"
             style={s.select}
             value={srcIdx}
             onChange={e => setSrcIdx(Number(e.target.value))}
@@ -248,8 +249,9 @@ export default function Bridge() {
 
         {/* Amount */}
         <div style={{ marginBottom: 14 }}>
-          <label style={s.label}>Amount (USDC)</label>
+          <label style={s.label} htmlFor="br-amount">Amount (USDC)</label>
           <input
+            id="br-amount"
             style={s.input}
             type="number"
             min="0.000001"
@@ -263,8 +265,9 @@ export default function Bridge() {
 
         {/* Recipient */}
         <div style={{ marginBottom: 18 }}>
-          <label style={s.label}>Recipient on Arc (leave blank to use your address)</label>
+          <label style={s.label} htmlFor="br-recipient">Recipient on Arc (leave blank to use your address)</label>
           <input
+            id="br-recipient"
             style={s.input}
             placeholder={address ?? "0x…"}
             value={recipient}

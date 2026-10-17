@@ -99,12 +99,12 @@ export default function Payments() {
       <div className="cg-card mb-4">
         <div className="card-title mb-3">Send USDC</div>
         <div className="form-group mb-2">
-          <label className="form-label">Recipient address</label>
-          <input className="cg-input" placeholder="0x..." value={sendTo} onChange={e=>setSendTo(e.target.value)}/>
+          <label className="form-label" htmlFor="pay-to">Recipient address</label>
+          <input id="pay-to" className="cg-input" placeholder="0x..." value={sendTo} onChange={e=>setSendTo(e.target.value)}/>
         </div>
         <div className="form-group mb-3">
-          <label className="form-label">Amount (USDC)</label>
-          <input className="cg-input" type="number" placeholder="1.00" value={sendAmt} onChange={e=>setSendAmt(e.target.value)}/>
+          <label className="form-label" htmlFor="pay-amount">Amount (USDC)</label>
+          <input id="pay-amount" className="cg-input" type="number" placeholder="1.00" value={sendAmt} onChange={e=>setSendAmt(e.target.value)}/>
         </div>
         {status && <p className="text-sm mb-2" style={{color:status==="Sent!"?"var(--accent)":"var(--red)"}}>{status}</p>}
         <button className="btn btn-primary" onClick={handleSend} disabled={!sendTo||!sendAmt}>Send →</button>

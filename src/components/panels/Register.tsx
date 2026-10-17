@@ -312,35 +312,35 @@ export default function Register() {
       <div style={s.section}>
         <div style={s.sectionTitle}>REGISTRATION DETAILS</div>
 
-        <label style={s.label}>Signer address <span style={s.tag}>required</span></label>
-        <input style={s.input} value={signerAddr} onChange={e => setSignerAddr(e.target.value)} placeholder="0x…" />
+        <label style={s.label} htmlFor="rg-signer">Signer address <span style={s.tag}>required</span></label>
+        <input id="rg-signer" style={s.input} value={signerAddr} onChange={e => setSignerAddr(e.target.value)} placeholder="0x…" />
 
-        <label style={s.label}>Provider endpoint URL</label>
-        <input style={s.input} value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://your-server.com/provider" />
+        <label style={s.label} htmlFor="rg-endpoint">Provider endpoint URL</label>
+        <input id="rg-endpoint" style={s.input} value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://your-server.com/provider" />
 
         <div style={s.row}>
           <div style={{ flex:1 }}>
-            <label style={s.label}>Stake amount (USDC)</label>
-            <input style={s.input} type="number" min="0.01" step="0.1" value={stake} onChange={e => setStake(e.target.value)} />
+            <label style={s.label} htmlFor="rg-stake">Stake amount (USDC)</label>
+            <input id="rg-stake" style={s.input} type="number" min="0.01" step="0.1" value={stake} onChange={e => setStake(e.target.value)} />
           </div>
           <div style={{ flex:1 }}>
-            <label style={s.label}>Price per call (USDC)</label>
-            <input style={s.input} type="number" min="0.001" step="0.01" value={price} onChange={e => setPrice(e.target.value)} />
+            <label style={s.label} htmlFor="rg-price">Price per call (USDC)</label>
+            <input id="rg-price" style={s.input} type="number" min="0.001" step="0.01" value={price} onChange={e => setPrice(e.target.value)} />
           </div>
         </div>
 
         <div style={s.row}>
           <div style={{ flex:1 }}>
-            <label style={s.label}>SLA window (seconds)</label>
-            <input style={s.input} type="number" min="10" step="10" value={slaWindow} onChange={e => setSlaWindow(e.target.value)} />
+            <label style={s.label} htmlFor="rg-slwindow">SLA window (seconds)</label>
+            <input id="rg-slwindow" style={s.input} type="number" min="10" step="10" value={slaWindow} onChange={e => setSlaWindow(e.target.value)} />
           </div>
           <div style={{ flex:1 }}>
-            <label style={s.label}>Slash % on timeout</label>
-            <input style={s.input} type="number" min="1" max="100" value={slashPct} onChange={e => setSlashPct(e.target.value)} />
+            <label style={s.label} htmlFor="rg-slashpct">Slash % on timeout</label>
+            <input id="rg-slashpct" style={s.input} type="number" min="1" max="100" value={slashPct} onChange={e => setSlashPct(e.target.value)} />
           </div>
           <div style={{ flex:1 }}>
-            <label style={s.label}>Max concurrent calls</label>
-            <input style={s.input} type="number" min="0" step="1" value={maxConcurrent} onChange={e => setMaxConcurrent(e.target.value)} />
+            <label style={s.label} htmlFor="rg-maxconc">Max concurrent calls</label>
+            <input id="rg-maxconc" style={s.input} type="number" min="0" step="1" value={maxConcurrent} onChange={e => setMaxConcurrent(e.target.value)} />
           </div>
         </div>
       </div>
