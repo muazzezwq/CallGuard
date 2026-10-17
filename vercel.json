@@ -1,6 +1,7 @@
 {
   "outputDirectory": "dist",
   "buildCommand": "bun run build",
+  "installCommand": "bun install --frozen-lockfile",
   "framework": null,
   "functions": {
     "api/auto-receipt.js":      { "maxDuration": 25 },
