@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
+import { ArrowLeft } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
 import {
   PageHeader, SectionCard, StatCard, Toolbar, Chip, ChipRow,
-  Input, Button, Badge, EmptyState, Skeleton,
+  Input, Button, Badge, EmptyState, Skeleton, Stepper,
 } from "../../ui";
+import type { Step, StepState } from "../../ui";
 import { SLACanvas, slaStages } from "../viz/SLACanvas";
 
 const PAGE_SIZE = 25;
@@ -36,6 +38,17 @@ function when(v: unknown) {
   if (!v) return null;
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toLocaleString() : null;
+}
+
+const STEP_LABELS = ["Payment", "SLA", "Receipt", "Settlement"];
+
+function statusSteps(status: string, amount?: string): Step[] {
+  return slaStages(status, { amount }).map((st, i) => ({
+    id: st.key,
+    label: STEP_LABELS[i] ?? st.label,
+    sub: st.sub,
+    state: (st.state === "info" ? "done" : st.state) as StepState,
+  }));
 }
 
 function exportHistory(calls: Call[], format: "csv" | "json") {
@@ -206,11 +219,38 @@ export default function History() {
 
             {selected && (
               <>
+                <div className="tx-detail__head">
+                  <button
+                    type="button"
+                    className="tx-back"
+                    aria-label="Back to transaction list"
+                    onClick={() => setSelectedId(null)}
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <div className="tx-detail__title">
+                    <span className="tx-detail__eyebrow">Transaction Details</span>
+                    <span className="tx-detail__id mono">{String(selected.id).slice(0, 22)}…</span>
+                  </div>
+                  <Badge tone={STATUS_TONE[String(selected.status)] ?? "neutral"}>
+                    {String(selected.status) || "UNKNOWN"}
+                  </Badge>
+                </div>
+
                 <SectionCard
                   title="SLA lifecycle"
                   subtitle={`Call ${String(selected.id).slice(0, 18)}…`}
                 >
                   <SLACanvas stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })} />
+                  <ul className="sla-legend">
+                    <li><span className="sla-legend__sw sla-legend__sw--done" />Success</li>
+                    <li><span className="sla-legend__sw sla-legend__sw--pending" />Pending</li>
+                    <li><span className="sla-legend__sw sla-legend__sw--failed" />Failed</li>
+                  </ul>
+                </SectionCard>
+
+                <SectionCard title="Lifecycle steps" bodyClass="tx-block__body">
+                  <Stepper steps={statusSteps(String(selected.status), usdc(selected.amount) ?? undefined)} />
                 </SectionCard>
 
                 <SectionCard title="Details" bodyClass="tx-block__body">
