@@ -14,7 +14,7 @@ when code implementing the item is cited. Updated after the completion pass.
 | 4a | Overview (4 stat cards + sparkline + delta, Live Network + legend, Recent Activity, Flow stepper, Service Health) | `Overview.tsx:262,290-301,306,339-355` | done |
 | 4b | Marketplace (search, chip filters, provider cards) | `Marketplace.tsx:330,338-347,122-124` | done |
 | 4c | Call Builder (tabs, labeled fields, create call) | `CallBuilder.tsx:481-484` | done |
-| 4d | Transactions + detail (back arrow, status chip, 4-step stepper, key-value card, Transaction Hash, View on Explorer) | `History.tsx` detail block | done |
+| 4d | Transactions + detail (back arrow, status chip, 4-step stepper, key-value card) | `History.tsx` detail block (`.tx-detail__head`, `Stepper` from `statusSteps()`); Transaction Hash / View on Explorer omitted — the `Call` entity has no `txHash` | done |
 | 4e | SLA Canvas legend (Success/Pending/Failed) | `History.tsx` SLA lifecycle card legend | done |
 | 5 | 34 panels use their template with features kept | `docs/panel-inventory.md` (all rows done); off-token `#f59e0b` etc. replaced with `var(--warn)`/`var(--info)` | done |
 | 6 | Landing sections 1-8 in order, navbar mapping + anchors, 5 marketing pages | `Landing.tsx:174,218,235,261,285,298,314`; `MarketingLayout.tsx:11-15,78-80`; routes verified in browser | done |
@@ -31,4 +31,9 @@ Notes:
 - Browser widths available are 411 (phone) and 1280 (desktop); 375/768/1440 not exposed by
   the harness browser. No overflow at 411/1280.
 - Panels were screenshot-verified via a throwaway `tmp-screenshots` branch with a wagmi
-  mock connector (never merged).
+  mock connector (never merged). The canonical subgraph returns `calls: []`, so the
+  Transaction Detail body could not be exercised with live data; it is verified by
+  typecheck + static review + a CSS-token probe (see `docs/decisions.md`).
+- "View on Explorer" / "Transaction Hash" (4d) is intentionally omitted: `subgraph/schema.graphql`
+  `Call` (lines 21-34) has no `txHash`, only `callId` (bytes32); `txHash` lives on unrelated
+  event entities. Adding a link would invent data.
