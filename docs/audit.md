@@ -55,3 +55,58 @@ state, so a full-surface ErrorState would be wrong): `CallBuilder` provider
 "not found" form notice + facilitator fallback notice, `Agent`/`BulkCall`/
 `Bridge` per-action result lines, `AdminPanel` tx `StatusBadge`, `Jobs`/
 `Disputes` lookup-result rows, `Nano`/`Attestation`/`Verify` toast+output.
+
+## Phase C — per-panel screenshot sweep (throwaway `tmp-screenshots`)
+
+Method: a wagmi `mock` connector (never merged) autoconnected a real address, and a
+`window.__setPanel` hook drove all 34 panels. For each panel: title asserted, then
+screenshots `dark 1280`, `dark 411`, `light 1280`. Programmatic overflow + console-error
+probes ran for every panel at 1280 and 411. Artefacts under `docs/screenshots/panels/`
+(34×3) plus `history-detail-1280-dark.png` (seeded call).
+
+Result: **34 pass / 0 blocked.**
+
+| # | panel | title rendered | verdict |
+|---|---|---|---|
+| 1 | overview | Overview | pass |
+| 2 | marketplace | Marketplace | fixed (mobile list card wrapped) |
+| 3 | calls | Create your custom SLA call. | pass |
+| 4 | history | Transactions | fixed (refunded/slashed flags) |
+| 5 | receipts | Receipts | pass |
+| 6 | providers | Providers | pass |
+| 7 | leaderboard | Leaderboard | pass |
+| 8 | provprofile | Provider Profile | pass |
+| 9 | mcp | MCP / API | pass |
+| 10 | apidocs | API & Integration Docs | pass |
+| 11 | webhooks | Webhooks | pass |
+| 12 | pipelinehook | ERC-8183 Pipeline Hook | pass |
+| 13 | nano | Nanopayment | pass |
+| 14 | bridge | CCTP Bridge | pass |
+| 15 | balance | Unified Balance | pass |
+| 16 | agent | Agent Wallet | pass |
+| 17 | passkey | Passkey Wallet | pass |
+| 18 | requests | My Requests | pass |
+| 19 | payments | Payments | pass |
+| 20 | disputes | Quality Disputes | pass |
+| 21 | quality | Quality Disputes | pass |
+| 22 | lending | Reputation-Backed Lending | pass |
+| 23 | futures | SLA Futures | pass |
+| 24 | attestation | SLA Attestation Bridge | pass |
+| 25 | subscriptions | Subscriptions | pass |
+| 26 | jobs | ERC-8183 Agentic Commerce | pass (5-step rail is horizontally scrollable by design) |
+| 27 | bulkcall | Bulk Call | pass |
+| 28 | verify | Verify Receipt | pass |
+| 29 | register | Become a Provider | pass |
+| 30 | privacy | Privacy | pass |
+| 31 | admin | Admin Panel | fixed (`panel-head` light) |
+| 32 | analytics | Network Analytics | pass |
+| 33 | notifications | On-Chain Alerts | pass |
+| 34 | settings | Settings | fixed (`panel-head` light) |
+
+Shared fixes applied (benefit more than one panel): `.panel-head` background
+`rgba(13,20,33,.6)` -> `var(--surface-1)` (was a dark band on light: Settings, Admin,
+Quality, and every `.panel-head` panel); `[data-theme="light"] .mobile-bottom-nav`
+override (dark bottom bar on light); marketplace list card wraps on ≤768px.
+Task-specific fix: `History.tsx` refunded/slashed badges used string truthiness
+(`"0"` is truthy) — now numeric. Overflow: none at 1280; none at 411 after the
+marketplace fix. Console errors: none on any panel.

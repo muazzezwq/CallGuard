@@ -282,10 +282,10 @@ export default function History() {
                       </div>
                     ))}
                   </dl>
-                  {(!!selected.refunded || !!selected.slashed) && (
+                  {(Number(selected.refunded ?? 0) > 0 || Number(selected.slashed ?? 0) > 0) && (
                     <div className="tx-flags">
-                      {!!selected.refunded && <Badge tone="info" dot>Refunded to caller</Badge>}
-                      {!!selected.slashed && <Badge tone="slash" dot>Stake slashed</Badge>}
+                      {Number(selected.refunded ?? 0) > 0 && <Badge tone="info" dot>Refunded to caller</Badge>}
+                      {Number(selected.slashed ?? 0) > 0 && <Badge tone="slash" dot>Stake slashed</Badge>}
                     </div>
                   )}
                 </SectionCard>
