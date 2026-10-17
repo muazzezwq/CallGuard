@@ -110,3 +110,17 @@ override (dark bottom bar on light); marketplace list card wraps on ≤768px.
 Task-specific fix: `History.tsx` refunded/slashed badges used string truthiness
 (`"0"` is truthy) — now numeric. Overflow: none at 1280; none at 411 after the
 marketplace fix. Console errors: none on any panel.
+
+## Phase D — Landing verification (SPEC_6)
+| Viewport | Theme | Overflow | 3D/fallback | Anchors |
+| --- | --- | --- | --- | --- |
+| 1280 | dark | none | 3D (readback 13 calls / 2280 tris, bright core) | `#product`/`#developers`/`#ecosystem` present |
+| 1280 | light | none | 3D | present |
+| 411 | dark | none | 3D (scene active) | present |
+| 411 | light | none | 3D | present |
+| 1280 | dark | none | forced SVG fallback renders "C" core + nodes | n/a |
+
+Section order matches SPEC_4: hero -> trust row -> Product -> Developers -> Ecosystem -> CTA -> footer.
+Fix: `.mk-hero__art` `height: 420px` (was collapsed; the WebGL canvas rendered into ~150px).
+Note: harness screenshots do not composite the WebGL surface, so the 3D hero is proven by
+`gl.readPixels`; the fallback and page chrome are screenshot-verified.

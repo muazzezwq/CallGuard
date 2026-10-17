@@ -68,7 +68,7 @@
 .mk-hero__title { max-width: 18ch; }
 .mk-hero__copy { min-width: 0; }
 .mk-hero__art {
-  position: relative; min-width: 0;
+  position: relative; min-width: 0; height: 420px;
   border-radius: var(--radius-lg);
   background: radial-gradient(ellipse 80% 70% at 50% 45%, rgba(25,209,134,0.10) 0%, transparent 70%);
 }

@@ -82,3 +82,10 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - Verified in the browser (mock wallet via a throwaway `tmp-screenshots` branch, never merged): app panels render, no console errors; footer computes `rgb(5,21,40)` (= `--bg-1`) on dark, not white; light-theme `--warn` = `#B45309`, `--info` = `#1F77EF`; injected `.ui-error` / `.sla-legend` / `.ui-step` probes resolve the real tokens (icon `rgb(238,69,57)`, done `rgb(25,209,134)`, pending `rgb(51,65,90)`). Screenshots refreshed in `docs/screenshots/`.
 - **Limitation:** the canonical subgraph returns `calls: []` and the mock wallet has no calls, so the Transaction Detail body (stepper with live states) could not be exercised with real data; it was verified by typecheck + static review + the CSS-token probe. Decision logged in `docs/decisions.md`.
 - typecheck + build pass; `dist/` rebuilt in each commit. Phase 9 done.
+
+## Phase D — Landing (SPEC_6)
+- 1280 + 411, dark + light: nav anchors (`#product`/`#developers`/`#ecosystem`) present, section order 1:1 with SPEC_4, no horizontal overflow at any of the four combos. Screenshots `docs/screenshots/landing-{1280,411}-{dark,light}.png`.
+- **Fixed a real WebGL bug.** `.mk-hero__art` had no height, so the r3f `<Canvas style="height:100%">` collapsed to ~150px and the whole 3D hero rendered into a sliver. Set `.mk-hero__art { height: 420px }` (matches the SVG fallback's `height={420}`).
+- WebGL scene confirmed live by GPU readback (`gl.readPixels`): 13 draw calls / 2280 tris, bright green core (`max` sum 506) over a soft bloom haze; corners `(0,26,13)`. The harness screenshot does **not** composite the WebGL surface (DOM chips show, canvas pixels do not), so visual proof uses the readback plus the SVG fallback capture.
+- Reduced-motion / low-end fallback verified by forcing the fallback branch: `NetworkGraph` SVG renders the "C" core + nodes (capturable). Screenshot `docs/screenshots/landing-fallback-1280-dark.png`.
+- Decisions logged; typecheck + build pass; `dist/` rebuilt. Next: delete `tmp-screenshots`, finalize.

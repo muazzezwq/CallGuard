@@ -1,1 +1,0 @@
-import{j as i}from"./index-DSBfIC4o.js";import{c as o}from"./clsx-7DZZ4RQW.js";function n({width:r="100%",height:s=14,radius:e=8,className:t}){return i.jsx("div",{className:o("ui-skel",t),style:{width:r,height:s,borderRadius:e},"aria-hidden":"true"})}export{n as S};
