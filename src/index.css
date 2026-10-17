@@ -3049,6 +3049,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   transition: border-color .15s;
 }
 .admin-input:focus { border-color: var(--accent); }
+.admin-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 .admin-btn {
   padding: 7px 16px;
@@ -3148,6 +3149,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   color: var(--text-primary); outline: none; transition: border-color .2s, background .2s;
 }
 .mp-search:focus { border-color: rgba(25,209,134,.5); background: rgba(25,209,134,.05); }
+.mp-search:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .mp-search::placeholder { color: var(--text-muted); }
 .mp-search-x {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);

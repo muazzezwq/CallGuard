@@ -237,7 +237,7 @@ export default function History() {
                 </div>
 
                 <SectionCard
-                  title="SLA lifecycle"
+                  title="SLA Canvas"
                   subtitle={`Call ${String(selected.id).slice(0, 18)}…`}
                 >
                   <SLACanvas stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })} />
