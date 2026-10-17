@@ -19,9 +19,7 @@ export default defineConfig({
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-web3": ["wagmi", "viem", "connectkit"],
-          "vendor-charts": ["recharts"],
           "vendor-motion": ["framer-motion"],
-          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei"],
         },
       },
     },
