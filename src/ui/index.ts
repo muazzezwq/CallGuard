@@ -7,6 +7,7 @@ export { Stat } from "./Stat";
 export { AddressPill } from "./AddressPill";
 export { Copy } from "./Copy";
 export { EmptyState } from "./EmptyState";
+export { ErrorState } from "./ErrorState";
 export { Skeleton } from "./Skeleton";
 export { Tabs } from "./Tabs";
 export { Modal } from "./Modal";

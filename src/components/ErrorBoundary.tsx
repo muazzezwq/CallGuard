@@ -1,4 +1,6 @@
 import { Component, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
+import { ErrorState, Button } from "../ui";
 
 type Props = { children: ReactNode; resetKey?: unknown };
 type State = { error: Error | null };
@@ -28,27 +30,17 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: "40px 20px", maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ fontSize: 34, marginBottom: 10 }}>⚠️</div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>
-            This panel hit an error
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px" }}>
-            The rest of the app still works — pick another section, or retry.
-          </p>
-          <pre style={{
-            textAlign: "left", fontSize: 11, fontFamily: "var(--font-mono)",
-            color: "var(--text-faint)", background: "var(--bg-2)", border: "1px solid var(--border)",
-            borderRadius: 8, padding: "10px 12px", overflowX: "auto", marginBottom: 16,
-          }}>{this.state.error.message}</pre>
-          <button
-            onClick={() => this.setState({ error: null })}
-            style={{
-              padding: "8px 16px", borderRadius:999, border: "none", cursor: "pointer",
-              fontSize: 13, fontWeight: 600, background: "var(--accent)", color: "#fff",
-            }}
-          >Retry</button>
-        </div>
+        <ErrorState
+          icon={<AlertTriangle size={22} />}
+          title="This panel hit an error"
+          description="The rest of the app still works — pick another section, or retry."
+          detail={this.state.error.message}
+          action={
+            <Button variant="primary" size="sm" onClick={() => this.setState({ error: null })}>
+              Retry
+            </Button>
+          }
+        />
       );
     }
     return this.props.children;
