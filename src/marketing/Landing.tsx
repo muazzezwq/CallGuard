@@ -104,12 +104,12 @@ function HeroArt() {
   const reduce = useReducedMotion();
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [count, setCount] = useState(48);
+  const [count, setCount] = useState(60);
   const [scene, setScene] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setCount(window.innerWidth < 700 ? 24 : 48);
+    setCount(window.innerWidth < 700 ? 28 : 60);
     setScene(supportsWebGL() && !isLowEnd());
     setReady(true);
   }, []);
