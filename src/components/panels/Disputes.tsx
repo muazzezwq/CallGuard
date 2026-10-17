@@ -291,7 +291,7 @@ export default function Disputes() {
             <div style={{
               padding: "8px 12px", borderRadius: 6, marginBottom: 12, fontSize: 12,
               background: "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger,#EE4539)" : "var(--text-dim)",
+              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             }}>
               {status}
             </div>
@@ -329,7 +329,7 @@ export default function Disputes() {
           {disputeInfo && (
             <div style={{ background: "var(--bg-3)", borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
               {(disputeInfo as { error?: string }).error ? (
-                <div style={{ color: "var(--danger,#EE4539)", fontSize: 12 }}>{(disputeInfo as { error: string }).error}</div>
+                <div style={{ color: "var(--danger)", fontSize: 12 }}>{(disputeInfo as { error: string }).error}</div>
               ) : (
                 Object.entries(disputeInfo).map(([k, v]) => (
                   <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
@@ -354,8 +354,8 @@ export default function Disputes() {
               onClick={() => { setVoteChoice(false); handleVote(false); }}
               disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
               style={{
-                flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger,#EE4539)",
-                border: "1px solid var(--danger,#EE4539)", borderRadius:999, fontWeight: 600, cursor: "pointer", fontSize: 13,
+                flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger)",
+                border: "1px solid var(--danger)", borderRadius:999, fontWeight: 600, cursor: "pointer", fontSize: 13,
                 opacity: dqEnabled ? 1 : 0.5,
               }}
             >
@@ -366,7 +366,7 @@ export default function Disputes() {
           {voteStatus && (
             <div style={{
               padding: "8px 12px", borderRadius: 6, fontSize: 12, background: "var(--bg-3)",
-              color: voteStatus.startsWith("✅") ? "var(--accent)" : voteStatus.startsWith("❌") ? "var(--danger,#EE4539)" : "var(--text-dim)",
+              color: voteStatus.startsWith("✅") ? "var(--accent)" : voteStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             }}>
               {voteStatus}
             </div>

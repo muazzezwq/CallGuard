@@ -92,11 +92,11 @@ export default function PipelineHook() {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600,
             background: isZero ? "rgba(238,69,57,.15)" : "rgba(25,209,134,.15)",
-            color: isZero ? "#EE4539" : "#19D186",
+            color: isZero ? "var(--danger)" : "var(--accent)",
             border: `1px solid ${isZero ? "rgba(238,69,57,.3)" : "rgba(25,209,134,.3)"}`,
           }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isZero ? "#EE4539" : "#19D186", display: "inline-block" }} />
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isZero ? "var(--danger)" : "var(--accent)", display: "inline-block" }} />
           {isZero ? "Disabled" : "Active"}
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function PipelineHook() {
             href={`https://explorer.testnet.arc.io/address/${currentHook}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 11, color: "#1F77EF", marginTop: 6, display: "inline-block" }}
+            style={{ fontSize: 11, color: "var(--info)", marginTop: 6, display: "inline-block" }}
           >
             View on ArcScan ↗
           </a>
@@ -164,7 +164,7 @@ export default function PipelineHook() {
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
                   padding: "9px 18px", borderRadius: 999, fontWeight: 600, fontSize: 12,
-                  background: "#19D186", color: "#fff", border: "none", cursor: "pointer",
+                  background: "var(--accent)", color: "#fff", border: "none", cursor: "pointer",
                   opacity: (txState === "pending" || txState === "mining") ? 0.6 : 1,
                   whiteSpace: "nowrap",
                 }}
@@ -178,7 +178,7 @@ export default function PipelineHook() {
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
                   padding: "8px 16px", borderRadius: 999, fontWeight: 600, fontSize: 12,
-                  background: "rgba(238,69,57,.15)", color: "#EE4539",
+                  background: "rgba(238,69,57,.15)", color: "var(--danger)",
                   border: "1px solid rgba(238,69,57,.3)", cursor: "pointer",
                 }}
               >
@@ -186,17 +186,17 @@ export default function PipelineHook() {
               </button>
             )}
             {txState === "success" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#19D186" }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--accent)" }}>
                 Hook updated successfully.{" "}
                 {txHash && (
-                  <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "#1F77EF" }}>
+                  <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info)" }}>
                     Tx ↗
                   </a>
                 )}
               </div>
             )}
             {txState === "error" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#EE4539" }}>Transaction failed. Please try again.</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--danger)" }}>Transaction failed. Please try again.</div>
             )}
           </>
         )}

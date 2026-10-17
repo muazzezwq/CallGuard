@@ -28,7 +28,7 @@ const s = {
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "#EE4539" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
+  btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,var(--accent),var(--accent-dim))" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "var(--danger)" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
   whCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 },
 };
 
@@ -126,7 +126,7 @@ export default function Webhooks() {
         </button>
 
         {addStatus && (
-          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent)" : "#EE4539" }}>{addStatus}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent)" : "var(--danger)" }}>{addStatus}</div>
         )}
       </div>
 
@@ -142,7 +142,7 @@ export default function Webhooks() {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wh.lastTest?.ok ? "var(--accent)" : wh.lastTest ? "#EE4539" : "var(--text-faint)", display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wh.lastTest?.ok ? "var(--accent)" : wh.lastTest ? "var(--danger)" : "var(--text-faint)", display: "inline-block", flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{wh.url}</span>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
@@ -151,12 +151,12 @@ export default function Webhooks() {
                   ))}
                 </div>
                 {wh.lastTest && (
-                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent)" : "#EE4539" }}>
+                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent)" : "var(--danger)" }}>
                     Last: {wh.lastTest.status} · {wh.lastTest.latency}ms · {new Date(wh.lastTest.time).toLocaleTimeString("en-US", { hour12: false })}
                   </div>
                 )}
                 {testResults[wh.id] && (
-                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent)" : "#EE4539" }}>
+                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent)" : "var(--danger)" }}>
                     {testResults[wh.id]}
                   </div>
                 )}

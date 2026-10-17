@@ -28,7 +28,7 @@ function RiskBadge({ honorRate, stake, price }: { honorRate: number; stake: bigi
   const underfunded = stake < price;
   if (honorRate < 10) return (
     <div style={{ background:"rgba(238,69,57,0.08)",border:"1px solid rgba(238,69,57,0.25)",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13 }}>
-      <div style={{ fontWeight:700,color:"#EE4539",marginBottom:3 }}>⚠ High Risk Provider</div>
+      <div style={{ fontWeight:700,color:"var(--danger)",marginBottom:3 }}>⚠ High Risk Provider</div>
       <div style={{ color:"var(--text-dim)",fontSize:12 }}>This provider has a {honorRate}% honor rate. High chance of timeout.</div>
     </div>
   );
@@ -597,7 +597,7 @@ export default function CallBuilder() {
                 </select>
                 <p style={{ fontSize:12,color:"var(--text-dim)",marginTop:6 }}>{chainInfo.hint}</p>
                 <div style={{ marginTop:6 }}>
-                  <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(31,119,239,0.1)" : "rgba(25,209,134,0.1)",color: isCCTP ? "#1F77EF" : "var(--accent)" }}>
+                  <span style={{ padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600,background: isCCTP ? "rgba(31,119,239,0.1)" : "rgba(25,209,134,0.1)",color: isCCTP ? "var(--info)" : "var(--accent)" }}>
                     {isCCTP ? `5 steps — CCTP bridge` : "1 TX — EIP-3009 gasless"}
                   </span>
                 </div>
@@ -625,7 +625,7 @@ export default function CallBuilder() {
               <button
                 onClick={handleClaimTimeout}
                 disabled={isLoading}
-                style={{ padding:"10px 8px",borderRadius:999,border:"1px solid rgba(238,69,57,0.3)",background:"rgba(238,69,57,0.06)",color:"#EE4539",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
+                style={{ padding:"10px 8px",borderRadius:999,border:"1px solid rgba(238,69,57,0.3)",background:"rgba(238,69,57,0.06)",color:"var(--danger)",fontWeight:600,fontSize:12,cursor: isLoading ? "not-allowed":"pointer",opacity: isLoading ? 0.5:1 }}
               >
                 Claim timeout
               </button>
@@ -639,7 +639,7 @@ export default function CallBuilder() {
             <div style={{
               marginTop:14,borderRadius:8,padding:"10px 14px",fontSize:12,fontFamily:"var(--font-mono)",
               background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)",
+              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
               border:`1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`,
             }}>
               {status}
@@ -678,7 +678,7 @@ export default function CallBuilder() {
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,#19D186,#0E9F6E)",color:"#fff",border:"none",borderRadius:999,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(25,209,134,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
+              style={{ width:"100%",marginTop:14,background:"linear-gradient(135deg,var(--accent),var(--accent-dim))",color:"#fff",border:"none",borderRadius:999,padding:"13px",fontSize:14,fontWeight:800,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.5:1,boxShadow:"0 4px 20px rgba(25,209,134,0.4)",letterSpacing:"0.01em",transition:"transform 0.15s,box-shadow 0.15s" }}
               onMouseEnter={e=>{if(!isLoading&&isConnected){(e.target as HTMLElement).style.transform="translateY(-2px)";(e.target as HTMLElement).style.boxShadow="0 6px 28px rgba(25,209,134,0.5)";}}}
               onMouseLeave={e=>{(e.target as HTMLElement).style.transform="";(e.target as HTMLElement).style.boxShadow="0 4px 20px rgba(25,209,134,0.4)";}}
             >
@@ -718,7 +718,7 @@ export default function CallBuilder() {
                     <span style={{ color:"var(--text-faint)",width:18 }}>#{r.i}</span>
                     {r.hash
                       ? <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{r.hash.slice(0,14)}…</a>
-                      : <span style={{ color:"#EE4539" }}>{r.error}</span>
+                      : <span style={{ color:"var(--danger)" }}>{r.error}</span>
                     }
                   </div>
                 ))}

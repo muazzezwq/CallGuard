@@ -1807,7 +1807,7 @@ body.simple-mode .sb-pro-only  { display: none !important; }
 .cgt-list      { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .cgt-check     { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); }
 .cgt-check::before { content: "✓"; color: var(--accent); font-weight: 700; flex-shrink: 0; }
-.cgt-terminal  { background: #0a0e14; border: 1px solid rgba(25,209,134,0.2); border-radius: 12px; overflow: hidden; font-family: var(--font-mono); }
+.cgt-terminal  { background: var(--bg-0); border: 1px solid rgba(25,209,134,0.2); border-radius: 12px; overflow: hidden; font-family: var(--font-mono); }
 .cgt-term-bar  { background: #141920; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
 .cgt-term-dots { display: flex; gap: 5px; }
 .cgt-term-dots span { width: 10px; height: 10px; border-radius: 50%; }
