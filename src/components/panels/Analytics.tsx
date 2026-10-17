@@ -134,7 +134,7 @@ export default function Analytics() {
   }, [loadAnalytics]);
 
   const honorColor = data?.honorRate != null
-    ? data.honorRate >= 80 ? "var(--accent)" : data.honorRate >= 50 ? "#f59e0b" : "#EE4539"
+    ? data.honorRate >= 80 ? "var(--accent)" : data.honorRate >= 50 ? "var(--warn)" : "#EE4539"
     : "var(--text-faint)";
 
   function ago(ts: string) {
@@ -147,7 +147,7 @@ export default function Analytics() {
   }
   function statusColor(st: string) {
     const s = String(st).toUpperCase();
-    return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "#EE4539" : "#f59e0b";
+    return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "#EE4539" : "var(--warn)";
   }
 
   return (
@@ -221,7 +221,7 @@ export default function Analytics() {
           return data.topProviders.map(p => {
             const pct = Math.round((p.total / maxTotal) * 100);
             const honor = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 100;
-            const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "#f59e0b" : "#EE4539";
+            const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "#EE4539";
             return (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12 }}>
                 <span style={{ width: 44, color: "var(--text-faint)", flexShrink: 0 }}>#{p.id}</span>

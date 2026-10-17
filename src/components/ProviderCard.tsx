@@ -28,10 +28,10 @@ function RepRing({ value, color }: { value: number; color: string }) {
 export function ProviderCard({ provider: p, isSelf }: ProviderCardProps) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
-  const repColor = p.reputation >= 80 ? "#19D186" : p.reputation >= 50 ? "#f59e0b" : "#EE4539";
+  const repColor = p.reputation >= 80 ? "#19D186" : p.reputation >= 50 ? "var(--warn)" : "#EE4539";
   const total = p.completedCalls + p.slashedCalls;
   const honorPct = total > 0 ? Math.round(p.completedCalls / total * 100) : 100;
-  const honorColor = honorPct >= 80 ? "#19D186" : honorPct >= 50 ? "#f59e0b" : "#EE4539";
+  const honorColor = honorPct >= 80 ? "#19D186" : honorPct >= 50 ? "var(--warn)" : "#EE4539";
   const price = formatUnits(BigInt(p.pricePerCall), CONFIG.usdcDecimals);
   const stake = formatUnits(BigInt(p.stake), CONFIG.usdcDecimals);
 

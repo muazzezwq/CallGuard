@@ -164,7 +164,7 @@ export default function Nano() {
         </div>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Pending Batch</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>{pending || '—'}</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>{pending || '—'}</div>
         </div>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Settled Balance</div>

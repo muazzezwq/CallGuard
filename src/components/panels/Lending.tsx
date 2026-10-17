@@ -223,7 +223,7 @@ function LoanRow({ loanId, addr, onRepay, loading }: { loanId: number; addr: str
     <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontWeight: 600, fontSize: 13 }}>Loan #{loanId} — Provider #{String(loan.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: loan.active ? "rgba(245,158,11,0.15)" : "rgba(25,209,134,0.15)", color: loan.active ? "#f59e0b" : "#19D186" }}>
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: loan.active ? "rgba(245,158,11,0.15)" : "rgba(25,209,134,0.15)", color: loan.active ? "var(--warn)" : "#19D186" }}>
           {loan.active ? "Active" : "Repaid"}
         </span>
       </div>

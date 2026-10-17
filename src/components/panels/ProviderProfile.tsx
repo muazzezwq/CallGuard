@@ -113,7 +113,7 @@ export default function ProviderProfile() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#19D186' : honorRate > 50 ? '#f59e0b' : '#EE4539' }}>{honorRate}%</div></div>
+              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#19D186' : honorRate > 50 ? 'var(--warn)' : '#EE4539' }}>{honorRate}%</div></div>
               <div style={S.stat}><div style={S.label}>Completed Calls</div><div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{completed}</div></div>
               <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>Price / Call</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(price).toFixed(3)} USDC</div></div>

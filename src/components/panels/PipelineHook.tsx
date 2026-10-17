@@ -121,7 +121,7 @@ export default function PipelineHook() {
 
       {/* How it works */}
       <div style={{ background: "rgba(31,119,239,.08)", border: "1px solid rgba(31,119,239,.2)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 10 }}>How It Works</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--info)", marginBottom: 10 }}>How It Works</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
             { step: "1", label: "callService() is called", desc: "PayPerCall sends beforeCall(jobId, providerId, caller, amount) to the hook contract" },
@@ -129,7 +129,7 @@ export default function PipelineHook() {
             { step: "3", label: "Call closes", desc: "submitReceipt or claimTimeout → afterCall(jobId, success) fires" },
           ].map(({ step, label, desc }) => (
             <div key={step} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(31,119,239,.2)", color: "#93c5fd", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(31,119,239,.2)", color: "var(--info)", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                 {step}
               </div>
               <div>
@@ -205,7 +205,7 @@ export default function PipelineHook() {
       {/* Interface spec */}
       <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>IERC8183Hook Interface</div>
-        <pre style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93c5fd", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
+        <pre style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--info)", margin: 0, overflowX: "auto", lineHeight: 1.6 }}>
 {`interface IERC8183Hook {
   function beforeCall(
     bytes32 jobId,

@@ -34,13 +34,13 @@ function RiskBadge({ honorRate, stake, price }: { honorRate: number; stake: bigi
   );
   if (honorRate < 30) return (
     <div style={{ background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13 }}>
-      <div style={{ fontWeight:700,color:"#f59e0b",marginBottom:3 }}>⚠ Low Honor Rate: {honorRate}%</div>
+      <div style={{ fontWeight:700,color:"var(--warn)",marginBottom:3 }}>⚠ Low Honor Rate: {honorRate}%</div>
       <div style={{ color:"var(--text-dim)",fontSize:12 }}>Provider has missed recent calls. Consider another provider.</div>
     </div>
   );
   if (underfunded) return (
     <div style={{ background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13 }}>
-      <div style={{ fontWeight:700,color:"#f59e0b",marginBottom:3 }}>⚠ Underfunded Provider</div>
+      <div style={{ fontWeight:700,color:"var(--warn)",marginBottom:3 }}>⚠ Underfunded Provider</div>
       <div style={{ color:"var(--text-dim)",fontSize:12 }}>Stake ({formatUnits(stake,6)} USDC) &lt; price ({formatUnits(price,6)} USDC). Slash may be partial.</div>
     </div>
   );
@@ -656,7 +656,7 @@ export default function CallBuilder() {
               <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--accent)",fontWeight:700 }}>Execution Summary</span>
             </div>
             {providerNotFound && (
-              <div style={{ display:"flex",gap:8,alignItems:"flex-start",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"9px 11px",fontSize:11.5,color:"#fbbf24",marginBottom:12 }}>
+              <div style={{ display:"flex",gap:8,alignItems:"flex-start",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"9px 11px",fontSize:11.5,color:"var(--warn)",marginBottom:12 }}>
                 <span>Provider #{providerIdNum} was not found on the Arc Testnet registry. Pick an existing provider id.</span>
               </div>
             )}

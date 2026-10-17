@@ -17,7 +17,7 @@ const TYPE_META: Record<Notif["type"], { icon: string; color: string; label: str
   call:    { icon: "📡", color: "#1F77EF",  label: "Call Started"   },
   slash:   { icon: "⚡", color: "#EE4539",  label: "Slashed"        },
   receipt: { icon: "✅", color: "#19D186",  label: "Receipt"        },
-  dispute: { icon: "⚖️", color: "#f59e0b",  label: "Dispute"        },
+  dispute: { icon: "⚖️", color: "var(--warn)",  label: "Dispute"        },
   info:    { icon: "ℹ️", color: "var(--text-faint)", label: "Info"  },
 };
 

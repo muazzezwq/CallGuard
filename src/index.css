@@ -428,7 +428,7 @@ input:focus, select:focus, textarea:focus {
 .stat-card-calls     { border-left-color: #19D186 !important; }
 .stat-card-receipts  { border-left-color: #8b5cf6 !important; }
 .stat-card-slashes   { border-left-color: #EE4539 !important; }
-.stat-card-honor     { border-left-color: #f59e0b !important; }
+.stat-card-honor     { border-left-color: var(--warn) !important; }
 
 /* Panel page eyebrow standard */
 .panel-eyebrow {
@@ -459,7 +459,7 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid; white-space: nowrap;
 }
 .panel-badge-green { background: rgba(25,209,134,0.1); border-color: rgba(25,209,134,0.3); color: var(--accent); }
-.panel-badge-blue  { background: rgba(31,119,239,0.1); border-color: rgba(31,119,239,0.3); color: #60a5fa; }
+.panel-badge-blue  { background: rgba(31,119,239,0.1); border-color: rgba(31,119,239,0.3); color: var(--info); }
 .panel-badge-warn  { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: var(--warn); }
 
 /* Card hover lift */
@@ -1549,7 +1549,7 @@ body.simple-mode .sb-pro-only  { display: none !important; }
    ══════════════════════════════════════════════════════ */
 .app-footer {
   border-top: 1px solid var(--border, #e5e7eb);
-  background: var(--surface, #fff);
+  background: var(--bg-1);
   margin-top: 48px;
   padding: 40px 24px 24px;
   /* above mobile bottom nav */
@@ -2830,7 +2830,7 @@ body.simple-mode .sb-pro-only  { display: none !important; }
 .sdk-panel { background: #0a0a0a; border-radius: 10px; padding: 16px 20px; font-family: var(--font-mono); font-size: 12px; color: #e5e7eb; line-height: 1.7; overflow-x: auto; margin-top: 12px; position: relative; }
 .sdk-panel .kw  { color: #f97316; }
 .sdk-panel .fn  { color: #1CE08E; }
-.sdk-panel .str { color: #fbbf24; }
+.sdk-panel .str { color: var(--warn); }
 .sdk-panel .cm  { color: #6b7280; }
 .sdk-copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #e5e7eb; border-radius: 4px; padding: 3px 10px; font-size: 11px; cursor: pointer; }
 .sdk-copy-btn:hover { background: rgba(255,255,255,0.2); }
@@ -2994,7 +2994,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .admin-status-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
 .admin-status-value { font-size: 0.85rem; color: var(--text-primary); word-break: break-all; }
 .admin-ok   { font-size: 0.72rem; color: #19D186; }
-.admin-warn { font-size: 0.72rem; color: #f59e0b; }
+.admin-warn { font-size: 0.72rem; color: var(--warn); }
 
 .admin-alert {
   background: rgba(238,69,57,.08);
@@ -3062,7 +3062,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .admin-btn:not(:disabled):active { transform: scale(.97); }
 .admin-btn-blue   { background: #1F77EF; color: #fff; }
 .admin-btn-green  { background: #19D186; color: #fff; }
-.admin-btn-orange { background: #f59e0b; color: #000; }
+.admin-btn-orange { background: var(--warn); color: #000; }
 .admin-btn-red    { background: #EE4539; color: #fff; }
 
 .admin-badge {
@@ -3071,8 +3071,8 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   border-radius: 20px;
   font-weight: 600;
 }
-.admin-badge.pending { background: rgba(245,158,11,.15); color: #f59e0b; }
-.admin-badge.mining  { background: rgba(31,119,239,.15);  color: #60a5fa; }
+.admin-badge.pending { background: rgba(245,158,11,.15); color: var(--warn); }
+.admin-badge.mining  { background: rgba(31,119,239,.15);  color: var(--info); }
 .admin-badge.success { background: rgba(25,209,134,.15);  color: #19D186; }
 .admin-badge.error   { background: rgba(238,69,57,.15);   color: #f87171; }
 

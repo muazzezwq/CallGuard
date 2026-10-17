@@ -54,7 +54,7 @@ export default function ArcFeeNotice({ address, abi, functionName, args, enabled
     <div style={{
       display: "flex", gap: 8, alignItems: "flex-start", marginTop: 10,
       background: "rgba(31,119,239,0.08)", border: "1px solid rgba(31,119,239,0.2)",
-      borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#93c5fd",
+      borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "var(--info)",
     }}>
       <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
       <span>

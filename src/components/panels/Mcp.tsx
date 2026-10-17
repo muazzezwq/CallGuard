@@ -196,7 +196,7 @@ export default function Mcp() {
             >
               {x402Loading ? '⏳ Running…' : '⚡ Run x402 Test'}
             </button>
-            {!address && <div style={{ fontSize:11, color:'var(--warn,#f59e0b)' }}>Connect wallet to sign EIP-3009</div>}
+            {!address && <div style={{ fontSize:11, color:'var(--warn)' }}>Connect wallet to sign EIP-3009</div>}
 
             {x402Status && (
               <pre style={{

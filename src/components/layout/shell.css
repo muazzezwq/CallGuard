@@ -265,7 +265,7 @@
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ov-activity__ico--ok { background: var(--accent-bg); color: var(--accent-ink); }
-.ov-activity__ico--info { background: rgba(31,119,239,0.12); color: #60a5fa; }
+.ov-activity__ico--info { background: rgba(31,119,239,0.12); color: var(--info); }
 .ov-activity__ico--danger { background: rgba(238,69,57,0.12); color: var(--danger); }
 .ov-activity__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ov-activity__title { font-size: 12.5px; font-weight: 600; color: var(--text); }
@@ -319,8 +319,8 @@
 .ov-actions__row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
 .ov-actions__icon { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
 .ov-actions__icon--accent { background: var(--accent-bg); color: var(--accent-ink); }
-.ov-actions__icon--info { background: rgba(31,119,239,0.12); color: #60a5fa; }
-.ov-actions__icon--warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.ov-actions__icon--info { background: rgba(31,119,239,0.12); color: var(--info); }
+.ov-actions__icon--warn { background: rgba(245,158,11,0.12); color: var(--warn); }
 .ov-actions__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ov-actions__title { font-size: 13px; font-weight: 600; color: var(--text); }
 .ov-actions__sub { font-size: 11.5px; color: var(--text-dim); }
@@ -478,7 +478,7 @@
 .sub-total { font-size: 13px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
 
 /* ── Passkey Wallet panel ── */
-.pk-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--warn, #f59e0b); display: grid; gap: 4px; margin-bottom: 14px; }
+.pk-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--warn); display: grid; gap: 4px; margin-bottom: 14px; }
 .pk-warn__title { font-weight: 600; margin: 0; }
 .pk-field { background: var(--bg-3); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
 .pk-field__lbl { font-size: 12px; color: var(--text-dim); margin: 0 0 4px; }

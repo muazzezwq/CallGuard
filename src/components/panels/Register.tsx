@@ -66,8 +66,8 @@ const s = {
   calcLabel: { fontSize:12,color:"var(--text-dim)" },
   calcVal: { fontSize:12,fontWeight:600,fontFamily:"var(--font-mono)",color:"var(--text)" },
   btn: (v="primary",disabled=false) => ({ padding:"10px 20px",borderRadius:999,border:"none",cursor:disabled?"not-allowed":"pointer",fontSize:13,fontWeight:500,background:disabled?"var(--bg-3)":v==="primary"?"linear-gradient(135deg,#19D186,#0E9F6E)":"var(--bg-3)",color:disabled?"var(--text-faint)":v==="primary"?"#fff":"var(--text)",display:"inline-flex",alignItems:"center",gap:6,opacity:disabled?0.6:1,width:"100%",justifyContent:"center" as const }),
-  info: { background:"rgba(31,119,239,0.08)",border:"1px solid rgba(31,119,239,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#93c5fd",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
-  warn: { background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#fbbf24",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  info: { background:"rgba(31,119,239,0.08)",border:"1px solid rgba(31,119,239,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--info)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
+  warn: { background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--warn)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
   success: { background:"rgba(25,209,134,0.08)",border:"1px solid rgba(25,209,134,0.2)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--accent)",display:"flex",gap:8,alignItems:"flex-start",marginBottom:12 },
   tag: { display:"inline-block",padding:"2px 10px",borderRadius:999,fontSize:10,fontWeight:600,background:"var(--accent-bg)",color:"var(--accent)",border:"1px solid var(--accent-fg)",marginLeft:6 },
 };

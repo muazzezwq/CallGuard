@@ -194,7 +194,7 @@ export default function Disputes() {
       {!dqEnabled && (
         <div style={{
           background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
-          borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#f59e0b",
+          borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "var(--warn)",
         }}>
           <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was
           retired and has no active replacement — actions and on-chain reads are turned off to
@@ -415,7 +415,7 @@ export default function Disputes() {
               <div style={{ textAlign: "right" }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const,
-                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--amber,#f59e0b)" : "var(--text-dim)",
+                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
                 }}>
                   {d.status}
                 </span>
@@ -470,7 +470,7 @@ export default function Disputes() {
               <div style={{ textAlign: "right" }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--amber,#f59e0b)" : "var(--text-dim)",
+                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
                 }}>
                   {d.status}
                 </span>

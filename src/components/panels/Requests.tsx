@@ -6,7 +6,7 @@ import { formatUnits } from "viem";
 import { CONFIG, PPC_ABI } from "../../lib/config";
 
 const STATUS_COLORS: Record<string, string> = {
-  STARTED:   "var(--amber,#f59e0b)",
+  STARTED:   "var(--warn)",
   COMPLETED: "var(--accent)",
   SLASHED:   "var(--red,#EE4539)",
   REFUNDED:  "var(--text-dim)",
@@ -250,7 +250,7 @@ export default function Requests() {
                   return countdown ? (
                     <span style={{
                       fontSize: 10, display: "block", marginTop: 3, fontFamily: "var(--font-mono)",
-                      color: expired ? "var(--danger,#EE4539)" : "var(--warn,#f59e0b)"
+                      color: expired ? "var(--danger,#EE4539)" : "var(--warn)"
                     }}>
                       {countdown}
                     </span>

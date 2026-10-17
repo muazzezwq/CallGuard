@@ -38,7 +38,7 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
   const rate = honorRate(p)
   const price = p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)) : 0
   const stake = p.stake ? Number(formatUnits(BigInt(p.stake), 6)) : 0
-  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--amber,#f59e0b)" : "#EE4539"
+  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "#EE4539"
 
   return (
     <div style={{

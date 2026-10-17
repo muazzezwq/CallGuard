@@ -82,7 +82,7 @@ export default function Quality() {
       <div style={S.sub}>Challenge provider response quality. Community arbiters vote stake-weighted.</div>
 
       {!ENABLED && (
-        <div style={{ background: '#f59e0b15', border: '1px solid #f59e0b40', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#f59e0b' }}>
+        <div style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bg)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: 'var(--warn)' }}>
           <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was retired and has no active replacement, so on-chain actions are turned off.
         </div>
       )}
@@ -96,7 +96,7 @@ export default function Quality() {
       {tab === 'open' && (
         <div style={S.card}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Open a Quality Dispute</div>
-          <div style={{ background: '#f59e0b15', border: '1px solid #f59e0b40', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: '#f59e0b' }}>
+          <div style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bg)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--warn)' }}>
             Disputes are for quality issues — wrong, incomplete, or off-topic responses. Timeout disputes use Claim Timeout in Call Builder.
           </div>
           <div style={S.row}>
