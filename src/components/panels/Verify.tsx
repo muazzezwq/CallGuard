@@ -176,7 +176,7 @@ export default function Verify() {
             setLoading(false);
             return;
           }
-        } catch {}
+        } catch { /* not a subgraph callId */ }
       }
 
       // Fallback: TX hash lookup
@@ -188,7 +188,7 @@ export default function Verify() {
             setLoading(false);
             return;
           }
-        } catch {}
+        } catch { /* transaction receipt lookup failed */ }
       }
 
       setResult({ ok: false, error: d.error || "Receipt not found on-chain." });

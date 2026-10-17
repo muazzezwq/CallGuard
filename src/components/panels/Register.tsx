@@ -224,7 +224,7 @@ export default function Register() {
           }
           // Registered(uint256 indexed agentId, ...) — topics[1] = agentId
           if (log.topics?.length >= 2 && tokenId === null) {
-            try { const t = log.topics[1]; if (t) tokenId = BigInt(t); } catch {}
+            try { const t = log.topics[1]; if (t) tokenId = BigInt(t); } catch { /* topic is not a tokenId */ }
           }
         }
         if (!tokenId) tokenId = BigInt(1); // fallback

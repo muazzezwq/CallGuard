@@ -37,7 +37,7 @@ export default function Privacy() {
 
   useEffect(() => {
     const saved = localStorage.getItem('cg_privacy_prefs')
-    if (saved) { try { setPrefs(JSON.parse(saved)) } catch {} }
+    if (saved) { try { setPrefs(JSON.parse(saved)) } catch { /* ignore malformed prefs */ } }
   }, [])
 
   function toggle(key: string) {

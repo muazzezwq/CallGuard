@@ -124,3 +124,25 @@ Section order matches SPEC_4: hero -> trust row -> Product -> Developers -> Ecos
 Fix: `.mk-hero__art` `height: 420px` (was collapsed; the WebGL canvas rendered into ~150px).
 Note: harness screenshots do not composite the WebGL surface, so the 3D hero is proven by
 `gl.readPixels`; the fallback and page chrome are screenshot-verified.
+
+## SPEC_8 item 1 — ESLint baseline (real lint)
+`package.json` `lint` now runs `eslint src` against a flat config (`eslint.config.js`):
+typescript-eslint, eslint-plugin-react-hooks, eslint-plugin-jsx-a11y. Existing violations are
+warnings; only `react-hooks/rules-of-hooks` and a curated correctness set (no-unreachable,
+no-dupe-keys, no-dupe-else-if, no-constant-condition, use-isnan, valid-typeof, ...) are errors.
+Baseline: **0 errors, 386 warnings** across 96 files. `bun run check` passes.
+
+Top 8 warning rules (by count):
+| # | rule | warnings |
+| --- | --- | --- |
+| 1 | @typescript-eslint/no-explicit-any | 113 |
+| 2 | no-unused-vars | 90 |
+| 3 | @typescript-eslint/no-unused-vars | 58 |
+| 4 | jsx-a11y/label-has-associated-control | 57 |
+| 5 | no-undef | 21 |
+| 6 | jsx-a11y/click-events-have-key-events | 13 |
+| 7 | jsx-a11y/no-static-element-interactions | 12 |
+| 8 | react-hooks/exhaustive-deps | 11 |
+
+Trivial UI fixes made: empty `catch {}` blocks given explanatory comments in `Privacy.tsx`,
+`Register.tsx`, `Verify.tsx` (2). Hook/lib violations (e.g. `usePasskeyWallet.ts`) left untouched.
