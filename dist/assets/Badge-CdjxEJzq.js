@@ -1,0 +1,1 @@
+import{j as s}from"./index-B2KAWCWZ.js";import{c as i}from"./clsx-B-dksMZM.js";function m({tone:a="neutral",dot:e=!1,className:r,children:t}){return s.jsxs("span",{className:i("ui-badge",`ui-badge--${a}`,r),children:[e&&s.jsx("span",{className:"ui-badge__dot"}),t]})}export{m as B};

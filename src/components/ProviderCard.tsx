@@ -16,7 +16,7 @@ function RepRing({ value, color }: { value: number; color: string }) {
   const dash = (value / 100) * circ;
   return (
     <svg width="48" height="48" viewBox="0 0 44 44">
-      <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3.5" />
+      <circle cx="22" cy="22" r={r} fill="none" stroke="var(--border)" strokeWidth="3.5" />
       <circle cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="3.5"
         strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
         transform="rotate(-90 22 22)" style={{ filter: `drop-shadow(0 0 4px ${color})` }} />

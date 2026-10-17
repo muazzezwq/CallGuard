@@ -141,6 +141,7 @@ export default function Landing() {
   const { launch } = useOutletContext<{ launch: () => void }>();
   const { data } = useSubgraph<{ calls: Call[]; providers: Prov[] }>(Q, { enabled: true });
   const [copied, setCopied] = useState(false);
+  const reduce = useReducedMotion();
   useReveal([data]);
 
   const stats = useMemo(() => {
@@ -243,10 +244,10 @@ export default function Landing() {
               <motion.div
                 className="mk-flow__item"
                 key={f.t}
-                initial={{ opacity: 0.35, y: 10 }}
+                initial={reduce ? false : { opacity: 0.35, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.6 }}
-                transition={{ duration: 0.45, delay: i * 0.18 }}
+                transition={{ duration: reduce ? 0 : 0.45, delay: reduce ? 0 : i * 0.18 }}
               >
                 <span className="mk-flow__n">{i + 1}</span>
                 <span className="mk-flow__t">{f.t}<small>{f.s}</small></span>

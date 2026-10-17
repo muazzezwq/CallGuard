@@ -70,7 +70,7 @@ function HonorRing({ rate }: { rate: number }) {
   const col = rate >= 90 ? "#19D186" : rate >= 60 ? "#f59e0b" : "#EE4539";
   return (
     <svg width={44} height={44} viewBox="0 0 44 44" className="mp-ring">
-      <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
+      <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={SW} />
       <circle cx={CX} cy={CY} r={R} fill="none" stroke={col} strokeWidth={SW}
         strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
         transform={`rotate(-90 ${CX} ${CY})`}

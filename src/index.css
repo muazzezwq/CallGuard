@@ -2306,6 +2306,18 @@ body.simple-mode .sb-pro-only  { display: none !important; }
   .cg-glow-btn { animation: none; }
   .cg-dot-green { animation: none; }
   .cg-feed-dot { animation: none; }
+  /* Neutralize decorative motion (shimmers, pulsing dots, tickers, entrances). */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Keep loading spinners animating — they convey progress. */
+  .panel-loader-spinner, .pk-spin, .ui-btn__spinner, [class*="animate-spin"] {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 /* CgLanding responsive */

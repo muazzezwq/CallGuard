@@ -670,7 +670,7 @@ export default function CallBuilder() {
               { label:"Settlement",  value: "Arc Testnet (on-chain)",                       highlight: false },
               { label:"Payment",     value: isCCTP ? "CCTP v2" : "EIP-3009",               highlight: true },
             ].map(row => (
-              <div key={row.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+              <div key={row.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid var(--border)" }}>
                 <span style={{ fontSize:12,color:"var(--text-faint)" }}>{row.label}</span>
                 <span style={{ fontSize:12,fontFamily:"var(--font-mono)",color: row.highlight ? "var(--accent)" : "var(--text)",fontWeight: row.highlight ? 600 : 400 }}>{row.value}</span>
               </div>

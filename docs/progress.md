@@ -66,3 +66,10 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - New `src/marketing/HeroScene.tsx` (own chunk, lazy): emissive green hexagonal-prism core + translucent hex ring; 40-60 instanced hex-prism nodes (green/blue, split into two InstancedMeshes); edge `lineSegments`; 7 travelling light pulses; 260-point particle shell; drei `Html` chips (AI Agents / Providers / Callers); Bloom via EffectComposer. Motion: slow auto-rotation, eased mouse parallax, slight zoom-out on scroll, dpr [1,1.5].
 - `Landing.tsx` `HeroArt`: `React.lazy` + `Suspense`, chooses scene only when WebGL exists, not reduced-motion, and not low-end (`hardwareConcurrency<=4 || deviceMemory<=4`); otherwise the `NetworkGraph` SVG fallback. 24 nodes on <700px, 48 otherwise. IntersectionObserver pauses the canvas (`frameloop "never"`) when off-screen. One canvas on the page.
 - typecheck + build pass. Next: Phase 8 final pass.
+
+## Phase 8 — Final pass
+- Reduced-motion: broadened the global `prefers-reduced-motion` block in `src/index.css` to neutralize decorative motion (shimmers, pulsing dots, tickers, entrances, transitions) while keeping loading spinners animating; gated the landing Transaction Flow framer-motion sequence on `useReducedMotion`.
+- Light theme: tokenized three white-alpha surfaces that were invisible on light (`ProviderCard` + `Marketplace` ring tracks -> `var(--border)`, `CallBuilder` row divider -> `var(--border)`).
+- Verified in the browser: landing + all 5 marketing routes render with no console errors and no horizontal overflow at desktop (1280) and phone (411); dark + light both correct. Screenshots in `docs/screenshots/` (landing 1280/411, dark+light).
+- App panels sit behind the wallet gate; no injected wallet in the harness, so panels were verified by static review (no fixed-width overflow, no `outline:none` without a focus style, no raw dark palette literals) rather than by screenshot.
+- typecheck + build pass; `dist/` rebuilt. Phase 8 done — task complete.
