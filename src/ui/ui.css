@@ -272,13 +272,13 @@
 }
 .ui-statcard__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .ui-statcard__delta {
-  display: inline-flex; align-items: center; gap: 3px;
+  display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto;
   font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
   color: var(--accent-ink);
 }
 .ui-statcard__delta.is-down { color: var(--danger); }
 .ui-statcard__delta.is-flat { color: var(--text-faint); font-weight: 500; }
-.ui-statcard__spark { display: block; width: 88px; flex: 0 0 88px; margin-left: auto; }
+.ui-statcard__spark { display: block; flex: 1 1 auto; min-width: 0; margin-left: auto; }
 
 /* Stepper ────────────────────────────────────────────── */
 .ui-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 0; }
