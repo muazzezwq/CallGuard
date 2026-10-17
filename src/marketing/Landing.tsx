@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useSubgraph } from "../hooks/useSubgraph";
 import { useReveal } from "./useReveal";
 import { useReducedMotion } from "../hooks/useReducedMotion";
@@ -141,7 +140,6 @@ export default function Landing() {
   const { launch } = useOutletContext<{ launch: () => void }>();
   const { data } = useSubgraph<{ calls: Call[]; providers: Prov[] }>(Q, { enabled: true });
   const [copied, setCopied] = useState(false);
-  const reduce = useReducedMotion();
   useReveal([data]);
 
   const stats = useMemo(() => {
@@ -239,21 +237,20 @@ export default function Landing() {
             <h2 className="mk-h2">One call, four steps, all on-chain.</h2>
             <p className="mk-lead">Every call is a small on-chain agreement, settled atomically.</p>
           </div>
-          <div className="mk-flow mk-flow--seq">
+          <ol className="mk-track mk-reveal">
             {FLOW.map((f, i) => (
-              <motion.div
-                className="mk-flow__item"
-                key={f.t}
-                initial={reduce ? false : { opacity: 0.35, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.6 }}
-                transition={{ duration: reduce ? 0 : 0.45, delay: reduce ? 0 : i * 0.18 }}
-              >
-                <span className="mk-flow__n">{i + 1}</span>
-                <span className="mk-flow__t">{f.t}<small>{f.s}</small></span>
-              </motion.div>
+              <li className="mk-track__item" key={f.t} style={{ "--d": `${i * 0.16}s` } as CSSProperties}>
+                <span className="mk-track__node" aria-hidden="true">
+                  <span className="mk-track__num">{i + 1}</span>
+                  <Check className="mk-track__check" size={18} strokeWidth={2.6} />
+                </span>
+                <span className="mk-track__body">
+                  <span className="mk-track__t">{f.t}</span>
+                  <span className="mk-track__s">{f.s}</span>
+                </span>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 

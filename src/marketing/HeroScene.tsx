@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 
 /* ── Brand palette (mirror of the CSS tokens) ─────────────────── */
@@ -173,7 +172,7 @@ function Shield({ paused }: { paused: boolean }) {
   return (
     <group ref={group}>
       {glowTex && (
-        <sprite scale={[3.6, 3.6, 1]} position={[0, 0, -0.35]}>
+        <sprite scale={[4.6, 4.6, 1]} position={[0, 0, -0.35]}>
           <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
         </sprite>
       )}
@@ -314,9 +313,9 @@ function Particles() {
 }
 
 const LABELS: { text: string; pos: [number, number, number] }[] = [
-  { text: "AI Agents", pos: [-2.75, 1.7, 0.7] },
-  { text: "Providers", pos: [2.55, 1.45, 0.3] },
-  { text: "Callers", pos: [-2.45, -1.95, 0.7] },
+  { text: "AI Agents", pos: [-2.4, 1.5, 0.7] },
+  { text: "Providers", pos: [2.3, 1.3, 0.3] },
+  { text: "Callers", pos: [-2.2, -1.75, 0.7] },
 ];
 
 function Scene({ count, paused }: { count: number; paused: boolean }) {
@@ -327,6 +326,9 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
     nodes.forEach((n, i) => groups[n.group].push(i));
     return { nodes, segs, edges, groups };
   }, [count]);
+
+  const halo = useMemo(() => (typeof document === "undefined" ? null : makeGlowTexture()), []);
+  useEffect(() => () => halo?.dispose(), [halo]);
 
   const group = useRef<THREE.Group>(null);
   const meshes = useRef<(THREE.InstancedMesh | null)[]>([]);
@@ -378,6 +380,12 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
 
   return (
     <group ref={group}>
+      {halo && (
+        <sprite scale={[9.5, 9.5, 1]} position={[0, 0, -1.2]}>
+          <spriteMaterial map={halo} transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </sprite>
+      )}
+
       <Shield paused={paused} />
 
       <lineSegments>
@@ -407,12 +415,12 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
       )}
 
       {/* floating geometry around the network */}
-      <FloatingHex position={[-1.95, 1.75, 0.35]} color={GREEN_HI} radius={0.28} speed={1.1} />
-      <FloatingHex position={[1.75, 0.55, 0.4]} color={GREEN} radius={0.22} speed={0.9} />
-      <FloatingHex position={[0.25, -2.0, 0.5]} color={GREEN_HI} radius={0.2} speed={1.3} />
-      <FloatingCube position={[1.95, -1.15, 0.6]} color={BLUE} size={0.5} speed={1} />
-      <FloatingCube position={[-1.5, -0.9, 1.1]} color={CYAN} size={0.42} speed={1.2} />
-      <FloatingCube position={[2.15, 1.9, -0.4]} color={CYAN} size={0.36} speed={0.8} />
+      <FloatingHex position={[-1.75, 1.55, 0.35]} color={GREEN_HI} radius={0.28} speed={1.1} />
+      <FloatingHex position={[1.6, 0.5, 0.4]} color={GREEN} radius={0.22} speed={0.9} />
+      <FloatingHex position={[0.25, -1.9, 0.5]} color={GREEN_HI} radius={0.2} speed={1.3} />
+      <FloatingCube position={[1.75, -1.05, 0.6]} color={BLUE} size={0.5} speed={1} />
+      <FloatingCube position={[-1.4, -0.8, 1.1]} color={CYAN} size={0.42} speed={1.2} />
+      <FloatingCube position={[1.85, 1.65, -0.3]} color={CYAN} size={0.36} speed={0.8} />
 
       {pulses.map((e, k) => (
         <Pulse key={k} curve={e.curve} offset={k / pulses.length} />
@@ -430,10 +438,6 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
       <pointLight position={[0, 1.2, 2.4]} intensity={1.5} color={GREEN} />
       <pointLight position={[5, 5, 5]} intensity={1.1} color="#ffffff" />
       <pointLight position={[-4, -3, 3]} intensity={0.7} color={CYAN} />
-
-      <EffectComposer>
-        <Bloom intensity={0.75} luminanceThreshold={0.25} luminanceSmoothing={0.3} mipmapBlur />
-      </EffectComposer>
     </group>
   );
 }
