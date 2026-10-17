@@ -314,7 +314,6 @@ export default function Marketplace() {
     <div className="mp-root">
 
       <PageHeader
-        eyebrow={<><span className="ov-live-dot" />Arc Testnet · Live</>}
         title="Marketplace"
         subtitle="Find and connect with the best providers."
       />

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Moon, Sun, X } from "lucide-react";
+import { Search, Moon, Sun, ChevronDown, Copy, LogOut } from "lucide-react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useModal } from "connectkit";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ export default function AppTopbar({
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copy = useCallback(() => {
     if (!address) return;
@@ -38,7 +40,23 @@ export default function AppTopbar({
   // Cleanup timer on unmount
   useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
+  // Close the wallet menu on outside click / Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
+  const avatarHue = address ? parseInt(address.slice(2, 8), 16) % 360 : 150;
 
   return (
     <header className="topbar">
@@ -99,21 +117,43 @@ export default function AppTopbar({
             Connect
           </button>
         ) : (
-          <>
-            <div className="tb-addr-wrap tb-hide-sm">
-              {copied && <div className="tb-addr-tooltip">Copied!</div>}
-              <button className="tb-addr" title="Copy address" onClick={copy}>
-                {short}
-              </button>
-            </div>
+          <div className="tb-wallet-wrap" ref={menuRef}>
             <button
-              className="tb-addr"
-              style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }}
-              onClick={() => disconnect()}
-              title="Disconnect"
-              aria-label="Disconnect"
-            ><X size={14} /></button>
-          </>
+              className="tb-wallet"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title={address ?? ""}
+            >
+              <span
+                className="tb-wallet__avatar"
+                style={{ background: `linear-gradient(135deg, hsl(${avatarHue} 55% 42%), hsl(${(avatarHue + 40) % 360} 60% 30%))` }}
+                aria-hidden="true"
+              />
+              <span className="tb-wallet__addr mono">{short}</span>
+              <ChevronDown size={13} className="tb-wallet__chev" aria-hidden="true" />
+            </button>
+            {menuOpen && (
+              <div className="tb-wallet__menu" role="menu">
+                <button
+                  className="tb-wallet__item"
+                  role="menuitem"
+                  onClick={() => { copy(); setMenuOpen(false); }}
+                >
+                  <Copy size={13} />
+                  {copied ? "Copied" : "Copy address"}
+                </button>
+                <button
+                  className="tb-wallet__item is-danger"
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); disconnect(); }}
+                >
+                  <LogOut size={13} />
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* ⌘K */}

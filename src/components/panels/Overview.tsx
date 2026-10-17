@@ -244,7 +244,6 @@ export default function Overview() {
   return (
     <div className="ov-page">
       <PageHeader
-        eyebrow={<><span className="ov-live-dot" />Arc Testnet · Live</>}
         title="Overview"
         subtitle="Live network, real data, on-chain trust."
         actions={
@@ -656,7 +655,7 @@ function NetworkGraphBox() {
     import("../viz/NetworkGraph").then(m => setCmp(() => m.NetworkGraph));
   }, []);
   if (!Cmp) return <div className="ov-net__placeholder" />;
-  return <Cmp labels={["Provider", "Caller"]} seed={5} height={280} />;
+  return <Cmp labels={["Provider", "Caller"]} seed={5} height={300} nodeScale={1.35} />;
 }
 
 function computeFlowSteps(call: { status?: string } | null | undefined): Step[] {

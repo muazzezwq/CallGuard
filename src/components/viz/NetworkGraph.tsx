@@ -36,11 +36,12 @@ function buildNodes(count: number, seed: number): Node[] {
 /* Pseudo-3D network canvas: an on-chain service graph, drawn as SVG.
    Purely decorative topology — no fabricated metrics. */
 export function NetworkGraph({
-  labels = [], seed = 7, height = 340, className,
+  labels = [], seed = 7, height = 340, nodeScale = 1, className,
 }: {
   labels?: string[];
   seed?: number;
   height?: number;
+  nodeScale?: number;
   className?: string;
 }) {
   const uid = useId().replace(/[:]/g, "");
@@ -98,15 +99,15 @@ export function NetworkGraph({
         <g>
           {nodes.map((n, i) => (
             <g key={i} opacity={0.35 + (1 - n.depth) * 0.6}>
-              <circle cx={n.x} cy={n.y} r={n.r + 4} fill="var(--accent)" opacity="0.14" filter={`url(#${uid}-blur)`} />
-              <circle cx={n.x} cy={n.y} r={n.r} fill={n.hub ? "var(--accent-2)" : "var(--accent)"} />
+              <circle cx={n.x} cy={n.y} r={n.r * nodeScale + 4} fill="var(--accent)" opacity="0.16" filter={`url(#${uid}-blur)`} />
+              <circle cx={n.x} cy={n.y} r={n.r * nodeScale} fill={n.hub ? "var(--accent-2)" : "var(--accent)"} />
             </g>
           ))}
         </g>
 
         {/* core badge */}
         <g transform="translate(200 150)">
-          <circle r="30" fill="var(--accent)" opacity="0.14" filter={`url(#${uid}-blur)`} />
+          <circle r={30 * nodeScale} fill="var(--accent)" opacity="0.14" filter={`url(#${uid}-blur)`} />
           <polygon
             points="0,-19 16.5,-9.5 16.5,9.5 0,19 -16.5,9.5 -16.5,-9.5"
             fill="var(--bg-0)" stroke="var(--accent)" strokeWidth="1.6"

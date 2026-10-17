@@ -118,7 +118,6 @@ export default function History() {
   return (
     <div className="ov-page tx-page">
       <PageHeader
-        eyebrow={<><span className="ov-live-dot" />Arc Testnet · Live</>}
         title="Transactions"
         subtitle="Every call, receipt and settlement recorded on chain."
         actions={

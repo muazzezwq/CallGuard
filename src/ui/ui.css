@@ -74,7 +74,7 @@
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 18px; border-bottom: 1px solid var(--border);
 }
-.ui-card__title { font-size: 14px; font-weight: 650; color: var(--text); }
+.ui-card__title { font-size: 15px; font-weight: 550; color: var(--text); letter-spacing: 0; }
 .ui-card__body { padding: 18px; }
 
 /* Stat ───────────────────────────────────────────────── */
@@ -249,8 +249,8 @@
   padding: 13px 16px; border-bottom: 1px solid var(--border);
 }
 .ui-section__title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.09em;
-  text-transform: uppercase; color: var(--text-dim);
+  font-size: 15px; font-weight: 550; letter-spacing: 0;
+  text-transform: none; color: var(--text);
 }
 .ui-section__sub { font-size: 12px; color: var(--text-faint); margin-top: 3px; letter-spacing: 0; text-transform: none; font-weight: 500; }
 .ui-section__body { padding: 16px; }
@@ -278,7 +278,7 @@
 }
 .ui-statcard__delta.is-down { color: var(--danger); }
 .ui-statcard__delta.is-flat { color: var(--text-faint); font-weight: 500; }
-.ui-statcard__spark { display: block; width: 88px; flex: 0 0 88px; }
+.ui-statcard__spark { display: block; width: 88px; flex: 0 0 88px; margin-left: auto; }
 
 /* Stepper ────────────────────────────────────────────── */
 .ui-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 0; }
