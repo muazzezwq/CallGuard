@@ -115,12 +115,12 @@ export default function ProviderProfile() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? '#19D186' : honorRate > 50 ? 'var(--warn)' : '#EE4539' }}>{honorRate}%</div></div>
+              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? 'var(--accent)' : honorRate > 50 ? 'var(--warn)' : 'var(--danger)' }}>{honorRate}%</div></div>
               <div style={S.stat}><div style={S.label}>Completed Calls</div><div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{completed}</div></div>
               <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>Price / Call</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(price).toFixed(3)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>SLA Window</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{slaWindow}s</div></div>
-              <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? '#EE4539' : 'var(--text)' }}>{slashed}</div></div>
+              <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? 'var(--danger)' : 'var(--text)' }}>{slashed}</div></div>
             </div>
 
             <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
@@ -149,7 +149,7 @@ export default function ProviderProfile() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'var(--font-mono)' }} value={shareUrl} readOnly />
               <button
-                style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? '#0E9F6E' : 'var(--accent)' }}
+                style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? 'var(--accent-dim)' : 'var(--accent)' }}
                 onClick={handleCopy}
               >
                 {copied ? '✓ Copied' : 'Copy'}

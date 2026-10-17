@@ -119,7 +119,7 @@ export default function Quality() {
       {tab === 'vote' && (
         <div style={S.card}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Vote on a Dispute</div>
-          <div style={{ background: '#1F77EF15', border: '1px solid #1F77EF40', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: '#1F77EF' }}>
+          <div style={{ background: 'var(--info-bg)', border: '1px solid color-mix(in srgb, var(--info) 25%, transparent)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--info)' }}>
             Your voting power = your staked USDC. Majority stake wins. Losing side's stake is redistributed.
           </div>
           <div style={{ ...S.row, marginBottom: '16px' }}>
@@ -131,10 +131,10 @@ export default function Quality() {
           <div style={{ marginBottom: '16px' }}>
             <div style={S.label}>Your Vote</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setVoteSupport(true)} style={{ ...S.btn, background: voteSupport ? '#19D186' : 'var(--bg-3)', color: voteSupport ? '#000' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
+              <button onClick={() => setVoteSupport(true)} style={{ ...S.btn, background: voteSupport ? 'var(--accent)' : 'var(--bg-3)', color: voteSupport ? '#000' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
                 ✓ Support Caller
               </button>
-              <button onClick={() => setVoteSupport(false)} style={{ ...S.btn, background: !voteSupport ? '#EE4539' : 'var(--bg-3)', color: !voteSupport ? '#fff' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
+              <button onClick={() => setVoteSupport(false)} style={{ ...S.btn, background: !voteSupport ? 'var(--danger)' : 'var(--bg-3)', color: !voteSupport ? '#fff' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
                 ✗ Support Provider
               </button>
             </div>

@@ -14,9 +14,9 @@ type Notif = {
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const TYPE_META: Record<Notif["type"], { icon: string; color: string; label: string }> = {
-  call:    { icon: "📡", color: "#1F77EF",  label: "Call Started"   },
-  slash:   { icon: "⚡", color: "#EE4539",  label: "Slashed"        },
-  receipt: { icon: "✅", color: "#19D186",  label: "Receipt"        },
+  call:    { icon: "📡", color: "var(--info)",        label: "Call Started"   },
+  slash:   { icon: "⚡", color: "var(--danger)",      label: "Slashed"        },
+  receipt: { icon: "✅", color: "var(--accent)",      label: "Receipt"        },
   dispute: { icon: "⚖️", color: "var(--warn)",  label: "Dispute"        },
   info:    { icon: "ℹ️", color: "var(--text-faint)", label: "Info"  },
 };

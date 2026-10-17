@@ -21,7 +21,7 @@ const s = {
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "#EE4539" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
+  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg, var(--accent), var(--accent-dim))" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "var(--danger)" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
   stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px", textAlign: "center" as const },
   statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent)" },
   statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
@@ -130,7 +130,7 @@ export default function Lending() {
       </div>
 
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "#EE4539" : "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
           {status}
         </div>
       )}
@@ -223,7 +223,7 @@ function LoanRow({ loanId, addr, onRepay, loading }: { loanId: number; addr: str
     <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontWeight: 600, fontSize: 13 }}>Loan #{loanId} — Provider #{String(loan.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: loan.active ? "rgba(245,158,11,0.15)" : "rgba(25,209,134,0.15)", color: loan.active ? "var(--warn)" : "#19D186" }}>
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: loan.active ? "rgba(245,158,11,0.15)" : "rgba(25,209,134,0.15)", color: loan.active ? "var(--warn)" : "var(--accent)" }}>
           {loan.active ? "Active" : "Repaid"}
         </span>
       </div>

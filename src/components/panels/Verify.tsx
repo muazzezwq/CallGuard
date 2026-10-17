@@ -233,8 +233,8 @@ export default function Verify() {
         {result && (
           <div style={result.ok ? s.success : s.error}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              {result.ok ? <CheckCircle size={18} color="var(--accent)" /> : <XCircle size={18} color="#EE4539" />}
-              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent)" : "#EE4539" }}>
+              {result.ok ? <CheckCircle size={18} color="var(--accent)" /> : <XCircle size={18} color="var(--danger)" />}
+              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent)" : "var(--danger)" }}>
                 {result.ok ? "Receipt Verified" : "Verification Failed"}
               </span>
             </div>
@@ -311,7 +311,7 @@ export default function Verify() {
         {rcpStatus && (
           <div style={{
             marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)",
-            color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "#EE4539" : "var(--text-dim)",
+            color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             padding: "7px 10px", background: "var(--bg-3)", borderRadius: 10,
           }}>
             {rcpStatus}
