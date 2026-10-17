@@ -1,1 +1,0 @@
-import{j as e}from"./index-wFrT4iC0.js";function l({icon:s,title:m,description:i,action:t}){return e.jsxs("div",{className:"ui-empty",children:[s&&e.jsx("div",{className:"ui-empty__icon",children:s}),e.jsx("div",{className:"ui-empty__title",children:m}),i&&e.jsx("p",{className:"ui-empty__desc",children:i}),t&&e.jsx("div",{style:{marginTop:6},children:t})]})}export{l as E};
