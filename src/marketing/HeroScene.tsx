@@ -147,6 +147,8 @@ function makeCTexture() {
 /* Central floating hexagonal shield with the CallGuard "C". */
 function Shield({ paused }: { paused: boolean }) {
   const group = useRef<THREE.Group>(null);
+  const ring = useRef<THREE.Group>(null);
+  const rimMat = useRef<THREE.MeshBasicMaterial>(null);
   const cTex = useMemo(() => (typeof document === "undefined" ? null : makeCTexture()), []);
   const glowTex = useMemo(() => (typeof document === "undefined" ? null : makeGlowTexture()), []);
   useEffect(() => () => { cTex?.dispose(); glowTex?.dispose(); }, [cTex, glowTex]);
@@ -162,11 +164,26 @@ function Shield({ paused }: { paused: boolean }) {
     return new Float32Array(arr);
   }, []);
 
+  /* Tick ring: an orbital gauge around the shield, ever so slowly turning. */
+  const ringTicks = useMemo(() => {
+    const arr: number[] = [];
+    const n = 18;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const r0 = 1.12;
+      const r1 = i % 3 === 0 ? 1.24 : 1.17;
+      arr.push(Math.cos(a) * r0, Math.sin(a) * r0, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0);
+    }
+    return new Float32Array(arr);
+  }, []);
+
   useFrame(({ clock }) => {
     if (paused || !group.current) return;
     const t = clock.getElapsedTime();
     group.current.position.y = Math.sin(t * 0.6) * 0.06;
     group.current.rotation.z = Math.sin(t * 0.25) * 0.04;
+    if (ring.current) ring.current.rotation.z = -t * 0.16;
+    if (rimMat.current) rimMat.current.opacity = 0.34 + (Math.sin(t * 1.5) * 0.5 + 0.5) * 0.26;
   });
 
   return (
@@ -177,6 +194,16 @@ function Shield({ paused }: { paused: boolean }) {
         </sprite>
       )}
 
+      {/* orbital tick ring, turning the opposite way to the network */}
+      <group ref={ring} position={[0, 0, -0.06]}>
+        <lineSegments>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[ringTicks, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color={GREEN} toneMapped={false} transparent opacity={0.32} />
+        </lineSegments>
+      </group>
+
       {/* hexagon prism body */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.92, 0.92, 0.3, 6]} />
@@ -185,7 +212,7 @@ function Shield({ paused }: { paused: boolean }) {
       {/* glowing beveled rim */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.99, 0.99, 0.34, 6, 1, true]} />
-        <meshBasicMaterial color={GREEN_HI} transparent opacity={0.5} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial ref={rimMat} color={GREEN_HI} transparent opacity={0.5} side={THREE.DoubleSide} toneMapped={false} />
       </mesh>
       {/* dark inset plaque so the "C" reads crisply */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.16]}>
@@ -350,29 +377,60 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
     return [...bright.slice(0, 5), ...links.filter((_, i) => i % step === 0).slice(0, 6)];
   }, [edges]);
 
-  useFrame(({ clock }) => {
+  /* One travelling point per signal, plus reusable colour scratch. */
+  const sigBuf = useMemo(() => pulses.map(() => new THREE.Vector3()), [pulses]);
+  const baseCols = useMemo(() => NODE_COLORS.map((c) => new THREE.Color(c)), []);
+  const white = useMemo(() => new THREE.Color("#E9FFF4"), []);
+  const col = useMemo(() => new THREE.Color(), []);
+  const intro = useRef(0);
+  const spaced = Math.max(1, pulses.length);
+
+  useFrame(({ clock }, delta) => {
     if (paused) return;
     const t = clock.getElapsedTime();
+
+    /* One-shot entrance: the network settles into place, it does not pop in. */
+    intro.current = Math.min(1, intro.current + delta / 1.1);
+    const ease = 1 - Math.pow(1 - intro.current, 3);
+
     if (group.current) {
-      group.current.rotation.y = t * 0.06;
-      group.current.rotation.x = Math.sin(t * 0.12) * 0.05;
+      group.current.rotation.y = t * 0.05;
+      group.current.rotation.x = Math.sin(t * 0.1) * 0.045;
+      group.current.scale.setScalar(0.76 + 0.24 * ease);
     }
+
+    /* Current position of every signal, in the group's local space. */
+    for (let s = 0; s < pulses.length; s++) {
+      const tt = (t * 0.35 + s / spaced) % 1;
+      sigBuf[s].copy(pulses[s].curve.getPoint(tt));
+    }
+
     const place = (mesh: THREE.InstancedMesh | null, idx: number[]) => {
       if (!mesh) return;
       idx.forEach((ni, k) => {
         const n = nodes[ni];
+        /* Nodes illuminate as a signal passes near them. */
+        let bright = 0;
+        for (let s = 0; s < sigBuf.length; s++) {
+          const d = sigBuf[s].distanceTo(n.pos);
+          if (d < 0.7 && 1 - d / 0.7 > bright) bright = 1 - d / 0.7;
+        }
         dummy.position.copy(n.pos);
         dummy.rotation.set(t * 0.4 + n.phase, t * 0.5 + n.phase, 0);
-        const s = 0.85 + Math.sin(t * 1.2 + n.phase) * 0.12;
+        const s = (0.85 + Math.sin(t * 1.2 + n.phase) * 0.1) * (1 + bright * 1.3) * (0.82 + 0.18 * ease);
         dummy.scale.setScalar(s);
         dummy.updateMatrix();
         mesh.setMatrixAt(k, dummy.matrix);
+        col.copy(baseCols[n.group]).lerp(white, bright * 0.85);
+        mesh.setColorAt(k, col);
       });
       mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     };
     groups.forEach((idx, gi) => place(meshes.current[gi], idx));
-    camera.position.x += (pointer.x * 0.6 - camera.position.x) * 0.03;
-    camera.position.y += (pointer.y * 0.4 - camera.position.y) * 0.03;
+
+    camera.position.x += (pointer.x * 0.45 - camera.position.x) * 0.025;
+    camera.position.y += (pointer.y * 0.3 - camera.position.y) * 0.025;
     const z = 7.2 + zoom.current * 1.8;
     camera.position.z += (z - camera.position.z) * 0.06;
     camera.lookAt(0, 0, 0);
@@ -404,9 +462,9 @@ function Scene({ count, paused }: { count: number; paused: boolean }) {
           >
             <octahedronGeometry args={[0.085, 0]} />
             <meshStandardMaterial
-              color={NODE_COLORS[gi]}
+              color="#ffffff"
               emissive={NODE_COLORS[gi]}
-              emissiveIntensity={1.1}
+              emissiveIntensity={1.15}
               metalness={0.4}
               roughness={0.35}
             />

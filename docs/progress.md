@@ -96,3 +96,8 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - `bun run typecheck` -> exit 0; `bun run build` -> exit 0; `dist/` byte-identical (no rebuild needed, already current).
 - Inventory final: **34/34 panels done** + 6/6 marketing pages done; `docs/audit.md` 20 done / 0 partial / 0 missing.
 - Task complete. No unfinished items.
+
+## Phase 10 — Landing redesign (premium, full page)
+- Rewrote `src/marketing/Landing.tsx` as a connected narrative: hero (new H1 "Trust Every Call. Enforce Every Promise.") → problem → primitives → lifecycle stepper → two outcomes → live evidence → developers → connected stack → trust → FAQ → CTA. All copy follows the real contracts (EIP-712 ArcSLA/1, 5s submit grace, `forge test`); the fabricated "Trusted by developers" logo row was removed.
+- `HeroScene.tsx` polished: signals now illuminate the nodes they pass (per-instance `setColorAt` + brightness-scaled instance matrices), a slow entrance ease, a rotating tick ring + pulsing rim on the hex shield, and eased pointer parallax. Still one lazy canvas, `dpr [1,1.5]`, IntersectionObserver pause, WebGL/reduced-motion/low-end fallback to `NetworkGraph`.
+- `marketing.css` gained the new section styles + hero staggered entrance; `MarketingLayout.tsx` NAV adds `/#faq`. Verified: typecheck + eslint clean; desktop 1280 + phone 411 no horizontal overflow; FAQ aria correct; outcomes switch works; light theme shows a transparent canvas; `bun run build` ✓ (HeroScene stays a lazy 834 kB chunk). Next: human review of the copy.

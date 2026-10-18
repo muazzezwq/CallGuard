@@ -12,6 +12,7 @@ const NAV: { href: string; label: string; anchor?: boolean }[] = [
   { href: "/#product", label: "Product", anchor: true },
   { href: "/#developers", label: "Developers", anchor: true },
   { href: "/#ecosystem", label: "Ecosystem", anchor: true },
+  { href: "/#faq", label: "FAQ", anchor: true },
   { href: "/docs", label: "Docs" },
 ];
 
