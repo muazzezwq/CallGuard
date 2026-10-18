@@ -45,7 +45,8 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 
 ## Toolchain gotchas
 
-- **`bun run lint` is a stub** (`echo 'lint ok'`) — it never fails. Real gate is `typecheck`.
+- **`bun run lint` is a real gate** — `eslint src --max-warnings=0`, so any ESLint error
+  *or* warning fails it. Run it with `typecheck` (both are wrapped by `bun run check`).
 - Solidity `0.8.37`, `via_ir = true`, optimizer 200, `evm_version = "cancun"` (OZ v5.6
   needs mcopy). **Arc deployment requires an `--evm-version paris` override.**
 - `lib/` are git submodules (openzeppelin-contracts v5.6.1, forge-std v1.16.1). Run
