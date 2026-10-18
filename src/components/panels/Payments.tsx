@@ -109,7 +109,7 @@ export default function Payments() {
           <label className="form-label" htmlFor="pay-amount">Amount (USDC)</label>
           <input id="pay-amount" className="cg-input" type="number" placeholder="1.00" value={sendAmt} onChange={e=>setSendAmt(e.target.value)}/>
         </div>
-        {status && <p className="text-sm mb-2" style={{color:status==="Sent!"?"var(--accent)":"var(--red)"}}>{status}</p>}
+        {status && <p className="text-sm mb-2" style={{color:status==="Sent!"?"var(--accent)":"var(--danger)"}}>{status}</p>}
         <button className="btn btn-primary" onClick={handleSend} disabled={!sendTo||!sendAmt}>Send →</button>
       </div>
 
@@ -121,7 +121,7 @@ export default function Payments() {
             {(data?.calls??[]).map((c: PayCall)=>(
               <div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
                 <span className="text-dim text-sm">Provider #{c.providerId}</span>
-                <span className="text-sm" style={{color:"var(--red)"}}>−{formatUnits(BigInt(c.amount??0),6)} USDC</span>
+                <span className="text-sm" style={{color:"var(--danger)"}}>−{formatUnits(BigInt(c.amount??0),6)} USDC</span>
               </div>
             ))}
           </div>

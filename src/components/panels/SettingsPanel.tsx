@@ -74,7 +74,7 @@ export default function SettingsPanel() {
             <div className="setting-name">Connected Wallet</div>
             <div className="mono text-dim text-xs">{address}</div>
           </div>
-          <button className="btn btn-sm" style={{color:"var(--red)"}} onClick={()=>disconnect()}>Disconnect</button>
+          <button className="btn btn-sm" style={{color:"var(--danger)"}} onClick={()=>disconnect()}>Disconnect</button>
         </div>
       </div>
 

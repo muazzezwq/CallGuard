@@ -104,7 +104,7 @@ export default function CommandPalette({ open, onClose }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search panels, actions…"
-            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--text)", fontSize: 15, fontFamily: "var(--font-body)" }}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--text)", fontSize: 15, fontFamily: "var(--font-sans)" }}
           />
           <kbd style={{ padding: "2px 7px", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 5, fontSize: 11, color: "var(--text-faint)" }}>ESC</kbd>
         </div>

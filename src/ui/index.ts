@@ -19,6 +19,8 @@ export { Stepper } from "./Stepper";
 export type { Step, StepState } from "./Stepper";
 export { Toolbar, Chip, ChipRow } from "./Toolbar";
 export { Switch } from "./Switch";
+export { Checkbox } from "./Checkbox";
 export { Tooltip } from "./Tooltip";
 export { TextLink } from "./TextLink";
 export { Sparkline } from "./Sparkline";
+export { Table, TableWrap, TableEmpty, Tr, Th, Td } from "./Table";

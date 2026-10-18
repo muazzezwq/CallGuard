@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { Toaster } from "sonner";
+import { useAppStore } from "./store/useAppStore";
 
 const MarketingLayout = lazy(() => import("./marketing/MarketingLayout"));
 const Landing        = lazy(() => import("./marketing/Landing"));
@@ -23,10 +24,34 @@ function Fallback() {
   return <div style={{ minHeight: "100vh", background: "var(--bg-0)" }} />;
 }
 
+/* Toast surface mapped to the app's own tokens, so it follows the theme. */
+const TOAST_VARS = {
+  "--normal-bg": "var(--surface-3)",
+  "--normal-border": "var(--border-hi)",
+  "--normal-text": "var(--text)",
+  "--normal-bg-hover": "var(--surface-3)",
+  "--normal-border-hover": "var(--accent)",
+  "--success-bg": "var(--accent-bg)",
+  "--success-border": "color-mix(in srgb, var(--accent) 45%, transparent)",
+  "--success-text": "var(--text)",
+  "--error-bg": "var(--danger-bg)",
+  "--error-border": "color-mix(in srgb, var(--danger) 45%, transparent)",
+  "--error-text": "var(--text)",
+  "--info-bg": "var(--info-bg)",
+  "--info-border": "color-mix(in srgb, var(--info) 45%, transparent)",
+  "--info-text": "var(--text)",
+  "--warning-bg": "var(--warn-bg)",
+  "--warning-border": "color-mix(in srgb, var(--warn) 45%, transparent)",
+  "--warning-text": "var(--text)",
+  "--border-radius": "var(--radius)",
+  "--width": "360px",
+} as React.CSSProperties;
+
 export default function App() {
+  const theme = useAppStore((s) => s.theme);
   return (
     <BrowserRouter>
-      <Toaster position="top-right" theme="dark" richColors closeButton />
+      <Toaster position="top-right" theme={theme} closeButton style={TOAST_VARS} />
       <Suspense fallback={<Fallback />}>
         <Routes>
           <Route element={<MarketingLayout />}>

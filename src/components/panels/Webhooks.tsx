@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Send } from "lucide-react";
+import { Chip, ChipRow } from "../../ui";
 
 interface WebhookEntry {
   id: string;
@@ -111,13 +112,14 @@ export default function Webhooks() {
 
         <div style={{ marginTop: 12, marginBottom: 12 }}>
           <div style={s.label} id="wh-events-label">Events to subscribe</div>
-          <div role="group" aria-labelledby="wh-events-label" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {EVENT_TYPES.map(ev => (
-              <label key={ev} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, padding: "4px 10px", borderRadius: 999, background: selectedEvents.includes(ev) ? "rgba(25,209,134,0.15)" : "var(--bg-3)", border: `1px solid ${selectedEvents.includes(ev) ? "rgba(25,209,134,0.3)" : "var(--border)"}`, color: selectedEvents.includes(ev) ? "var(--accent)" : "var(--text-dim)" }}>
-                <input type="checkbox" style={{ width: 12, height: 12, accentColor: "var(--accent)" }} checked={selectedEvents.includes(ev)} onChange={() => toggleEvent(ev)} />
-                {ev}
-              </label>
-            ))}
+          <div role="group" aria-labelledby="wh-events-label">
+            <ChipRow>
+              {EVENT_TYPES.map(ev => (
+                <Chip key={ev} active={selectedEvents.includes(ev)} onClick={() => toggleEvent(ev)}>
+                  {ev}
+                </Chip>
+              ))}
+            </ChipRow>
           </div>
         </div>
 

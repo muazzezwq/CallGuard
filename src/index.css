@@ -136,6 +136,16 @@
   --viz-4: var(--info);
   --viz-5: var(--warn);
   --viz-grid: var(--border);
+
+  /* Compatibility aliases ─────────────────────────────────
+     The legacy admin and marketplace stylesheets in this file
+     reference these names. They are aliases of the semantic
+     tokens above, never new colours, so both themes stay in
+     step. Remove them when those panels are rebuilt. */
+  --surface: var(--surface-1);
+  --input-bg: var(--surface-3);
+  --text-primary: var(--text);
+  --text-muted: var(--text-dim);
 }
 
 /* ── Light theme — same semantics, paper ground ──────── */
@@ -3164,7 +3174,7 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 
 .admin-input {
   width: 100%;
-  background: var(--input-bg, rgba(255,255,255,.04));
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 7px 10px;
@@ -3490,15 +3500,13 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .mp-modal-body  { flex: 1; overflow-y: auto; padding: 20px 28px; }
 .mp-modal-foot  { display: flex; gap: 10px; padding: 18px 28px; border-top: 1px solid rgba(255,255,255,.07); }
 
-/* Compare table */
-.mp-cmp-table { width: 100%; border-collapse: collapse; }
-.mp-cth { text-align: center; padding: 8px 16px 16px; }
-.mp-cth-lbl { text-align: left; font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
-.mp-cth-id  { font-family: monospace; font-size: .88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
-.mp-crow { border-top: 1px solid rgba(255,255,255,.05); }
-.mp-crow:hover { background: rgba(255,255,255,.02); }
-.mp-ctd { text-align: center; font-family: monospace; font-size: .82rem; padding: 11px 16px; color: var(--text-primary); }
-.mp-ctd-lbl { text-align: left; font-size: .78rem; color: var(--text-muted); }
+/* Compare table — column alignment only; the ui-table base owns
+   borders, padding, hover and the sticky header. */
+.mp-cth { text-align: center; }
+.mp-cth-lbl { text-align: left; font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; }
+.mp-cth-id  { font-family: var(--font-mono); font-size: .88rem; font-weight: 700; color: var(--text); margin-bottom: 6px; text-transform: none; letter-spacing: 0; }
+.mp-ctd { text-align: center; }
+.mp-ctd-lbl { text-align: left; font-size: .78rem; color: var(--text-dim); }
 .mp-ctd-best { color: var(--accent); font-weight: 700; }
 
 /* ── List view card override ── */

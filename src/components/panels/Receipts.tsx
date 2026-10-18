@@ -82,7 +82,7 @@ export default function Receipts() {
         .receipt-top{display:flex;justify-content:space-between;align-items:center;}
         .receipt-status{font-size:11px;font-weight:700;text-transform:uppercase;}
         .receipt-status.green{color:var(--accent);}
-        .receipt-status.red{color:var(--red);}
+        .receipt-status.red{color:var(--danger);}
         .receipt-amount{font-size:18px;font-weight:700;font-family:var(--font-display);}
         .receipt-body{display:flex;flex-direction:column;gap:6px;}
         .hash-row{display:flex;align-items:center;gap:8px;}

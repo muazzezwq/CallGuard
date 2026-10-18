@@ -37,7 +37,7 @@ export default function ApiDocs() {
                 <div style={{fontSize:12,color:"var(--text-dim)",marginTop:2}}>{e.desc}</div>
               </div>
               {e.auth === "x402" && <span style={{padding:"2px 8px",borderRadius:999,fontSize:10,background:"rgba(245,158,11,0.15)",color:"var(--warn)",flexShrink:0}}>x402</span>}
-              {e.auth === true && <span style={{padding:"2px 8px",borderRadius:999,fontSize:10,background:"rgba(238,69,57,0.15)",color:"var(--red)",flexShrink:0}}>Auth</span>}
+              {e.auth === true && <span style={{padding:"2px 8px",borderRadius:999,fontSize:10,background:"rgba(238,69,57,0.15)",color:"var(--danger)",flexShrink:0}}>Auth</span>}
             </div>
           ))}
         </div>

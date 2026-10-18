@@ -3,7 +3,7 @@ import { formatUnits } from "viem";
 import { useProviders } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import type { Provider } from "../../lib/subgraph";
-import { PageHeader, Chip, ChipRow, Select } from "../../ui";
+import { PageHeader, Chip, ChipRow, Select, Table, Th, Td, Tr } from "../../ui";
 import { Search } from "lucide-react";
 
 type SortKey = "reputation" | "pricePerCall" | "completedCalls" | "stake";
@@ -213,34 +213,34 @@ function CompareModal({ providers, onClose, onCall }: {
           <button className="mp-modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="mp-modal-body">
-          <table className="mp-cmp-table">
+          <Table className="mp-cmp">
             <thead>
               <tr>
-                <th className="mp-cth mp-cth-lbl">Metric</th>
+                <Th className="mp-cth-lbl">Metric</Th>
                 {providers.map(p => (
-                  <th key={p.id} className="mp-cth">
+                  <Th key={p.id} className="mp-cth">
                     <div className="mp-cth-id">#{p.id}</div>
                     <HonorRing rate={p.reputation} />
-                  </th>
+                  </Th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.l} className="mp-crow">
-                  <td className="mp-ctd mp-ctd-lbl">{row.l}</td>
+                <Tr key={row.l}>
+                  <Td className="mp-ctd-lbl">{row.l}</Td>
                   {providers.map(p => {
                     const isBest = row.hi && providers.every(q => p.reputation >= q.reputation);
                     return (
-                      <td key={p.id} className={`mp-ctd${isBest ? " mp-ctd-best" : ""}`}>
+                      <Td key={p.id} mono className={isBest ? "mp-ctd-best" : undefined}>
                         {row.fn(p)}
-                      </td>
+                      </Td>
                     );
                   })}
-                </tr>
+                </Tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
         <div className="mp-modal-foot">
           {providers.map(p => (
