@@ -161,7 +161,14 @@ export function SLACanvas({ stages, selected, onSelect }: {
   return (
     <div className="sla-canvas">
       <div className="sla-canvas__board">
-        <svg viewBox={`${minX - padX} ${minY - padY} ${vw} ${vh}`} role="img" aria-label="SLA lifecycle">
+        {/* `role="img"` is a leaf: assistive tech ignores everything inside it,
+            so an interactive board would expose no stage at all. When the
+            plates are controls the board is a labelled group instead. */}
+        <svg
+          viewBox={`${minX - padX} ${minY - padY} ${vw} ${vh}`}
+          role={interactive ? "group" : "img"}
+          aria-label="SLA lifecycle"
+        >
           {/* rail between plates */}
           {stages.slice(0, -1).map((st, i) => {
             const a = iso(i * gap + plateW / 2 + 4, 0, thickness / 2);
@@ -229,6 +236,9 @@ export function SLACanvas({ stages, selected, onSelect }: {
                    pointer-sized twin of it, so keep it out of the tab order. */
                 tabIndex={-1}
                 aria-hidden="true"
+                /* A pointer press must not move focus into this aria-hidden
+                   node (the plate owns keyboard focus), hence the mousedown. */
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(st.key)}
               >
                 <LabelBody stage={st} />
@@ -266,10 +276,18 @@ export function SLACanvas({ stages, selected, onSelect }: {
         ))}
       </ol>
 
-      {interactive && selStage && (
+      {/* Selection is announced through a live region. It must already be in
+          the DOM before the text arrives, or screen readers skip the change,
+          and its line box is reserved by CSS so picking a stage cannot shift
+          the cards below. Empty state announces nothing. */}
+      {interactive && (
         <p className="sla-canvas__inspect" role="status" aria-live="polite">
-          <strong>{selStage.label}</strong> · {STATE_WORD[selStage.state]}
-          {selStage.sub ? ` · ${selStage.sub}` : ""}
+          {selStage ? (
+            <>
+              <strong>{selStage.label}</strong> · {STATE_WORD[selStage.state]}
+              {selStage.sub ? ` · ${selStage.sub}` : ""}
+            </>
+          ) : null}
         </p>
       )}
     </div>

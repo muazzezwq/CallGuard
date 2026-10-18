@@ -660,7 +660,12 @@
 .sla-canvas__inspect {
   margin: 10px 0 0; font-size: 12px; line-height: 1.4; color: var(--text-dim);
   border-left: 2px solid var(--accent); padding-left: 8px;
+  /* The live region is always mounted; reserve its line so the first
+     selection cannot shift the cards below it. */
+  min-height: 17px;
 }
+/* Nothing selected yet: keep the space, drop the accent rule. */
+.sla-canvas__inspect:empty { border-left-color: transparent; }
 .sla-canvas__inspect strong { color: var(--text); font-weight: 600; }
 
 @media (max-width: 640px) {
