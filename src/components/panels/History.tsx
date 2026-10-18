@@ -84,6 +84,9 @@ export default function History() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /* The stage a user picked on the canvas. Keys are stable across calls, so
+     the same stage stays selected when the detail panel switches call. */
+  const [stageKey, setStageKey] = useState<string | null>(null);
 
   const { data, loading, refetch } = useSubgraph<{ calls: Call[] }>(
     address ? `{
@@ -240,7 +243,11 @@ export default function History() {
                   title="SLA Canvas"
                   subtitle={`Call ${String(selected.id).slice(0, 18)}…`}
                 >
-                  <SLACanvas stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })} />
+                  <SLACanvas
+                    stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })}
+                    selected={stageKey}
+                    onSelect={setStageKey}
+                  />
                   <ul className="sla-legend">
                     <li><span className="sla-legend__sw sla-legend__sw--done" />Success</li>
                     <li><span className="sla-legend__sw sla-legend__sw--pending" />Pending</li>

@@ -1,5 +1,10 @@
 /* Isometric SLA lifecycle board: four plates on a slanted rail.
-   Stage states come from the real call status — nothing is invented. */
+   Stage states come from the real call status — nothing is invented.
+   The board is optionally interactive: pass `selected` + `onSelect` and each
+   plate (and its label) becomes a keyboard-operable control, backed by a
+   stacked stage list that also serves as the accessible reading order. */
+
+import { clsx } from "clsx";
 
 export type SlaStageState = "done" | "active" | "pending" | "failed" | "info";
 export type SlaStage = { key: string; label: string; sub?: string; state: SlaStageState };
@@ -63,6 +68,15 @@ const STATE_FILL: Record<SlaStageState, string> = {
   info: "var(--info, #1F77EF)",
 };
 
+/* The state in words, so a stage never reads as colour alone. */
+const STATE_WORD: Record<SlaStageState, string> = {
+  done: "Done",
+  active: "In progress",
+  pending: "Waiting",
+  failed: "Failed",
+  info: "Info",
+};
+
 /* Isometric projection: board (x, y) → screen, with y growing "into" the scene. */
 const ISO_COS = Math.cos(Math.PI / 6);
 const ISO_SIN = Math.sin(Math.PI / 6);
@@ -72,8 +86,9 @@ function iso(x: number, y: number, z: number) {
 }
 
 /* A single isometric plate: top face + two visible side faces. */
-function Plate({ cx, cy, w, d, t, state, delay }: {
+function Plate({ cx, cy, w, d, t, state, delay, ring }: {
   cx: number; cy: number; w: number; d: number; t: number; state: SlaStageState; delay: number;
+  ring: boolean;
 }) {
   const hw = w / 2, hd = d / 2;
   const top = [
@@ -92,9 +107,11 @@ function Plate({ cx, cy, w, d, t, state, delay }: {
         points={pts(top)}
         style={{ fill: STATE_FILL[state], fillOpacity: state === "pending" ? 0.35 : 0.85 }}
       />
+      {/* Edge outline: carries the selected / focused state (see shell.css). */}
       <polygon
+        className={clsx("sla-plate__outline", ring && "is-selected")}
         points={pts(top)}
-        style={{ fill: "none", stroke: STATE_FILL[state], strokeWidth: 1 }}
+        style={{ fill: "none" }}
       />
       {state === "active" && (
         <polygon points={pts(top)} style={{ fill: "var(--accent-2)", fillOpacity: 0.18, animation: "sla-pulse 1.8s ease-in-out infinite" }} />
@@ -103,11 +120,27 @@ function Plate({ cx, cy, w, d, t, state, delay }: {
   );
 }
 
-export function SLACanvas({ stages }: { stages: SlaStage[] }) {
+function LabelBody({ stage }: { stage: SlaStage }) {
+  return (
+    <>
+      <span className={`sla-canvas__name sla-canvas__name--${stage.state}`}>{stage.label}</span>
+      <span className="sla-canvas__sub">{stage.sub ?? "—"}</span>
+    </>
+  );
+}
+
+export function SLACanvas({ stages, selected, onSelect }: {
+  stages: SlaStage[];
+  selected?: string | null;
+  onSelect?: (key: string) => void;
+}) {
   const gap = 46;
   const plateW = 34;
   const plateD = 24;
   const thickness = 9;
+  const interactive = typeof onSelect === "function";
+  const selIndex = selected ? stages.findIndex((s) => s.key === selected) : -1;
+  const selStage = selIndex >= 0 ? stages[selIndex] : null;
 
   /* Board space → viewBox. Board runs along +x; y is a fixed depth offset. */
   const corners = stages.flatMap((_, i) => {
@@ -122,51 +155,123 @@ export function SLACanvas({ stages }: { stages: SlaStage[] }) {
   const vw = maxX - minX + padX * 2;
   const vh = maxY - minY + padY * 2;
 
+  const pick = (key: string) => onSelect?.(key);
+  const stageTitle = (st: SlaStage) => `${st.label} — ${STATE_WORD[st.state]}${st.sub ? `. ${st.sub}` : ""}`;
+
   return (
     <div className="sla-canvas">
-      <svg viewBox={`${minX - padX} ${minY - padY} ${vw} ${vh}`} role="img" aria-label="SLA lifecycle">
-        {/* rail between plates */}
-        {stages.slice(0, -1).map((st, i) => {
-          const a = iso(i * gap + plateW / 2 + 4, 0, thickness / 2);
-          const b = iso((i + 1) * gap - plateW / 2 - 4, 0, thickness / 2);
-          const on = st.state === "done" || st.state === "active";
-          return (
-            <line
+      <div className="sla-canvas__board">
+        <svg viewBox={`${minX - padX} ${minY - padY} ${vw} ${vh}`} role="img" aria-label="SLA lifecycle">
+          {/* rail between plates */}
+          {stages.slice(0, -1).map((st, i) => {
+            const a = iso(i * gap + plateW / 2 + 4, 0, thickness / 2);
+            const b = iso((i + 1) * gap - plateW / 2 - 4, 0, thickness / 2);
+            const on = st.state === "done" || st.state === "active";
+            const near = selIndex >= 0 && (i === selIndex || i + 1 === selIndex);
+            return (
+              <line
+                key={st.key}
+                className={clsx("sla-rail", near && "is-near")}
+                x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                style={{ stroke: on ? "var(--accent)" : "var(--border-hi)" }}
+                strokeWidth={1.5}
+                strokeDasharray={on ? undefined : "3 3"}
+              />
+            );
+          })}
+          {stages.map((st, i) => (
+            <g
               key={st.key}
-              x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-              style={{ stroke: on ? "var(--accent)" : "var(--border-hi)" }}
-              strokeWidth={1.5}
-              strokeDasharray={on ? undefined : "3 3"}
-            />
-          );
-        })}
-        {stages.map((st, i) => (
-          <Plate
-            key={st.key}
-            cx={i * gap}
-            cy={0}
-            w={plateW}
-            d={plateD}
-            t={thickness}
-            state={st.state}
-            delay={i * 70}
-          />
-        ))}
-      </svg>
+              className={clsx(
+                "sla-plate",
+                `sla-plate--${st.state}`,
+                interactive && "sla-plate--pick",
+                selIndex === i && "is-selected",
+              )}
+              tabIndex={interactive ? 0 : undefined}
+              role={interactive ? "button" : undefined}
+              aria-pressed={interactive ? selIndex === i : undefined}
+              aria-label={interactive ? stageTitle(st) : undefined}
+              onClick={interactive ? () => pick(st.key) : undefined}
+              onKeyDown={interactive ? (e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(st.key); }
+              } : undefined}
+            >
+              {interactive && <title>{stageTitle(st)}</title>}
+              <Plate
+                cx={i * gap}
+                cy={0}
+                w={plateW}
+                d={plateD}
+                t={thickness}
+                state={st.state}
+                delay={i * 70}
+                ring={selIndex === i}
+              />
+            </g>
+          ))}
+        </svg>
 
-      {/* Labels are positioned on the same isometric axis as their plate. */}
-      <div className="sla-canvas__labels">
-        {stages.map((st, i) => {
-          const c = iso(i * gap, 0, thickness);
-          const left = ((c.x - (minX - padX)) / vw) * 100;
-          return (
-            <div key={st.key} className="sla-canvas__label" style={{ left: `clamp(56px, ${left}%, calc(100% - 56px))` }}>
-              <span className={`sla-canvas__name sla-canvas__name--${st.state}`}>{st.label}</span>
-              <span className="sla-canvas__sub">{st.sub ?? "—"}</span>
-            </div>
-          );
-        })}
+        {/* Labels are positioned on the same isometric axis as their plate. */}
+        <div className="sla-canvas__labels">
+          {stages.map((st, i) => {
+            const c = iso(i * gap, 0, thickness);
+            const left = ((c.x - (minX - padX)) / vw) * 100;
+            return interactive ? (
+              <button
+                key={st.key}
+                type="button"
+                className={clsx("sla-canvas__label", "sla-canvas__label--btn", selIndex === i && "is-selected")}
+                style={{ left: `clamp(56px, ${left}%, calc(100% - 56px))` }}
+                aria-pressed={selIndex === i}
+                aria-label={stageTitle(st)}
+                /* The plate above is the accessible control; this is the
+                   pointer-sized twin of it, so keep it out of the tab order. */
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={() => pick(st.key)}
+              >
+                <LabelBody stage={st} />
+              </button>
+            ) : (
+              <div key={st.key} className="sla-canvas__label" style={{ left: `clamp(56px, ${left}%, calc(100% - 56px))` }}>
+                <LabelBody stage={st} />
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Same stages as a list: the reading order for assistive tech, and the
+          board's replacement on narrow screens (the isometric labels collide
+          well before the phone breakpoint). */}
+      <ol className="sla-canvas__stack">
+        {stages.map((st, i) => (
+          <li key={st.key}>
+            <button
+              type="button"
+              className={clsx("sla-canvas__stack-btn", selIndex === i && "is-selected")}
+              onClick={interactive ? () => pick(st.key) : undefined}
+              aria-pressed={interactive ? selIndex === i : undefined}
+              aria-label={interactive ? stageTitle(st) : undefined}
+            >
+              <span className="sla-canvas__stack-idx" aria-hidden="true">{i + 1}</span>
+              <span className="sla-canvas__stack-body">
+                <span className={`sla-canvas__name sla-canvas__name--${st.state}`}>{st.label}</span>
+                <span className="sla-canvas__sub">{st.sub ?? "—"}</span>
+              </span>
+              <span className={`sla-canvas__state sla-canvas__state--${st.state}`}>{STATE_WORD[st.state]}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      {interactive && selStage && (
+        <p className="sla-canvas__inspect" role="status" aria-live="polite">
+          <strong>{selStage.label}</strong> · {STATE_WORD[selStage.state]}
+          {selStage.sub ? ` · ${selStage.sub}` : ""}
+        </p>
+      )}
     </div>
   );
 }

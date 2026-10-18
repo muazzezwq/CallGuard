@@ -603,6 +603,83 @@
   .sla-canvas * { animation: none !important; }
 }
 
+/* Interactive board: plates are the controls, labels are their pointer twins. */
+.sla-canvas__board { position: relative; }
+.sla-plate--pick { cursor: pointer; }
+.sla-plate--pick:focus-visible { outline: none; }
+/* Plate edge doubles as the selected / focused indicator: a state-coloured
+   1px edge by default, a heavier bright edge when picked or focused. */
+.sla-plate__outline {
+  stroke: var(--border-hi); stroke-width: 1; stroke-linejoin: round;
+  transition: stroke var(--motion-fast) var(--ease-out), stroke-width var(--motion-fast) var(--ease-out);
+}
+.sla-plate--done .sla-plate__outline { stroke: var(--accent); }
+.sla-plate--active .sla-plate__outline { stroke: var(--accent-2); }
+.sla-plate--failed .sla-plate__outline { stroke: var(--danger); }
+.sla-plate--info .sla-plate__outline { stroke: var(--info, #1F77EF); }
+.sla-plate--pick:hover .sla-plate__outline { stroke: var(--text-dim); stroke-width: 1.75; }
+.sla-plate__outline.is-selected { stroke: var(--text); stroke-width: 2.5; }
+.sla-plate--pick:focus-visible .sla-plate__outline { stroke: var(--text); stroke-width: 2.5; stroke-dasharray: 3 2; }
+.sla-rail { transition: stroke-width var(--motion-fast) var(--ease-out); }
+.sla-rail.is-near { stroke-width: 2.5; }
+
+.sla-canvas__label--btn {
+  appearance: none; background: none; border: 0; padding: 0; color: inherit;
+  font: inherit; cursor: pointer; border-radius: var(--radius-sm);
+}
+.sla-canvas__label--btn:hover .sla-canvas__name { color: var(--text); }
+.sla-canvas__label--btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.sla-canvas__label--btn.is-selected .sla-canvas__name { color: var(--accent-ink); }
+
+/* The same stages as a list: the board's replacement on narrow screens, where
+   the isometric labels collide. Hidden until that breakpoint, because the
+   board already carries these stages for assistive tech on wide screens. */
+.sla-canvas__stack {
+  position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; list-style: none; visibility: hidden;
+}
+.sla-canvas__stack-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-1); color: inherit; font: inherit; cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+.sla-canvas__stack-btn:hover { border-color: var(--border-hi); }
+.sla-canvas__stack-btn.is-selected { border-color: var(--accent); }
+.sla-canvas__stack-idx {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 11px; font-weight: 600;
+  color: var(--text-dim); background: var(--surface-3);
+}
+.sla-canvas__stack-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; text-align: left; }
+.sla-canvas__state { font-size: 11px; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
+.sla-canvas__state--done { color: var(--accent-ink); }
+.sla-canvas__state--active { color: var(--accent-2-ink); }
+.sla-canvas__state--failed { color: var(--danger); }
+.sla-canvas__state--info { color: var(--info, #1F77EF); }
+.sla-canvas__inspect {
+  margin: 10px 0 0; font-size: 12px; line-height: 1.4; color: var(--text-dim);
+  border-left: 2px solid var(--accent); padding-left: 8px;
+}
+.sla-canvas__inspect strong { color: var(--text); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .sla-canvas__board { display: none; }
+  .sla-canvas__stack {
+    position: static; width: auto; height: auto; margin: 0; overflow: visible;
+    clip-path: none; white-space: normal; visibility: visible;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sla-canvas__stack-btn, .sla-plate__outline, .sla-rail { transition: none !important; }
+}
+/* The in-app motion switch, not just the OS one. */
+[data-motion="reduced"] .sla-canvas * { animation: none !important; }
+[data-motion="reduced"] .sla-canvas__stack-btn,
+[data-motion="reduced"] .sla-plate__outline,
+[data-motion="reduced"] .sla-rail { transition: none !important; }
+
 @media (max-width: 1024px) {
   .tx-split { grid-template-columns: 1fr; }
 }
