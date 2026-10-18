@@ -319,7 +319,7 @@
 
 .app-footer-group-title {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--text-faint); font-weight: 700; margin-bottom: 10px;
+  color: var(--text-dim); font-weight: 700; margin-bottom: 10px;
 }
 .app-footer-links { display: flex; flex-direction: column; gap: 7px; }
 .app-footer-link {
@@ -336,13 +336,13 @@
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 8px;
 }
-.app-footer-copy { font-size: 11px; color: var(--text-faint); }
+.app-footer-copy { font-size: 11px; color: var(--text-dim); }
 .app-footer-contracts {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .app-footer-contract {
   display: flex; align-items: center; gap: 5px;
-  font-size: 10px; color: var(--text-faint);
+  font-size: 10px; color: var(--text-dim);
   background: var(--bg-2); border: 1px solid var(--border);
   border-radius: 5px; padding: 3px 7px;
   font-family: var(--font-mono); cursor: pointer;

@@ -27,7 +27,13 @@ export default function AppTopbar({
   const chainId = useChainId();
   const { disconnect } = useDisconnect();
   const { setOpen } = useModal();
-  const { theme, setTheme, mode, setMode, setPanel } = useAppStore();
+  /* Field-level subscriptions (see AppShell): a topbar that subscribes to the
+     whole store re-renders on every unrelated state change. */
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const mode = useAppStore((s) => s.mode);
+  const setMode = useAppStore((s) => s.setMode);
+  const setPanel = useAppStore((s) => s.setPanel);
 
   const { data: usdcBalance } = useUsdcBalance(address);
   const usdcBal = usdcBalance ? Number(usdcBalance.formatted).toFixed(2) : null;

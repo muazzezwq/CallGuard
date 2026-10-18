@@ -1,6 +1,7 @@
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useAppStore, PanelId } from "../../store/useAppStore";
 import { Mark } from "../../ui";
+import { arcTestnet } from "../../lib/config";
 import { HOME_NAV, NAV_GROUPS, type NavItem } from "./navConfig";
 import ProgressTracker from "./ProgressTracker";
 
@@ -37,12 +38,18 @@ function NavButton({ item, active, label, onClick, collapsed }: {
 }
 
 export default function Sidebar({ onNav, collapsed = false }: { onNav?: () => void; collapsed?: boolean }) {
-  const { activePanel, setPanel, mode } = useAppStore();
+  const activePanel = useAppStore((s) => s.activePanel);
+  const setPanel = useAppStore((s) => s.setPanel);
+  const mode = useAppStore((s) => s.mode);
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
 
   const label = (i: NavItem) => (mode === "simple" ? i.simple : i.pro);
   const go = (id: PanelId) => { setPanel(id); onNav?.(); };
   const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
+  /* Real wallet/network state — never claim Arc while on another chain. */
+  const onArc = isConnected && chainId === arcTestnet.id;
+  const footState = !isConnected ? "Connect a wallet" : onArc ? "Connected • Arc Testnet" : "Wrong network";
 
   return (
     <nav className="app-sidebar" aria-label="Main navigation" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -66,10 +73,10 @@ export default function Sidebar({ onNav, collapsed = false }: { onNav?: () => vo
 
       {/* Wallet chip — reference footer */}
       <div className="sb-foot">
-        <span className={`sb-foot-dot${isConnected ? " ok" : ""}`} />
+        <span className={`sb-foot-dot${onArc ? " ok" : isConnected ? " warn" : ""}`} />
         <div className="sb-foot-text">
           <span className="sb-foot-addr">{isConnected ? short : "Not connected"}</span>
-          <span className="sb-foot-state">{isConnected ? "Connected • Arc Testnet" : "Connect a wallet"}</span>
+          <span className="sb-foot-state">{footState}</span>
         </div>
       </div>
     </nav>

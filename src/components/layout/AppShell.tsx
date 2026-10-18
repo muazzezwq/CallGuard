@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
+import { ChevronLeft } from "lucide-react";
 import { useAppStore, PanelId } from "../../store/useAppStore";
 import { useApplyMotionPreference } from "../../hooks/useReducedMotion";
 import Sidebar from "./Sidebar";
@@ -60,7 +61,12 @@ function PanelLoader() {
 }
 
 export default function AppShell() {
-  const { activePanel, theme, setPanel } = useAppStore();
+  /* Field-level subscriptions: the shell must not re-render (and take the
+     mounted panel with it) when an unrelated slice of the store changes. */
+  const activePanel = useAppStore(s => s.activePanel);
+  const theme = useAppStore(s => s.theme);
+  const mode = useAppStore(s => s.mode);
+  const setPanel = useAppStore(s => s.setPanel);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   /* Tablets start collapsed; an explicit user preference always wins. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -71,6 +77,8 @@ export default function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({});
   const asideRef = useRef<HTMLElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const mountedRef = useRef(false);
 
   const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
   const activeGroup = groupOfPanel(activePanel);
@@ -82,7 +90,6 @@ export default function AppShell() {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const { mode } = useAppStore();
   useEffect(() => {
     document.body.classList.remove("simple-mode", "pro-mode");
     document.body.classList.add(mode === "simple" ? "simple-mode" : "pro-mode");
@@ -135,7 +142,9 @@ export default function AppShell() {
       document.body.classList.remove("nav-open");
       aside?.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
-      prev?.focus?.();
+      /* Only pull focus back if it is still inside the drawer — otherwise the
+         panel-change handler has already moved it into the content. */
+      if (aside?.contains(document.activeElement)) prev?.focus?.();
     };
   }, [sidebarOpen]);
 
@@ -186,8 +195,15 @@ export default function AppShell() {
     return () => window.removeEventListener("cg:badge", onBump);
   }, [activePanel]);
 
-  // close sidebar on nav (mobile)
+  /* close sidebar on nav (mobile) */
   const handleNav = () => setSidebarOpen(false);
+
+  /* A panel change moves keyboard focus into the content, the way a page load
+     does. Skipped on first paint so the shell does not steal focus on mount. */
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
+    mainRef.current?.focus({ preventScroll: true });
+  }, [activePanel]);
 
   return (
     <div className={sidebarCollapsed ? "app-shell sb-collapsed" : "app-shell"}>
@@ -215,6 +231,9 @@ export default function AppShell() {
         ref={asideRef}
         id="appSidebar"
         className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}
+        role={sidebarOpen ? "dialog" : undefined}
+        aria-modal={sidebarOpen ? true : undefined}
+        aria-label={sidebarOpen ? "Navigation" : undefined}
       >
         <Sidebar onNav={handleNav} collapsed={sidebarCollapsed} />
         <button
@@ -223,19 +242,21 @@ export default function AppShell() {
           aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          ‹
+          <ChevronLeft size={14} aria-hidden="true" />
         </button>
       </aside>
 
       {/* ── Main ── */}
-      <main className="main-content">
+      <main className="main-content" ref={mainRef} tabIndex={-1}>
         <LiveBar />
         <UsdcBanner />
-        <ErrorBoundary resetKey={activePanel}>
-          <Suspense fallback={<PanelLoader />}>
-            {ActivePanel ? <ActivePanel /> : <PanelLoader />}
-          </Suspense>
-        </ErrorBoundary>
+        <div className="app-panel" key={activePanel}>
+          <ErrorBoundary resetKey={activePanel}>
+            <Suspense fallback={<PanelLoader />}>
+              {ActivePanel ? <ActivePanel /> : <PanelLoader />}
+            </Suspense>
+          </ErrorBoundary>
+        </div>
         <AppFooter />
       </main>
 
@@ -252,11 +273,12 @@ export default function AppShell() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="mobile-bottom-nav">
+      <nav className="mobile-bottom-nav" aria-label="Primary">
         {MOBILE_NAV.map(item => (
           <button
             key={item.id}
             className={`mbn-item${activePanel === item.id ? " active" : ""}`}
+            aria-current={activePanel === item.id ? "page" : undefined}
             onClick={() => { setPanel(item.id); setSidebarOpen(false); }}
           >
             <span className="mbn-icon"><item.Icon size={19} /></span>

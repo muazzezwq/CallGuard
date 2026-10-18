@@ -144,7 +144,7 @@
   background: var(--surface-3);
   border: 1px solid var(--line);
   border-radius: 4px;
-  color: var(--text-low);
+  color: var(--text-dim);
   font-family: var(--font-mono);
 }
 
@@ -160,13 +160,13 @@
   gap: 10px;
 }
 .sb-name { font-size: 13.5px; letter-spacing: -0.01em; }
-.sb-net  { font-size: 10px; color: var(--text-low); }
+.sb-net  { font-size: 10px; color: var(--text-dim); }
 
 .sb-section,
 .sb-section-label {
   font-size: 10.5px;
   letter-spacing: 0.09em;
-  color: var(--text-low);
+  color: var(--text-dim);
   padding: 16px 10px 6px;
 }
 
@@ -200,7 +200,7 @@
 /* group toggles */
 .sb-group { justify-content: flex-start; }
 .sb-group.has-active { color: var(--text); }
-.sb-chev { margin-left: auto; color: var(--text-low); transition: transform .18s ease; }
+.sb-chev { margin-left: auto; color: var(--text-dim); transition: transform .18s ease; }
 .sb-chev.open { transform: rotate(180deg); }
 
 /* submenu */
@@ -208,7 +208,7 @@
 .sb-sub .sb-item { font-size: 12.5px; padding: 6px 10px; }
 .sb-grouplabel {
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-low); padding: 8px 10px 3px;
+  color: var(--text-dim); padding: 8px 10px 3px;
 }
 
 /* footer wallet chip */
@@ -220,15 +220,16 @@
 }
 .sb-foot-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-low); flex: 0 0 8px; }
 .sb-foot-dot.ok { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.sb-foot-dot.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
 .sb-foot-text { display: flex; flex-direction: column; min-width: 0; }
 .sb-foot-addr { font-family: var(--font-mono); font-size: 11.5px; color: var(--text); }
-.sb-foot-state { font-size: 10px; color: var(--text-faint); white-space: nowrap; }
+.sb-foot-state { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 
 .sidebar-collapse-btn {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-low);
+  color: var(--text-dim);
 }
 .sidebar-collapse-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--border-hi); }
 
@@ -247,6 +248,17 @@
 
 /* ══ Main content / panel rhythm ══════════════════════════════ */
 .main-content { background: var(--bg-0); }
+/* Programmatic focus (a panel change lands focus here) must not paint a ring —
+   the interactive element the user touched already shows its own. */
+.main-content:focus { outline: none; }
+
+/* Panel entrance. A short rise so a navigation reads as a change of context.
+   Transform+opacity only, so it never delays a click or reflows the panel. */
+.app-panel { animation: app-panel-in var(--dur-slow) var(--ease-out) both; }
+@keyframes app-panel-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
 .panel { padding: 26px 30px 96px; max-width: 1120px; }
 .cg-panel-page { max-width: 1120px; }
 
@@ -567,12 +579,14 @@
 
 /* ══ Shell motion — honours the motion preference (OS or in-app) ══ */
 @media (prefers-reduced-motion: reduce) {
-  .topbar, .sidebar, .sb-item, .mbn-item, .panel, .sidebar-overlay,
+  .app-shell, .app-panel, .topbar, .sidebar, .sb-item, .mbn-item, .panel, .sidebar-overlay,
   .mobile-bottom-nav, .tb-hamburger span {
     transition: none !important;
     animation: none !important;
   }
 }
+[data-motion="reduced"] .app-shell,
+[data-motion="reduced"] .app-panel,
 [data-motion="reduced"] .topbar,
 [data-motion="reduced"] .sidebar,
 [data-motion="reduced"] .sb-item,
