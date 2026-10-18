@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useAccount, useChainId } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
+import { arcTestnet } from "../../lib/config";
 
 const HONOR_QUERY = `{ calls(first:200,orderBy:createdAt,orderDirection:desc){status} }`;
 
@@ -7,6 +9,16 @@ export default function LiveBar() {
   const [time, setTime] = useState("");
   const [honorRate, setHonorRate] = useState<number | null>(null);
   const [gaugeOffset, setGaugeOffset] = useState(157); // 157 = 0%
+
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  /* The strip sits above every panel, so it must not name a network the
+     wallet is not actually on. */
+  const network = !isConnected
+    ? "No wallet"
+    : chainId === arcTestnet.id
+      ? arcTestnet.name
+      : `Wrong network · chain ${chainId}`;
 
   // live clock
   useEffect(() => {
@@ -43,7 +55,7 @@ export default function LiveBar() {
           <span className="live-label">LIVE</span>
           <span className="live-clock mono" id="liveClock">{time || "--:--:--"}</span>
           <span className="live-sep" style={{ color: "var(--text-faint)", margin: "0 4px" }}>·</span>
-          <span className="live-meta mono" style={{ fontSize: 11, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>Arc Testnet</span>
+          <span className="live-meta mono" style={{ fontSize: 11, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>{network}</span>
         </div>
         <div className="live-bar-right" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {honorRate !== null && (

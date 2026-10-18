@@ -286,6 +286,10 @@
   font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05;
   color: var(--text); font-variant-numeric: tabular-nums;
 }
+.ui-statcard__hint {
+  font-size: 12px; line-height: 1.35; color: var(--text-dim);
+  margin-top: -4px; text-wrap: pretty;
+}
 .ui-statcard__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .ui-statcard__delta {
   display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto;

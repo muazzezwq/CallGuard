@@ -1,23 +1,24 @@
-import { useState, useEffect, useMemo, type ComponentType } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCountUp } from "../../hooks/useCountUp";
-import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from "wagmi";
+import {
+  useReadContract, useWriteContract, useAccount, useWatchContractEvent,
+  useBlockNumber, useChainId,
+} from "wagmi";
 import { formatUnits, keccak256, stringToBytes } from "viem";
-import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI } from "../../lib/config";
+import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI, arcTestnet } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import { errText } from "../../lib/utils";
 import {
-  PageHeader, SectionCard, StatCard, Stepper, Sparkline, Button,
-  Badge, Field, Input,
+  PageHeader, SectionCard, StatCard, Stepper, Button,
+  Badge, Field, Input, Copy, EmptyState, ErrorState,
 } from "../../ui";
 import type { Step } from "../../ui";
 import {
   ExternalLink, Zap, ChevronDown, ChevronUp, RefreshCw, X,
   Radio, ReceiptText, Pencil, Shuffle, Layers,
-  ShieldCheck, Server,
+  ShieldCheck, Server, Activity, Wifi, WifiOff, Database, Clock,
 } from "lucide-react";
-
-const ARCSCAN = "https://explorer.testnet.arc.io";
 
 const CONTRACTS = [
   { name: "ServiceRegistry", addr: CONFIG.registryAddress },
@@ -31,11 +32,13 @@ const CONTRACTS = [
 ];
 
 const SUBGRAPH = `{
+  _meta { block { number timestamp } hasIndexingErrors deployment }
   calls(first:1000,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
-  providers(first:50,orderBy:completedCalls,orderDirection:desc){id completedCalls slashedCalls}
+  providers(first:50,orderBy:completedCalls,orderDirection:desc){id active completedCalls slashedCalls pricePerCall stake}
 }`;
 
 const OPEN_STATES = new Set(["STARTED", "OPEN", "PENDING"]);
+const CALLS_CAP = 1000;
 const DAY = 86400;
 
 type SgCall = {
@@ -47,19 +50,101 @@ type SgCall = {
   createdAt?: string;
 };
 
-/* 24h hourly buckets from subgraph calls */
-function buildActivityChart(calls: { createdAt?: string }[]): { hour: number; count: number }[] {
+type SgProvider = {
+  id: string;
+  active?: boolean;
+  completedCalls: string;
+  slashedCalls: string;
+  pricePerCall?: string;
+  stake?: string;
+};
+
+type SgMeta = {
+  block?: { number?: number; timestamp?: number };
+  hasIndexingErrors?: boolean;
+  deployment?: string;
+};
+
+/* ── Formatting helpers ─────────────────────────────────────────────────────
+   Every value the dashboard prints comes from the chain or the indexer; these
+   only decide how it is written, never what it means. */
+
+function relTime(ts: number): string {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (!Number.isFinite(diff) || diff < 0) return "—";
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < DAY) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / DAY)}d ago`;
+}
+
+function shortId(id: string, head = 10, tail = 6): string {
+  return id.length <= head + tail + 1 ? id : `${id.slice(0, head)}…${id.slice(-tail)}`;
+}
+
+function usdc(raw: string | bigint | undefined, dp = 2): string {
+  return Number(formatUnits(BigInt(raw || "0"), 6)).toLocaleString("en-US", {
+    minimumFractionDigits: dp, maximumFractionDigits: dp,
+  });
+}
+
+/* Bayesian reputation, the same formula the registry-facing panels use. */
+function repPct(p: { completedCalls?: string; slashedCalls?: string }): number {
+  const c = parseInt(p.completedCalls || "0");
+  const s = parseInt(p.slashedCalls || "0");
+  return Math.round(((c + 2) / (c + s + 3)) * 100);
+}
+
+const STATUS_META: Record<string, { label: string; tone: "guard" | "slash" | "info" | "pending" }> = {
+  COMPLETED: { label: "Completed", tone: "guard" },
+  SLASHED: { label: "Slashed", tone: "slash" },
+  REFUNDED: { label: "Refunded", tone: "pending" },
+  STARTED: { label: "Started", tone: "info" },
+  OPEN: { label: "Open", tone: "info" },
+  PENDING: { label: "Pending", tone: "pending" },
+};
+
+function statusMeta(status?: string) {
+  return STATUS_META[status ?? ""] ?? { label: status || "Unknown", tone: "neutral" as const };
+}
+
+/* Status tone is carried by an icon, a label and a value as well as colour, so
+   the strip never communicates state by colour alone. */
+function StatusItem({ tone, icon, label, value, hint }: {
+  tone: "ok" | "warn" | "err" | "unknown";
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className={`ov-status__item ov-status__item--${tone}`}>
+      <span className="ov-status__ico">{icon}</span>
+      <span className="ov-status__body">
+        <span className="ov-status__label">{label}</span>
+        <span className="ov-status__value">{value}</span>
+        {hint && <span className="ov-status__hint">{hint}</span>}
+      </span>
+    </div>
+  );
+}
+
+
+/* 24h hourly buckets from subgraph calls, oldest first.
+   `ago` is hours before now (0 = the current hour), which is what the chart is
+   actually plotting — clock hours would need the viewer's timezone. */
+function buildActivityChart(calls: { createdAt?: string }[]): { ago: number; count: number }[] {
   const nowTs = Math.floor(Date.now() / 1000);
   const buckets: number[] = new Array(24).fill(0);
   calls.forEach(c => {
     const ts = parseInt(c.createdAt || "0");
     const ageS = nowTs - ts;
     if (ageS >= 0 && ageS < DAY) {
-      const hourIdx = Math.floor(ageS / 3600);
-      buckets[hourIdx] = (buckets[hourIdx] || 0) + 1;
+      const ago = Math.floor(ageS / 3600);
+      buckets[ago] = (buckets[ago] || 0) + 1;
     }
   });
-  return buckets.map((count, i) => ({ hour: 23 - i, count })).reverse();
+  return buckets.map((count, ago) => ({ ago, count })).reverse();
 }
 
 /* 7-day daily buckets, oldest → newest */
@@ -92,22 +177,41 @@ export default function Overview() {
     localStorage.setItem(WB_KEY, "1");
     setWelcomeDismissed(true);
   };
-  const { data: sg, isLoading: sgLoading } = useSubgraph(SUBGRAPH);
+  const { data: sg, isLoading: sgLoading, error: sgError, isFetching: sgFetching, dataUpdatedAt, refetch } = useSubgraph(SUBGRAPH);
 
   const { data: providerCountRaw } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
   const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
 
-  const sgProviders = ((sg as { providers?: { id: string; completedCalls: string; slashedCalls: string }[] })?.providers) ?? [];
-  const sgCalls: SgCall[] = useMemo(() => (sg as { calls?: SgCall[] })?.calls ?? [], [sg]);
-  const providerCount = providerCountRaw ? Math.max(0, Number(providerCountRaw) - 1) : sgProviders.length;
+  const sgPayload = sg as { providers?: SgProvider[]; calls?: SgCall[]; _meta?: SgMeta } | undefined;
+  const sgMeta = sgPayload?._meta;
+  const sgProviders: SgProvider[] = sgPayload?.providers ?? [];
+  const sgCalls: SgCall[] = useMemo(() => sgPayload?.calls ?? [], [sgPayload]);
+  /* The indexer answered with a body, so a zero below is a real zero and not a
+     request that failed. */
+  const indexerAnswered = !sgError && !!sgPayload;
   const callsNum = sgCalls.length;
-  const completedNum = sgCalls.filter((c: SgCall) => c.status === "COMPLETED").length;
+  const callsTruncated = callsNum >= CALLS_CAP;
+
+  /* nextProviderId is the registry counter and counts the reserved id 0, so the
+     live provider count is one less. Fall back to the indexed count only when
+     the contract read has not arrived. */
+  const providerCount = providerCountRaw !== undefined
+    ? Math.max(0, Number(providerCountRaw) - 1)
+    : (indexerAnswered ? sgProviders.length : 0);
+  const providersKnown = providerCountRaw !== undefined || indexerAnswered;
 
   const animProviders = useCountUp(providerCount);
   const animCalls = useCountUp(callsNum);
 
-  const honorPctNum = callsNum > 0 ? Math.round((completedNum / callsNum) * 100) : null;
+  const completedNum = sgCalls.filter((c: SgCall) => c.status === "COMPLETED").length;
+  const slashedNum = sgCalls.filter((c: SgCall) => c.status === "SLASHED").length;
+  const openNum = sgCalls.filter((c: SgCall) => OPEN_STATES.has(c.status ?? "")).length;
+  /* The SLA rate is measured over calls that reached a terminal outcome; open
+     calls are neither a success nor a failure yet. */
+  const settledNum = completedNum + slashedNum;
+  const honorPctNum = settledNum > 0 ? Math.round((completedNum / settledNum) * 100) : null;
   const honorRate = honorPctNum === null ? "—" : `${honorPctNum}%`;
+
   const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
   const { series: weekSeries, last7, prev7 } = weeklySeries(sgCalls);
@@ -116,10 +220,15 @@ export default function Overview() {
   const escrowRaw = sgCalls
     .filter((c: SgCall) => OPEN_STATES.has(c.status ?? ""))
     .reduce((sum: bigint, c: SgCall) => sum + BigInt(c.amount || "0"), 0n);
-  const escrowUsdc = callsNum > 0 ? Number(formatUnits(escrowRaw, 6)) : null;
+  const escrowUsdc = indexerAnswered ? Number(formatUnits(escrowRaw, 6)) : null;
+
+  const activeProviders = sgProviders.filter(p => p.active).length;
+  const stakeRaw = sgProviders.reduce((s, p) => s + BigInt(p.stake || "0"), 0n);
+  const prices = sgProviders.map(p => Number(formatUnits(BigInt(p.pricePerCall || "0"), 6)));
+  const priceRange = prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null;
 
   const allCalls = sgCalls;
-  const activities = allCalls.slice(0, 6);
+  const activities = allCalls.slice(0, 8);
   const topProviders = sgProviders;
   const chartData = buildActivityChart(allCalls);
   const latestCall = allCalls[0];
@@ -193,17 +302,11 @@ export default function Overview() {
       const minRep = parseFloat(autoMinRep);
       const filtered = providers.filter(p => {
         const price = parseFloat(formatUnits(BigInt(p.pricePerCall || "0"), 6));
-        const total = parseInt(p.completedCalls || "0") + parseInt(p.slashedCalls || "0") + 3;
-        const rep = ((parseInt(p.completedCalls || "0") + 2) / total) * 100;
-        return price <= maxPrice && rep >= minRep;
+        return price <= maxPrice && repPct(p) >= minRep;
       });
       if (filtered.length === 0) setAutoResult("No providers match your criteria.");
       else {
-        const best = filtered.sort((a, b) => {
-          const repA = ((parseInt(a.completedCalls || "0") + 2) / (parseInt(a.completedCalls || "0") + parseInt(a.slashedCalls || "0") + 3)) * 100;
-          const repB = ((parseInt(b.completedCalls || "0") + 2) / (parseInt(b.completedCalls || "0") + parseInt(b.slashedCalls || "0") + 3)) * 100;
-          return repB - repA;
-        })[0];
+        const best = filtered.sort((a, b) => repPct(b) - repPct(a))[0];
         setAutoResult(`Best match: Provider #${best.id} — price ${formatUnits(BigInt(best.pricePerCall || "0"), 6)} USDC`);
         setCallProvider(best.id);
       }
@@ -249,91 +352,176 @@ export default function Overview() {
   ).slice(0, 5);
 
   const totalCalls24h = chartData.reduce((s, b) => s + b.count, 0);
+  const peak = chartData.reduce((best, b) => (b.count > best.count ? b : best), { ago: -1, count: 0 });
+  const peakAgo = peak.count > 0 ? peak.ago : -1;
+  const peakCount = peak.count;
+
+  /* Outcome split over every indexed call, so the counts always add up to the
+     Total Calls metric. "Other" covers any state the indexer reports that this
+     panel does not know, instead of silently dropping it. */
+  const otherNum = callsNum - completedNum - slashedNum - openNum;
+  const outcomeRows = [
+    { key: "completed", label: "Completed", count: completedNum, color: "var(--accent)" },
+    { key: "open", label: "Open", count: openNum, color: "var(--accent-2)" },
+    { key: "slashed", label: "Slashed", count: slashedNum, color: "var(--danger)" },
+    ...(otherNum > 0 ? [{ key: "other", label: "Other", count: otherNum, color: "var(--text-dim)" }] : []),
+  ].map(r => ({ ...r, pct: callsNum > 0 ? Math.round((r.count / callsNum) * 100) : 0 }));
 
   return (
     <div className="ov-page">
       <PageHeader
         title="Overview"
-        subtitle="Live network, real data, on-chain trust."
+        subtitle={`Protocol state on ${CONFIG.chainName}, read from the contracts and the indexed subgraph.`}
         actions={
-          <Button variant="secondary" size="sm" onClick={() => setPanel("calls")}>
-            <Zap size={14} /> Call Builder
-          </Button>
+          <>
+            <span className="ov-refresh">
+              <Clock size={13} aria-hidden="true" />
+              {dataUpdatedAt ? `Updated ${relTime(Math.floor(dataUpdatedAt / 1000))}` : "Awaiting first read"}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={sgFetching} aria-label="Refresh protocol data">
+              <RefreshCw size={14} className={sgFetching ? "ov-spin" : undefined} aria-hidden="true" />
+              {sgFetching ? "Refreshing…" : "Refresh"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setPanel("calls")}>
+              <Zap size={14} aria-hidden="true" /> Call Builder
+            </Button>
+          </>
         }
       />
 
-      {/* ── Stat cards ── */}
+      {/* ── Protocol status ── */}
+      <ProtocolStatus
+        meta={sgMeta}
+        indexerAnswered={indexerAnswered}
+        indexerLoading={sgLoading}
+        indexerError={!!sgError}
+      />
+
+      {/* ── Primary metrics ──
+          A value is shown as 0 only when the indexer answered, "—" only when the
+          source failed, and a skeleton only while the first read is in flight. */}
       <div className="ov-grid4">
         <StatCard
           label="Total Calls"
-          value={animCalls || callsNum}
+          value={!indexerAnswered ? "—" : (callsNum > 0 ? animCalls : 0)}
+          hint={callsTruncated ? `Capped at the ${CALLS_CAP} most recent calls` : `Every call indexed for this deployment`}
           delta={callsDelta}
           spark={weekSeries}
-          loading={sgLoading && callsNum === 0}
-          unavailable={!sgLoading && callsNum === 0}
+          loading={sgLoading && !indexerAnswered}
+          unavailable={!indexerAnswered && !sgLoading}
         />
         <StatCard
-          label="Active Providers"
-          value={animProviders || providerCount}
-          loading={sgLoading && providerCount === 0}
-          unavailable={!sgLoading && providerCount === 0}
+          label="Providers"
+          value={!providersKnown ? "—" : (providerCount > 0 ? animProviders : 0)}
+          hint="ServiceRegistry nextProviderId − 1 (id 0 is reserved)"
+          loading={sgLoading && !providersKnown}
+          unavailable={!providersKnown}
         />
         <StatCard
           label="Escrowed USDC"
-          value={escrowUsdc === null ? "—" : escrowUsdc.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          value={escrowUsdc === null ? "—" : usdc(escrowRaw, 2)}
+          hint={openNum > 0 ? `Held by ${openNum} open call${openNum === 1 ? "" : "s"}` : "No calls are open right now"}
           unavailable={escrowUsdc === null}
-          loading={sgLoading && callsNum === 0}
+          loading={sgLoading && !indexerAnswered}
         />
         <StatCard
           label="SLA Success Rate"
           value={honorRate}
+          hint={settledNum > 0 ? `${completedNum} completed of ${settledNum} settled calls` : "No settled calls yet — the rate is unknown, not zero"}
           unavailable={honorPctNum === null}
-          loading={sgLoading && callsNum === 0}
+          loading={sgLoading && !indexerAnswered}
         />
       </div>
 
-      {/* ── Live network + recent activity ── */}
+      {/* ── Provider network + recent activity ── */}
       <div className="ov-2col">
         <SectionCard
-          title="Live Network"
-          action={<Badge tone="guard" dot>Live</Badge>}
+          title="Provider Network"
+          subtitle="Aggregated from indexed provider records"
+          action={
+            <Badge tone={activeProviders > 0 ? "guard" : "neutral"}>
+              {indexerAnswered ? `${activeProviders} active` : "—"}
+            </Badge>
+          }
           bodyClass="ui-section__body--flush"
         >
-          <div className="ov-net">
-            <NetworkGraphBox />
-          </div>
-          <div className="ov-legend">
-            <span className="ov-legend__item"><i style={{ background: "var(--accent)" }} />Call flow</span>
-            <span className="ov-legend__item"><i style={{ background: "var(--accent-2)" }} />Provider</span>
-            <span className="ov-legend__item"><i style={{ background: "var(--text-dim)" }} />Caller</span>
-            <span className="ov-legend__item"><i style={{ background: "var(--danger)" }} />SLA risk</span>
-          </div>
+          {sgError ? (
+            <ErrorState
+              title="Provider records unavailable"
+              description="The indexer request failed, so the provider state cannot be read."
+              detail={errText(sgError)}
+              action={<Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>}
+            />
+          ) : sgLoading && !indexerAnswered ? (
+            <div className="ov-facts">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="ov-skel" />)}</div>
+          ) : sgProviders.length === 0 ? (
+            <EmptyState
+              icon={<Database size={20} />}
+              title="No providers indexed"
+              description="No provider has registered for this deployment yet. This is an empty registry, not a failed request."
+              action={<Button size="sm" variant="secondary" onClick={() => setPanel("register")}>Register a provider</Button>}
+            />
+          ) : (
+            <ul className="ov-facts">
+              <li className="ov-facts__row"><span>Providers indexed</span><b>{sgProviders.length}</b></li>
+              <li className="ov-facts__row"><span>Accepting calls</span><b>{activeProviders}</b></li>
+              <li className="ov-facts__row"><span>Completed calls (all providers)</span><b>{sgProviders.reduce((s, p) => s + parseInt(p.completedCalls || "0"), 0).toLocaleString("en-US")}</b></li>
+              <li className="ov-facts__row"><span>Slashed calls (all providers)</span><b>{sgProviders.reduce((s, p) => s + parseInt(p.slashedCalls || "0"), 0).toLocaleString("en-US")}</b></li>
+              <li className="ov-facts__row"><span>Stake locked</span><b>{usdc(stakeRaw, 2)} USDC</b></li>
+              <li className="ov-facts__row">
+                <span>Price per call</span>
+                <b>{priceRange ? (priceRange.min === priceRange.max ? `${priceRange.min.toFixed(2)} USDC` : `${priceRange.min.toFixed(2)} – ${priceRange.max.toFixed(2)} USDC`) : "—"}</b>
+              </li>
+            </ul>
+          )}
         </SectionCard>
 
         <SectionCard
           title="Recent Activity"
+          subtitle="Most recent calls, newest first"
           action={<button className="ov-linkbtn" onClick={() => setPanel("history")}>View all</button>}
           bodyClass="ui-section__body--flush"
         >
-          {activities.length === 0 ? (
-            <div className="ov-empty">No calls yet — the ledger fills as the network runs.</div>
+          {sgError ? (
+            <ErrorState
+              title="Activity unavailable"
+              description="The indexer request failed. No activity is shown rather than an arrangement."
+              detail={errText(sgError)}
+              action={<Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>}
+            />
+          ) : sgLoading && !indexerAnswered ? (
+            <div className="ov-activity">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="ov-skel ov-skel--row" />)}</div>
+          ) : activities.length === 0 ? (
+            <EmptyState
+              icon={<Activity size={20} />}
+              title="No calls indexed yet"
+              description="No call has been made against this deployment. The ledger is empty, not unreachable."
+              action={<Button size="sm" variant="secondary" onClick={() => setPanel("calls")}>Make the first call</Button>}
+            />
           ) : (
             <ul className="ov-activity">
               {activities.map((a: SgCall) => {
-                const tone = a.status === "SLASHED" ? "slash" : a.status === "COMPLETED" ? "guard" : "info";
-                const label = a.status === "COMPLETED" ? "Call completed" : a.status === "SLASHED" ? "SLA timeout" : "Call started";
+                const meta = statusMeta(a.status);
+                const icon = a.status === "SLASHED" ? <ShieldCheck size={15} />
+                  : a.status === "COMPLETED" ? <ReceiptText size={15} />
+                    : <Radio size={15} />;
+                const ts = parseInt(a.createdAt || "0");
                 return (
                   <li key={a.id} className="ov-activity__row">
-                    <span className={`ov-activity__ico ov-activity__ico--${tone}`}>
-                      {a.status === "SLASHED" ? <ShieldCheck size={15} /> : a.status === "COMPLETED" ? <ReceiptText size={15} /> : <Radio size={15} />}
-                    </span>
+                    <span className={`ov-activity__ico ov-activity__ico--${meta.tone === "guard" ? "ok" : meta.tone === "slash" ? "danger" : "info"}`}>{icon}</span>
                     <span className="ov-activity__body">
-                      <span className="ov-activity__title">{label}</span>
+                      <span className="ov-activity__title">{meta.label} · Provider #{a.providerId}</span>
                       <span className="ov-activity__sub">
-                        Provider #{a.providerId} · {Number(formatUnits(BigInt(a.amount || "0"), 6)).toFixed(2)} USDC
+                        {usdc(a.amount, 2)} USDC · {ts ? <span title={new Date(ts * 1000).toISOString()}>{relTime(ts)}</span> : "timestamp unavailable"}
                       </span>
+                      {a.id && (
+                        <span className="ov-activity__id" title={a.id}>
+                          <span className="mono">{shortId(a.id)}</span>
+                          <Copy value={a.id} label="Copy call id" />
+                        </span>
+                      )}
                     </span>
-                    <Badge tone={tone}>{a.status === "COMPLETED" ? "Success" : a.status === "SLASHED" ? "Slashed" : "Open"}</Badge>
+                    <Badge tone={meta.tone}>{meta.label}</Badge>
                   </li>
                 );
               })}
@@ -365,8 +553,8 @@ export default function Overview() {
             ].map(c => (
               <li key={c.name} className="ov-health__row">
                 <span className="ov-health__name"><Server size={14} />{c.name}</span>
-                <a className="ov-health__addr" href={`${ARCSCAN}/address/${c.addr}`} target="_blank" rel="noreferrer">
-                  {shorten(c.addr)}<ExternalLink size={10} />
+                <a className="ov-health__addr" href={CONFIG.explorerAddr(c.addr)} target="_blank" rel="noreferrer">
+                  {shorten(c.addr)}<ExternalLink size={10} aria-hidden="true" />
                 </a>
               </li>
             ))}
@@ -539,7 +727,7 @@ export default function Overview() {
                       <div key={i} className="ov-results__row">
                         <span className="ov-results__pid">P#{r.pid}</span>
                         {r.hash
-                          ? <a href={`${ARCSCAN}/tx/${r.hash}`} target="_blank" rel="noreferrer">{r.hash.slice(0, 14)}…</a>
+                          ? <a href={CONFIG.explorerTx(r.hash)} target="_blank" rel="noreferrer">{r.hash.slice(0, 14)}…</a>
                           : <span className="c-danger">{r.err}</span>}
                       </div>
                     ))}
@@ -551,38 +739,35 @@ export default function Overview() {
         </div>
       </SectionCard>
 
-      {/* ── Live activity ── */}
+      {/* ── On-chain event stream ──
+          A live log subscription on PayPerCall. Only events actually received
+          are listed; the badge turns active once one has arrived, so the card
+          never suggests traffic that is not there. */}
       <SectionCard
-        title="Live Activity"
-        action={<span className="ov-live"><span className="live-dot-pulse" />live</span>}
+        title="On-chain Events"
+        subtitle="Live log subscription on PayPerCall — CallStarted, ReceiptSubmitted, CallSlashed"
+        action={
+          <Badge tone={liveEvents.length > 0 ? "guard" : "neutral"} dot={liveEvents.length > 0}>
+            {liveEvents.length > 0 ? `${liveEvents.length} this session` : "Listening"}
+          </Badge>
+        }
         bodyClass="ui-section__body--flush"
       >
-        {liveEvents.length === 0 && activities.length === 0 ? (
-          <div className="ov-empty">Waiting for on-chain events…</div>
+        {liveEvents.length === 0 ? (
+          <EmptyState
+            icon={<Radio size={20} />}
+            title="No events in this session"
+            description="The subscription is open. Events appear here only while this page is mounted — silence means the contracts have not emitted, not that the feed is broken."
+          />
         ) : (
           <ul className="ov-activity">
-            {liveEvents.slice(0, 4).map((e, i) => (
+            {liveEvents.slice(0, 6).map((e, i) => (
               <li key={`l${i}`} className="ov-activity__row">
                 <span className="ov-activity__ico ov-activity__ico--ok"><Radio size={15} /></span>
                 <span className="ov-activity__body">
                   <span className="ov-activity__title">{e.label}</span>
                   <span className="ov-activity__sub">{e.detail} · {e.time}</span>
                 </span>
-              </li>
-            ))}
-            {activities.map((a: SgCall) => (
-              <li key={a.id} className="ov-activity__row">
-                <span className={`ov-activity__ico ov-activity__ico--${a.status === "SLASHED" ? "danger" : a.status === "STARTED" ? "info" : "ok"}`}>
-                  <Radio size={15} />
-                </span>
-                <span className="ov-activity__body">
-                  <span className="ov-activity__title">Provider #{a.providerId}</span>
-                  <span className="ov-activity__sub">
-                    {Number(formatUnits(BigInt(a.amount || "0"), 6)).toFixed(2)} USDC
-                    {a.id && <> · <a href={`${ARCSCAN}/tx/${a.id}`} target="_blank" rel="noreferrer">{shorten(a.id)}</a></>}
-                  </span>
-                </span>
-                <Badge tone={a.status === "SLASHED" ? "slash" : "guard"}>{a.status}</Badge>
               </li>
             ))}
           </ul>
@@ -594,8 +779,7 @@ export default function Overview() {
         <SectionCard title="Top Providers" bodyClass="ui-section__body--flush">
           <ul className="ov-rank">
             {topProviders.map((p, i) => {
-              const total = parseInt(p.completedCalls || "0") + parseInt(p.slashedCalls || "0") + 3;
-              const rep = Math.round(((parseInt(p.completedCalls || "0") + 2) / total) * 100);
+              const rep = Math.round(repPct(p));
               return (
                 <li key={p.id} className="ov-rank__row">
                   <span className="ov-rank__pos">{i + 1}</span>
@@ -609,36 +793,77 @@ export default function Overview() {
         </SectionCard>
       )}
 
-      {/* ── 24h activity ── */}
-      <SectionCard
-        title="24h Activity"
-        action={<span className="ov-mono-dim">{totalCalls24h} calls</span>}
-      >
-        {totalCalls24h === 0 ? (
-          <div className="ov-chart-empty">
-            <div className="ov-chart-empty__note">No calls in the last 24h.</div>
-          </div>
-        ) : (
-          <div>
-            <div className="ov-chart">
-              <Sparkline data={chartData.map(b => b.count)} height={56} color="var(--accent)" />
-            </div>
-            <div className="ov-bars">
-              {(() => {
-                const max = Math.max(...chartData.map(b => b.count), 1);
-                return chartData.map((b, i) => (
-                  <div key={i} title={`${b.hour}:00 — ${b.count} call${b.count !== 1 ? "s" : ""}`}
+      {/* ── Analytics ──
+          Two charts, each answering one question: when did calls happen, and
+          how did they end. Both are computed from the same indexed call list. */}
+      <div className="ov-2col">
+        <SectionCard
+          title="Call Activity (24h)"
+          subtitle="Calls created per hour, from indexed timestamps"
+          action={<span className="ov-mono-dim">{totalCalls24h} calls</span>}
+        >
+          {totalCalls24h === 0 ? (
+            <EmptyState
+              icon={<Activity size={20} />}
+              title="No calls in the last 24 hours"
+              description="Nothing has been called in this window. This is a measured zero from the indexer, not a missing series."
+            />
+          ) : (
+            <div>
+              <div className="ov-bars" role="img" aria-label={`Calls per hour over the last 24 hours. ${totalCalls24h} calls in total, busiest ${peakCount === 0 ? "hour has no calls" : `${peakAgo === 0 ? "in the current hour" : `${peakAgo} hours ago`} with ${peakCount} call${peakCount === 1 ? "" : "s"}`}.`}>
+                {chartData.map((b, i) => (
+                  <div
+                    key={i}
+                    title={`${b.ago === 0 ? "This hour" : `${b.ago}h ago`} — ${b.count} call${b.count !== 1 ? "s" : ""}`}
                     className="ov-bars__bar"
-                    style={{ height: `${Math.max(3, (b.count / max) * 36)}px`, opacity: b.count > 0 ? 0.75 : 0.2 }} />
-                ));
-              })()}
+                    style={{ height: `${Math.max(3, (b.count / Math.max(peakCount, 1)) * 48)}px`, opacity: b.count > 0 ? 0.8 : 0.2 }}
+                  />
+                ))}
+              </div>
+              <div className="ov-bars__labels" aria-hidden="true">
+                <span>23h ago</span><span>12h ago</span><span>now</span>
+              </div>
+              <p className="ov-chart-summary">
+                {totalCalls24h} call{totalCalls24h === 1 ? "" : "s"} in the last 24 hours
+                {peakCount > 0 && <> · busiest {peakAgo === 0 ? "in the current hour" : `${peakAgo}h ago`} with {peakCount} call{peakCount === 1 ? "" : "s"}</>}
+              </p>
             </div>
-            <div className="ov-bars__labels">
-              {[0, 6, 12, 18, 23].map(h => <span key={h}>{String(h).padStart(2, "0")}h</span>)}
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="SLA Outcomes"
+          subtitle="Every indexed call by final state"
+          action={<span className="ov-mono-dim">{callsNum} calls</span>}
+        >
+          {callsNum === 0 ? (
+            <EmptyState
+              icon={<ShieldCheck size={20} />}
+              title="No outcomes to report"
+              description="Outcomes appear once calls have been made and settled."
+            />
+          ) : (
+            <div>
+              <ul className="ov-bars-h">
+                {outcomeRows.map(r => (
+                  <li key={r.key} className="ov-bars-h__row">
+                    <span className="ov-bars-h__label">{r.label}</span>
+                    <span className="ov-bars-h__track">
+                      <i style={{ width: `${r.pct}%`, background: r.color }} />
+                    </span>
+                    <span className="ov-bars-h__val">{r.count}<span className="ov-bars-h__pct">{r.pct}%</span></span>
+                  </li>
+                ))}
+              </ul>
+              <p className="ov-chart-summary">
+                {completedNum} completed · {slashedNum} slashed · {openNum} still open
+                {honorPctNum !== null && <> · SLA success rate {honorPctNum}% of settled calls</>}
+                {honorPctNum === null && <> · the success rate is unknown until a call settles</>}
+              </p>
             </div>
-          </div>
-        )}
-      </SectionCard>
+          )}
+        </SectionCard>
+      </div>
 
       {/* ── Deployed contracts ── */}
       <SectionCard title="Deployed Contracts">
@@ -646,8 +871,8 @@ export default function Overview() {
           {CONTRACTS.map(c => (
             <div key={c.name} className="ov-contract">
               <div className="ov-contract__name">{c.name}</div>
-              <a href={`${ARCSCAN}/address/${c.addr}`} target="_blank" rel="noreferrer">
-                {shorten(c.addr)}<ExternalLink size={10} />
+              <a href={CONFIG.explorerAddr(c.addr)} target="_blank" rel="noreferrer">
+                {shorten(c.addr)}<ExternalLink size={10} aria-hidden="true" />
               </a>
             </div>
           ))}
@@ -657,14 +882,64 @@ export default function Overview() {
   );
 }
 
-/* Lazy import keeps the viz module out of the initial bundle path of other panels. */
-function NetworkGraphBox() {
-  const [Cmp, setCmp] = useState<null | ComponentType<{ labels: string[]; seed: number; height: number; nodeScale: number }>>(null);
-  useEffect(() => {
-    import("../viz/NetworkGraph").then(m => setCmp(() => m.NetworkGraph));
-  }, []);
-  if (!Cmp) return <div className="ov-net__placeholder" />;
-  return <Cmp labels={["Provider", "Caller"]} seed={5} height={300} nodeScale={1.35} />;
+/* ── Protocol status ────────────────────────────────────────────────────────
+   Four independent facts, never merged: the wallet, the chain the wallet is on,
+   the RPC head, and the indexer's own position. The block subscription lives
+   here so a new block re-renders this strip only, not the whole dashboard. */
+function ProtocolStatus({ meta, indexerAnswered, indexerLoading, indexerError }: {
+  meta?: SgMeta;
+  indexerAnswered: boolean;
+  indexerLoading: boolean;
+  indexerError: boolean;
+}) {
+  const { address, status } = useAccount();
+  const chainId = useChainId();
+  const { data: blockNumber, isError: rpcError, isLoading: rpcLoading } = useBlockNumber({ watch: true });
+
+  const onArc = chainId === arcTestnet.id;
+
+  const wallet = status === "connected"
+    ? { tone: "ok" as const, icon: <Wifi size={15} />, label: "Wallet", value: address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Connected" }
+    : status === "connecting" || status === "reconnecting"
+      ? { tone: "unknown" as const, icon: <Clock size={15} />, label: "Wallet", value: status === "reconnecting" ? "Reconnecting…" : "Connecting…" }
+      : { tone: "unknown" as const, icon: <WifiOff size={15} />, label: "Wallet", value: "Not connected" };
+
+  const network = status !== "connected"
+    ? { tone: "unknown" as const, icon: <WifiOff size={15} />, label: "Network", value: "Unknown until a wallet connects" }
+    : onArc
+      ? { tone: "ok" as const, icon: <Wifi size={15} />, label: "Network", value: CONFIG.chainName, hint: `chain ${chainId}` }
+      : { tone: "err" as const, icon: <WifiOff size={15} />, label: "Network", value: `Wrong network`, hint: `wallet on chain ${chainId}, expected ${arcTestnet.id}` };
+
+  const rpc = rpcError
+    ? { tone: "err" as const, icon: <WifiOff size={15} />, label: "RPC", value: "Unreachable" }
+    : rpcLoading || blockNumber === undefined
+      ? { tone: "unknown" as const, icon: <Clock size={15} />, label: "RPC", value: "Reading head block…" }
+      : { tone: "ok" as const, icon: <Wifi size={15} />, label: "RPC", value: `Block ${Number(blockNumber).toLocaleString("en-US")}` };
+
+  const idxBlock = meta?.block?.number;
+  const idxTs = meta?.block?.timestamp;
+  const lag = idxBlock !== undefined && blockNumber !== undefined ? Math.max(0, Number(blockNumber) - idxBlock) : undefined;
+  const indexer = indexerError
+    ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Query failed" }
+    : !indexerAnswered || indexerLoading && idxBlock === undefined
+      ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "Reading…" }
+      : idxBlock === undefined
+        ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "No _meta in response" }
+        : meta?.hasIndexingErrors
+          ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Indexing error", hint: `block ${idxBlock.toLocaleString("en-US")}` }
+          : {
+            tone: (lag !== undefined && lag > 50 ? "warn" : "ok") as "warn" | "ok",
+            icon: <Database size={15} />,
+            label: "Indexer",
+            value: `Block ${idxBlock.toLocaleString("en-US")}`,
+            hint: `${lag !== undefined ? `lag ${lag} block${lag === 1 ? "" : "s"} · ` : ""}${idxTs ? `indexed ${relTime(idxTs)}` : ""}`,
+          };
+
+  return (
+    <div className="ov-status">
+      {[wallet, network, rpc, indexer].map(item => <StatusItem key={item.label} {...item} />)}
+    </div>
+  );
 }
 
 function computeFlowSteps(call: { status?: string } | null | undefined): Step[] {

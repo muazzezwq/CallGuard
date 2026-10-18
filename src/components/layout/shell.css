@@ -435,9 +435,61 @@
 .ov-contract__name { font-size: 11.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 3px; }
 .ov-contract a { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
 
+/* The live strip marks a running clock, not protocol activity: the dot stays
+   steady so it cannot read as arriving data. */
+.live-bar .live-dot-pulse { animation: none; opacity: 1; }
+
+/* ── Overview protocol status strip ──
+   Four independent facts. State is carried by the icon, the label and the value,
+   so tone colour is never the only signal. */
+.ov-status { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 14px;
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.ov-status__item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; background: var(--surface-1); min-width: 0; }
+.ov-status__ico { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; display: inline-flex;
+  align-items: center; justify-content: center; background: var(--surface-3); color: var(--text-dim); }
+.ov-status__item--ok .ov-status__ico { background: var(--accent-bg); color: var(--accent-ink); }
+.ov-status__item--warn .ov-status__ico { background: var(--warn-bg); color: var(--warn); }
+.ov-status__item--err .ov-status__ico { background: var(--danger-bg); color: var(--danger); }
+.ov-status__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ov-status__label { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
+.ov-status__value { font-size: 12.5px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.ov-status__hint { font-size: 11px; color: var(--text-dim); }
+
+.ov-refresh { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-dim); margin-right: 4px; }
+.ov-spin { animation: ov-spin 1s linear infinite; }
+@keyframes ov-spin { to { transform: rotate(360deg); } }
+
+/* ── Provider network facts ── */
+.ov-facts { list-style: none; margin: 0; padding: 0; }
+.ov-facts__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); }
+.ov-facts__row:last-child { border-bottom: 0; }
+.ov-facts__row b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ── Activity rows: the call id is truncated but never lost ── */
+.ov-activity__id { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 10.5px; color: var(--text-dim); }
+.ov-activity__id .mono { font-family: var(--font-mono); }
+
+/* ── Chart summaries and the SLA outcome bars ── */
+.ov-chart-summary { margin: 8px 0 0; font-size: 11.5px; color: var(--text-dim); }
+.ov-bars-h { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.ov-bars-h__row { display: grid; grid-template-columns: 88px 1fr 64px; align-items: center; gap: 10px; }
+.ov-bars-h__label { font-size: 12px; color: var(--text-dim); }
+.ov-bars-h__track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.ov-bars-h__track i { display: block; height: 100%; border-radius: 3px; transition: width var(--motion-base) var(--ease-out); }
+.ov-bars-h__val { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums;
+  display: inline-flex; gap: 6px; justify-content: flex-end; }
+.ov-bars-h__pct { color: var(--text-dim); }
+
+/* ── Loading placeholder (skeleton) ── */
+.ov-skel { height: 34px; border-radius: var(--radius-xs); background: var(--surface-2); animation: ov-skel-pulse 1.4s ease-in-out infinite; }
+.ov-skel--row { height: 46px; margin: 6px 16px; }
+@keyframes ov-skel-pulse { 0%, 100% { opacity: .55; } 50% { opacity: .9; } }
+
 @media (max-width: 1024px) {
   .ov-grid4 { grid-template-columns: repeat(2, 1fr); }
   .ov-2col { grid-template-columns: 1fr; }
+  .ov-status { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
   .ov-page { padding: 16px 14px 96px; }
@@ -445,6 +497,9 @@
   .ov-contracts { grid-template-columns: 1fr; }
   .ov-accordion__body { padding-left: 16px; }
   .ov-form2 { grid-template-columns: 1fr; }
+  .ov-status { grid-template-columns: 1fr; }
+  .ov-bars-h__row { grid-template-columns: 78px 1fr 58px; }
+  .ov-bars__labels { font-size: 10px; }
 }
 
 /* ══ Transactions + SLA canvas ═══════════════════════════════ */
@@ -598,6 +653,17 @@
   transition: none !important;
   animation: none !important;
 }
+/* Dashboard placeholders and outcome bars: the skeleton pulse is decorative, so
+   it stops when motion is reduced. The refresh spinner is kept — it is feedback
+   for an action the user just took, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .ov-skel, .ov-bars-h__track i { animation: none !important; transition: none !important; }
+}
+[data-motion="reduced"] .ov-skel,
+[data-motion="reduced"] .ov-bars-h__track i {
+  animation: none !important;
+  transition: none !important;
+}
 .pk-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent); border-top-color: transparent; animation: spin 0.8s linear infinite; }
 
 /* ══ Mobile navigation drawer ══
@@ -617,4 +683,7 @@
   }
   .sidebar.open { left: 0; }
   .sidebar.collapsed { width: 260px; }
+  /* The drawer is out of flow here, so the grid must be a single column —
+     otherwise the content falls into the sidebar's 52px track. */
+  .app-shell, .app-shell.sb-collapsed { grid-template-columns: 1fr; }
 }

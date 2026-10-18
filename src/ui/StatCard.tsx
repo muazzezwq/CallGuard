@@ -30,10 +30,13 @@ function FlatBaseline({ height = 34 }: { height?: number }) {
    honest em-dash when value is unavailable and a skeleton while loading —
    never a fabricated number. */
 export function StatCard({
-  label, value, delta, spark, loading, unavailable, className,
+  label, value, hint, delta, spark, loading, unavailable, className,
 }: {
   label: ReactNode;
   value: ReactNode;
+  /* Short basis note: what the number is counted from. Kept visible so a
+     metric never reads as an unexplained figure. */
+  hint?: ReactNode;
   delta?: number | null;
   spark?: number[];
   loading?: boolean;
@@ -52,6 +55,7 @@ export function StatCard({
       ) : (
         <div className="ui-statcard__val">{unavailable ? "—" : value}</div>
       )}
+      {hint && !loading && <div className="ui-statcard__hint">{hint}</div>}
       <div className="ui-statcard__foot">
         {hasDelta && !loading && (
           <span className={clsx("ui-statcard__delta", up ? "is-up" : "is-down")}>
