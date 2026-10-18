@@ -63,7 +63,79 @@
   --font-display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --sidebar-w: 232px;
+  --sidebar-w-collapsed: 52px;
   --topbar-h: 52px;
+
+  /* ── Phase 1 — semantic scales ─────────────────────────
+     One source of truth for spacing, shape, elevation, motion
+     and data-viz colour. Components reference these; they do
+     not hardcode px durations or radii. */
+
+  /* Space scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+  --sp-10: 72px;
+  --gap: 12px;          /* default gap between controls */
+  --field-gap: 6px;     /* label → control */
+  --card-pad: 18px;     /* default card padding */
+  --page-pad: 28px;     /* panel gutter */
+  --section-gap: 20px;  /* between page sections */
+  --gutter: 24px;       /* responsive page gutter */
+
+  /* Shape */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --radius-xl: 18px;
+
+  /* Elevation + overlays */
+  --elev-1: var(--shadow-sm);
+  --elev-2: 0 6px 24px rgba(0,0,0,0.20);
+  --elev-3: var(--shadow-md);
+  --elev-4: var(--shadow-lg);
+  --overlay: rgba(3,6,10,0.66);
+  --overlay-blur: 4px;
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px var(--accent-bg);
+  --focus-ring-strong: 0 0 0 3px rgba(25,209,134,0.35);
+
+  /* Text colour that stays readable on top of --accent */
+  --on-accent: #06110D;
+
+  /* Motion — a small set of reusable durations + easings */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 300ms;
+  --dur-slower: 600ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --motion-fast: var(--dur-fast) var(--ease-out);
+  --motion-base: var(--dur-base) var(--ease-out);
+  --motion-slow: var(--dur-slow) var(--ease-out);
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-sticky: 20;
+  --z-nav: 50;
+  --z-overlay: 900;
+  --z-modal: 901;
+  --z-toast: 1000;
+
+  /* Data-viz palette — shared, theme-aware */
+  --viz-1: var(--accent);
+  --viz-2: var(--accent-2);
+  --viz-3: #8B5CF6;
+  --viz-4: var(--info);
+  --viz-5: var(--warn);
+  --viz-grid: var(--border);
 }
 
 /* ── Light theme — same semantics, paper ground ──────── */
@@ -109,6 +181,14 @@
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
   --shadow-md: 0 6px 20px rgba(15,23,42,0.08);
   --shadow-lg: 0 16px 48px rgba(15,23,42,0.12);
+
+  /* Phase 1 — theme-aware scale overrides (same token names) */
+  --elev-2: 0 6px 24px rgba(15,23,42,0.10);
+  --overlay: rgba(15,23,42,0.42);
+  --overlay-blur: 3px;
+  --focus-ring-strong: 0 0 0 3px rgba(14,159,110,0.30);
+  --on-accent: #04140E;
+  --viz-3: #7C3AED;
 }
 /* ── Smooth theme transition — scoped to app elements only ── */
 .app-shell, .topbar, .sidebar, .cg-panel-page, .cg-stat-card,
@@ -275,19 +355,27 @@
 }
 
 /* ── Theme transition smooth ─────────────────────────── */
+/* Only theme-relevant properties animate, and only for the duration of the
+   motion tokens. Components keep ownership of transform/shadow timing, so no
+   `!important` override is needed here. */
 *, *::before, *::after {
   transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-in-out);
 }
-/* override for elements that need their own transitions */
+/* interactive elements opt into the fast transform/shadow feedback */
 button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.15s, opacity 0.15s !important;
+  transition: background-color var(--dur-base) var(--ease-in-out),
+              border-color var(--dur-base) var(--ease-in-out),
+              color var(--dur-base) var(--ease-in-out),
+              transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              opacity var(--dur-base) var(--ease-out);
 }
 
 /* ── Sidebar collapsed mode ──────────────────────────── */
 .app-sidebar.collapsed {
-  width: 52px;
+  width: var(--sidebar-w-collapsed);
 }
 .app-sidebar.collapsed .sb-label,
 .app-sidebar.collapsed .sb-section-label,
@@ -310,11 +398,13 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
 }
 .app-sidebar.collapsed .sb-foot { justify-content: center; padding: 9px 0; }
 .app-sidebar.collapsed .sb-progress { display: none; }
-.app-sidebar.collapsed:hover .sb-label,
-.app-sidebar.collapsed:hover .sb-section-label,
-.app-sidebar.collapsed:hover .sb-brand-text {
-  display: block;
+/* Divider keeps group separation visible when labels are hidden. */
+.sb-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 6px;
 }
+.app-sidebar:not(.collapsed) .sb-divider { display: none; }
 .sidebar-collapse-btn {
   position: absolute;
   bottom: 60px;
@@ -327,8 +417,8 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
   display: flex; align-items: center; justify-content: center;
   font-size: 10px;
   color: var(--text-dim);
-  z-index: 10;
-  transition: background 0.15s, transform 0.2s !important;
+  z-index: var(--z-sticky);
+  transition: background var(--motion-fast), transform var(--motion-base);
 }
 .sidebar-collapse-btn:hover { background: var(--bg-3); }
 .app-sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
@@ -345,6 +435,8 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 768px) { .sidebar-overlay.active { display: block; } }
+/* Mobile drawer locks page scroll behind it. */
+body.nav-open { overflow: hidden; }
 
 /* ── Wallet copy tooltip ─────────────────────────────── */
 .tb-addr-wrap {
@@ -396,39 +488,32 @@ button, a, input, select, textarea, .sb-item, .mp-card, .cg-stat-card {
 
 /* Cards get shadow */
 .cg-stat-card,
-[style*="var(--bg-2)"] {
-  transition: box-shadow 0.2s, border-color 0.2s;
+[style*="var(--bg-2)"],
+[style*="var(--surface-2)"] {
+  transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
 }
 
-/* Input focus glow */
+/* Input focus glow — uses the shared focus-ring token */
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(25,209,134,0.15) !important;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
 }
 
 /* Button micro-animations */
-.btn { transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+.btn { transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-base) var(--ease-out); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
-.btn-primary:hover:not(:disabled) { box-shadow: 0 4px 20px rgba(25,209,134,0.35); }
+.btn-primary:hover:not(:disabled) { box-shadow: var(--glow-green); }
 
-/* Sidebar item active — stronger */
-.sb-item.on,
-.sb-item.active {
-  background: linear-gradient(90deg, rgba(25,209,134,0.12) 0%, rgba(25,209,134,0.04) 100%) !important;
-  border-left: 3px solid var(--accent) !important;
-  color: var(--accent) !important;
-}
-.sb-item.on .sb-icon,
-.sb-item.active .sb-icon { color: var(--accent); filter: drop-shadow(0 0 4px rgba(25,209,134,0.5)); }
+/* Sidebar item active state is owned by shell.css (single inset indicator). */
 
 /* Stat card accent colors */
-.stat-card-providers { border-left-color: #1F77EF !important; }
-.stat-card-calls     { border-left-color: #19D186 !important; }
-.stat-card-receipts  { border-left-color: #8b5cf6 !important; }
-.stat-card-slashes   { border-left-color: #EE4539 !important; }
-.stat-card-honor     { border-left-color: var(--warn) !important; }
+.stat-card-providers { border-left-color: var(--viz-4) !important; }
+.stat-card-calls     { border-left-color: var(--viz-1) !important; }
+.stat-card-receipts  { border-left-color: var(--viz-3) !important; }
+.stat-card-slashes   { border-left-color: var(--danger) !important; }
+.stat-card-honor     { border-left-color: var(--viz-5) !important; }
 
 /* Panel page eyebrow standard */
 .panel-eyebrow {
@@ -561,9 +646,14 @@ body::before {
   grid-template-rows: var(--topbar-h) 1fr;
   height: 100vh;
   overflow: hidden;
+  transition: grid-template-columns var(--motion-base) var(--ease-in-out);
   position: relative;
   z-index: 1;
 }
+
+/* The collapsed rail must reclaim its track. Otherwise the 232px column stays
+   reserved and leaves dead space beside the content. */
+.app-shell.sb-collapsed { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
 
 /* ── Topbar ──────────────────────────────────────────── */
 .topbar {
@@ -612,6 +702,9 @@ body::before {
   transition: background 0.15s;
 }
 .tb-hamburger:hover { background: var(--bg-3); }
+/* Desktop and tablet keep a persistent sidebar — the drawer trigger only
+   exists below 768px. */
+@media (min-width: 769px) { .tb-hamburger { display: none; } }
 .tb-hamburger span {
   display: block;
   width: 18px;
@@ -671,9 +764,27 @@ body::before {
 }
 .net-pill.ok {
   background: var(--accent-bg);
-  border-color: rgba(25,209,134,0.25);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--accent);
 }
+/* Connecting — real transient state, amber, never green. */
+.net-pill.is-connecting {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--warn) 32%, transparent);
+  color: var(--warn);
+}
+.net-pill.is-connecting .net-dot {
+  background: var(--warn);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+/* Connected to a different chain — actionable (opens the wallet modal). */
+.net-pill.is-warn {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 36%, transparent);
+  color: var(--danger);
+  cursor: pointer;
+}
+.net-pill.is-warn .net-dot { background: var(--danger); }
 .net-dot {
   width: 6px;
   height: 6px;
@@ -821,12 +932,12 @@ body::before {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 16px;
+  padding: 7px 10px;
   font-size: 13px;
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.12s;
-  border-left: 2px solid transparent;
+  transition: background-color var(--motion-fast), color var(--motion-fast);
+  border-radius: var(--radius-sm);
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
@@ -836,8 +947,7 @@ body::before {
 .sb-item.active,
 .sb-item.on {
   color: var(--accent);
-  background: var(--accent-bg);
-  border-left-color: var(--accent);
+  background: var(--nav-active-bg, var(--accent-bg));
 }
 .sb-icon { flex-shrink: 0; opacity: 0.7; display: flex; }
 .sb-item.active .sb-icon,
@@ -1182,6 +1292,18 @@ select.input { cursor: pointer; }
     padding-bottom: 80px;
   }
   .sidebar.open { left: 0; }
+  /* The drawer is a full-width navigation surface — a collapsed preference
+     must not shrink it or hide its labels while it is open. */
+  .sidebar.collapsed { width: 260px; }
+  .sidebar.collapsed .sb-label,
+  .sidebar.collapsed .sb-section-label,
+  .sidebar.collapsed .sb-section,
+  .sidebar.collapsed .sb-brand-text,
+  .sidebar.collapsed .sb-foot-text,
+  .sidebar.collapsed .sb-grouplabel { display: block; }
+  .sidebar.collapsed .sb-item { justify-content: flex-start; padding: 8px 10px; }
+  .sidebar.collapsed .sb-foot { justify-content: flex-start; padding: 9px 10px; }
+  .sidebar.collapsed .sb-progress { display: block; }
   /* hide large controls on mobile */
   .tb-hide-sm { display: none !important; }
   /* bottom nav visible */
@@ -2912,7 +3034,11 @@ body.simple-mode .sb-pro-only  { display: none !important; }
 .router-result { margin-top: 10px; padding: 10px 14px; background: var(--accent-bg); border: 1px solid rgba(14,159,110,0.2); border-radius: 8px; font-family: var(--font-mono); font-size: 12px; display: none; }
 
 /* ── Site footer ─────────────────────────────────────── */
-.site-footer { margin-top: auto; padding: 40px 28px 48px; border-top: 1px solid var(--border); background: var(--bg-0); position: relative; z-index: 1; }
+.site-footer { margin-top: auto; padding: 40px 28px 48px; border-top: 1px solid var(--border); background: var(--bg-0);   position: relative;
+  z-index: 1;
+}
+
+/* ── Collapsed rail ──────────────────────────────── */
 .site-footer h4 { margin: 0 0 14px; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
 .footer-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; margin-bottom: 32px; }
 @media (max-width: 800px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 20px; } }

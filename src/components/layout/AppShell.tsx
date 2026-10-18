@@ -1,6 +1,6 @@
-import { lazy, Suspense, useState, useEffect } from "react";
-import { House, Store, Zap, Wallet } from "lucide-react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useAppStore, PanelId } from "../../store/useAppStore";
+import { useApplyMotionPreference } from "../../hooks/useReducedMotion";
 import Sidebar from "./Sidebar";
 import AppTopbar from "./AppTopbar";
 import AppFooter from "./AppFooter";
@@ -12,6 +12,7 @@ import UsdcBanner from "./UsdcBanner";
 import ContextualHint from "./ContextualHint";
 import ErrorBoundary from "../ErrorBoundary";
 import { initTabTitleCounter } from "../../lib/utils";
+import { MOBILE_NAV, PANEL_LABELS, groupOfPanel } from "./navConfig";
 
 const panels = {
   overview:      lazy(() => import("../panels/Overview")),
@@ -58,35 +59,23 @@ function PanelLoader() {
   );
 }
 
-const MOBILE_NAV: { Icon: React.ComponentType<{ size?: number | string }>; label: string; id: PanelId }[] = [
-  { Icon: House,  label: "Home",   id: "overview"    },
-  { Icon: Store,  label: "Market", id: "marketplace" },
-  { Icon: Zap,    label: "Calls",  id: "calls"       },
-  { Icon: Wallet, label: "Wallet", id: "balance"     },
-];
-
-const PANEL_LABELS: Record<string, string> = {
-  overview:"Overview", calls:"Call Builder", marketplace:"Marketplace",
-  requests:"My Requests", providers:"Providers", receipts:"Receipts",
-  payments:"Payments", disputes:"Disputes", history:"Transactions",
-  quality:"Quality Disputes", agent:"Agent Wallet", lending:"RepFi Lending",
-  futures:"SLA Futures", attestation:"SLA Bridge", subscriptions:"Subscriptions",
-  admin:"Admin", mcp:"API / MCP", webhooks:"Webhooks", leaderboard:"Reputation",
-  apidocs:"API Docs", verify:"Verify", provprofile:"Provider details",
-  analytics:"Analytics", notifications:"Logs", settings:"Settings",
-  jobs:"Jobs", bulkcall:"Bulk Call", register:"Register", nano:"Nanopayments",
-  privacy:"Privacy", bridge:"Bridge", pipelinehook:"Pipeline Hook",
-  passkey:"Passkey Wallet", balance:"Unified Balance",
-};
-
 export default function AppShell() {
   const { activePanel, theme, setPanel } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("cg_sb_collapsed") === "1");
+  /* Tablets start collapsed; an explicit user preference always wins. */
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const stored = localStorage.getItem("cg_sb_collapsed");
+    if (stored !== null) return stored === "1";
+    return window.innerWidth <= 1024;
+  });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({});
+  const asideRef = useRef<HTMLElement | null>(null);
 
   const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
+  const activeGroup = groupOfPanel(activePanel);
+
+  useApplyMotionPreference();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -114,6 +103,41 @@ export default function AppShell() {
       return !v;
     });
   };
+
+  /* Mobile drawer: lock page scroll, trap focus inside, restore on close, and
+     close if the viewport grows back to desktop. Only applies on mobile — the
+     sidebar is a persistent column above 768px. */
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    const prev = document.activeElement as HTMLElement | null;
+    document.body.classList.add("nav-open");
+    const aside = asideRef.current;
+    const focusables = () => aside
+      ? Array.from(aside.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ))
+      : [];
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const f = focusables();
+      if (f.length === 0) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    const onResize = () => { if (window.innerWidth > 768) setSidebarOpen(false); };
+    aside?.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.body.classList.remove("nav-open");
+      aside?.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      prev?.focus?.();
+    };
+  }, [sidebarOpen]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -166,23 +190,37 @@ export default function AppShell() {
   const handleNav = () => setSidebarOpen(false);
 
   return (
-    <div className="app-shell">
+    <div className={sidebarCollapsed ? "app-shell sb-collapsed" : "app-shell"}>
       {/* ── Topbar ── */}
       <AppTopbar
         onHamburger={() => setSidebarOpen(o => !o)}
         onCommandPalette={() => setPaletteOpen(true)}
         panelLabel={PANEL_LABELS[activePanel] ?? activePanel}
+        groupLabel={activeGroup?.label}
+        navOpen={sidebarOpen}
       />
 
       {/* ── Sidebar overlay (mobile) ── */}
-      <div role="presentation" className={`sidebar-overlay${sidebarOpen ? " active" : ""}`} onClick={() => setSidebarOpen(false)} />
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="sidebar-overlay active"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* ── Sidebar ── */}
-      <aside className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}>
-        <Sidebar onNav={handleNav} collapsed={sidebarCollapsed} onExpandGroup={() => setSidebarCollapsed(false)} />
+      <aside
+        ref={asideRef}
+        id="appSidebar"
+        className={`sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""} app-sidebar`}
+      >
+        <Sidebar onNav={handleNav} collapsed={sidebarCollapsed} />
         <button
           className="sidebar-collapse-btn"
           onClick={toggleCollapsed}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           ‹

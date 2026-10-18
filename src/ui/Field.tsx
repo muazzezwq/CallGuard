@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { clsx } from "clsx";
 
 export function Field({
@@ -19,4 +19,8 @@ export function Input({ className, mono, error, ...rest }: InputHTMLAttributes<H
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={clsx("ui-select", className)} {...rest}>{children}</select>;
+}
+
+export function Textarea({ className, mono, error, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement> & { mono?: boolean; error?: boolean }) {
+  return <textarea className={clsx("ui-textarea", mono && "ui-textarea--mono", error && "ui-textarea--err", className)} {...rest} />;
 }

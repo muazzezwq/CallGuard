@@ -1,29 +1,49 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Moon, Sun, ChevronDown, Copy, LogOut } from "lucide-react";
-import { useAccount, useDisconnect } from "wagmi";
+import { Search, Moon, Sun, ChevronDown, Copy, LogOut, Bell } from "lucide-react";
+import { useAccount, useChainId, useDisconnect } from "wagmi";
 import { useModal } from "connectkit";
 import { toast } from "sonner";
 import { useAppStore } from "../../store/useAppStore";
 import { useUsdcBalance } from "../../hooks/useOnchain";
 import { Mark } from "../../ui";
+import { arcTestnet } from "../../lib/config";
+
+type NetState = "connected" | "connecting" | "disconnected" | "wrong-chain";
 
 export default function AppTopbar({
   onHamburger,
   onCommandPalette,
   panelLabel,
+  groupLabel,
+  navOpen,
 }: {
   onHamburger?: () => void;
   onCommandPalette?: () => void;
   panelLabel?: string;
+  groupLabel?: string;
+  navOpen?: boolean;
 }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
+  const chainId = useChainId();
   const { disconnect } = useDisconnect();
   const { setOpen } = useModal();
-  const { theme, setTheme, mode, setMode } = useAppStore();
+  const { theme, setTheme, mode, setMode, setPanel } = useAppStore();
 
   const { data: usdcBalance } = useUsdcBalance(address);
   const usdcBal = usdcBalance ? Number(usdcBalance.formatted).toFixed(2) : null;
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
+  /* Real network state — never a permanent green dot. */
+  const net: NetState = !isConnected
+    ? (status === "connecting" || status === "reconnecting" ? "connecting" : "disconnected")
+    : chainId === arcTestnet.id ? "connected" : "wrong-chain";
+
+  const NET_LABEL: Record<NetState, string> = {
+    connected: "Arc Testnet",
+    connecting: "Connecting…",
+    disconnected: "Not connected",
+    "wrong-chain": "Wrong network",
+  };
 
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,7 +82,13 @@ export default function AppTopbar({
     <header className="topbar">
       {/* Left: hamburger + brand + breadcrumb */}
       <div className="tb-left">
-        <button className="tb-hamburger" aria-label="Menu" onClick={onHamburger}>
+        <button
+          className="tb-hamburger"
+          aria-label={navOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={navOpen}
+          aria-controls="appSidebar"
+          onClick={onHamburger}
+        >
           <span /><span /><span />
         </button>
         <div className="tb-brand">
@@ -71,7 +97,12 @@ export default function AppTopbar({
         </div>
         {panelLabel && (
           <div className="tb-breadcrumb">
-            <span className="tb-breadcrumb-sep">›</span>
+            {groupLabel && (
+              <>
+                <span className="tb-breadcrumb-group">{groupLabel}</span>
+                <span className="tb-breadcrumb-sep">›</span>
+              </>
+            )}
             <span className="tb-breadcrumb-panel">{panelLabel}</span>
           </div>
         )}
@@ -92,11 +123,22 @@ export default function AppTopbar({
           >Pro</button>
         </div>
 
-        {/* Network pill */}
-        <div className={`net-pill${isConnected ? " ok" : ""}`}>
-          <span className="net-dot" />
-          <span className="tb-hide-sm">{isConnected ? "Arc Testnet" : ""}</span>
-        </div>
+        {/* Network pill — real connection state */}
+        {net === "wrong-chain" ? (
+          <button
+            className="net-pill is-warn"
+            onClick={() => setOpen(true)}
+            title="This wallet is on a different chain — switch to Arc Testnet"
+          >
+            <span className="net-dot" />
+            <span className="tb-hide-sm">{NET_LABEL[net]}</span>
+          </button>
+        ) : (
+          <div className={`net-pill${net === "connected" ? " ok" : net === "connecting" ? " is-connecting" : ""}`}>
+            <span className="net-dot" />
+            <span className="tb-hide-sm">{NET_LABEL[net]}</span>
+          </div>
+        )}
 
         {/* USDC balance — only when connected */}
         {isConnected && usdcBal && (
@@ -105,6 +147,16 @@ export default function AppTopbar({
             <span className="tb-balance-val">{usdcBal}</span>
           </div>
         )}
+
+        {/* Notifications / activity log */}
+        <button
+          className="tb-icon-btn"
+          title="Logs & notifications"
+          aria-label="Logs and notifications"
+          onClick={() => setPanel("notifications")}
+        >
+          <Bell size={15} />
+        </button>
 
         {/* Theme toggle */}
         <button className="tb-icon-btn" title="Toggle theme" aria-label="Toggle theme" onClick={toggleTheme}>

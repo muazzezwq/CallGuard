@@ -42,6 +42,8 @@
 
 .tb-brand-name { letter-spacing: -0.01em; }
 .tb-breadcrumb-panel { color: var(--text-dim); font-weight: 500; font-size: 12.5px; }
+.tb-breadcrumb-group { color: var(--text-low); font-size: 12px; white-space: nowrap; }
+@media (max-width: 640px) { .tb-breadcrumb-group { display: none; } }
 
 /* one chip recipe for every topbar control */
 .net-pill,
@@ -263,6 +265,11 @@
 .app-footer-contract:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ══ Responsive ═══════════════════════════════════════════════ */
+/* Tablet — sidebar stays persistent, chrome tightens a little. */
+@media (max-width: 1024px) {
+  .live-bar-wrap { padding: 16px 20px 0; }
+  .panel { padding: 22px 22px 96px; }
+}
 @media (max-width: 768px) {
   .topbar { padding: 0 10px; gap: 6px; }
   .live-bar-wrap { padding: 14px 16px 0; }
@@ -557,4 +564,43 @@
 .pk-field__lbl { font-size: 12px; color: var(--text-dim); margin: 0 0 4px; }
 .pk-field__val { font-size: 12px; color: var(--text); font-family: var(--font-mono); word-break: break-all; margin: 0; }
 .pk-spin-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+
+/* ══ Shell motion — honours the motion preference (OS or in-app) ══ */
+@media (prefers-reduced-motion: reduce) {
+  .topbar, .sidebar, .sb-item, .mbn-item, .panel, .sidebar-overlay,
+  .mobile-bottom-nav, .tb-hamburger span {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+[data-motion="reduced"] .topbar,
+[data-motion="reduced"] .sidebar,
+[data-motion="reduced"] .sb-item,
+[data-motion="reduced"] .mbn-item,
+[data-motion="reduced"] .panel,
+[data-motion="reduced"] .sidebar-overlay,
+[data-motion="reduced"] .mobile-bottom-nav,
+[data-motion="reduced"] .tb-hamburger span {
+  transition: none !important;
+  animation: none !important;
+}
 .pk-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent); border-top-color: transparent; animation: spin 0.8s linear infinite; }
+
+/* ══ Mobile navigation drawer ══
+   This must come after the base `.sidebar { position: relative }` rule above.
+   Without it the drawer stays in flow and is laid out as a stray grid row
+   instead of sliding over the content. */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: -260px;
+    width: 260px;
+    height: auto;
+    z-index: 150;
+    transition: left var(--motion-base) var(--ease-out);
+  }
+  .sidebar.open { left: 0; }
+  .sidebar.collapsed { width: 260px; }
+}
