@@ -55,7 +55,7 @@ export default function LiveBar() {
           <span className="live-label">LIVE</span>
           <span className="live-clock mono" id="liveClock">{time || "--:--:--"}</span>
           <span className="live-sep" style={{ color: "var(--text-faint)", margin: "0 4px" }}>·</span>
-          <span className="live-meta mono" style={{ fontSize: 11, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>{network}</span>
+          <span className="live-meta mono" style={{ fontSize: 11, fontFamily: "var(--font-mono)" }}>{network}</span>
         </div>
         <div className="live-bar-right" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {honorRate !== null && (

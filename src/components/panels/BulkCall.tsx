@@ -91,8 +91,8 @@ export default function BulkCall() {
 
       <div style={S.card}>
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ flex: 1 }}><div style={S.label}>Provider ID</div><input style={S.input} value={providerId} onChange={e => setProviderId(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><div style={S.label}>Payload</div><input style={S.input} value={payload} onChange={e => setPayload(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><div style={S.label}>Provider ID</div><input aria-label="Provider ID" style={S.input} value={providerId} onChange={e => setProviderId(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><div style={S.label}>Payload</div><input aria-label="Payload" style={S.input} value={payload} onChange={e => setPayload(e.target.value)} /></div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -100,7 +100,7 @@ export default function BulkCall() {
             <div style={S.label}>Number of Calls</div>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>{count}</span>
           </div>
-          <input type="range" min="1" max="20" value={count} onChange={e => setCount(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+          <input type="range" min="1" max="20" value={count} aria-label="Number of Calls" onChange={e => setCount(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-faint)', marginTop: '4px' }}><span>1</span><span>20</span></div>
         </div>
 

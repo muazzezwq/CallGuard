@@ -59,7 +59,7 @@ export default function Subscriptions() {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{callsToPreBuy} calls</span>
           </div>
           <input
-            type="range" min="1" max="100" value={callsToPreBuy}
+            type="range" min="1" max="100" value={callsToPreBuy} aria-label="Pre-buy calls"
             onChange={e => setCallsToPreBuy(Number(e.target.value))}
             style={{ width: '100%', accentColor: 'var(--accent)' }}
           />

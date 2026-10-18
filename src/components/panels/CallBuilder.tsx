@@ -702,7 +702,7 @@ export default function CallBuilder() {
               <span style={{ fontSize:12,color:"var(--text-dim)" }}>Calls</span>
               <span style={{ fontSize:14,fontWeight:700,color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{batchCount}</span>
             </div>
-            <input type="range" min="1" max="20" value={batchCount} onChange={e => setBatchCount(Number(e.target.value))}
+            <input type="range" min="1" max="20" value={batchCount} aria-label="Calls" onChange={e => setBatchCount(Number(e.target.value))}
               style={{ width:"100%",accentColor:"var(--accent)",marginBottom:8 }} />
             <div style={{ background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:6,padding:"8px 10px",fontSize:12,marginBottom:10 }}>
               Est. cost: <strong style={{ color:"var(--accent)" }}>{(batchCount * Number(formatUnits(price || BigInt(1000000),6))).toFixed(2)} USDC</strong>

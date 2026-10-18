@@ -19,7 +19,8 @@
   --text-dim: #8A9FB2;
   --text-mid: #8A9FB2;
   --text-faint: #4D5F76;
-  --text-low: #4D5F76;
+  /* --text-low carries small topbar labels; #72849A keeps them at AA (4.8:1) on --bg-1 */
+  --text-low: #72849A;
 
   /* Accent — guard green is the single action colour (verified / settled) */
   --accent: #19D186;
@@ -879,7 +880,7 @@ body::before {
   padding: 5px 11px;
   border: none;
   background: transparent;
-  color: var(--text-faint);
+  color: var(--text-low);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;

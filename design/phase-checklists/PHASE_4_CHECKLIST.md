@@ -101,3 +101,41 @@ all above the 4.5 threshold for their font sizes.
 Not closed by this addendum: row 5's focus hand-off. A real pointer click at the label twin's box
 (777,786) changed the selection and the inspect line (`"Escrow · Done · 0.5 USDC"`) but left
 `document.activeElement` on `BODY`. Rows 2, 4, 5, 6, 7 and 13 still stand as written above.
+
+## Addendum — 2026-10-19: cross-cutting a11y sweep over all 34 panels
+
+Not one of the 15 rows above. Recorded here because the sweep ran while this phase was being
+re-verified through the `agent-browser` **MCP** server (axe-core 4.12.1), so the canvas rows keep
+their status and this addendum adds no row.
+
+Dark theme (the default), all **34** sidebar entries, tags `wcag2a,wcag2aa,wcag21a,wcag21aa`:
+**34/34 panels report 0 violations** after the fixes below. Before them, the same sweep reported:
+
+- `.live-meta` (`Arc Testnet`) at **2.8:1** on **every** panel — it is one `<span>` in `LiveBar`
+  whose inline `color: var(--text-faint)` overrode the class's `--text-dim`;
+- six `label` violations (a control with no accessible name) on four panels — Provider details
+  (read-only share link), Call Builder (batch range), Bulk Call (Provider ID, Payload, call-count
+  range), Subscriptions (pre-buy range). All six sit next to a visual `<div style={S.label}>`, which
+  is why nothing named them.
+
+Fixes (6 files): `src/index.css` — dark `--text-low` `#4D5F76` → `#72849A` (computed 4.86:1 on
+`--bg-1`; the 219-use `--text-faint` tier was deliberately left alone) and `.tb-mode-btn`
+`var(--text-faint)` → `var(--text-low)`, which is what the inactive `Pro` label renders in;
+`src/components/layout/LiveBar.tsx` — the inline colour override removed; and an `aria-label` on the
+six controls in `src/components/panels/{BulkCall,CallBuilder,Subscriptions,ProviderProfile}.tsx`.
+Gates: `bun run typecheck` clean, `bun run lint` (`--max-warnings=0`) clean.
+
+Method note for whoever re-runs this: the first-run onboarding dialog renders over the panel and
+darkens the page behind it, and axe reports the dimmed-under-it elements as **4 false contrast
+violations** (7 nodes on a screen whose real count is 3). Dismiss `Skip for now` and the tour first.
+
+Measured and left open: the **light theme** still has 10 contrast nodes below AA across the shell —
+`--text-dim`-based chrome at 4.14–4.36 (`Pro` label, `USDC` label, breadcrumb panel, sidebar
+labels), `.tb-wallet__addr` 3.81, `kbd` 3.6, `.net-pill` 1.84, active sidebar label 1.79. This is
+the same gap `docs/progress.md` already records for Phase 3/16. It needs light-theme palette values,
+so it is a colour decision rather than a sweep; the light `--text-low` was deliberately left at
+`#8A9BAE` so this pass changed no light-theme pixel. Candidate values are in `docs/decisions.md`.
+
+Also unchanged by this sweep: row 5's pointer focus hand-off. The keyboard path keeps focus on the
+plate (`activeElement = g:Escrow` after `Enter`); a real pointer click on a label twin still leaves
+it on `BODY`.

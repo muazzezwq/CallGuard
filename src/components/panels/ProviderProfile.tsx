@@ -148,7 +148,7 @@ export default function ProviderProfile() {
           <div style={S.card}>
             <div style={S.label}>Shareable Link</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'var(--font-mono)' }} value={shareUrl} readOnly />
+              <input aria-label="Shareable Link" style={{ ...S.input, flex: 1, fontSize: '12px', fontFamily: 'var(--font-mono)' }} value={shareUrl} readOnly />
               <button
                 style={{ ...S.btn, padding: '10px 14px', flexShrink: 0, background: copied ? 'var(--accent-dim)' : 'var(--accent)' }}
                 onClick={handleCopy}
