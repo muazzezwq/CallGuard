@@ -19,6 +19,17 @@ separate deployable with its own `package.json` and `node_modules`:
 - `src/lib/config.ts` — **frontend source of truth** for contract addresses and the
   inline ABIs (they encode fix history for tuple/field shape). AGENTS.md mirrors it.
 
+## Redesign phase work (`design/`)
+
+Before starting a redesign phase, read `design/PHASE_<n>.md` (the verbatim prompt),
+`design/PHASE_PROCESS.md`, the relevant `docs/decisions.md` entries, and the previous phase's
+open `PARTIAL`/`FAIL`/`UNVERIFIED` rows in `design/phase-checklists/`. Then verify the real
+repository state (`git status`, `git log`, fresh file reads) instead of trusting a summary of it.
+Keep scope to the current phase, and keep an evidence-based checklist
+(`PASS`/`PARTIAL`/`FAIL`/`UNVERIFIED`) at `design/phase-checklists/PHASE_<n>_CHECKLIST.md` — a
+phase is not complete while any required row is not `PASS`. Never carry skill-usage claims from
+one phase into another. Process details: `design/PHASE_PROCESS.md`; UI rules: `design/RULES.md`.
+
 ## Commands
 
 Frontend (from repo root; uses bun on Vercel):
