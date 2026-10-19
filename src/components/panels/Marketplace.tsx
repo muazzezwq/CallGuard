@@ -6,7 +6,7 @@ import { useAppStore } from "../../store/useAppStore";
 import type { Provider } from "../../lib/subgraph";
 import {
   AddressPill, Badge, Button, Chip, ChipRow, EmptyState, ErrorState,
-  Modal, PageHeader, Select, Skeleton, Table, Td, Th, Tr,
+  PageHeader, Select, Skeleton,
 } from "../../ui";
 import { Search } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
   reputationBand, reputationScore, sortProviders, usdcCompact, usdcExact,
   usdcFromInput, type ProviderRow, type ProviderSortKey, type SortDir,
 } from "./providerMetrics";
+import { ProviderCompareModal } from "./ProviderCompare";
 
 const REGISTRY = CONFIG.registryAddress as `0x${string}`;
 
@@ -175,110 +176,6 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare }: {
         </button>
       </div>
     </article>
-  );
-}
-
-/* ── comparison ──────────────────────────────────────────────────────────*/
-type CmpRow = {
-  label: string;
-  value: (p: ProviderRow) => string;
-  best?: (rows: ProviderRow[]) => string | null;
-};
-
-const CMP_ROWS: CmpRow[] = [
-  {
-    label: "Registry score",
-    value: p => `${reputationScore(p.completedCalls, p.slashedCalls)}/100`,
-    best: rows => String(Math.max(...rows.map(p => reputationScore(p.completedCalls, p.slashedCalls)))),
-  },
-  {
-    label: "Price / call",
-    value: p => `${usdcExact(p.pricePerCall) ?? "—"} USDC`,
-    best: rows => {
-      let min: bigint | null = null;
-      for (const p of rows) {
-        const v = usdcFromInput(usdcExact(p.pricePerCall) ?? "");
-        if (v !== null && (min === null || v < min)) min = v;
-      }
-      return min === null ? null : `${usdcExact(min)} USDC`;
-    },
-  },
-  {
-    label: "Response window",
-    value: p => (typeof p.maxResponseTime === "number" ? `${p.maxResponseTime}s` : "not readable"),
-    best: rows => {
-      const v = rows.map(p => p.maxResponseTime).filter((n): n is number => typeof n === "number");
-      return v.length ? `${Math.min(...v)}s` : null;
-    },
-  },
-  {
-    label: "Stake",
-    value: p => `${usdcCompact(p.stake) ?? "—"} USDC`,
-  },
-  {
-    label: "Completed",
-    value: p => countLabel(p.completedCalls),
-  },
-  {
-    label: "Slashed",
-    value: p => countLabel(p.slashedCalls),
-  },
-  {
-    label: "Honor rate",
-    value: p => {
-      const h = honorRate(p.completedCalls, p.slashedCalls);
-      return h === null ? "no settled calls" : `${h}% of ${p.completedCalls + p.slashedCalls}`;
-    },
-  },
-  { label: "Status", value: p => (p.active ? "Active" : "Inactive") },
-];
-
-function CompareModal({ providers, onClose, onCall }: {
-  providers: ProviderRow[]; onClose: () => void; onCall: (p: ProviderRow) => void;
-}) {
-  return (
-    <Modal open onClose={onClose} title="Compare providers">
-      <p className="mp-cmp-intro">
-        {providers.length} providers · values read from the registry and the Goldsky subgraph.
-      </p>
-      <Table className="mp-cmp">
-        <thead>
-          <tr>
-            <Th scope="col" className="mp-cth-lbl">Metric</Th>
-            {providers.map(p => (
-              <Th key={p.id} scope="col" className="mp-cth">#{p.id}</Th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {CMP_ROWS.map(row => {
-            const best = row.best?.(providers) ?? null;
-            return (
-              <Tr key={row.label}>
-                <Td className="mp-ctd-lbl">{row.label}</Td>
-                {providers.map(p => {
-                  const v = row.value(p);
-                  const isBest = best !== null && v === best;
-                  return (
-                    <Td key={p.id} mono className={isBest ? "mp-ctd-best" : undefined}>
-                      {isBest ? <span className="visually-hidden">Best: </span> : null}
-                      {v}
-                    </Td>
-                  );
-                })}
-              </Tr>
-            );
-          })}
-        </tbody>
-      </Table>
-      <div className="mp-cmp-actions">
-        {providers.map(p => (
-          <Button key={p.id} size="sm" onClick={() => { onCall(p); onClose(); }} disabled={!p.active}>
-            Call #{p.id}
-          </Button>
-        ))}
-      </div>
-    </Modal>
   );
 }
 
@@ -620,7 +517,7 @@ export default function Marketplace() {
       )}
 
       {showCompare && cmpProviders.length >= 2 && (
-        <CompareModal providers={cmpProviders} onClose={() => setShowCompare(false)} onCall={handleCall} />
+        <ProviderCompareModal providers={cmpProviders} onClose={() => setShowCompare(false)} onCall={handleCall} />
       )}
     </div>
   );

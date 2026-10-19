@@ -1,227 +1,313 @@
-import { useState } from 'react'
-import { useAccount } from 'wagmi'
-import { formatUnits } from 'viem'
-import { useSubgraph } from '../../hooks/useSubgraph'
-import { useAppStore } from '../../store/useAppStore'
+import { useCallback, useMemo, useState } from "react";
+import { useAccount, useReadContracts } from "wagmi";
+import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { useSubgraph } from "../../hooks/useSubgraph";
+import { useAppStore } from "../../store/useAppStore";
+import {
+  AddressPill, Badge, Button, EmptyState, ErrorState, PageHeader, Skeleton, Tabs,
+} from "../../ui";
+import {
+  countLabel, reputationScore, usdcExact, type ProviderRow,
+} from "./providerMetrics";
+import { ProviderCompareModal } from "./ProviderCompare";
 
-const PROVIDER_QUERY = `{
-  providers(first: 20, orderBy: completedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
-  }
-}`
-const SLASH_QUERY = `{
-  providers(first: 20, orderBy: slashedCalls, orderDirection: desc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
-  }
-}`
-const PRICE_QUERY = `{
-  providers(first: 20, where: { active: true }, orderBy: pricePerCall, orderDirection: asc) {
-    id owner completedCalls slashedCalls pricePerCall stake active
-  }
-}`
+const REGISTRY = CONFIG.registryAddress as `0x${string}`;
 
-function honorRate(p: Prov) {
-  const total = Number(p.completedCalls) + Number(p.slashedCalls)
-  return total > 0 ? Math.round((Number(p.completedCalls) / total) * 100) : 100
+/* One dataset for all three rankings. The score is computed from the counters,
+   so the subgraph cannot order by it; ranking client-side over one bounded
+   fetch keeps the three tabs consistent with each other. */
+const QUERY = `{
+  providers(first: 1000) {
+    id owner signer stake pricePerCall active
+    completedCalls slashedCalls nftBound nftTokenId
+  }
+}`;
+
+type Tab = "score" | "price" | "slashed";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "score", label: "Registry score" },
+  { id: "price", label: "Lowest price" },
+  { id: "slashed", label: "Most slashed" },
+];
+
+const PAGE = 20;
+
+function rankScore(a: ProviderRow, b: ProviderRow) {
+  return reputationScore(b.completedCalls, b.slashedCalls) - reputationScore(a.completedCalls, a.slashedCalls)
+    || b.completedCalls - a.completedCalls
+    || Number(a.id) - Number(b.id);
 }
 
-function short(addr: string, n = 4) {
-  if (!addr) return "—"
-  return addr.slice(0, n + 2) + "…" + addr.slice(-n)
+function byPrice(a: ProviderRow, b: ProviderRow) {
+  const av = BigInt(a.pricePerCall || "0");
+  const bv = BigInt(b.pricePerCall || "0");
+  if (av !== bv) return av < bv ? -1 : 1;
+  return Number(a.id) - Number(b.id);
 }
 
-const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" }
-
-type Prov = {
-  id: string
-  owner?: string
-  completedCalls?: string | number
-  slashedCalls?: string | number
-  pricePerCall?: string | number
-  stake?: string | number
-  active?: boolean
-}
-
-function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
-  p: Prov; rank: number; isSelf: boolean; onSelect: (id: string) => void; selected: boolean
-}) {
-  const rate = honorRate(p)
-  const price = p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)) : 0
-  /* barColor is a fill; rateInk is the same value as readable text */
-  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "var(--danger)"
-  const rateInk  = rate >= 80 ? "var(--accent-ink)" : rate >= 50 ? "var(--warn)" : "var(--danger)"
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(p.id)}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(p.id); } }}
-      style={{
-      display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-      borderRadius: 8, marginBottom: 6,
-      background: selected ? "rgba(25,209,134,0.07)" : isSelf ? "rgba(25,209,134,0.04)" : "var(--bg-3)",
-      border: `1px solid ${selected ? "var(--accent)" : isSelf ? "rgba(25,209,134,0.2)" : "transparent"}`,
-      cursor: "pointer", transition: "all .15s",
-    }}>
-      {/* rank */}
-      <div style={{ width: 28, textAlign: "center", fontSize: rank <= 3 ? 18 : 13, fontWeight: 700, color: rank <= 3 ? "" : "var(--text-faint)", flexShrink: 0 }}>
-        {MEDAL[rank] ?? rank}
-      </div>
-      {/* info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>Provider #{p.id}</span>
-          {isSelf && <span style={{ fontSize: 9, fontWeight: 700, background: "var(--accent)", color: "#000", borderRadius: 4, padding: "1px 5px" }}>YOU</span>}
-          {!p.active && <span style={{ fontSize: 9, color: "var(--danger)", fontWeight: 700 }}>INACTIVE</span>}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>
-          {short(p.owner || "")} · {price.toFixed(4)} USDC/call · {Number(p.completedCalls)} completed
-        </div>
-        {/* Honor bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
-          <div style={{ flex: 1, height: 4, background: "var(--bg-2)", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ width: `${rate}%`, height: "100%", background: barColor, borderRadius: 2, transition: "width .4s" }} />
-          </div>
-          <span style={{ fontSize: 10, color: "var(--text-faint)", width: 32, textAlign: "right" }}>{rate}%</span>
-        </div>
-      </div>
-      {/* right stats */}
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: rateInk }}>{rate}%</div>
-        <div style={{ fontSize: 10, color: "var(--text-faint)" }}>honor</div>
-        <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-          {Number(p.completedCalls)}✓ / {Number(p.slashedCalls)}✗
-        </div>
-      </div>
-    </div>
-  )
+function bySlashed(a: ProviderRow, b: ProviderRow) {
+  return b.slashedCalls - a.slashedCalls || Number(a.id) - Number(b.id);
 }
 
 export default function Leaderboard() {
-  const { address } = useAccount()
-  const { setPanel } = useAppStore()
-  const [tab, setTab] = useState<'top' | 'slash' | 'price'>('top')
-  const [compareSet, setCompareSet] = useState<Set<string>>(new Set())
+  const { address } = useAccount();
+  const { setPanel } = useAppStore();
+  const [tab, setTab] = useState<Tab>("score");
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
 
-  const { data: topData, loading: topLoading, refetch: refetchTop } = useSubgraph(PROVIDER_QUERY, { pollInterval: 60_000 })
-  const { data: slashData, loading: slashLoading } = useSubgraph(SLASH_QUERY, { pollInterval: 60_000 })
-  const { data: priceData, loading: priceLoading } = useSubgraph(PRICE_QUERY, { pollInterval: 60_000 })
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } =
+    useSubgraph<{ providers?: ProviderRow[] }>(QUERY, { pollInterval: 60_000 });
 
-  const topProviders = (topData as { providers?: Prov[] })?.providers || []
-  const slashProviders = ((slashData as { providers?: Prov[] })?.providers || []).filter((p: Prov) => Number(p.slashedCalls) > 0)
-  const priceProviders = (priceData as { providers?: Prov[] })?.providers || []
+  const providers: ProviderRow[] = useMemo(
+    () => (data?.providers ?? []).filter(p => p && p.id),
+    [data],
+  );
 
-  const myAddr = address?.toLowerCase()
+  /* Ranking, per tab. */
+  const ranked = useMemo(() => {
+    const rows = [...providers];
+    if (tab === "score") return rows.sort(rankScore);
+    if (tab === "price") return rows.filter(p => p.active).sort(byPrice);
+    return rows.filter(p => p.slashedCalls > 0).sort(bySlashed);
+  }, [providers, tab]);
 
-  const toggleCompare = (id: string) => {
-    setCompareSet(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) { next.delete(id) } else if (next.size < 3) { next.add(id) }
-      return next
-    })
-  }
+  const shown = ranked.slice(0, PAGE);
+  const myAddr = address?.toLowerCase();
 
-  const tabs: { id: 'top' | 'price' | 'slash'; label: string }[] = [
-    { id: 'top', label: '🏆 Top Providers' },
-    { id: 'price', label: '💰 Best Price' },
-    { id: 'slash', label: '⚡ Most Slashed' },
-  ]
+  /* The comparison includes the response window, which the subgraph does not
+     index. Read it for the few selected providers only. */
+  const { data: chainData } = useReadContracts({
+    contracts: compareIds.map(id => ({
+      address: REGISTRY,
+      abi: REGISTRY_ABI,
+      functionName: "getProvider" as const,
+      args: [BigInt(id)] as const,
+    })),
+    query: { enabled: compareIds.length > 0, staleTime: 15_000 },
+  });
 
-  function activeList() {
-    if (tab === 'top') return topProviders
-    if (tab === 'price') return priceProviders
-    return slashProviders
-  }
-  const loading = tab === 'top' ? topLoading : tab === 'price' ? priceLoading : slashLoading
-  const list = activeList()
+  const compareProviders: ProviderRow[] = useMemo(() => {
+    const entries = (chainData as unknown as { status?: string; result?: unknown }[] | undefined) ?? [];
+    return compareIds
+      .map((id, i): ProviderRow | null => {
+        const base = providers.find(p => p.id === id);
+        if (!base) return null;
+        const entry = entries[i];
+        let maxResponseTime: number | null = null;
+        let slashBps: number | null = null;
+        if (entry?.status === "success" && Array.isArray(entry.result)) {
+          const resp = Number(entry.result[4]);
+          const slash = Number(entry.result[5]);
+          maxResponseTime = Number.isFinite(resp) ? resp : null;
+          slashBps = Number.isFinite(slash) ? slash : null;
+        }
+        return { ...base, maxResponseTime, slashBps };
+      })
+      .filter((p): p is ProviderRow => p !== null);
+  }, [compareIds, providers, chainData]);
 
-  // compare card
-  const compareProviders = topProviders.filter((p: Prov) => compareSet.has(p.id))
+  const toggleCompare = useCallback((id: string) => {
+    setCompareIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id)
+        : prev.length < 4 ? [...prev, id] : prev,
+    );
+  }, []);
+
+  const openDetails = useCallback((id: string) => {
+    sessionStorage.setItem("provprofile_id", id);
+    setPanel("provprofile");
+  }, [setPanel]);
+
+  const openCall = useCallback((id: string) => {
+    sessionStorage.setItem("callbuilder_provider", id);
+    setPanel("calls");
+  }, [setPanel]);
+
+  const updated = useMemo(() => {
+    if (!dataUpdatedAt) return "not loaded yet";
+    const secs = Math.max(0, Math.round((Date.now() - dataUpdatedAt) / 1000));
+    return secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
+  }, [dataUpdatedAt]);
+
+  const tabCopy: Record<Tab, string> = {
+    score: "Ordered by the registry's own score: ((completed + 2) × 100) / (completed + slashed + 3). A provider with no calls scores 66; an empty record cannot reach 100.",
+    price: "Active providers only, cheapest price per call first. Price is the exact 6-decimal amount charged for one call.",
+    slashed: "Providers with at least one slashed call, most slashed first. Providers with no slashes are not ranked here.",
+  };
 
   return (
-    <div style={{ padding: 24, maxWidth: 760 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Leaderboard</h2>
-        <button style={{ fontSize: 11, padding: "5px 10px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:999, color: "var(--text-dim)", cursor: "pointer" }} onClick={refetchTop}>↻ Refresh</button>
-      </div>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 20 }}>
-        Live provider rankings from Arc Testnet. Click rows to compare.
+    <div className="ov-page lb-root">
+      <PageHeader
+        eyebrow="Discover"
+        title="Rankings"
+        subtitle="Provider performance from the registry counters the subgraph indexes. Each tab states the rule it ranks by."
+        actions={
+          <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? "Refreshing…" : "Refresh"}
+          </Button>
+        }
+      />
+
+      <Tabs
+        className="lb-tabs"
+        value={tab}
+        onChange={id => setTab(id as Tab)}
+        tabs={TABS.map(t => ({ id: t.id, label: t.label }))}
+      />
+
+      <p className="lb-note">{tabCopy[tab]}</p>
+
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {isLoading ? "Loading rankings" : `${shown.length} of ${ranked.length} providers listed`}
       </p>
 
-      {/* Tabs */}
-      <div className="cg-tabs">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? " active" : ""}`}>{t.label}</button>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="lb-list" aria-busy="true">
+          {[...Array(5)].map((_, i) => (
+            <div className="lb-row" key={i}>
+              <Skeleton width={20} height={14} />
+              <Skeleton width="70%" height={14} />
+              <Skeleton width="90%" height={14} />
+              <Skeleton width={60} height={28} radius={8} />
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <ErrorState
+          title="The ranking data could not be loaded."
+          description="Rankings read the Goldsky subgraph. Until that request succeeds the list is unavailable, which is not the same as an empty ranking."
+          detail={error instanceof Error ? error.message : undefined}
+          action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+        />
+      ) : providers.length === 0 ? (
+        <EmptyState
+          icon={<span aria-hidden="true">◎</span>}
+          title="No providers are registered yet"
+          description="Rankings are built from registered providers. None exist on this network yet."
+          action={<Button size="sm" onClick={() => setPanel("register")}>Become a provider</Button>}
+        />
+      ) : shown.length === 0 ? (
+        <EmptyState
+          icon={<span aria-hidden="true">◎</span>}
+          title={tab === "slashed" ? "No provider has been slashed" : "No active providers to rank by price"}
+          description={
+            tab === "slashed"
+              ? "Every registered provider has a clean record under the current index."
+              : "Every provider in the index is inactive, so a price ranking would not describe anything a caller can use."
+          }
+          action={<Button size="sm" onClick={() => setTab("score")}>Back to registry score</Button>}
+        />
+      ) : (
+        <ol className="lb-list">
+          {shown.map((p, i) => {
+            const score = reputationScore(p.completedCalls, p.slashedCalls);
+            const isSelf = Boolean(myAddr) && p.owner?.toLowerCase() === myAddr;
+            const inCompare = compareIds.includes(p.id);
+            const rank = i + 1;
+            return (
+              <li key={p.id} className={`lb-row${isSelf ? " lb-row--self" : ""}`}>
+                <div className={`lb-rank${rank <= 3 ? " lb-rank--top" : ""}`} aria-label={`Rank ${rank}`}>
+                  {rank}
+                </div>
 
-      {/* Compare strip */}
-      {compareSet.size > 0 && (
-        <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "12px 16px", marginBottom: 16 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 10 }}>
-            Comparing ({compareSet.size}/3)
-          </div>
-          <div style={{ display: "flex", gap: 12, overflowX: "auto" as const }}>
-            {compareProviders.map((p: Prov) => (
-              <div key={p.id} style={{ flex: 1, minWidth: 140, background: "var(--bg-3)", borderRadius: 8, padding: "10px 12px" }}>
-                <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Provider #{p.id}</div>
-                {[
-                  ["Honor", `${honorRate(p)}%`],
-                  ["Price", `${p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)).toFixed(4) : "—"} USDC`],
-                  ["Slashed", `${Number(p.slashedCalls)}`],
-                  ["Stake", `${p.stake ? Number(formatUnits(BigInt(p.stake), 6)).toFixed(2) : "—"} USDC`],
-                  ["Calls", `${Number(p.completedCalls)}`],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ color: "var(--text-faint)" }}>{k}</span>
-                    <span style={{ color: "var(--text)", fontWeight: 600 }}>{v}</span>
+                <div className="lb-id">
+                  <div className="lb-id-top">
+                    <button type="button" className="lb-name" onClick={() => openDetails(p.id)}>
+                      Provider #{p.id}
+                    </button>
+                    {isSelf && <Badge tone="guard">You</Badge>}
+                    {!p.active && <Badge tone="neutral">Inactive</Badge>}
+                    {p.nftBound && <Badge tone="info">NFT</Badge>}
                   </div>
-                ))}
-                <button onClick={() => toggleCompare(p.id)} style={{ marginTop: 8, width: "100%", fontSize: 10, padding: "4px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:999, cursor: "pointer", color: "var(--text-dim)" }}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => {
-              const best = compareProviders.sort((a: Prov, b: Prov) => honorRate(b) - honorRate(a))[0]
-              if (best) {
-                sessionStorage.setItem("callbuilder_provider", String(best.id));
-                setPanel("calls");
-              }
-            }}
-            style={{ marginTop: 10, padding: "7px 16px", background: "var(--accent)", color: "#000", border: "none", borderRadius:999, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
-          >
-            Use Best Provider →
-          </button>
+                  <div className="lb-owner">
+                    <AddressPill value={p.owner ?? ""} href={p.owner ? CONFIG.explorerAddr(p.owner) : undefined} />
+                  </div>
+                </div>
+
+                <div className="lb-metrics">
+                  <div className="lb-metric">
+                    <div className="lb-metric-lbl">Registry score</div>
+                    <div className="lb-metric-val">{score}<small> /100</small></div>
+                  </div>
+                  <div className="lb-metric">
+                    <div className="lb-metric-lbl">Calls</div>
+                    <div className="lb-metric-val">
+                      {countLabel(p.completedCalls)}
+                      {p.slashedCalls > 0 && <small> · {countLabel(p.slashedCalls)} slashed</small>}
+                    </div>
+                  </div>
+                  <div className="lb-metric">
+                    <div className="lb-metric-lbl">Price / call</div>
+                    <div className="lb-metric-val">{usdcExact(p.pricePerCall) ?? "—"}<small> USDC</small></div>
+                  </div>
+                </div>
+
+                <div className="lb-row-actions">
+                  <Button size="sm" variant="secondary" onClick={() => openDetails(p.id)}>Details</Button>
+                  <Button
+                    size="sm"
+                    onClick={() => openCall(p.id)}
+                    disabled={!p.active}
+                    title={p.active ? undefined : "Inactive providers cannot take calls."}
+                  >
+                    Call
+                  </Button>
+                  <button
+                    type="button"
+                    className="lb-cmp"
+                    aria-pressed={inCompare}
+                    aria-label={inCompare ? `Remove provider #${p.id} from comparison` : `Add provider #${p.id} to comparison`}
+                    title={inCompare ? "Remove from comparison" : "Add to comparison"}
+                    onClick={() => toggleCompare(p.id)}
+                  >
+                    {inCompare ? "✓" : "+"}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {ranked.length > PAGE && (
+        <p className="lb-note">Showing the first {PAGE} of {ranked.length} providers in this ranking.</p>
+      )}
+
+      {compareIds.length > 0 && (
+        <div className="lb-cmp-bar">
+          <span className="lb-metric-lbl">Comparing</span>
+          {compareIds.map(id => (
+            <span key={id} className="mp-cmp-pill">
+              #{id}
+              <button type="button" onClick={() => toggleCompare(id)} aria-label={`Remove provider #${id} from comparison`}>✕</button>
+            </span>
+          ))}
+          <Button size="sm" onClick={() => setShowCompare(true)} disabled={compareProviders.length < 2}>
+            Compare
+          </Button>
+          <span className="lb-metric-val--muted">{compareIds.length}/4 selected</span>
         </div>
       )}
 
-      {/* Provider list */}
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 32, color: "var(--text-dim)" }}>Loading…</div>
-      ) : list.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 32, color: "var(--text-dim)" }}>No data yet.</div>
-      ) : (
-        list.map((p: Prov, i: number) => (
-          <ProviderRow
-            key={p.id}
-            p={p}
-            rank={i + 1}
-            isSelf={!!myAddr && (p.owner?.toLowerCase() === myAddr)}
-            onSelect={toggleCompare}
-            selected={compareSet.has(p.id)}
-          />
-        ))
+      {!isLoading && !isError && providers.length > 0 && (
+        <div className="mp-footer">
+          <span>{providers.length} {providers.length === 1 ? "provider" : "providers"} indexed</span>
+          <span className="mp-sep" aria-hidden="true">·</span>
+          <span>Goldsky subgraph</span>
+          <span className="mp-sep" aria-hidden="true">·</span>
+          <span>updated {updated}</span>
+        </div>
       )}
 
-      {compareSet.size === 0 && list.length > 0 && (
-        <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 12 }}>
-          Click up to 3 rows to compare providers side by side.
-        </p>
+      {showCompare && compareProviders.length >= 2 && (
+        <ProviderCompareModal
+          providers={compareProviders}
+          onClose={() => setShowCompare(false)}
+          onCall={p => openCall(p.id)}
+        />
       )}
     </div>
-  )
+  );
 }

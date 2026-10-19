@@ -95,7 +95,9 @@
 }
 .ui-addr a, .ui-addr__val { color: var(--text); text-decoration: none; }
 .ui-addr a:hover { color: var(--accent-ink); }
-.ui-addr__val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-addr a, .ui-addr__val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The copy control keeps its size; the address truncates first. */
+.ui-addr .ui-copy { flex: 0 0 auto; }
 
 /* Copy button ────────────────────────────────────────── */
 .ui-copy {
