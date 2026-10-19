@@ -24,7 +24,7 @@
 .ui-btn--ghost { background: transparent; color: var(--text-dim); }
 .ui-btn--ghost:hover:not(:disabled) { background: var(--accent-bg); color: var(--text); }
 .ui-btn--outline { background: transparent; color: var(--text); border-color: var(--border-hi); }
-.ui-btn--outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ui-btn--outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
 .ui-btn--danger { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
 .ui-btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 16%, transparent); }
 .ui-btn--block { width: 100%; }
@@ -81,7 +81,7 @@
 .ui-stat { display: flex; flex-direction: column; gap: 6px; }
 .ui-stat__label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
 .ui-stat__value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.05; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-.ui-stat__value--guard { color: var(--accent); }
+.ui-stat__value--guard { color: var(--accent-ink); }
 .ui-stat__value--slash { color: var(--danger); }
 .ui-stat__hint { font-size: 12px; color: var(--text-faint); }
 
@@ -94,7 +94,7 @@
   max-width: 100%;
 }
 .ui-addr a, .ui-addr__val { color: var(--text); text-decoration: none; }
-.ui-addr a:hover { color: var(--accent); }
+.ui-addr a:hover { color: var(--accent-ink); }
 .ui-addr__val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Copy button ────────────────────────────────────────── */
@@ -113,7 +113,7 @@
 }
 .ui-empty__icon {
   width: 44px; height: 44px; border-radius: var(--radius); display: grid; place-items: center;
-  background: var(--surface-2); border: 1px solid var(--border); color: var(--accent);
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--accent-ink);
 }
 .ui-empty__title { font-size: 15px; font-weight: 650; color: var(--text); }
 .ui-empty__desc { font-size: 13px; max-width: 42ch; color: var(--text-dim); line-height: 1.55; }
@@ -162,6 +162,13 @@
 .ui-field__label { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
 .ui-field__hint { font-size: 11.5px; color: var(--text-faint); }
 .ui-field__error { font-size: 11.5px; color: var(--danger); }
+/* The visible marker is decorative: the control carries `aria-required`, and
+   this tag is `aria-hidden`, so the requirement is announced once. */
+.ui-field__req {
+  display: inline-block; margin-left: 6px; padding: 2px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  background: var(--accent-bg); color: var(--accent-ink); border: 1px solid var(--accent-fg);
+}
 .ui-input, .ui-select {
   width: 100%; height: 40px; padding: 0 12px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -207,8 +214,8 @@
   position: sticky; top: 0; background: var(--surface-1); z-index: var(--z-base);
   white-space: nowrap;
 }
-.ui-table th[aria-sort="ascending"]::after  { content: " ↑"; color: var(--accent); }
-.ui-table th[aria-sort="descending"]::after { content: " ↓"; color: var(--accent); }
+.ui-table th[aria-sort="ascending"]::after  { content: " ↑"; color: var(--accent-ink); }
+.ui-table th[aria-sort="descending"]::after { content: " ↓"; color: var(--accent-ink); }
 .ui-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--text); vertical-align: middle; }
 .ui-table tbody tr:last-child td { border-bottom: 0; }
 .ui-table tbody tr { transition: background-color var(--motion-fast); }
@@ -246,7 +253,7 @@
   display: inline-flex; align-items: center; gap: 7px;
   padding: 5px 12px; border-radius: var(--radius-pill); white-space: nowrap;
   background: var(--accent-bg); border: 1px solid var(--accent-fg);
-  color: var(--accent); font-size: 11.5px; font-weight: 600;
+  color: var(--accent-ink); font-size: 11.5px; font-weight: 600;
 }
 .cb-pill__dot {
   width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
@@ -311,7 +318,7 @@
   border: 1.5px solid var(--border-hi); background: var(--surface-2); color: var(--text-faint);
 }
 .ui-step.is-done .ui-step__dot { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.ui-step.is-active .ui-step__dot { border-color: var(--accent); color: var(--accent); box-shadow: var(--focus-ring); }
+.ui-step.is-active .ui-step__dot { border-color: var(--accent); color: var(--accent-ink); box-shadow: var(--focus-ring); }
 .ui-step.is-pending .ui-step__dot { border-color: var(--warn); color: var(--warn); }
 .ui-step.is-failed .ui-step__dot { background: var(--danger); border-color: var(--danger); color: #fff; }
 .ui-step__bar { flex: 1; height: 1.5px; background: var(--border-hi); margin: 0 6px; }
@@ -422,7 +429,7 @@
 .ui-tooltip:focus-within .ui-tooltip__bubble { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Inline link */
-.ui-link { color: var(--accent); text-decoration: none; text-underline-offset: 2px; transition: color var(--motion-fast); }
+.ui-link { color: var(--accent-ink); text-decoration: none; text-underline-offset: 2px; transition: color var(--motion-fast); }
 .ui-link:hover { color: var(--guard-hi); text-decoration: underline; }
 .ui-link:focus-visible { outline: none; box-shadow: var(--focus-ring-strong); border-radius: var(--radius-xs); }
 

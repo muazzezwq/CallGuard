@@ -1,14 +1,26 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { CSSProperties, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { clsx } from "clsx";
 
 export function Field({
-  label, hint, error, htmlFor, children,
-}: { label?: ReactNode; hint?: ReactNode; error?: ReactNode; htmlFor?: string; children: ReactNode }) {
+  label, hint, error, htmlFor, required, className, style, children,
+}: {
+  label?: ReactNode; hint?: ReactNode; error?: ReactNode; htmlFor?: string;
+  /** Marks the label with a visible "required" tag; the control itself still owns `aria-required`. */
+  required?: boolean;
+  className?: string; style?: CSSProperties; children: ReactNode;
+}) {
   return (
-    <div className="ui-field">
-      {label && <label className="ui-field__label" htmlFor={htmlFor}>{label}</label>}
+    <div className={clsx("ui-field", className)} style={style}>
+      {label && (
+        <label className="ui-field__label" htmlFor={htmlFor}>
+          {label}
+          {required && <span className="ui-field__req" aria-hidden="true">required</span>}
+        </label>
+      )}
       {children}
-      {error ? <span className="ui-field__error">{error}</span> : hint ? <span className="ui-field__hint">{hint}</span> : null}
+      {/* The ids follow `htmlFor`, which is what callers point `aria-describedby` at. */}
+      {error ? <span className="ui-field__error" id={htmlFor ? `${htmlFor}-err` : undefined}>{error}</span>
+        : hint ? <span className="ui-field__hint" id={htmlFor ? `${htmlFor}-hint` : undefined}>{hint}</span> : null}
     </div>
   );
 }
