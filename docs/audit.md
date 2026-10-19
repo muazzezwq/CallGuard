@@ -255,3 +255,71 @@ SPEC_1 values are themselves sub-AA.
 - **Final numbers on the final tree:** 34/34 panels, **0 violations**, both themes. `incomplete`
   `color-contrast` nodes: **49 dark / 54 light** (text over gradient or translucent grounds, plus the
   canvas), uncountable as passes.
+
+## Phase 5 addendum — 2026-10-19: provider surfaces
+
+### Fabricated or unsupported data removed
+
+- `Marketplace.tsx` drew a reputation sparkline with `Array.from({length: 20}, () => Math.random())`
+  under the label "Reputation trend". Removed; the card shows a completed/slashed bar from the two
+  indexed counters, and prints "no calls yet" when both are zero.
+- "Low honor rate — high timeout risk" and "Provider has missed recent calls. Consider another
+  provider." asserted a causal link and a recency the data does not carry. The Marketplace card now
+  states counts and the registry score; no causal copy.
+- `Leaderboard` and `ProviderProfile` computed a raw honor rate with a no-data fallback of `100` and
+  `0` respectively. Both now return `null` and print "no settled calls" (see `providerMetrics.ts`).
+- The Marketplace "At Risk" / "Elite" wording was replaced with the bare registry score and its
+  formula. No tier names are attached to a small-sample number.
+
+### Broken wiring found while reading
+
+- `Providers.tsx` called `/api/ping-provider?id=<n>`; `api/ping-provider.js:67` requires `?url=`.
+  Every check returned `HTTP 400` and rendered "Offline". The registry has no endpoint field
+  (`getProvider` returns nine fields, none of them a URL) and the subgraph does not index one, so
+  the feature had no valid input. The control is removed and the panel states why.
+- `Providers.tsx` treated any `useReadContract` error as "Provider #N not found", so an RPC failure
+  read as a missing provider. Now: failed read → error state with Retry; zero owner → unregistered.
+- `Providers.tsx` computed `BigInt(lookupId || "1")` inside the render, so a non-numeric id threw
+  before the query was disabled. The id is parsed and validated first.
+- The Browser JS and Node samples omitted the USDC `approve` that `_callServiceFor` requires
+  (`contracts/PayPerCall.sol:449`); the curl sample contained the literal string
+  `"0x...getProvider(1)"`, which is not calldata. Both corrected (selector `0x5c42d079`).
+- The Python sample used `os.environ` without importing `os` and ended in `build_transaction({...})`.
+
+### Layout and CSS
+
+- **Topbar overflow at ≤429 px.** The shell grid column grew to 429.297 px at a 411 px viewport
+  because the topbar's fixed chips plus hamburger, logo and breadcrumb exceeded the width; the
+  panel body inherited the wider column and `.app-shell { overflow: hidden }` clipped 18 px. Hiding
+  any single topbar item restored 411, which is how the boundary was found. Fixed with
+  `@media (max-width: 430px) { .tb-brand { display: none } }`.
+- **Dead `.lb-*` CSS blocked the new Rankings.** `index.css` still had `Leaderboard bars` rules
+  from an earlier design, including `.lb-owner { width: 90px; overflow: hidden }`; the new owner
+  pill measured 90 px and truncated `0xfbac…06Da` to `0x…`. No TSX references those classes; the
+  block is deleted.
+- **`AddressPill` link variant wrapped.** `.ui-addr__val` carried `nowrap` + ellipsis but
+  `.ui-addr a` did not, so any linked pill broke onto two lines (visible in Rankings and in the
+  Providers table). Both now truncate; `.ui-addr .ui-copy` keeps its intrinsic width.
+- **`<pre>` overflow at 411 px.** axe reported `scrollable-region-focusable` on the snippet block
+  once it scrolled horizontally; the region is now a tab stop with `aria-label`. 0 violations
+  after.
+
+### Verified facts that contradict the repository notes
+
+- `AGENTS.md` states that `dist/` and `app/` are committed build output. Neither is tracked:
+  `git ls-files dist app` is empty and `.gitignore:25` ignores `dist/`. Rebuilding does not produce
+  a diff.
+- `docs/progress.md` (Phase 3) referenced an "honor-rate filter" in the Marketplace hint
+  (`ContextualHint.tsx:23`); the Marketplace has never had one. The hint now names the filters that
+  exist (price, stake, registry score, response time).
+
+### Still unsupported, out of this phase's four panels
+
+- `CallBuilder.tsx:32` prints "This provider has a N% honor rate. High chance of timeout." from a
+  raw rate that renders as `null%` when there are no settled calls, plus a causal claim.
+- `ContextualHint.tsx:28` states that providers with honor rate > 90 % can borrow from the
+  reputation pool. `ReputationLoan` eligibility was not verified in this phase.
+- `Agent.tsx:290` and `src/marketing/Providers.tsx:24` describe ranking by honor rate; no surface
+  ranks by that metric after this phase.
+- The subgraph's `Provider` type declares `maxResponseTime`, `slashBps` and `endpoint` as optional
+  but never selects them (`src/lib/subgraph.ts:76-83`); consumers must not assume they are present.

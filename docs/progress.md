@@ -492,3 +492,100 @@ snaps). Not fixed here: the canvas block was in scope, the shell motion layer is
 
 Still open: the 49 dark / 54 light gradient `incomplete` nodes, the three `--motion-*` declarations
 above, and a real screen reader.
+
+## Phase 5 — provider surfaces on real data (2026-10-19)
+
+Brief: `design/PHASE_5.md` (verbatim, sha256 `96ead39f…f7345`). Checklist:
+`design/phase-checklists/PHASE_5_CHECKLIST.md`. Scope: `Marketplace`, `Providers`,
+`Provider details` (`provprofile`), `Rankings` (`leaderboard`); `Register` preserved untouched.
+
+### What changed
+
+- **One metrics module** (`src/components/panels/providerMetrics.ts`) now owns the score, the
+  honor rate, USDC formatting/parsing, counting and sorting. The score is the registry's own
+  formula (`contracts/ServiceRegistry.sol:572-580`): `floor(((completed + 2) * 100) / (completed +
+  slashed + 3))`. An empty record scores 66 and can never reach 100. The honor rate is a separate
+  metric that returns `null` when there is no denominator, so no screen prints a percentage it
+  cannot support. Covered by `tests/provider-metrics.test.ts` (47 tests).
+- **Marketplace** reads the registry SLA fields (`maxResponseTime`, `slashBps`) the subgraph does
+  not index, with one batched `useReadContracts` call for the visible providers. The random
+  "reputation trend" sparkline is gone; cards show a completed/slashed bar built from counters.
+  Filters act on numbers parsed from the 6-decimal strings, sorting compares BigInt, direction
+  resets per key, and loading, RPC error, no-provider and no-match are four different states.
+  "Call this provider" writes `sessionStorage["callbuilder_provider"]` and opens the builder.
+- **Provider details** reads one record with one multicall (`getProvider`, `getReputationScore`,
+  `completedCalls`, `slashedCalls`), separates an unregistered id from a failed read, states the
+  source of every value (registry / indexed / computed / unavailable), and shows the last ten
+  indexed calls while failing softly if the indexer is down. Endpoint is reported unavailable,
+  because `getProvider` does not return one.
+- **Rankings** now ranks one fetched dataset by one of three stated rules: registry score,
+  active-provider price (BigInt ascending), or slashed count. No 100 fallback, no `#000` ink, and
+  the compare strip no longer reads whichever list was fetched last.
+- **Providers** shows all nine registry fields with their source, distinguishes invalid id,
+  unregistered id, loading, failed read and idle, and links to Provider details. The old "Ping
+  endpoint" button is removed: it called `/api/ping-provider` with `?id=`, while the route requires
+  `?url=` and the registry stores no endpoint, so every provider reported "Offline". The setup guide
+  and snippets now use the shared card/tabs/copy/disclosure, approve USDC before `callService`
+  (the contract pulls with `transferFrom`), return the `bytes32` callId from `CallStarted`, and the
+  curl example carries the real `getProvider` selector `0x5c42d079`.
+- **Shell fix required by the phone viewport:** at 411 px the topbar's fixed chips plus the
+  hamburger, logo and breadcrumb needed 429 px, so `.app-shell { overflow: hidden }` clipped 18 px
+  off the right edge of every panel. The logo now drops below 430 px (`src/index.css`); the
+  hamburger still opens navigation.
+- Shared primitive fix: an `AddressPill` with a link wrapped its address (`src/ui/ui.css`); the
+  anchor now truncates and the copy control keeps its size.
+- Marketplace hint copy (`ContextualHint.tsx:23`) no longer names an honor-rate filter that does
+  not exist.
+
+### Verification (exact commands)
+
+```
+bun run typecheck      # clean, run before each commit
+bun run lint           # eslint src --max-warnings=0, clean
+bun run build          # vite build, ~1m50s, dist/ is gitignored
+bun test tests/        # 47 pass, 0 fail, 125 expect() calls
+```
+
+Browser: vite on port **5204** in `/tmp/opencode/wt-p5` (the repo's 5173 was left alone), with a
+mock-wallet fixture in that worktree only. Real data: provider #1, price 1 USDC, response window
+120 s, slash 2000 bps (2 USDC per slashed call), stake 10 USDC, score 66, NFT #897335, 0 calls.
+
+| Check | Result |
+|---|---|
+| Marketplace filters (price, stake, score, response, callable, NFT), reset, invalid amount | filter counts change, `aria-invalid` + inline error on a negative/NaN price, reset clears all |
+| Sorting | `Lowest price` sorts 1 USDC first with `↑`; direction flips per key |
+| Unregistered id `#999` vs RPC error | empty state "No provider is registered under #999"; failed read is a separate error state with Retry |
+| Cross-panel navigation | card → Provider details; Call → Call builder prefilled from `sessionStorage` |
+| Rankings tabs | score / price / slashed each render their stated rule; "Most slashed" shows its own empty state |
+| Providers lookup | #1 renders nine fields + sources; `0` shows the inline field error and disables the actions; #999 renders the unregistered state |
+| Viewports | 1280×900, 834×1000, 411×900: no element extends past the viewport in any of the four panels |
+| Themes | dark and light both rendered and audited |
+| Keyboard | Tab from the id field through actions, address links, copy buttons, disclosure, tabs: every stop has a visible ring (`2px` outline or `3px` focus shadow) |
+| Reduced motion | global `@media (prefers-reduced-motion: reduce)` block (`index.css:2450-2462`) neutralises every transition this phase added; nothing new animates |
+| Console | 0 window errors, 0 unhandled rejections and 0 `console.error` calls across a fresh-tab navigation of all four panels (in-page hook, because the CLI console buffer is global across tabs and still held 12 earlier Vite HMR artifacts from copying files into the worktree) |
+
+axe-core 4.14.0, tags `wcag2a,wcag2aa,wcag21a,wcag21aa`, transitions/animations disabled before
+the sweep:
+
+| Panel | Dark | Light |
+|---|---|---|
+| Marketplace | 0 violations (411 px) | 0 violations (1280 px) |
+| Provider details | 0 violations (1280 px, 411 px) | 0 violations (1280 px) |
+| Rankings | 0 violations (411 px) | 0 violations (1280 px) |
+| Providers | 0 violations (1280 px) | 0 violations (1280 px, 411 px) |
+
+`color-contrast` nodes axe leaves `incomplete` on the Marketplace controls (3 selects with a
+background-image arrow, 3 glyph buttons, 2 decorative `·`) were measured by hand: 15.53:1, 15.53:1,
+5.45:1, 7.24:1 for the text/glyph pairs. One real failure was found and fixed this way:
+`scrollable-region-focusable` on the horizontally scrolling snippet `<pre>` at 411 px.
+
+### Limits recorded, not hidden
+
+- Only one provider exists on Arc Testnet, so multi-provider states (the compare modal, ranking
+  order beyond one row, pagination past 20) cannot be exercised against real data.
+- No real screen reader in this environment; the accessibility tree and axe stand in.
+- The subgraph indexes neither `maxResponseTime`, `slashBps` nor `endpoint`; the first two come
+  from the registry, the third does not exist anywhere.
+- Out of scope and still unsupported: `CallBuilder.tsx:32` ("High chance of timeout" from an honor
+  rate), the RepFi hint's "> 90% honor rate" loan claim, `Agent.tsx:290` ("scores providers by
+  honor rate") and the marketing page's "ranked by on-chain honor rate". Recorded in `docs/audit.md`.

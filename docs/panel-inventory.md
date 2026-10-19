@@ -11,13 +11,13 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | # | panel | route (activePanel) | file | data source | status |
 |---|---|---|---|---|---|
 | 1 | Overview | `overview` | `src/components/panels/Overview.tsx` | useSubgraph + fetch + lib/config | done |
-| 2 | Marketplace | `marketplace` | `src/components/panels/Marketplace.tsx` | useSubgraph + lib/subgraph | done |
+| 2 | Marketplace | `marketplace` | `src/components/panels/Marketplace.tsx` | useSubgraph + useReadContracts (registry SLA) | done |
 | 3 | Call Builder | `calls` (`x402` alias) | `src/components/panels/CallBuilder.tsx` | useSubgraph + useBudgetCap + lib/cctp + fetch `/api` | done |
 | 4 | Transactions | `history` | `src/components/panels/History.tsx` | useSubgraph + fetch | done |
 | 5 | Receipts | `receipts` | `src/components/panels/Receipts.tsx` | useSubgraph + fetch | done |
-| 6 | Providers | `providers` | `src/components/panels/Providers.tsx` | fetch `/api` + lib/config | done |
-| 7 | Rankings | `leaderboard` | `src/components/panels/Leaderboard.tsx` | useSubgraph | done |
-| 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | lib/config | done |
+| 6 | Providers | `providers` | `src/components/panels/Providers.tsx` | useReadContracts + lib/config | done |
+| 7 | Rankings | `leaderboard` | `src/components/panels/Leaderboard.tsx` | useSubgraph + useReadContracts (compare only) | done |
+| 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | useReadContracts + useSubgraph | done |
 | 9 | API / MCP | `mcp` | `src/components/panels/Mcp.tsx` | useSubgraph + fetch `/api` + lib/config | done |
 | 10 | API Docs | `apidocs` | `src/components/panels/ApiDocs.tsx` | fetch `/api` | done |
 | 11 | Webhooks | `webhooks` | `src/components/panels/Webhooks.tsx` | fetch | done |

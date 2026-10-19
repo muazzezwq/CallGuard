@@ -20,7 +20,7 @@ const HINTS: Record<string, { icon: string; title: string; body: string }> = {
   marketplace: {
     icon: "💡",
     title: "Browse live providers",
-    body: "Filter by honor rate, price, or response time. Click a provider card to see their full profile and history.",
+    body: "Filter by price, stake, registry score, or response time. Click a provider card to see their full profile and history.",
   },
   lending: {
     icon: "💡",
