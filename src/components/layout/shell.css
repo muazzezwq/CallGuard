@@ -544,6 +544,20 @@
 .sla-legend__sw--pending { background: var(--border-hi); }
 .sla-legend__sw--failed { background: var(--danger); border-color: var(--danger); }
 
+/* The seven protocol steps behind the selected call. Values come from the call
+   and the provider record; a gap the indexer cannot fill says so in words. */
+.sla-terms { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.sla-terms__row { display: grid; grid-template-columns: 148px 1fr; gap: 10px; align-items: baseline; font-size: 11.5px; }
+.sla-terms dt { color: var(--text-dim); }
+.sla-terms dd { margin: 0; color: var(--text); }
+@media (max-width: 640px) {
+  .sla-terms__row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* Indexer freshness: lag or an error flag is stated, not implied. */
+.tx-fresh { margin: 0 0 12px; font-size: 11.5px; color: var(--text-dim); }
+.tx-fresh--stale { color: var(--warn, #E0A32E); }
+
 .tx-skel { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; }
 
 .tx-row {

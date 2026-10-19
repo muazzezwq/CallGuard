@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { ArrowLeft } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
+import { CONFIG, REGISTRY_ABI, arcTestnet } from "../../lib/config";
 import {
   PageHeader, SectionCard, StatCard, Toolbar, Chip, ChipRow,
-  Input, Button, Badge, EmptyState, Skeleton, Stepper,
+  Input, Button, Badge, EmptyState, ErrorState, Skeleton, Stepper,
 } from "../../ui";
 import type { Step, StepState } from "../../ui";
 import { SLACanvas, slaStages } from "../viz/SLACanvas";
@@ -32,6 +33,23 @@ const FILTERS = [
 function usdc(v: unknown) {
   if (v === null || v === undefined || v === "") return null;
   try { return formatUnits(BigInt(String(v)), 6); } catch { return null; }
+}
+
+/* `refunded` and `slashed` are USDC amounts (BigInt in the schema), not flags:
+   a `=== "true"` test reads "neither" for every call, including a real slash.
+   Exported for the rule tests. */
+export function refundedAmount(v: unknown) {
+  const s = usdc(v);
+  return s && Number(s) > 0 ? s : null;
+}
+
+/* A call the indexer has not given a settlement timestamp is one whose SLA
+   window closed: `claimTimeout` on the contract, slash on the provider.
+   Kept out of `slaStages`: the subgraph writes `completedAt` on every
+   `CallSlashed`, so the distinction is not observable from the indexed fields. */
+function short(v: unknown) {
+  const s = String(v ?? "");
+  return s.length > 12 ? `${s.slice(0, 10)}…` : s;
 }
 
 function when(v: unknown) {
@@ -80,6 +98,8 @@ function exportHistory(calls: Call[], format: "csv" | "json") {
 
 export default function History() {
   const { address } = useAccount();
+  const chainId = useChainId();
+  const { switchChain, isPending: switchingChain } = useSwitchChain();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -88,8 +108,14 @@ export default function History() {
      the same stage stays selected when the detail panel switches call. */
   const [stageKey, setStageKey] = useState<string | null>(null);
 
-  const { data, loading, refetch } = useSubgraph<{ calls: Call[] }>(
+  /* `_meta` is the indexer's own word on how current it is: the panel shows a
+     freshness line from it, and says so when it reports indexing errors. */
+  const { data, loading, error, isFetching, refetch } = useSubgraph<{
+    calls: Call[];
+    _meta?: { hasIndexingErrors: boolean; block: { number: number; timestamp: number } };
+  }>(
     address ? `{
+      _meta { hasIndexingErrors block { number timestamp } }
       calls(first:500 orderBy:createdAt orderDirection:desc where:{caller:"${address.toLowerCase()}"}) {
         id providerId caller amount status createdAt completedAt requestHash responseHash refunded slashed
       }
@@ -98,6 +124,13 @@ export default function History() {
   );
 
   const all = data?.calls ?? [];
+  const wrongNetwork = !!address && chainId !== arcTestnet.id;
+
+  const meta = data?._meta;
+  const indexedAt = meta?.block?.timestamp ? new Date(meta.block.timestamp * 1000) : null;
+  const lagMin = indexedAt ? Math.floor((Date.now() - indexedAt.getTime()) / 60000) : null;
+  const stale = lagMin !== null && lagMin > 10;
+  const indexingErrors = !!meta?.hasIndexingErrors;
 
   const filtered = all.filter(c => {
     if (statusFilter !== "all" && String(c.status) !== statusFilter) return false;
@@ -118,6 +151,93 @@ export default function History() {
 
   const selected = all.find(c => String(c.id) === selectedId) ?? null;
 
+  /* Provider terms for the selected call come from the registry itself, so the
+     canvas can name the configuration and the stake behind the call instead of
+     only the call's own outcome. `getProvider` answers an empty ProviderView
+     (owner = 0x0) for an unknown id — it does not revert — so a settled read
+     with no owner means "not registered", not "loading". */
+  const providerIdNum = Number((selected as Call | null)?.providerId ?? 0) || 0;
+  const providerQuery = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_ABI,
+    functionName: "getProvider",
+    args: [BigInt(providerIdNum || 1)],
+    chainId: arcTestnet.id,
+    query: { enabled: providerIdNum > 0 && !wrongNetwork, refetchInterval: 60_000 },
+  });
+  const pRaw = providerQuery.data as Record<string | number, unknown> | undefined;
+  const pOwner = (pRaw?.owner ?? pRaw?.[0]) as string | undefined;
+  /* Three distinct facts, not one: the read failed (no answer to judge), the id
+     is not on the registry (settled read, no owner), or the terms are in hand. */
+  const providerReadFailed = providerIdNum > 0 && providerQuery.isError;
+  const providerMissing = providerIdNum > 0 && !providerReadFailed &&
+    providerQuery.isFetched && !providerQuery.isLoading &&
+    (!pOwner || pOwner === "0x0000000000000000000000000000000000000000");
+  const providerReady = providerIdNum > 0 && !providerReadFailed && !providerMissing && providerQuery.isFetched;
+  const pStake = usdc(pRaw?.stake ?? pRaw?.[2]);
+  const pPrice = usdc(pRaw?.pricePerCall ?? pRaw?.[3]);
+  const pWindow = Number(pRaw?.maxResponseTime ?? pRaw?.[4] ?? 0);
+  const pSlashBps = Number(pRaw?.slashBps ?? pRaw?.[5] ?? 0);
+  const pActive = Boolean(pRaw?.active ?? pRaw?.[6] ?? false);
+  const pConcurrent = Number(pRaw?.maxConcurrentCalls ?? pRaw?.[7] ?? 0);
+
+  /* The seven steps the brief asks the board to communicate, each one from a
+     real field. Anything the indexer does not carry says so instead of guessing:
+     execution time is not in the calls entity, so it is named as not indexed. */
+  const terms = selected ? [
+    {
+      k: "Provider configuration",
+      v: providerReadFailed
+        ? "unavailable — the registry read failed, so the terms are unknown"
+        : providerMissing
+          ? `not registered on the registry (provider #${providerIdNum})`
+          : providerReady
+            ? `${pActive ? "active" : "inactive"} · ${pConcurrent > 0 ? `up to ${pConcurrent} concurrent` : "no concurrency cap recorded"}`
+            : "reading the registry…",
+    },
+    {
+      k: "Stake and pricing",
+      v: providerReady
+        ? `${pStake ?? "—"} USDC staked · ${pPrice ?? "—"} USDC per call · slash ${(pSlashBps / 100).toFixed(1)}% · max ${pWindow}s`
+        : providerMissing
+          ? "no stake or price to show — the provider id is not on the registry"
+          : "unavailable until the provider record loads",
+    },
+    {
+      k: "Caller request and payment",
+      v: `${usdc(selected.amount) ?? "—"} USDC escrowed · requested ${when(selected.createdAt) ?? "unknown"}`,
+    },
+    { k: "Request execution", v: "not indexed — the subgraph does not record the response time" },
+    {
+      k: "Receipt",
+      /* The zero hash is what an unfulfilled call carries, and it is truthy: a
+         truthiness test would call a failed call "verified". Measured on the
+         SLASHED mock call, whose stage said "no valid receipt". */
+      v: /^0x0+$/i.test(String(selected.responseHash ?? "")) || !selected.responseHash
+        ? `no receipt recorded · request ${short(selected.requestHash)}`
+        : `verified · ${short(selected.requestHash)} → ${short(selected.responseHash)}`,
+    },
+    {
+      k: "Settlement or timeout",
+      /* `CallSlashed` always writes `completedAt` (subgraph/src/mapping.ts), so a
+         slash is a settlement event with a timestamp — there is no indexed flag
+         that separates "window closed" from "receipt failed to verify". The row
+         names what the data shows and no more. */
+      v: selected.completedAt
+        ? String(selected.status) === "SLASHED"
+          ? `slashed ${when(selected.completedAt) ?? "on chain"} — no valid receipt in the SLA window`
+          : `settled ${when(selected.completedAt) ?? "on chain"}`
+        : "no settlement recorded yet",
+    },
+    {
+      k: "Refund or slash",
+      v: [
+        refundedAmount(selected.refunded) ? `${refundedAmount(selected.refunded)} USDC refunded to the caller` : null,
+        refundedAmount(selected.slashed) ? `${refundedAmount(selected.slashed)} USDC slashed from the provider stake` : null,
+      ].filter(Boolean).join(" · ") || "neither refunded nor slashed",
+    },
+  ] : [];
+
   return (
     <div className="ov-page tx-page">
       <PageHeader
@@ -132,13 +252,19 @@ export default function History() {
         }
       />
 
-      <div className="ov-grid4">
-        <StatCard label="Total calls" value={all.length} loading={loading} />
-        <StatCard label="Completed" value={completed} loading={loading} />
-        <StatCard label="Open" value={open} loading={loading} />
-        <StatCard label="Slashed" value={slashed} loading={loading} />
-      </div>
+      {/* Counts and filters read the wallet's Arc history, so they are withheld
+          while the wallet is on another chain: an Arc total on the wrong chain
+          is a number the reader cannot act on. */}
+      {!wrongNetwork && (
+        <div className="ov-grid4">
+          <StatCard label="Total calls" value={all.length} loading={loading} />
+          <StatCard label="Completed" value={completed} loading={loading} />
+          <StatCard label="Open" value={open} loading={loading} />
+          <StatCard label="Slashed" value={slashed} loading={loading} />
+        </div>
+      )}
 
+      {!wrongNetwork && (
       <Toolbar>
         <Input
           placeholder="Search by call ID or provider…"
@@ -152,6 +278,24 @@ export default function History() {
           ))}
         </ChipRow>
       </Toolbar>
+      )}
+
+      {address && !wrongNetwork && (indexedAt || indexingErrors || (!!error && all.length > 0)) && (
+        /* Freshness, in the indexer's own words: lag is measured from the block
+           it last indexed, its error flag is repeated rather than hidden, and a
+           failed refresh is named when there is older data still on screen. */
+        <p className={`tx-fresh${stale || indexingErrors || !!error ? " tx-fresh--stale" : ""}`} role="status">
+          {error && all.length > 0 && "The last refresh failed, so this is the most recent data that arrived. "}
+          {indexingErrors && "The indexer reports indexing errors, so these figures may be incomplete. "}
+          {indexedAt && (
+            <>
+              Last indexed block {meta?.block?.number ?? "—"} at {indexedAt.toLocaleTimeString()}
+              {stale ? ` — ${lagMin} minutes behind, values may be stale` : ""}
+              {isFetching ? " · refreshing" : ""}
+            </>
+          )}
+        </p>
+      )}
 
       {!address && (
         <SectionCard className="tx-block">
@@ -159,7 +303,37 @@ export default function History() {
         </SectionCard>
       )}
 
-      {address && (
+      {wrongNetwork && (
+        <SectionCard className="tx-block">
+          <ErrorState
+            title="Wrong network"
+            description={`This wallet is on chain ${chainId}. Call history is read from Arc Testnet (${arcTestnet.id}), so nothing is shown as Arc data until the wallet is there.`}
+            action={
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={switchingChain}
+                onClick={() => switchChain({ chainId: arcTestnet.id })}
+              >
+                {switchingChain ? "Switching…" : "Switch to Arc Testnet"}
+              </Button>
+            }
+          />
+        </SectionCard>
+      )}
+
+      {address && !wrongNetwork && !!error && all.length === 0 && (
+        <SectionCard className="tx-block">
+          <ErrorState
+            title="Call history is unavailable"
+            description="The subgraph did not answer, so no call is shown. This is a read failure, not an empty history."
+            detail={String((error as Error)?.message ?? error)}
+            action={<Button variant="secondary" size="sm" onClick={() => void refetch()}>Retry</Button>}
+          />
+        </SectionCard>
+      )}
+
+      {address && !wrongNetwork && (
         <div className="tx-split">
           <SectionCard className="tx-block" title={`${filtered.length} transaction${filtered.length === 1 ? "" : "s"}`} bodyClass="tx-block__body">
             {loading && (
@@ -244,7 +418,9 @@ export default function History() {
                   subtitle={`Call ${String(selected.id).slice(0, 18)}…`}
                 >
                   <SLACanvas
-                    stages={slaStages(String(selected.status), { amount: usdc(selected.amount) ?? undefined })}
+                    stages={slaStages(String(selected.status), {
+                      amount: usdc(selected.amount) ?? undefined,
+                    })}
                     selected={stageKey}
                     onSelect={setStageKey}
                   />
@@ -253,6 +429,16 @@ export default function History() {
                     <li><span className="sla-legend__sw sla-legend__sw--pending" />Pending</li>
                     <li><span className="sla-legend__sw sla-legend__sw--failed" />Failed</li>
                   </ul>
+                  {/* The seven steps of the brief, each from a real field, with
+                      the gaps named instead of filled in. */}
+                  <dl className="sla-terms">
+                    {terms.map(row => (
+                      <div key={row.k} className="sla-terms__row">
+                        <dt>{row.k}</dt>
+                        <dd>{row.v}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </SectionCard>
 
                 <SectionCard title="Lifecycle steps" bodyClass="tx-block__body">
