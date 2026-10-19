@@ -3541,6 +3541,54 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
   .lb-rank { align-self: flex-start; margin-top: 3px; }
 }
 
+/* ══════════════════════════════════════════════
+   PROVIDERS  (.pv-*)
+══════════════════════════════════════════════ */
+
+.pv-root { max-width: 1000px; padding-bottom: 96px; }
+.pv-lookup { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+.pv-lookup .ui-field { flex: 0 0 200px; margin: 0; }
+.pv-status { font-size: .78rem; color: var(--text-dim); margin: 0 0 14px; }
+.pv-status-meta { color: var(--text-faint); }
+.pv-idle { font-size: .82rem; color: var(--text-dim); margin: 0; }
+.pv-facts { display: grid; gap: 10px; }
+.pv-fact { display: flex; justify-content: space-between; gap: 12px; }
+.pv-table { font-size: .82rem; }
+.pv-table td:first-child { color: var(--text-dim); }
+.pv-src { font-size: .7rem; color: var(--text-faint); white-space: nowrap; }
+.pv-hint { color: var(--text-muted); font-size: .72rem; }
+.pv-note { font-size: .78rem; line-height: 1.55; color: var(--text-dim); margin: 12px 0 0; max-width: 74ch; }
+.pv-inline-link {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--accent-ink); text-decoration: underline; cursor: pointer;
+}
+.pv-inline-link:hover { text-decoration-thickness: 2px; }
+.pv-disc summary { cursor: pointer; font-size: .84rem; color: var(--text); padding: 4px 0; }
+.pv-disc summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.pv-steps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 16px; }
+.pv-step { display: flex; gap: 12px; }
+.pv-step-n {
+  width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-bg); border: 1px solid var(--accent-dim);
+  color: var(--accent-ink); font-size: .72rem; font-weight: 700;
+}
+.pv-step-title { font-size: .86rem; font-weight: 600; color: var(--text); }
+.pv-step-body { margin: 2px 0 6px; font-size: .8rem; line-height: 1.55; color: var(--text-dim); max-width: 70ch; }
+.pv-step-link { font-size: .8rem; color: var(--accent-ink); }
+.pv-tabs { margin: 0 0 10px; }
+.pv-code {
+  margin: 0; padding: 14px 16px;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono); font-size: .76rem; line-height: 1.6;
+  color: var(--text); overflow-x: auto;
+}
+@media (max-width: 560px) {
+  .pv-lookup .ui-field { flex: 1 1 100%; }
+  .pv-table th:nth-child(3), .pv-table td:nth-child(3) { display: none; }
+}
+
 /* ══════════════════════════════════════════════════════
    MOBILE HARDENING — consolidated responsive fixes
    Breakpoints: 768 / 560 / 480

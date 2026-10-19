@@ -1,265 +1,414 @@
-import { useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useReadContract } from "wagmi";
-import { formatUnits } from "viem";
 import { CONFIG, REGISTRY_ABI } from "../../lib/config";
-import { ExternalLink, Copy, Check, ChevronDown, ChevronUp, Wifi, WifiOff, RefreshCw } from "lucide-react";
-import { ErrorState, Button } from "../../ui";
+import { useAppStore } from "../../store/useAppStore";
+import {
+  AddressPill, Badge, Button, Copy, EmptyState, ErrorState, Field, Input,
+  PageHeader, SectionCard, Skeleton, Table, Tabs, Td, Th, Tr,
+} from "../../ui";
+import { usdcCompact, usdcExact } from "./providerMetrics";
 
-type UptimeStatus = "idle" | "checking" | "online" | "offline";
+const REGISTRY = CONFIG.registryAddress as `0x${string}`;
+const ZERO = "0x0000000000000000000000000000000000000000";
 
-async function checkProviderUptime(providerId: string): Promise<{ status: "online" | "offline"; latency?: number; detail?: string }> {
-  // Try /api/ping-provider which pings the provider's endpoint
-  const t0 = Date.now();
-  try {
-    const res = await fetch(`/api/ping-provider?id=${encodeURIComponent(providerId)}`, { signal: AbortSignal.timeout(8000) });
-    const latency = Date.now() - t0;
-    if (res.ok) {
-      const d = await res.json().catch(() => ({}));
-      return { status: d.ok !== false ? "online" : "offline", latency, detail: d.message || d.error };
-    }
-    return { status: "offline", latency, detail: `HTTP ${res.status}` };
-  } catch (e: unknown) {
-    return { status: "offline", latency: Date.now() - t0, detail: (e instanceof Error ? e.message : String(e)) };
-  }
-}
-
-const ARCSCAN = "https://explorer.testnet.arc.io";
-const s = {
-  page: { padding:"20px 16px",maxWidth:800,margin:"0 auto" },
-  h1: { fontSize:22,fontWeight:700,color:"var(--text)",margin:"0 0 4px",fontFamily:"var(--font-display)" },
-  sub: { fontSize:13,color:"var(--text-dim)",margin:"0 0 20px" },
-  section: { background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:12 },
-  sectionTitle: { fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:12 },
-  card: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:14,padding:"12px 14px",marginBottom:8 },
-  row: { display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6 },
-  label: { fontSize:11,color:"var(--text-dim)" },
-  val: { fontSize:12,fontWeight:500,fontFamily:"var(--font-mono)",color:"var(--text)" },
-  btn: (v="primary") => ({ padding:"7px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:v==="primary"?"linear-gradient(135deg,#19D186,#0E9F6E)":"var(--bg-3)",color:v==="primary"?"var(--on-accent)":"var(--text)",display:"inline-flex",alignItems:"center",gap:5 }),
-  input: { width:"100%",padding:"8px 12px",borderRadius:10,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const,marginBottom:8 },
-  code: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px",fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text)",whiteSpace:"pre-wrap" as const,overflowX:"auto" as const,marginBottom:8 },
-  tab: (active:boolean) => ({ padding:"6px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:active?"var(--accent)":"transparent",color:active?"var(--on-accent)":"var(--text-dim)" }),
-  badge: (ok:boolean) => ({ display:"inline-block",padding:"1px 7px",borderRadius:999,fontSize:10,fontWeight:600,background:ok?"rgba(25,209,134,0.12)":"rgba(238,69,57,0.1)",color:ok? "var(--accent-ink)":"var(--danger)" }),
-  link: { color: "var(--accent-ink)",textDecoration:"none",fontSize:11,display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--font-mono)" },
-};
+/* PayPerCall.DEFAULT_MAX_CONCURRENT: a provider that registers 0 gets this cap. */
+const DEFAULT_MAX_CONCURRENT = 10;
 
 const SETUP_STEPS = [
-  { n:1, title:"Get testnet USDC", body:"You need USDC to stake and pay for calls. On Arc it's also the gas token.", action:"Open faucet →", href:"https://faucet.circle.com" },
-  { n:2, title:"Connect your wallet", body:'Click "Connect wallet" in the top-right. MetaMask will add Arc Testnet automatically.', action:null },
-  { n:3, title:"Register as provider", body:'Go to the Register panel, set your price, SLA window and stake amount.', action:null },
-  { n:4, title:"Listen for calls", body:"Poll the contract or subscribe to events. Sign and submit receipts within your SLA window.", action:null },
+  {
+    n: 1,
+    title: "Get testnet USDC",
+    body: "On Arc, USDC is both the stake asset and the gas token. The faucet issues testnet USDC to your address.",
+    action: "Open faucet", href: "https://faucet.circle.com",
+  },
+  {
+    n: 2,
+    title: "Connect your wallet",
+    body: "Use Connect wallet in the top bar. Arc Testnet is added by the app; if your wallet asks, approve the network switch.",
+    action: null, href: null,
+  },
+  {
+    n: 3,
+    title: "Register as a provider",
+    body: "Set a price per call, a maximum response time, a slash rate and the stake. Registration is a transaction, so it needs gas.",
+    action: "Open Register", panel: "register",
+  },
+  {
+    n: 4,
+    title: "Answer calls and submit receipts",
+    body: "Watch CallStarted events for your provider id. After answering, submit a receipt within the response window plus the 5-second grace, signed with the EIP-712 Receipt type (domain ArcSLA, version 1).",
+    action: null, href: null,
+  },
 ];
 
-const CODE_EXAMPLES: Record<string, string> = {
-  "Browser JS": `// Install ethers v6: npm i ethers
+function codeSamples(): Record<string, string> {
+  const ppc = CONFIG.ppcAddress;
+  const usdc = CONFIG.usdcAddress;
+  return {
+    "Browser JS": `// npm i ethers
 import { ethers } from "ethers";
+
+const PPC  = "${ppc}";
+const USDC = "${usdc}";
+const price = 1_000_000n; // 1 USDC, 6 decimals — read the real price from the registry
+
 const provider = new ethers.BrowserProvider(window.ethereum);
 const wallet = await provider.getSigner();
 
-const PPC = "${CONFIG.ppcAddress}";
-const ABI = ["function callService(uint256 providerId,bytes32 requestHash) returns(bytes32)"];
-const ppc = new ethers.Contract(PPC, ABI, wallet);
-const tx = await ppc.callService(1, ethers.keccak256(ethers.toUtf8Bytes("ping")));
-console.log("call opened:", tx.hash);`,
-  "Node.js": `// npm i ethers
+// PayPerCall pulls the fee with transferFrom, so approve it first.
+const usdcC = new ethers.Contract(USDC, ["function approve(address,uint256)"], wallet);
+await (await usdcC.approve(PPC, price)).wait();
+
+const ppcC = new ethers.Contract(
+  PPC,
+  ["function callService(uint256 providerId, bytes32 requestHash) returns (bytes32 callId)"],
+  wallet,
+);
+const requestHash = ethers.keccak256(ethers.toUtf8Bytes("ping"));
+const callId = (await (await ppcC.callService(1, requestHash)).wait())
+  .logs.map(l => { try { return ppcC.interface.parseLog(l); } catch { return null; } })
+  .find(e => e?.name === "CallStarted")?.args.callId;
+console.log("callId:", callId);`,
+
+    "Node.js": `// npm i ethers
 const { ethers } = require("ethers");
-const rpc = new ethers.JsonRpcProvider("https://rpc.testnet.arc.io");
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, rpc);
+const rpc = new ethers.JsonRpcProvider("${CONFIG.rpcUrl}");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, rpc); // keep this key off the client
 
-const PPC = "${CONFIG.ppcAddress}";
-const ABI = ["function submitReceipt(bytes32,bytes32,uint64,bytes)"];
-const ppc = new ethers.Contract(PPC, ABI, wallet);
-// Call as provider after answering:
-await ppc.submitReceipt(callId, responseHash, respondedAt, signature);`,
-  "Python": `# pip install web3
+const PPC  = "${ppc}";
+const USDC = "${usdc}";
+
+const usdcC = new ethers.Contract(USDC, ["function approve(address,uint256)"], wallet);
+await (await usdcC.approve(PPC, ethers.parseUnits("1", 6))).wait();
+
+const ppcC = new ethers.Contract(
+  PPC,
+  ["function callService(uint256 providerId, bytes32 requestHash) returns (bytes32 callId)"],
+  wallet,
+);
+const requestHash = ethers.keccak256(ethers.toUtf8Bytes("ping"));
+const receipt = await (await ppcC.callService(1, requestHash)).wait();
+const callId = receipt.logs
+  .map(l => { try { return ppcC.interface.parseLog(l); } catch { return null; } })
+  .find(e => e?.name === "CallStarted")?.args.callId;
+console.log("callId:", callId);
+
+// Provider side: submitReceipt(callId, responseHash, respondedAt, signature)
+// signature is EIP-712 over Receipt(callId, responseHash, respondedAt).`,
+
+    "Python": `# pip install web3
+import os
 from web3 import Web3
-w3 = Web3(Web3.HTTPProvider("https://rpc.testnet.arc.io"))
-account = w3.eth.account.from_key(os.environ["PRIVATE_KEY"])
 
-PPC = "${CONFIG.ppcAddress}"
-ABI = [{"name":"callService","type":"function","inputs":[{"type":"uint256"},{"type":"bytes32"}]}]
-ppc = w3.eth.contract(address=PPC, abi=ABI)
-tx = ppc.functions.callService(1, Web3.keccak(text="ping")).build_transaction({...})`,
-  "curl": `# Check provider info
-curl https://rpc.testnet.arc.io \\
+w3 = Web3(Web3.HTTPProvider("${CONFIG.rpcUrl}"))
+acct = w3.eth.account.from_key(os.environ["PRIVATE_KEY"])
+PPC  = Web3.to_checksum_address("${ppc}")
+USDC = Web3.to_checksum_address("${usdc}")
+price = 1_000_000  # 1 USDC, 6 decimals
+
+usdc_abi = [{"name":"approve","type":"function","stateMutability":"nonpayable",
+             "inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],
+             "outputs":[{"type":"bool"}]}]
+usdc_c = w3.eth.contract(address=USDC, abi=usdc_abi)
+tx = usdc_c.functions.approve(PPC, price).build_transaction({
+    "from": acct.address, "nonce": w3.eth.get_transaction_count(acct.address),
+    "gas": 100_000, "gasPrice": w3.eth.gas_price, "chainId": w3.eth.chain_id,
+})
+w3.eth.wait_for_transaction_receipt(
+    w3.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction))
+
+ppc_abi = [{"name":"callService","type":"function","stateMutability":"nonpayable",
+            "inputs":[{"name":"providerId","type":"uint256"},{"name":"requestHash","type":"bytes32"}],
+            "outputs":[{"name":"callId","type":"bytes32"}]}]
+ppc_c = w3.eth.contract(address=PPC, abi=ppc_abi)
+call = ppc_c.functions.callService(1, Web3.keccak(text="ping")).build_transaction({
+    "from": acct.address, "nonce": w3.eth.get_transaction_count(acct.address),
+    "gas": 400_000, "gasPrice": w3.eth.gas_price, "chainId": w3.eth.chain_id,
+})
+w3.eth.wait_for_transaction_receipt(
+    w3.eth.send_raw_transaction(acct.sign_transaction(call).raw_transaction))`,
+
+    "curl": `# getProvider(uint256) selector: 0x5c42d079, argument left-padded to 32 bytes.
+# The reply is an ABI-encoded 9-field tuple; decode it before displaying values.
+curl ${CONFIG.rpcUrl} \\
   -X POST -H "Content-Type: application/json" \\
-  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{
     "to":"${CONFIG.registryAddress}",
-    "data":"0x...getProvider(1)"
-  },"latest"],"id":1}'`,
-};
+    "data":"0x5c42d0790000000000000000000000000000000000000000000000000000000000000001"
+  },"latest"]}'`,
+  };
+}
 
 export default function Providers() {
-  const [lookupId, setLookupId] = useState("1");
+  const { setPanel } = useAppStore();
+  const [rawId, setRawId] = useState("1");
   const [codeTab, setCodeTab] = useState("Browser JS");
-  const [copied, setCopied] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
-  const [sdkOpen, setSdkOpen] = useState(false);
-  const [uptimeStatus, setUptimeStatus] = useState<UptimeStatus>("idle");
-  const [uptimeLatency, setUptimeLatency] = useState<number | undefined>();
-  const [uptimeDetail, setUptimeDetail] = useState<string | undefined>();
 
-  const handleUptimeCheck = useCallback(async () => {
-    if (!lookupId) return;
-    setUptimeStatus("checking");
-    setUptimeLatency(undefined);
-    setUptimeDetail(undefined);
-    const r = await checkProviderUptime(lookupId);
-    setUptimeStatus(r.status);
-    setUptimeLatency(r.latency);
-    setUptimeDetail(r.detail);
-  }, [lookupId]);
+  const trimmed = rawId.trim();
+  const idNum = /^\d+$/.test(trimmed) ? Number(trimmed) : null;
+  const idValid = idNum !== null && Number.isSafeInteger(idNum) && idNum >= 1;
 
-  const { data: provData, isLoading: provLoading, isError: provError, refetch: refetchProv } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+  const { data, isLoading, isError, error, refetch, isFetching, isFetched, dataUpdatedAt } = useReadContract({
+    address: REGISTRY,
     abi: REGISTRY_ABI,
     functionName: "getProvider",
-    args: [BigInt(lookupId || "1")],
-    query: { enabled: !!lookupId },
+    args: [BigInt(idValid ? idNum : 1)],
+    query: { enabled: idValid, staleTime: 15_000 },
   });
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(CODE_EXAMPLES[codeTab]);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const record = useMemo(() => {
+    const t = data as Record<string | number, unknown> | undefined;
+    if (!t) return null;
+    const read = (name: string, idx: number) => t[name] ?? t[idx];
+    const owner = read("owner", 0) as string | undefined;
+    if (!owner || owner.toLowerCase() === ZERO) return null;
+    return {
+      owner,
+      signer: read("signer", 1) as string,
+      stake: read("stake", 2) as bigint,
+      pricePerCall: read("pricePerCall", 3) as bigint,
+      maxResponseTime: Number(read("maxResponseTime", 4) ?? 0),
+      slashBps: Number(read("slashBps", 5) ?? 0),
+      active: Boolean(read("active", 6)),
+      maxConcurrentCalls: Number(read("maxConcurrentCalls", 7) ?? 0),
+      zkTier: Number(read("zkTier", 8) ?? 0),
+    };
+  }, [data]);
 
-  // getProvider returns a named 9-field ProviderView tuple; viem decodes named tuples to an
-  // object, with positional indexes kept as a fallback for older shapes.
-  // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
-  const r = provData as Record<string | number, unknown> | undefined;
-  const signer = r?.signer ?? r?.[1];
-  const p = signer ? {
-    signer:          signer as string,
-    stakeAmount:     (r?.stake ?? r?.[2] ?? 0n) as bigint,
-    pricePerCall:    (r?.pricePerCall ?? r?.[3] ?? 0n) as bigint,
-    maxResponseTime: Number(r?.maxResponseTime ?? r?.[4] ?? 0),
-    slashBps:        Number(r?.slashBps ?? r?.[5] ?? 0),
-    active:          Boolean(r?.active ?? r?.[6] ?? false),
-  } : undefined;
-  const shorten = (a: string) => `${a.slice(0,8)}…${a.slice(-6)}`;
+  const samples = useMemo(codeSamples, []);
+  const concurrency = record
+    ? record.maxConcurrentCalls === 0
+      ? `${DEFAULT_MAX_CONCURRENT} (default)`
+      : String(record.maxConcurrentCalls)
+    : "";
+
+  const slashAmount = record ? (record.stake * BigInt(record.slashBps)) / 10_000n : 0n;
+
+  const updated = useMemo(() => {
+    if (!dataUpdatedAt) return null;
+    const secs = Math.max(0, Math.round((Date.now() - dataUpdatedAt) / 1000));
+    return secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
+  }, [dataUpdatedAt]);
 
   return (
-    <div style={s.page}>
-      <h1 style={s.h1}>Providers</h1>
-      <p style={s.sub}>Browse and inspect registered service providers on Arc Testnet.</p>
+    <div className="ov-page pv-root">
+      <PageHeader
+        eyebrow="Discover"
+        title="Providers"
+        subtitle="Read a provider's registry record by id, then follow the setup guide or copy an integration snippet."
+        actions={
+          <Button variant="secondary" size="sm" onClick={() => setPanel("marketplace")}>
+            Browse all providers
+          </Button>
+        }
+      />
 
-      {/* Lookup */}
-      <div style={s.section}>
-        <div style={s.sectionTitle}>PROVIDER LOOKUP</div>
-        <div style={{ display:"flex",gap:8,marginBottom:12 }}>
-          <input style={{ ...s.input,width:80,margin:0 }} type="number" min={1} value={lookupId} onChange={e => setLookupId(e.target.value)} placeholder="ID" />
-          <span style={{ fontSize:12,color:"var(--text-dim)",alignSelf:"center" }}>Enter provider ID to inspect</span>
+      <SectionCard
+        title="Look up a provider"
+        subtitle="Values come from ServiceRegistry.getProvider on Arc Testnet. The registry stores no endpoint, so this page cannot show or ping one."
+      >
+        <div className="pv-lookup">
+          <Field
+            label="Provider id"
+            htmlFor="pv-id"
+            error={trimmed !== "" && !idValid ? "Enter a positive whole number." : undefined}
+            hint="Ids start at 1 and increase."
+          >
+            <Input
+              id="pv-id"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={rawId}
+              mono
+              error={trimmed !== "" && !idValid}
+              aria-invalid={trimmed !== "" && !idValid ? true : undefined}
+              aria-describedby={trimmed !== "" && !idValid ? "pv-id-err" : "pv-id-hint"}
+              onChange={e => setRawId(e.target.value)}
+            />
+          </Field>
+          <Button size="sm" onClick={() => refetch()} disabled={!idValid || isFetching}>
+            {isFetching ? "Reading…" : "Read record"}
+          </Button>
+          {record && idValid && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                sessionStorage.setItem("provprofile_id", String(idNum));
+                setPanel("provprofile");
+              }}
+            >
+              Open provider details
+            </Button>
+          )}
         </div>
-        {p ? (
-          <div style={s.card}>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
-              <span style={{ fontSize:14,fontWeight:600,color:"var(--text)" }}>Provider #{lookupId}</span>
-              <span style={s.badge(p.active)}>{p.active ? "ACTIVE" : "INACTIVE"}</span>
-            </div>
-            {[
-              ["Signer", shorten(p.signer)],
-              ["Price / call", `${formatUnits(p.pricePerCall, 6)} USDC`],
-              ["Max response", `${p.maxResponseTime}s`],
-              ["Slash BPS", `${p.slashBps} (${p.slashBps/100}%)`],
-              ["Stake", `${formatUnits(p.stakeAmount, 6)} USDC`],
-            ].map(([k,v]) => (
-              <div key={k} style={s.row}>
-                <span style={s.label}>{k}</span>
-                <span style={s.val}>{String(v)}</span>
+
+        <div className="pv-status" role="status" aria-live="polite">
+          {!idValid
+            ? trimmed === "" ? "Enter an id to read its record." : "No record was requested."
+            : isLoading ? `Reading provider #${idNum}…`
+            : isError ? `Provider #${idNum} could not be read.`
+            : !isFetched ? "Not read yet."
+            : record ? `Provider #${idNum} record read from the registry.`
+            : `No provider is registered under #${idNum}.`}
+          {record && idValid && updated && <span className="pv-status-meta"> · updated {updated}</span>}
+        </div>
+
+        {!idValid ? (
+          <p className="pv-idle">Enter a provider id above to read the on-chain record.</p>
+        ) : isLoading ? (
+          <div className="pv-facts" aria-busy="true">
+            {[...Array(6)].map((_, i) => (
+              <div className="pv-fact" key={i}>
+                <Skeleton width="38%" height={11} />
+                <Skeleton width="62%" height={14} />
               </div>
             ))}
-            {/* Uptime check */}
-            <div style={{ marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                {uptimeStatus === "online" && <><Wifi size={12} color="var(--accent)" /><span style={{ fontSize:11,color: "var(--accent-ink)",fontWeight:600 }}>Online{uptimeLatency ? ` · ${uptimeLatency}ms` : ""}</span></>}
-                {uptimeStatus === "offline" && <><WifiOff size={12} color="var(--danger)" /><span style={{ fontSize:11,color:"var(--danger)",fontWeight:600 }}>Offline{uptimeDetail ? ` — ${uptimeDetail.slice(0,30)}` : ""}</span></>}
-                {uptimeStatus === "checking" && <><RefreshCw size={12} color="var(--text-dim)" style={{ animation:"spin 1s linear infinite" }} /><span style={{ fontSize:11,color:"var(--text-dim)" }}>Checking…</span></>}
-                {uptimeStatus === "idle" && <span style={{ fontSize:11,color:"var(--text-faint)" }}>Not checked yet</span>}
-              </div>
-              <button onClick={handleUptimeCheck} disabled={uptimeStatus==="checking"} style={{ ...s.btn("secondary"),padding:"3px 8px",fontSize:11,opacity:uptimeStatus==="checking"?0.5:1 }}>
-                Ping endpoint
-              </button>
-            </div>
-
-            <div style={{ marginTop:8 }}>
-              <a href={`${ARCSCAN}/address/${p.signer}`} target="_blank" rel="noreferrer" style={s.link}>
-                View on ArcScan <ExternalLink size={10} />
-              </a>
-            </div>
           </div>
-        ) : provError ? (
+        ) : isError ? (
           <ErrorState
-            title={`Provider #${lookupId} not found.`}
-            action={<Button variant="secondary" size="sm" onClick={() => refetchProv()}>Retry</Button>}
+            title="The registry call failed."
+            description="A failed read is not a missing provider. Check the network and retry the request."
+            detail={error instanceof Error ? error.message : undefined}
+            action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+          />
+        ) : !record ? (
+          <EmptyState
+            icon={<span aria-hidden="true">◎</span>}
+            title={`No provider is registered under #${idNum}`}
+            description="The registry returned an empty record for this id. Ids are assigned in order, so a gap means the id was never registered."
+            action={<Button size="sm" onClick={() => setPanel("register")}>Register a provider</Button>}
           />
         ) : (
-          <div style={{ color:"var(--text-faint)",fontSize:12 }}>
-            {provLoading ? `Loading provider #${lookupId}…` : "Enter a provider ID to inspect its on-chain record."}
-          </div>
-        )}
-      </div>
-
-      {/* Setup Guide */}
-      <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:12,overflow:"hidden" }}>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={setupOpen}
-          style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }}
-          onClick={() => setSetupOpen(o => !o)}
-          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSetupOpen(o => !o); } }}
-        >
-          <div style={{ fontSize:13,fontWeight:600,color:"var(--text)" }}>Provider Setup Guide</div>
-          {setupOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
-        </div>
-        {setupOpen && (
-          <div style={{ padding:"0 16px 16px",background:"var(--bg-1)",borderTop:"1px solid var(--border)" }}>
-            {SETUP_STEPS.map(step => (
-              <div key={step.n} style={{ display:"flex",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)" }}>
-                <div style={{ width:24,height:24,borderRadius:"50%",background:"rgba(25,209,134,0.15)",border:"1px solid rgba(25,209,134,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color: "var(--accent-ink)",fontSize:11,fontWeight:700 }}>{step.n}</div>
-                <div>
-                  <div style={{ fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:3 }}>{step.title}</div>
-                  <div style={{ fontSize:12,color:"var(--text-dim)",marginBottom:step.action?6:0 }}>{step.body}</div>
-                  {step.action && step.href && <a href={step.href} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)",fontSize:12,textDecoration:"none" }}>{step.action}</a>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* SDK Quick Integration */}
-      <div style={{ background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:12,overflow:"hidden" }}>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={sdkOpen}
-          style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",cursor:"pointer",userSelect:"none" as const }}
-          onClick={() => setSdkOpen(o => !o)}
-          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSdkOpen(o => !o); } }}
-        >
-          <div style={{ fontSize:13,fontWeight:600,color:"var(--text)" }}>SDK — Quick Integration</div>
-          {sdkOpen ? <ChevronUp size={14} color="var(--text-faint)" /> : <ChevronDown size={14} color="var(--text-faint)" />}
-        </div>
-        {sdkOpen && (
-          <div style={{ padding:"16px",background:"var(--bg-1)",borderTop:"1px solid var(--border)" }}>
-            <p style={{ fontSize:12,color:"var(--text-dim)",marginBottom:12 }}>
-              Integrate CallGuard into any app or AI agent. Pick your language and replace the provider ID and payload.
+          <>
+            <Table className="pv-table">
+              <thead>
+                <tr>
+                  <Th scope="col">Field</Th>
+                  <Th scope="col">Value</Th>
+                  <Th scope="col">Source</Th>
+                </tr>
+              </thead>
+              <tbody>
+                <Tr>
+                  <Td>Owner</Td>
+                  <Td><AddressPill value={record.owner} href={CONFIG.explorerAddr(record.owner)} /></Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Receipt signer</Td>
+                  <Td><AddressPill value={record.signer} href={CONFIG.explorerAddr(record.signer)} /></Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Status</Td>
+                  <Td>
+                    <Badge tone={record.active ? "guard" : "neutral"}>
+                      {record.active ? "Active" : "Inactive"}
+                    </Badge>
+                    {!record.active && <span className="pv-hint"> cannot take new calls</span>}
+                  </Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Price / call</Td>
+                  <Td mono>{usdcExact(record.pricePerCall) ?? "—"} USDC</Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Response window</Td>
+                  <Td mono>{record.maxResponseTime}s<span className="pv-hint"> + 5s submit grace</span></Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Slash on a missed deadline</Td>
+                  <Td mono>
+                    {(record.slashBps / 100).toFixed(2)}% of stake
+                    <span className="pv-hint"> · {usdcCompact(slashAmount) ?? "—"} USDC per slashed call</span>
+                  </Td>
+                  <Td className="pv-src">registry + computed</Td>
+                </Tr>
+                <Tr>
+                  <Td>Stake</Td>
+                  <Td mono>{usdcCompact(record.stake) ?? "—"} USDC</Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Concurrent calls per caller</Td>
+                  <Td mono>{concurrency}</Td>
+                  <Td className="pv-src">registry + PayPerCall constant</Td>
+                </Tr>
+                <Tr>
+                  <Td>zkML tier</Td>
+                  <Td mono>{record.zkTier === 0 ? "0 · no attestation" : `${record.zkTier} · doubles the concurrent cap at tier 2+`}</Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+              </tbody>
+            </Table>
+            <p className="pv-note">
+              Completed and slashed call counts are indexed by the subgraph, not stored in this
+              record.{" "}
+              <button
+                type="button"
+                className="pv-inline-link"
+                onClick={() => {
+                  sessionStorage.setItem("provprofile_id", String(idNum));
+                  setPanel("provprofile");
+                }}
+              >
+                Provider details
+              </button>{" "}
+              shows them together with the computed score.
             </p>
-            <div style={{ display:"flex",gap:6,marginBottom:12,flexWrap:"wrap" as const }}>
-              {Object.keys(CODE_EXAMPLES).map(tab => (
-                <button key={tab} style={s.tab(codeTab===tab)} onClick={() => setCodeTab(tab)}>{tab}</button>
-              ))}
-            </div>
-            <div style={{ position:"relative" as const }}>
-              <pre style={s.code}>{CODE_EXAMPLES[codeTab]}</pre>
-              <button style={{ position:"absolute" as const,top:8,right:8,...s.btn("secondary"),padding:"4px 8px",fontSize:11 }} onClick={copyCode}>
-                {copied ? <><Check size={10} />Copied</> : <><Copy size={10} />Copy</>}
-              </button>
-            </div>
-          </div>
+          </>
         )}
-      </div>
+      </SectionCard>
+
+      <SectionCard title="Provider setup" subtitle="Four steps from an empty wallet to a provider answering calls.">
+        <details className="pv-disc">
+          <summary>Show the setup steps</summary>
+          <ol className="pv-steps">
+            {SETUP_STEPS.map(step => (
+              <li key={step.n} className="pv-step">
+                <span className="pv-step-n" aria-hidden="true">{step.n}</span>
+                <div>
+                  <div className="pv-step-title">{step.title}</div>
+                  <p className="pv-step-body">{step.body}</p>
+                  {step.href && (
+                    <a className="pv-step-link" href={step.href} target="_blank" rel="noreferrer">
+                      {step.action} ↗
+                    </a>
+                  )}
+                  {step.panel && (
+                    <Button size="sm" variant="secondary" onClick={() => setPanel(step.panel as "register")}>
+                      {step.action}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </details>
+      </SectionCard>
+
+      <SectionCard
+        title="Integration snippets"
+        subtitle="Every call escrows the provider's price in USDC and returns a bytes32 callId."
+        action={<Copy value={samples[codeTab]} label="Copy the current snippet" />}
+      >
+        <Tabs
+          className="pv-tabs"
+          value={codeTab}
+          onChange={setCodeTab}
+          tabs={Object.keys(samples).map(k => ({ id: k, label: k }))}
+        />
+        {/* A long snippet scrolls horizontally; the region must be reachable
+            by keyboard so the overflow is scrollable without a mouse. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+        <pre className="pv-code" tabIndex={0} aria-label="Integration snippet">{samples[codeTab]}</pre>
+      </SectionCard>
     </div>
   );
 }
