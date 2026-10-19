@@ -586,7 +586,7 @@
 /* SLA canvas (isometric lifecycle board) */
 .sla-canvas { position: relative; padding: 8px 4px 0; }
 .sla-canvas svg { display: block; width: 100%; height: auto; max-height: 190px; }
-.sla-canvas__labels { position: relative; height: 34px; margin-top: 8px; }
+.sla-canvas__labels { position: relative; height: 34px; margin-top: 8px; overflow: hidden; }
 .sla-canvas__label {
   position: absolute; top: 0; transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 2px; text-align: center; width: 112px;
@@ -601,17 +601,41 @@
 @keyframes sla-pulse { 0%, 100% { opacity: .05; } 50% { opacity: .28; } }
 @media (prefers-reduced-motion: reduce) {
   .sla-canvas * { animation: none !important; }
+  .sla-canvas__stage { transition: none !important; }
 }
 
 /* Interactive board: plates are the controls, labels are their pointer twins. */
 .sla-canvas__board { position: relative; }
+/* One stage holds the SVG and the label layer, so a zoom keeps every label on
+   its plate. Overflow is clipped: the frame stays the frame. */
+.sla-canvas__stage { transform-origin: center center; transition: transform var(--motion-fast); }
+.sla-canvas__board { overflow: hidden; }
+.sla-canvas__board.is-zoomed { cursor: grab; touch-action: none; }
+.sla-canvas__board.is-zoomed:active { cursor: grabbing; }
+.sla-canvas__board:focus-visible { outline: none; }
+.sla-canvas svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sla-canvas__tools { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-bottom: 4px; }
+.sla-tool {
+  min-width: 26px; height: 24px; padding: 0 8px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px); background: var(--surface-1); color: var(--text-dim);
+  font: inherit; font-size: 12px; cursor: pointer;
+  transition: border-color var(--motion-fast), color var(--motion-fast);
+}
+.sla-tool:hover:not([aria-disabled="true"]) { border-color: var(--border-hi); color: var(--text); }
+.sla-tool[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.sla-tool--wide { min-width: 42px; }
+.sla-canvas__zoom { font-size: 11px; color: var(--text-dim); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  /* The board is replaced by the stack list here, so the view controls are moot. */
+  .sla-canvas__tools { display: none; }
+}
 .sla-plate--pick { cursor: pointer; }
 .sla-plate--pick:focus-visible { outline: none; }
 /* Plate edge doubles as the selected / focused indicator: a state-coloured
    1px edge by default, a heavier bright edge when picked or focused. */
 .sla-plate__outline {
   stroke: var(--border-hi); stroke-width: 1; stroke-linejoin: round;
-  transition: stroke var(--motion-fast) var(--ease-out), stroke-width var(--motion-fast) var(--ease-out);
+  transition: stroke var(--motion-fast), stroke-width var(--motion-fast);
 }
 .sla-plate--done .sla-plate__outline { stroke: var(--accent); }
 .sla-plate--active .sla-plate__outline { stroke: var(--accent-2); }
@@ -620,7 +644,7 @@
 .sla-plate--pick:hover .sla-plate__outline { stroke: var(--text-dim); stroke-width: 1.75; }
 .sla-plate__outline.is-selected { stroke: var(--text); stroke-width: 2.5; }
 .sla-plate--pick:focus-visible .sla-plate__outline { stroke: var(--text); stroke-width: 2.5; stroke-dasharray: 3 2; }
-.sla-rail { transition: stroke-width var(--motion-fast) var(--ease-out); }
+.sla-rail { transition: stroke-width var(--motion-fast); }
 .sla-rail.is-near { stroke-width: 2.5; }
 
 .sla-canvas__label--btn {
@@ -642,10 +666,13 @@
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--surface-1); color: inherit; font: inherit; cursor: pointer;
-  transition: border-color var(--motion-fast) var(--ease-out);
+  transition: border-color var(--motion-fast);
 }
 .sla-canvas__stack-btn:hover { border-color: var(--border-hi); }
 .sla-canvas__stack-btn.is-selected { border-color: var(--accent); }
+/* Static board: the card is not a control, so it must not offer a pointer. */
+.sla-canvas__stack-btn--static { cursor: default; }
+.sla-canvas__stack-btn--static:hover { border-color: var(--line); }
 .sla-canvas__stack-idx {
   flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
   display: grid; place-items: center; font-size: 11px; font-weight: 600;
@@ -681,6 +708,7 @@
 }
 /* The in-app motion switch, not just the OS one. */
 [data-motion="reduced"] .sla-canvas * { animation: none !important; }
+[data-motion="reduced"] .sla-canvas__stage { transition: none !important; }
 [data-motion="reduced"] .sla-canvas__stack-btn,
 [data-motion="reduced"] .sla-plate__outline,
 [data-motion="reduced"] .sla-rail { transition: none !important; }
@@ -704,7 +732,7 @@
 .sub-meta { font-size: 12px; color: var(--text-dim); }
 .sub-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 14px; }
 .sub-row__title { font-weight: 600; font-size: 14px; color: var(--text); }
-.sub-total { font-size: 13px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+.sub-total { font-size: 13px; font-weight: 700; color: var(--accent-ink); font-family: var(--font-mono); }
 
 /* ── Passkey Wallet panel ── */
 .pk-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--warn); display: grid; gap: 4px; margin-bottom: 14px; }

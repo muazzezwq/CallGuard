@@ -4,13 +4,21 @@
    plate (and its label) becomes a keyboard-operable control, backed by a
    stacked stage list that also serves as the accessible reading order. */
 
+import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 
 export type SlaStageState = "done" | "active" | "pending" | "failed" | "info";
 export type SlaStage = { key: string; label: string; sub?: string; state: SlaStageState };
 
-/* Maps a subgraph call status to the four lifecycle stages. */
-export function slaStages(status?: string, opts?: { amount?: string; respondedMs?: number | null }): SlaStage[] {
+/* Maps a subgraph call status to the four lifecycle stages.
+   There is no "timed out" variant: the subgraph sets `completedAt` on every
+   `CallSlashed` (subgraph/src/mapping.ts), so a slash without a settlement
+   timestamp cannot be observed from the indexed fields — inventing the
+   distinction would be a claim the data does not support. */
+export function slaStages(
+  status?: string,
+  opts?: { amount?: string; respondedMs?: number | null },
+): SlaStage[] {
   const s = String(status ?? "").toUpperCase();
   const open: SlaStageState = "pending";
   const base: SlaStage[] = [
@@ -141,6 +149,103 @@ export function SLACanvas({ stages, selected, onSelect }: {
   const interactive = typeof onSelect === "function";
   const selIndex = selected ? stages.findIndex((s) => s.key === selected) : -1;
   const selStage = selIndex >= 0 ? stages[selIndex] : null;
+  /* The plate is the control that owns the keyboard; the label below it is only
+     its pointer twin (aria-hidden, out of the tab order), so a pointer press
+     there hands focus to the plate instead of leaving it on the body. */
+  const plateRefs = useRef<(SVGGElement | null)[]>([]);
+
+  /* Zoom and pan: the SVG scales, the label row does not. Labels are re-anchored
+     to the scaled plate positions (see `labelLeft`), so a zoomed plate keeps its
+     label at a constant, readable size instead of scaling text out of the frame.
+     Pan is stored as a fraction of the transformed element's own box, which is
+     what a percentage translate measures — no pixel measurement needed to paint
+     it. The fraction is taken from `offsetWidth`/`offsetHeight` (layout box)
+     because `getBoundingClientRect()` of a scaled element reports the scaled
+     size, which would make a drag move slower than the pointer. */
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const dragRef = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const zoomSteps = [1, 1.25, 1.6, 2, 2.5];
+  const [view, setView] = useState({ s: 1, x: 0, y: 0 });
+  const zoomIndex = zoomSteps.indexOf(view.s);
+  /* The board is drawn to fit the box, so the drawn board is narrower than the
+     box whenever the height cap applies. Labels are anchored through the same
+     fit ("meet" scaling about the box centre) or they would drift from their
+     plate. */
+  const [fitBox, setFitBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (r) setFitBox({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Scaling about the centre means the furthest useful pan is half the growth,
+     so the stage can never be dragged clear of the frame. */
+  const clampPan = (x: number, y: number, s: number) => {
+    const max = Math.max(0, (s - 1) / 2);
+    return { x: Math.max(-max, Math.min(max, x)), y: Math.max(-max, Math.min(max, y)) };
+  };
+  /* Where a plate sits across the board at rest, through the same fit the SVG
+     uses. One source for both the label anchor and the zoom target. */
+  const atRest = (c: { x: number }) => {
+    const k = fitBox.w && fitBox.h ? Math.min(fitBox.w / vw, fitBox.h / vh) : 0;
+    if (!fitBox.w || !k) return 0.5;
+    const offsetX = (fitBox.w - vw * k) / 2;
+    return (offsetX + (c.x - (minX - padX)) * k) / fitBox.w;
+  };
+  const zoomTo = (index: number) => {
+    const s = zoomSteps[Math.max(0, Math.min(zoomSteps.length - 1, index))];
+    setView(() => {
+      /* Zoom towards the stage in hand: the selected plate is what the reader
+         is inspecting, so it is what should stay in frame. Without one, the
+         board's centre. */
+      const anchor = selIndex >= 0 ? atRest(iso(selIndex * gap, 0, thickness)) : 0.5;
+      const x = -(anchor - 0.5) * s;
+      return { s, ...clampPan(x, 0, s) };
+    });
+  };
+  const resetView = () => {
+    /* Focus stays where it is: the reader activated a control in the tool group,
+       so the keyboard is already in the tool group and never lands nowhere. */
+    setView({ s: 1, x: 0, y: 0 });
+  };
+  const onStagePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (view.s <= 1) return;
+    dragRef.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: view.x, oy: view.y, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onStagePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+    d.moved = true;
+    const box = stageRef.current;
+    const fx = box?.offsetWidth ? dx / box.offsetWidth : 0;
+    const fy = box?.offsetHeight ? dy / box.offsetHeight : 0;
+    setView((v) => ({ ...v, ...clampPan(d.ox + fx, d.oy + fy, v.s) }));
+  };
+  const endDrag = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (dragRef.current?.id === e.pointerId) dragRef.current = null;
+  };
+  /* The same pan, from the keyboard, while the board has focus (the tab stop
+     only exists while zoomed, so the default view gains no extra tab stop). */
+  const onStageKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    if (view.s <= 1) return;
+    const step = 0.04;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step],
+    };
+    const move = moves[e.key];
+    if (!move) return;
+    e.preventDefault();
+    setView((v) => ({ ...v, ...clampPan(v.x + move[0], v.y + move[1], v.s) }));
+  };
 
   /* Board space → viewBox. Board runs along +x; y is a fixed depth offset. */
   const corners = stages.flatMap((_, i) => {
@@ -158,16 +263,80 @@ export function SLACanvas({ stages, selected, onSelect }: {
   const pick = (key: string) => onSelect?.(key);
   const stageTitle = (st: SlaStage) => `${st.label} — ${STATE_WORD[st.state]}${st.sub ? `. ${st.sub}` : ""}`;
 
+  /* Labels are anchored to their plate's position *after* the zoom transform, so
+     they track the board instead of scaling with it. At rest the position is
+     clamped inward (an edge label would otherwise hang outside the card); while
+     zoomed the position is exact, and a plate that is off-frame takes its label
+     with it. */
+  const labelLeft = (c: { x: number }) => {
+    const t = 0.5 + (atRest(c) - 0.5) * view.s + view.x;
+    return view.s === 1 ? `clamp(56px, ${t * 100}%, calc(100% - 56px))` : `${t * 100}%`;
+  };
+
   return (
     <div className="sla-canvas">
-      <div className="sla-canvas__board">
+      {/* View controls. At a limit the control reports itself unavailable with
+          `aria-disabled` instead of `disabled`: a control that becomes disabled
+          while it holds focus throws focus to the body, so a keyboard reader
+          would lose their place at the exact moment the limit is reached. The
+          handler is a no-op in that state, and the limit is visible in words. */}
+      <div className="sla-canvas__tools" role="group" aria-label="Board view">
+        <button
+          type="button"
+          className="sla-tool"
+          aria-label="Zoom out"
+          title="Zoom out"
+          aria-disabled={zoomIndex <= 0}
+          onClick={() => zoomTo(zoomIndex - 1)}
+        >
+          −
+        </button>
+        <span className="sla-canvas__zoom" role="status" aria-live="polite">{Math.round(view.s * 100)}%</span>
+        <button
+          type="button"
+          className="sla-tool"
+          aria-label="Zoom in"
+          title="Zoom in"
+          aria-disabled={zoomIndex >= zoomSteps.length - 1}
+          onClick={() => zoomTo(zoomIndex + 1)}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="sla-tool sla-tool--wide"
+          aria-label="Reset view"
+          title="Reset view"
+          aria-disabled={view.s === 1 && view.x === 0 && view.y === 0}
+          onClick={resetView}
+        >
+          Fit
+        </button>
+      </div>
+      <div
+        className={clsx("sla-canvas__board", view.s > 1 && "is-zoomed")}
+      >
+        <div
+          className="sla-canvas__stage"
+          ref={stageRef}
+          style={{ transform: `translate(${view.x * 100}%, ${view.y * 100}%) scale(${view.s})` }}
+        >
         {/* `role="img"` is a leaf: assistive tech ignores everything inside it,
             so an interactive board would expose no stage at all. When the
-            plates are controls the board is a labelled group instead. */}
+            plates are controls the board is a labelled group instead.
+            While zoomed the board itself becomes the tab stop for arrow-key
+            panning (no extra tab stop in the default view). */}
         <svg
+          ref={svgRef}
           viewBox={`${minX - padX} ${minY - padY} ${vw} ${vh}`}
           role={interactive ? "group" : "img"}
-          aria-label="SLA lifecycle"
+          aria-label={view.s > 1 ? "SLA lifecycle. Use the arrow keys to pan the board." : "SLA lifecycle"}
+          tabIndex={view.s > 1 ? 0 : -1}
+          onPointerDown={onStagePointerDown}
+          onPointerMove={onStagePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onKeyDown={onStageKeyDown}
         >
           {/* rail between plates */}
           {stages.slice(0, -1).map((st, i) => {
@@ -189,6 +358,7 @@ export function SLACanvas({ stages, selected, onSelect }: {
           {stages.map((st, i) => (
             <g
               key={st.key}
+              ref={(el) => { plateRefs.current[i] = el; }}
               className={clsx(
                 "sla-plate",
                 `sla-plate--${st.state}`,
@@ -218,18 +388,20 @@ export function SLACanvas({ stages, selected, onSelect }: {
             </g>
           ))}
         </svg>
+        </div>
 
-        {/* Labels are positioned on the same isometric axis as their plate. */}
+        {/* Labels sit outside the scaled stage: they follow the plates (see
+            `labelLeft`) but keep their own size, so text stays readable at any
+            zoom. Off-frame labels are clipped with their plate. */}
         <div className="sla-canvas__labels">
           {stages.map((st, i) => {
             const c = iso(i * gap, 0, thickness);
-            const left = ((c.x - (minX - padX)) / vw) * 100;
             return interactive ? (
               <button
                 key={st.key}
                 type="button"
                 className={clsx("sla-canvas__label", "sla-canvas__label--btn", selIndex === i && "is-selected")}
-                style={{ left: `clamp(56px, ${left}%, calc(100% - 56px))` }}
+                style={{ left: labelLeft(c) }}
                 aria-pressed={selIndex === i}
                 aria-label={stageTitle(st)}
                 /* The plate above is the accessible control; this is the
@@ -239,12 +411,17 @@ export function SLACanvas({ stages, selected, onSelect }: {
                 /* A pointer press must not move focus into this aria-hidden
                    node (the plate owns keyboard focus), hence the mousedown. */
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(st.key)}
+                onClick={() => {
+                  pick(st.key);
+                  /* …and because the press still changes the selection, focus
+                     follows it to the plate that represents this stage. */
+                  plateRefs.current[i]?.focus();
+                }}
               >
                 <LabelBody stage={st} />
               </button>
             ) : (
-              <div key={st.key} className="sla-canvas__label" style={{ left: `clamp(56px, ${left}%, calc(100% - 56px))` }}>
+              <div key={st.key} className="sla-canvas__label" style={{ left: labelLeft(c) }}>
                 <LabelBody stage={st} />
               </div>
             );
@@ -256,24 +433,38 @@ export function SLACanvas({ stages, selected, onSelect }: {
           board's replacement on narrow screens (the isometric labels collide
           well before the phone breakpoint). */}
       <ol className="sla-canvas__stack">
-        {stages.map((st, i) => (
-          <li key={st.key}>
-            <button
-              type="button"
-              className={clsx("sla-canvas__stack-btn", selIndex === i && "is-selected")}
-              onClick={interactive ? () => pick(st.key) : undefined}
-              aria-pressed={interactive ? selIndex === i : undefined}
-              aria-label={interactive ? stageTitle(st) : undefined}
-            >
+        {stages.map((st, i) => {
+          const body = (
+            <>
               <span className="sla-canvas__stack-idx" aria-hidden="true">{i + 1}</span>
               <span className="sla-canvas__stack-body">
                 <span className={`sla-canvas__name sla-canvas__name--${st.state}`}>{st.label}</span>
                 <span className="sla-canvas__sub">{st.sub ?? "—"}</span>
               </span>
               <span className={`sla-canvas__state sla-canvas__state--${st.state}`}>{STATE_WORD[st.state]}</span>
-            </button>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={st.key}>
+              {/* Only the interactive call gets a control. A props-less board is a
+                  picture of the stages, so it must not ship a button that nothing
+                  listens to — the static entry is the same card without the role. */}
+              {interactive ? (
+                <button
+                  type="button"
+                  className={clsx("sla-canvas__stack-btn", selIndex === i && "is-selected")}
+                  onClick={() => pick(st.key)}
+                  aria-pressed={selIndex === i}
+                  aria-label={stageTitle(st)}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div className={clsx("sla-canvas__stack-btn", "sla-canvas__stack-btn--static")}>{body}</div>
+              )}
+            </li>
+          );
+        })}
       </ol>
 
       {/* Selection is announced through a live region. It must already be in
