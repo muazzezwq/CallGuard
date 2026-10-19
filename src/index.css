@@ -18,7 +18,9 @@
   --text-hi: #FDFEFF;
   --text-dim: #8A9FB2;
   --text-mid: #8A9FB2;
-  --text-faint: #4D5F76;
+  /* --text-faint must clear 4.5:1 as text. #4D5F76 measured 2.30:1 on --bg-2,
+     2.81:1 on --bg-1 and 3.00:1 on --bg-0; #7C90A9 gives 4.60/5.61/5.99. */
+  --text-faint: #7C90A9;
   /* --text-low carries small topbar labels; #72849A keeps them at AA (4.8:1) on --bg-1 */
   --text-low: #72849A;
 
@@ -37,13 +39,17 @@
   --accent-2-bg: rgba(34,211,238,0.10);
 
   /* Semantic — red is slash, amber is pending */
-  --danger: #EE4539;
+  /* Semantic inks clear 4.5:1 on their own tinted backgrounds: #EF4E43 measured
+     4.30:1/#EE4539 on --bg-2, #3E8AF1 measured 3.66:1/#1F77EF on --bg-2. */
+  --danger: #EF4E43;
   --danger-bg: rgba(238,69,57,0.10);
-  --slash: #EE4539;
+  --on-danger: #06110D; /* text on a --danger fill: white on #EE4539 is 3.79:1 */
+  --slash: #EF4E43;
   --warn: #F0B90B;
   --warn-bg: rgba(240,185,11,0.10);
-  --pending: #1F77EF;
-  --info: #1F77EF;
+  --on-warn: #06110D;
+  --pending: #3E8AF1;
+  --info: #3E8AF1;
   --info-bg: rgba(31,119,239,0.10);
 
   --focus: #19D186;
