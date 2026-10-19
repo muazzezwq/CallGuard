@@ -594,7 +594,7 @@ export default function Marketplace() {
         <div className="mp-footer">
           <span>
             {filtered.length === providers.length
-              ? `${providers.length} providers`
+              ? `${providers.length} ${providers.length === 1 ? "provider" : "providers"}`
               : `${filtered.length} of ${providers.length} providers`}
           </span>
           <span className="mp-sep" aria-hidden="true">·</span>
