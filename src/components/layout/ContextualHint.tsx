@@ -108,7 +108,7 @@ export default function ContextualHint({ panel }: { panel: string }) {
           padding: "4px 10px",
           fontSize: 11,
           fontWeight: 600,
-          color: "var(--accent)",
+          color: "var(--accent-ink)",
           cursor: "pointer",
           width: "100%",
         }}

@@ -208,7 +208,7 @@ export default function Analytics() {
           <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
             <div style={s.sectionTitle}>Call Activity (last {data.recentCalls.length})</div>
             <div style={{ display:"flex",gap:12,fontSize:11 }}>
-              <span style={{ color:"var(--accent)" }}>● Completed</span>
+              <span style={{ color: "var(--accent-ink)" }}>● Completed</span>
               <span style={{ color:"var(--danger)" }}>● Slashed</span>
             </div>
           </div>

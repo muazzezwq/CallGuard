@@ -3,7 +3,7 @@ import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits, parseUnits } from "viem";
 import { useState } from "react";
 import { CONFIG, USDC_ABI, PPC_ABI, arcTestnet } from "../../lib/config";
-import { errText } from "../../lib/utils";
+import { friendlyError } from "../../lib/utils";
 
 type PayCall = { id: string; providerId?: string | number; amount?: string; completedAt?: string };
 
@@ -56,7 +56,7 @@ export default function Payments() {
       });
       setStatus("Claimed!");
       void refetchClaimable();
-    } catch(e:unknown){ setStatus(errText(e) || "Transaction failed"); }
+    } catch(e:unknown){ setStatus(friendlyError(e) || "Transaction failed"); }
   };
 
   const handleSend = async () => {
@@ -75,7 +75,7 @@ export default function Payments() {
       });
       setStatus("Sent!");
       setSendTo(""); setSendAmt("");
-    } catch(e:unknown){ setStatus(errText(e) || "Transaction failed"); }
+    } catch(e:unknown){ setStatus(friendlyError(e) || "Transaction failed"); }
   };
 
   const balance = balanceData ? formatUnits(balanceData as bigint, 6) : "—";
@@ -93,8 +93,8 @@ export default function Payments() {
       {/* CRITICAL-06: Provider claimable settlement */}
       {hasClaimable && (
         <div className="cg-card mb-4" style={{border:"1px solid rgba(25,209,134,0.3)",background:"rgba(25,209,134,0.05)"}}>
-          <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Claimable Settlement</div>
-          <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{claimableAmt} USDC</strong> from completed calls ready to claim.</p>
+          <div className="card-title mb-2" style={{color: "var(--accent-ink)"}}>⬇ Claimable Settlement</div>
+          <p className="text-dim text-xs mb-3">You have <strong style={{color: "var(--accent-ink)"}}>{claimableAmt} USDC</strong> from completed calls ready to claim.</p>
           <button className="btn btn-primary" onClick={handleClaim}>Claim {claimableAmt} USDC →</button>
         </div>
       )}
@@ -109,7 +109,7 @@ export default function Payments() {
           <label className="form-label" htmlFor="pay-amount">Amount (USDC)</label>
           <input id="pay-amount" className="cg-input" type="number" placeholder="1.00" value={sendAmt} onChange={e=>setSendAmt(e.target.value)}/>
         </div>
-        {status && <p className="text-sm mb-2" style={{color:status==="Sent!"?"var(--accent)":"var(--danger)"}}>{status}</p>}
+        {status && <p className="text-sm mb-2" style={{color:status==="Sent!"? "var(--accent-ink)":"var(--danger)"}}>{status}</p>}
         <button className="btn btn-primary" onClick={handleSend} disabled={!sendTo||!sendAmt}>Send →</button>
       </div>
 

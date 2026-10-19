@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { stringToBytes, keccak256 } from 'viem'
 import { CONFIG, PPC_ABI } from '../../lib/config'
-import { errText } from '../../lib/utils'
+import { friendlyError } from '../../lib/utils'
 
 const ADDR = CONFIG.ppcAddress as `0x${string}`
 const S = {
@@ -53,7 +53,7 @@ export default function BulkCall() {
         const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: "callService", args: [BigInt(r.provider_id), requestHash] });
         setResults(prev => [...prev, { i: i + 1, hash }]);
       } catch (_err: unknown) {
-        setResults(prev => [...prev, { i: i + 1, error: errText(_err) }]);
+        setResults(prev => [...prev, { i: i + 1, error: friendlyError(_err) }]);
       }
       await new Promise(res => setTimeout(res, 800));
     }
@@ -77,7 +77,7 @@ export default function BulkCall() {
         })
         setResults(r => [...r, { i: i + 1, hash }])
       } catch (_err: unknown) {
-        setResults(r => [...r, { i: i + 1, error: errText(_err) }])
+        setResults(r => [...r, { i: i + 1, error: friendlyError(_err) }])
       }
       await new Promise(res => setTimeout(res, 1000))
     }
@@ -98,7 +98,7 @@ export default function BulkCall() {
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={S.label}>Number of Calls</div>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>{count}</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-ink)' }}>{count}</span>
           </div>
           <input type="range" min="1" max="20" value={count} aria-label="Number of Calls" onChange={e => setCount(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-faint)', marginTop: '4px' }}><span>1</span><span>20</span></div>
@@ -106,7 +106,7 @@ export default function BulkCall() {
 
         <div style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
           <span style={{ color: 'var(--text-dim)' }}>Estimated cost</span>
-          <span style={{ fontWeight: 700, color: 'var(--accent)' }}>~{estimatedCost} USDC</span>
+          <span style={{ fontWeight: 700, color: 'var(--accent-ink)' }}>~{estimatedCost} USDC</span>
         </div>
 
         <button style={{ ...S.btn, width: '100%', opacity: running || !address ? 0.6 : 1 }} onClick={runBatch} disabled={running || !address}>
@@ -119,10 +119,11 @@ export default function BulkCall() {
         <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 }}>
           Bulk from CSV
         </div>
+        {/* No aria-label here: the accessible name must contain the visible
+            text (WCAG 2.5.3), so it is derived from the contents instead. */}
         <div
           role="button"
           tabIndex={0}
-          aria-label="Select CSV file to upload"
           style={{ border: "2px dashed var(--border)", borderRadius: 14, padding: 24, textAlign: "center" as const, cursor: "pointer" }}
           onClick={() => document.getElementById("bulkCsvInput")?.click()}
           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); document.getElementById("bulkCsvInput")?.click(); } }}
@@ -163,9 +164,9 @@ export default function BulkCall() {
             <div key={r.i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <span style={{ color: 'var(--text-faint)', width: '20px' }}>#{r.i}</span>
               {r.hash ? (
-                <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{r.hash.slice(0, 20)}...</a>
+                <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-ink)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{r.hash.slice(0, 20)}...</a>
               ) : (
-                <span style={{ color: '#EE4539', fontSize: '12px' }}>{r.error}</span>
+                <span style={{ color: 'var(--danger)', fontSize: '12px' }}>{r.error}</span>
               )}
             </div>
           ))}

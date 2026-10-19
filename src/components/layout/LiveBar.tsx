@@ -60,7 +60,7 @@ export default function LiveBar() {
         <div className="live-bar-right" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {honorRate !== null && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
-              Honor <span style={{ color: "var(--accent)", fontWeight: 600 }}>{honorRate}%</span>
+              Honor <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{honorRate}%</span>
             </span>
           )}
           {/* SLA Gauge */}

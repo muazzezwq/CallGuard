@@ -189,7 +189,7 @@
 .sb-item:hover { background: var(--surface-2); color: var(--text); }
 .sb-item.active,
 .sb-item.on {
-  color: var(--accent);
+  color: var(--accent-ink);
   background: var(--nav-active-bg, var(--accent-bg));
   box-shadow: inset 2px 0 0 0 var(--accent);
 }
@@ -273,8 +273,8 @@
 
 /* ══ Footer ═══════════════════════════════════════════════════ */
 .app-footer { border-top: 1px solid var(--line); }
-.app-footer-link:hover { color: var(--accent); }
-.app-footer-contract:hover { border-color: var(--accent); color: var(--accent); }
+.app-footer-link:hover { color: var(--accent-ink); }
+.app-footer-contract:hover { border-color: var(--accent); color: var(--accent-ink); }
 
 /* ══ Responsive ═══════════════════════════════════════════════ */
 /* Tablet — sidebar stays persistent, chrome tightens a little. */
@@ -337,7 +337,7 @@
 .ov-health__row:last-child { border-bottom: 0; }
 .ov-health__name { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
 .ov-health__addr { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
-.ov-health__addr:hover { color: var(--accent); }
+.ov-health__addr:hover { color: var(--accent-ink); }
 
 /* role banner */
 .ov-role { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
@@ -352,7 +352,7 @@
   background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 12px 16px; margin-bottom: 14px; }
 .ov-balance__label { font-size: 12.5px; color: var(--text-dim); }
-.ov-balance__val { font-size: 19px; font-weight: 700; color: var(--accent); font-family: var(--font-display); }
+.ov-balance__val { font-size: 19px; font-weight: 700; color: var(--accent-ink); font-family: var(--font-display); }
 
 .ov-iconbtn { background: transparent; border: 0; color: var(--text-faint); cursor: pointer; padding: 2px; display: inline-flex; }
 .ov-iconbtn:hover { color: var(--text); }
@@ -395,7 +395,7 @@
 .ov-form2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .ov-full { width: 100%; justify-content: center; }
 .ov-note { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--accent-bg);
-  border: 1px solid var(--accent-fg); font-size: 12px; color: var(--accent); }
+  border: 1px solid var(--accent-fg); font-size: 12px; color: var(--accent-ink); }
 .ov-note--muted { background: var(--surface-2); border-color: var(--border); color: var(--text-dim); }
 .ov-stepper-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
 .ov-stepper { display: inline-flex; align-items: center; gap: 10px; }
@@ -406,7 +406,7 @@
 .ov-results { margin-top: 10px; max-height: 120px; overflow-y: auto; }
 .ov-results__row { display: flex; gap: 8px; font-size: 11px; padding: 3px 0; border-bottom: 1px solid var(--border); }
 .ov-results__pid { color: var(--text-faint); width: 42px; }
-.ov-results__row a { color: var(--accent); font-family: var(--font-mono); }
+.ov-results__row a { color: var(--accent-ink); font-family: var(--font-mono); }
 
 .ov-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent-ink); font-weight: 600; }
 
@@ -433,7 +433,7 @@
 .ov-contracts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ov-contract { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
 .ov-contract__name { font-size: 11.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 3px; }
-.ov-contract a { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+.ov-contract a { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--accent-ink); }
 
 /* The live strip marks a running clock, not protocol activity: the dot stays
    steady so it cannot read as arriving data. */

@@ -9,7 +9,7 @@ const S = {
   label: { fontSize: '14px', fontWeight: 600, color: 'var(--text)' },
   desc: { fontSize: '12px', color: 'var(--text-dim)', marginTop: '2px' },
   toggle: { width: '42px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', position: 'relative' as const, transition: 'background 0.2s' },
-  btn: { padding: '8px 16px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' },
+  btn: { padding: '8px 16px', background: 'var(--danger)', color: 'var(--on-danger)', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' },
 }
 
 const STORAGE_KEYS = [

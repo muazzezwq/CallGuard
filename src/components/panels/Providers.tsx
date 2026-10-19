@@ -34,12 +34,12 @@ const s = {
   row: { display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6 },
   label: { fontSize:11,color:"var(--text-dim)" },
   val: { fontSize:12,fontWeight:500,fontFamily:"var(--font-mono)",color:"var(--text)" },
-  btn: (v="primary") => ({ padding:"7px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:v==="primary"?"linear-gradient(135deg,#19D186,#0E9F6E)":"var(--bg-3)",color:v==="primary"?"#fff":"var(--text)",display:"inline-flex",alignItems:"center",gap:5 }),
+  btn: (v="primary") => ({ padding:"7px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:v==="primary"?"linear-gradient(135deg,#19D186,#0E9F6E)":"var(--bg-3)",color:v==="primary"?"var(--on-accent)":"var(--text)",display:"inline-flex",alignItems:"center",gap:5 }),
   input: { width:"100%",padding:"8px 12px",borderRadius:10,border:"1px solid var(--border)",background:"var(--bg-3)",color:"var(--text)",fontSize:13,fontFamily:"var(--font-mono)",boxSizing:"border-box" as const,marginBottom:8 },
   code: { background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px",fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text)",whiteSpace:"pre-wrap" as const,overflowX:"auto" as const,marginBottom:8 },
-  tab: (active:boolean) => ({ padding:"6px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:active?"var(--accent)":"transparent",color:active?"#fff":"var(--text-dim)" }),
-  badge: (ok:boolean) => ({ display:"inline-block",padding:"1px 7px",borderRadius:999,fontSize:10,fontWeight:600,background:ok?"rgba(25,209,134,0.12)":"rgba(238,69,57,0.1)",color:ok?"var(--accent)":"var(--danger)" }),
-  link: { color:"var(--accent)",textDecoration:"none",fontSize:11,display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--font-mono)" },
+  tab: (active:boolean) => ({ padding:"6px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:active?"var(--accent)":"transparent",color:active?"var(--on-accent)":"var(--text-dim)" }),
+  badge: (ok:boolean) => ({ display:"inline-block",padding:"1px 7px",borderRadius:999,fontSize:10,fontWeight:600,background:ok?"rgba(25,209,134,0.12)":"rgba(238,69,57,0.1)",color:ok? "var(--accent-ink)":"var(--danger)" }),
+  link: { color: "var(--accent-ink)",textDecoration:"none",fontSize:11,display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--font-mono)" },
 };
 
 const SETUP_STEPS = [
@@ -171,8 +171,8 @@ export default function Providers() {
             {/* Uptime check */}
             <div style={{ marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
               <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                {uptimeStatus === "online" && <><Wifi size={12} color="var(--accent)" /><span style={{ fontSize:11,color:"var(--accent)",fontWeight:600 }}>Online{uptimeLatency ? ` · ${uptimeLatency}ms` : ""}</span></>}
-                {uptimeStatus === "offline" && <><WifiOff size={12} color="#EE4539" /><span style={{ fontSize:11,color:"#EE4539",fontWeight:600 }}>Offline{uptimeDetail ? ` — ${uptimeDetail.slice(0,30)}` : ""}</span></>}
+                {uptimeStatus === "online" && <><Wifi size={12} color="var(--accent)" /><span style={{ fontSize:11,color: "var(--accent-ink)",fontWeight:600 }}>Online{uptimeLatency ? ` · ${uptimeLatency}ms` : ""}</span></>}
+                {uptimeStatus === "offline" && <><WifiOff size={12} color="var(--danger)" /><span style={{ fontSize:11,color:"var(--danger)",fontWeight:600 }}>Offline{uptimeDetail ? ` — ${uptimeDetail.slice(0,30)}` : ""}</span></>}
                 {uptimeStatus === "checking" && <><RefreshCw size={12} color="var(--text-dim)" style={{ animation:"spin 1s linear infinite" }} /><span style={{ fontSize:11,color:"var(--text-dim)" }}>Checking…</span></>}
                 {uptimeStatus === "idle" && <span style={{ fontSize:11,color:"var(--text-faint)" }}>Not checked yet</span>}
               </div>
@@ -216,11 +216,11 @@ export default function Providers() {
           <div style={{ padding:"0 16px 16px",background:"var(--bg-1)",borderTop:"1px solid var(--border)" }}>
             {SETUP_STEPS.map(step => (
               <div key={step.n} style={{ display:"flex",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)" }}>
-                <div style={{ width:24,height:24,borderRadius:"50%",background:"rgba(25,209,134,0.15)",border:"1px solid rgba(25,209,134,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--accent)",fontSize:11,fontWeight:700 }}>{step.n}</div>
+                <div style={{ width:24,height:24,borderRadius:"50%",background:"rgba(25,209,134,0.15)",border:"1px solid rgba(25,209,134,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color: "var(--accent-ink)",fontSize:11,fontWeight:700 }}>{step.n}</div>
                 <div>
                   <div style={{ fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:3 }}>{step.title}</div>
                   <div style={{ fontSize:12,color:"var(--text-dim)",marginBottom:step.action?6:0 }}>{step.body}</div>
-                  {step.action && step.href && <a href={step.href} target="_blank" rel="noreferrer" style={{ color:"var(--accent)",fontSize:12,textDecoration:"none" }}>{step.action}</a>}
+                  {step.action && step.href && <a href={step.href} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)",fontSize:12,textDecoration:"none" }}>{step.action}</a>}
                 </div>
               </div>
             ))}

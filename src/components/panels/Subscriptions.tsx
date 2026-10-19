@@ -43,7 +43,7 @@ export default function Subscriptions() {
                   <span className="sub-meta">{sub.pricePerCall} USDC/call · expires {new Date(sub.expiresAt).toLocaleDateString()}</span>
                 </span>
                 <span style={{ textAlign: 'right' }}>
-                  <span style={{ display: 'block', fontWeight: 700, fontSize: 18, color: 'var(--accent)' }}>{sub.callsLeft}</span>
+                  <span style={{ display: 'block', fontWeight: 700, fontSize: 18, color: 'var(--accent-ink)' }}>{sub.callsLeft}</span>
                   <span className="sub-meta">calls left</span>
                 </span>
               </li>
@@ -56,7 +56,7 @@ export default function Subscriptions() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span className="sub-label">Pre-buy calls</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{callsToPreBuy} calls</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-ink)' }}>{callsToPreBuy} calls</span>
           </div>
           <input
             type="range" min="1" max="100" value={callsToPreBuy} aria-label="Pre-buy calls"

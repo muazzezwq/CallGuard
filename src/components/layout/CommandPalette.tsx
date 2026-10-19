@@ -123,7 +123,7 @@ export default function CommandPalette({ open, onClose }: Props) {
                   width: "100%", padding: "11px 16px",
                   background: i === cursor ? "var(--accent-bg)" : "transparent",
                   border: "none", borderBottom: "1px solid var(--border)",
-                  color: i === cursor ? "var(--accent)" : "var(--text)",
+                  color: i === cursor ? "var(--accent-ink)" : "var(--text)",
                   cursor: "pointer", textAlign: "left", fontSize: 14,
                   transition: "background 0.1s",
                 }}

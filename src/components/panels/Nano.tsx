@@ -168,13 +168,13 @@ export default function Nano() {
         </div>
         <div style={S.statCard}>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Settled Balance</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{balance || '—'}</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent-ink)', fontFamily: 'var(--font-mono)' }}>{balance || '—'}</div>
         </div>
       </div>
 
       {/* How it works */}
       <div style={{ background: 'rgba(25,209,134,0.08)', border: '1px solid rgba(25,209,134,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.6' }}>
-        <strong style={{ color: 'var(--accent)' }}>How it works:</strong>
+        <strong style={{ color: 'var(--accent-ink)' }}>How it works:</strong>
         {' '}1. You click → 2. Facilitator signs EIP-3009 off-chain → 3. Circle Gateway verifies instantly → 4. Batch settles on-chain later.
         No wallet prompt. No gas. Payments batch into a single on-chain tx.
       </div>
@@ -206,7 +206,7 @@ export default function Nano() {
               <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{ep.desc}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>{ep.price}</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-ink)' }}>{ep.price}</span>
               <button
                 style={{ padding: '6px 14px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
                 onClick={() => tryX402Endpoint(ep.path, ep.price)}

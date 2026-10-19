@@ -361,7 +361,7 @@ export default function Overview() {
      panel does not know, instead of silently dropping it. */
   const otherNum = callsNum - completedNum - slashedNum - openNum;
   const outcomeRows = [
-    { key: "completed", label: "Completed", count: completedNum, color: "var(--accent)" },
+    { key: "completed", label: "Completed", count: completedNum, color: "var(--accent-ink)" },
     { key: "open", label: "Open", count: openNum, color: "var(--accent-2)" },
     { key: "slashed", label: "Slashed", count: slashedNum, color: "var(--danger)" },
     ...(otherNum > 0 ? [{ key: "other", label: "Other", count: otherNum, color: "var(--text-dim)" }] : []),

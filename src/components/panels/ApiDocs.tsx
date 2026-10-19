@@ -30,7 +30,7 @@ export default function ApiDocs() {
               <span style={{
                 padding:"2px 8px",borderRadius:999,fontSize:11,fontWeight:600,flexShrink:0,
                 background:e.method==="GET"?"rgba(25,209,134,0.15)":"rgba(31,119,239,0.15)",
-                color:e.method==="GET"?"var(--accent)":"var(--info)"
+                color:e.method==="GET"? "var(--accent-ink)":"var(--info)"
               }}>{e.method}</span>
               <div style={{flex:1}}>
                 <code style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{e.path}</code>

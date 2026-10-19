@@ -81,12 +81,12 @@ export default function Receipts() {
         .receipt-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:10px;}
         .receipt-top{display:flex;justify-content:space-between;align-items:center;}
         .receipt-status{font-size:11px;font-weight:700;text-transform:uppercase;}
-        .receipt-status.green{color:var(--accent);}
+        .receipt-status.green{color:var(--accent-ink);}
         .receipt-status.red{color:var(--danger);}
         .receipt-amount{font-size:18px;font-weight:700;font-family:var(--font-display);}
         .receipt-body{display:flex;flex-direction:column;gap:6px;}
         .hash-row{display:flex;align-items:center;gap:8px;}
-        .btn-copy{background:none;border:none;cursor:pointer;color:var(--accent);font-size:14px;padding:2px 6px;}
+        .btn-copy{background:none;border:none;cursor:pointer;color:var(--accent-ink);font-size:14px;padding:2px 6px;}
         .receipt-actions{display:flex;gap:8px;flex-wrap:wrap;}
         .skeleton-list{display:flex;flex-direction:column;gap:8px;}
         .skeleton-row{border-radius:var(--radius);background:var(--bg-2);animation:shimmer 1.4s infinite;}

@@ -164,7 +164,7 @@ export default function PipelineHook() {
                 disabled={txState === "pending" || txState === "mining"}
                 style={{
                   padding: "9px 18px", borderRadius: 999, fontWeight: 600, fontSize: 12,
-                  background: "var(--accent)", color: "#fff", border: "none", cursor: "pointer",
+                  background: "var(--accent)", color: "var(--on-accent)", border: "none", cursor: "pointer",
                   opacity: (txState === "pending" || txState === "mining") ? 0.6 : 1,
                   whiteSpace: "nowrap",
                 }}
@@ -186,7 +186,7 @@ export default function PipelineHook() {
               </button>
             )}
             {txState === "success" && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "var(--accent)" }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--accent-ink)" }}>
                 Hook updated successfully.{" "}
                 {txHash && (
                   <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info)" }}>

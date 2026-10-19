@@ -47,7 +47,9 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
 }) {
   const rate = honorRate(p)
   const price = p.pricePerCall ? Number(formatUnits(BigInt(p.pricePerCall), 6)) : 0
-  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "#EE4539"
+  /* barColor is a fill; rateInk is the same value as readable text */
+  const barColor = rate >= 80 ? "var(--accent)" : rate >= 50 ? "var(--warn)" : "var(--danger)"
+  const rateInk  = rate >= 80 ? "var(--accent-ink)" : rate >= 50 ? "var(--warn)" : "var(--danger)"
 
   return (
     <div
@@ -71,7 +73,7 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>Provider #{p.id}</span>
           {isSelf && <span style={{ fontSize: 9, fontWeight: 700, background: "var(--accent)", color: "#000", borderRadius: 4, padding: "1px 5px" }}>YOU</span>}
-          {!p.active && <span style={{ fontSize: 9, color: "#EE4539", fontWeight: 700 }}>INACTIVE</span>}
+          {!p.active && <span style={{ fontSize: 9, color: "var(--danger)", fontWeight: 700 }}>INACTIVE</span>}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>
           {short(p.owner || "")} · {price.toFixed(4)} USDC/call · {Number(p.completedCalls)} completed
@@ -86,7 +88,7 @@ function ProviderRow({ p, rank, isSelf, onSelect, selected }: {
       </div>
       {/* right stats */}
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: barColor }}>{rate}%</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: rateInk }}>{rate}%</div>
         <div style={{ fontSize: 10, color: "var(--text-faint)" }}>honor</div>
         <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
           {Number(p.completedCalls)}✓ / {Number(p.slashedCalls)}✗

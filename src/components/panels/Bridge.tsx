@@ -51,11 +51,11 @@ const s = {
   btn: (disabled = false) => ({
     width: "100%", padding: "11px 16px", borderRadius:999, border: "none", cursor: disabled ? "not-allowed" : "pointer",
     fontSize: 13, fontWeight: 600, background: disabled ? "var(--bg-3)" : "linear-gradient(135deg,#19D186,#0E9F6E)",
-    color: disabled ? "var(--text-faint)" : "#fff", opacity: disabled ? 0.6 : 1, marginTop: 8,
+    color: disabled ? "var(--text-faint)" : "var(--on-accent)", opacity: disabled ? 0.6 : 1, marginTop: 8,
   }),
   step: (active: boolean, done: boolean) => ({
     display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
-    color: done ? "var(--accent)" : active ? "var(--text)" : "var(--text-faint)",
+    color: done ? "var(--accent-ink)" : active ? "var(--text)" : "var(--text-faint)",
     fontSize: 12, fontWeight: active || done ? 600 : 400,
   }),
   dot: (active: boolean, done: boolean) => ({
@@ -243,7 +243,7 @@ export default function Bridge() {
         {/* Destination (always Arc Testnet) */}
         <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 14, background: "var(--bg-3)", border: "1px solid var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 2 }}>Destination</div>
-          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600 }}>Arc Testnet (chain 5042002)</div>
+          <div style={{ fontSize: 13, color: "var(--accent-ink)", fontWeight: 600 }}>Arc Testnet (chain 5042002)</div>
           <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", marginTop: 2 }}>{CONFIG.usdc.slice(0, 10)}…</div>
         </div>
 
@@ -288,7 +288,7 @@ export default function Bridge() {
                     {isDone ? "✓" : i + 1}
                   </div>
                   <span>{label}</span>
-                  {active && step !== "done" && <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent)" }}>⏳</span>}
+                  {active && step !== "done" && <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent-ink)" }}>⏳</span>}
                 </div>
               );
             })}
@@ -327,7 +327,7 @@ export default function Bridge() {
         {burnHash && (
           <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-dim)" }}>
             Burn TX:{" "}
-            <a href={`https://sepolia.etherscan.io/tx/${burnHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
+            <a href={`https://sepolia.etherscan.io/tx/${burnHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)", fontFamily: "var(--font-mono)" }}>
               {burnHash.slice(0, 18)}…
             </a>
           </div>

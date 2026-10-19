@@ -45,7 +45,7 @@ export default function ProgressTracker() {
         <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
           Getting started
         </span>
-        <span style={{ fontSize: 10, color: "var(--accent)", fontWeight: 600 }}>
+        <span style={{ fontSize: 10, color: "var(--accent-ink)", fontWeight: 600 }}>
           {done}/{total}
         </span>
       </div>

@@ -205,8 +205,8 @@ export default function Disputes() {
       {/* HIGH-04: withdrawPayout banner */}
       {hasPayout && (
         <div className="cg-card mb-4" style={{border:"1px solid rgba(25,209,134,0.3)",background:"rgba(25,209,134,0.05)"}}>
-          <div className="card-title mb-2" style={{color:"var(--accent)"}}>⬇ Dispute Payout Ready</div>
-          <p className="text-dim text-xs mb-3">You have <strong style={{color:"var(--accent)"}}>{payoutAmt} USDC</strong> from resolved disputes ready to claim.</p>
+          <div className="card-title mb-2" style={{color: "var(--accent-ink)"}}>⬇ Dispute Payout Ready</div>
+          <p className="text-dim text-xs mb-3">You have <strong style={{color: "var(--accent-ink)"}}>{payoutAmt} USDC</strong> from resolved disputes ready to claim.</p>
           <button className="btn btn-primary" onClick={handleWithdrawPayout}>Claim {payoutAmt} USDC →</button>
         </div>
       )}
@@ -294,7 +294,7 @@ export default function Disputes() {
             <div style={{
               padding: "8px 12px", borderRadius: 6, marginBottom: 12, fontSize: 12,
               background: "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
+              color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             }}>
               {status}
             </div>
@@ -369,7 +369,7 @@ export default function Disputes() {
           {voteStatus && (
             <div style={{
               padding: "8px 12px", borderRadius: 6, fontSize: 12, background: "var(--bg-3)",
-              color: voteStatus.startsWith("✅") ? "var(--accent)" : voteStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
+              color: voteStatus.startsWith("✅") ? "var(--accent-ink)" : voteStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             }}>
               {voteStatus}
             </div>
@@ -418,7 +418,7 @@ export default function Disputes() {
               <div style={{ textAlign: "right" }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const,
-                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
+                  color: d.status === "RESOLVED" ? "var(--accent-ink)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
                 }}>
                   {d.status}
                 </span>
@@ -473,7 +473,7 @@ export default function Disputes() {
               <div style={{ textAlign: "right" }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-                  color: d.status === "RESOLVED" ? "var(--accent)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
+                  color: d.status === "RESOLVED" ? "var(--accent-ink)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
                 }}>
                   {d.status}
                 </span>

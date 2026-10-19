@@ -4,7 +4,7 @@ import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits } from "viem";
 // MEDIUM-09: import canonical ABI from config (was local duplicate)
 import { CONFIG, PPC_ABI } from "../../lib/config";
-import { errText } from "../../lib/utils";
+import { friendlyError } from "../../lib/utils";
 
 type Call = {
   id: string; providerId?: string | number; caller?: string; amount?: string; status?: string;
@@ -91,10 +91,10 @@ export default function Requests() {
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
       }, {
-        onError: (e: unknown) => setTimeoutStatus(`❌ ${errText(e)}`),
+        onError: (e: unknown) => setTimeoutStatus(`❌ ${friendlyError(e)}`),
       });
     } catch (_err: unknown) {
-      setTimeoutStatus(`❌ ${errText(_err)}`);
+      setTimeoutStatus(`❌ ${friendlyError(_err)}`);
     }
   }, [timeoutCallId, address, writeContract]);
 
@@ -166,7 +166,7 @@ export default function Requests() {
             onClick={handleClaimTimeout}
             disabled={txPending || !address}
             style={{
-              padding: "9px 18px", background: "var(--danger)", color: "#fff",
+              padding: "9px 18px", background: "var(--danger)", color: "var(--on-danger)",
               border: "none", borderRadius:999, fontWeight: 600, cursor: "pointer",
               fontSize: 13, opacity: txPending ? 0.6 : 1, whiteSpace: "nowrap"
             }}
@@ -177,16 +177,16 @@ export default function Requests() {
         {timeoutStatus && (
           <div style={{
             marginTop: 8, fontSize: 12, fontFamily: "var(--font-mono)",
-            color: timeoutStatus.startsWith("✅") ? "var(--accent)" : timeoutStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
+            color: timeoutStatus.startsWith("✅") ? "var(--accent-ink)" : timeoutStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6
           }}>
             {timeoutStatus}
           </div>
         )}
         {txSuccess && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6 }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent-ink)", padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6 }}>
             ✅ Timeout claimed — provider slashed. {txHash && (
-              <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+              <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)" }}>
                 View tx ↗
               </a>
             )}

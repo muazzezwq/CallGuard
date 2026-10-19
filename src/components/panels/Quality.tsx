@@ -112,7 +112,7 @@ export default function Quality() {
           <button style={S.btnDanger} onClick={openDispute} disabled={!ENABLED || isPending || isConfirming || !address}>
             {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Open Dispute'}
           </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Dispute opened successfully</div>}
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Dispute opened successfully</div>}
         </div>
       )}
 
@@ -142,7 +142,7 @@ export default function Quality() {
           <button style={S.btn} onClick={voteOnDispute} disabled={!ENABLED || isPending || isConfirming || !address || !disputeId}>
             {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : `Vote: ${voteSupport ? 'Support Caller' : 'Support Provider'}`}
           </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Vote cast successfully</div>}
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Vote cast successfully</div>}
         </div>
       )}
 
@@ -153,7 +153,7 @@ export default function Quality() {
             {[{ label: 'Earn', value: 'Dispute fees', sub: 'per resolved case' }, { label: 'Require', value: '>10 USDC', sub: 'minimum stake' }, { label: 'Voting power', value: 'Stake-weighted', sub: 'Bayesian majority' }].map(item => (
               <div key={item.label} style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent)', margin: '4px 0' }}>{item.value}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-ink)', margin: '4px 0' }}>{item.value}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{item.sub}</div>
               </div>
             ))}
@@ -172,7 +172,7 @@ export default function Quality() {
         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Contract Info</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
           <span>DisputeQuality (retired)</span>
-          <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
+          <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-ink)', fontFamily: 'var(--font-mono)' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
         </div>
       </div>
     </div>

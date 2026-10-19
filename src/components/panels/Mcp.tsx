@@ -148,7 +148,7 @@ export default function Mcp() {
           {tools.map(t => (
             <div key={t.name} style={{ padding:'12px 0', borderBottom:'1px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <code style={{ background:'rgba(25,209,134,0.1)', color:'var(--accent)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily: 'var(--font-mono)' }}>{t.name}</code>
+                <code style={{ background:'rgba(25,209,134,0.1)', color: 'var(--accent-ink)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily: 'var(--font-mono)' }}>{t.name}</code>
               </div>
               <div style={{ fontSize:13, color:'var(--text-dim)', marginBottom:4 }}>{t.desc}</div>
               <code style={{ fontSize:11, color:'var(--text-faint)' }}>params: {t.params}</code>
@@ -203,8 +203,8 @@ export default function Mcp() {
           <div style={{ ...S.card, fontSize:12, color:'var(--text-dim)' }}>
             <strong style={{ color:'var(--text)', display:'block', marginBottom:8 }}>How it works</strong>
             1. POST to endpoint → expect HTTP 402 with payment terms<br/>
-            2. Sign EIP-3009 <code style={{ color:'var(--accent)' }}>transferWithAuthorization</code> with your wallet<br/>
-            3. Resubmit with <code style={{ color:'var(--accent)' }}>X-PAYMENT</code> header → service executes
+            2. Sign EIP-3009 <code style={{ color: 'var(--accent-ink)' }}>transferWithAuthorization</code> with your wallet<br/>
+            3. Resubmit with <code style={{ color: 'var(--accent-ink)' }}>X-PAYMENT</code> header → service executes
           </div>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function Mcp() {
 
           <div style={S.label}>Install</div>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'var(--accent)' }}>npm install @callguard/mcp-server</pre>
+            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>npm install @callguard/mcp-server</pre>
             <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
@@ -274,13 +274,13 @@ export default function Mcp() {
 
           <div style={S.label}>REST Base URL</div>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'var(--accent)' }}>https://arcsla.vercel.app/api</pre>
+            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>https://arcsla.vercel.app/api</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 
           <div style={S.label}>Remote SSE Endpoint</div>
           <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'var(--accent)' }}>https://arcsla.vercel.app/api/mcp-server</pre>
+            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>https://arcsla.vercel.app/api/mcp-server</pre>
             <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
           </div>
 

@@ -121,7 +121,7 @@ export default function OnboardingWizard() {
       fontWeight: 700,
       letterSpacing: "0.1em",
       textTransform: "uppercase" as const,
-      color: "var(--accent)",
+      color: "var(--accent-ink)",
       marginBottom: 6,
     },
     title: {
@@ -143,7 +143,7 @@ export default function OnboardingWizard() {
       borderRadius: 10,
       padding: "10px 14px",
       fontSize: 12,
-      color: "var(--accent)",
+      color: "var(--accent-ink)",
       marginBottom: 18,
       lineHeight: 1.5,
     },
@@ -163,7 +163,8 @@ export default function OnboardingWizard() {
     },
     nextBtn: {
       background: "var(--accent)",
-      color: "#fff",
+      /* Ink on the accent fill; white on #19D186 is 1.99:1 in both themes. */
+      color: "var(--on-accent)",
       border: "none",
       borderRadius: 10,
       padding: "8px 16px",

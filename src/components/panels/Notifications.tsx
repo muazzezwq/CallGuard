@@ -16,7 +16,7 @@ const ARCSCAN = "https://explorer.testnet.arc.io";
 const TYPE_META: Record<Notif["type"], { icon: string; color: string; label: string }> = {
   call:    { icon: "📡", color: "var(--info)",        label: "Call Started"   },
   slash:   { icon: "⚡", color: "var(--danger)",      label: "Slashed"        },
-  receipt: { icon: "✅", color: "var(--accent)",      label: "Receipt"        },
+  receipt: { icon: "✅", color: "var(--accent-ink)",      label: "Receipt"        },
   dispute: { icon: "⚖️", color: "var(--warn)",  label: "Dispute"        },
   info:    { icon: "ℹ️", color: "var(--text-faint)", label: "Info"  },
 };
@@ -104,7 +104,7 @@ export default function Notifications() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent)", marginBottom: 4, fontWeight: 700 }}>Notifications</div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent-ink)", marginBottom: 4, fontWeight: 700 }}>Notifications</div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>On-Chain Alerts</h1>
           <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0 }}>
             Live contract events — {notifs.length} total
@@ -120,7 +120,7 @@ export default function Notifications() {
       {/* Live indicator */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 14 }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "block", animation: "pulse 2s infinite" }} />
-        <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>Listening for contract events…</span>
+        <span style={{ fontSize: 12, color: "var(--accent-ink)", fontWeight: 600 }}>Listening for contract events…</span>
         <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>CallStarted · ReceiptSubmitted · CallSlashed</span>
       </div>
 
@@ -133,7 +133,7 @@ export default function Notifications() {
             style={{
               padding: "4px 12px", borderRadius: 999, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
               background: filter === f ? "var(--accent)" : "var(--bg-2)",
-              color: filter === f ? "#fff" : "var(--text-dim)",
+              color: filter === f ? "var(--on-accent)" : "var(--text-dim)",
               transition: "all 0.15s",
             }}
           >
@@ -200,7 +200,7 @@ export default function Notifications() {
                 <a
                   href={`${ARCSCAN}/tx/${n.txHash}`}
                   target="_blank" rel="noreferrer"
-                  style={{ fontSize: 10, color: "var(--accent)", textDecoration: "none", flexShrink: 0, marginTop: 4 }}
+                  style={{ fontSize: 10, color: "var(--accent-ink)", textDecoration: "none", flexShrink: 0, marginTop: 4 }}
                 >
                   ↗
                 </a>

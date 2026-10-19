@@ -490,7 +490,7 @@ export default function CallBuilder() {
         <SectionCard>
           {/* Gas-free info */}
           <div style={{ background:"rgba(25,209,134,0.06)",border:"1px solid rgba(25,209,134,0.2)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--text-dim)",marginBottom:18 }}>
-            <strong style={{ color:"var(--accent)" }}>No gas required.</strong> Sign an EIP-3009 authorization off-chain. The facilitator pays gas and settles on Arc in a single transaction.
+            <strong style={{ color: "var(--accent-ink)" }}>No gas required.</strong> Sign an EIP-3009 authorization off-chain. The facilitator pays gas and settles on Arc in a single transaction.
           </div>
 
           {/* Provider + Payload */}
@@ -564,7 +564,7 @@ export default function CallBuilder() {
             <button
               onClick={isCCTP ? handleCCTPCall : handleCall}
               disabled={isLoading || !isConnected}
-              style={{ padding:"12px 8px",borderRadius:999,border:"none",background:"var(--accent)",color:isCCTP?"#fff":"#000",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(25,209,134,0.3)" }}
+              style={{ padding:"12px 8px",borderRadius:999,border:"none",background:"var(--accent)",color:"var(--on-accent)",fontWeight:700,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1,boxShadow:"0 0 16px rgba(25,209,134,0.3)" }}
             >
               {isCCTP ? "🌐 CCTP Call" : "⚡ Gas-free call"}<br/>
               <span style={{ fontSize:11,fontWeight:400,opacity:0.75 }}>{isCCTP ? "5-step bridge" : "Recommended"}</span>
@@ -575,7 +575,7 @@ export default function CallBuilder() {
             <button
               onClick={handleX402Call}
               disabled={isLoading || !isConnected}
-              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:999,border:"1px solid rgba(25,209,134,0.4)",background:"transparent",color:"var(--accent)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
+              style={{ width:"100%",marginBottom:16,padding:"10px 8px",borderRadius:999,border:"1px solid rgba(25,209,134,0.4)",background:"transparent",color: "var(--accent-ink)",fontWeight:600,fontSize:13,cursor: isLoading||!isConnected ? "not-allowed":"pointer",opacity: isLoading||!isConnected ? 0.4:1 }}
             >
               ⚡ Call via x402 (EIP-3009, no gas)
             </button>
@@ -642,7 +642,7 @@ export default function CallBuilder() {
             <div style={{
               marginTop:14,borderRadius:8,padding:"10px 14px",fontSize:12,fontFamily:"var(--font-mono)",
               background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
+              color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
               border:`1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`,
             }}>
               {status}
@@ -656,7 +656,7 @@ export default function CallBuilder() {
           <div style={{ background:"linear-gradient(135deg,rgba(25,209,134,0.07) 0%,rgba(31,119,239,0.05) 100%)",border:"1px solid rgba(25,209,134,0.25)",borderRadius:14,padding:18,backdropFilter:"blur(12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.12)" }}>
             <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:14 }}>
               <span style={{ width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 2s infinite",display:"block" }} />
-              <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--accent)",fontWeight:700 }}>Execution Summary</span>
+              <span style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color: "var(--accent-ink)",fontWeight:700 }}>Execution Summary</span>
             </div>
             {providerNotFound && (
               <div style={{ display:"flex",gap:8,alignItems:"flex-start",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,padding:"9px 11px",fontSize:11.5,color:"var(--warn)",marginBottom:12 }}>
@@ -675,7 +675,7 @@ export default function CallBuilder() {
             ].map(row => (
               <div key={row.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid var(--border)" }}>
                 <span style={{ fontSize:12,color:"var(--text-faint)" }}>{row.label}</span>
-                <span style={{ fontSize:12,fontFamily:"var(--font-mono)",color: row.highlight ? "var(--accent)" : "var(--text)",fontWeight: row.highlight ? 600 : 400 }}>{row.value}</span>
+                <span style={{ fontSize:12,fontFamily:"var(--font-mono)",color: row.highlight ? "var(--accent-ink)" : "var(--text)",fontWeight: row.highlight ? 600 : 400 }}>{row.value}</span>
               </div>
             ))}
             <button
@@ -700,12 +700,12 @@ export default function CallBuilder() {
             <div style={{ fontSize:11,textTransform:"uppercase" as const,letterSpacing:"0.08em",color:"var(--text-faint)",fontWeight:600,marginBottom:12 }}>Quick Batch</div>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
               <span style={{ fontSize:12,color:"var(--text-dim)" }}>Calls</span>
-              <span style={{ fontSize:14,fontWeight:700,color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{batchCount}</span>
+              <span style={{ fontSize:14,fontWeight:700,color: "var(--accent-ink)",fontFamily:"var(--font-mono)" }}>{batchCount}</span>
             </div>
             <input type="range" min="1" max="20" value={batchCount} aria-label="Calls" onChange={e => setBatchCount(Number(e.target.value))}
               style={{ width:"100%",accentColor:"var(--accent)",marginBottom:8 }} />
             <div style={{ background:"var(--bg-3)",border:"1px solid var(--border)",borderRadius:6,padding:"8px 10px",fontSize:12,marginBottom:10 }}>
-              Est. cost: <strong style={{ color:"var(--accent)" }}>{(batchCount * Number(formatUnits(price || BigInt(1000000),6))).toFixed(2)} USDC</strong>
+              Est. cost: <strong style={{ color: "var(--accent-ink)" }}>{(batchCount * Number(formatUnits(price || BigInt(1000000),6))).toFixed(2)} USDC</strong>
             </div>
             <button
               onClick={handleBatch}
@@ -720,7 +720,7 @@ export default function CallBuilder() {
                   <div key={r.i} style={{ display:"flex",gap:8,fontSize:11,padding:"3px 0",borderBottom:"1px solid var(--border)" }}>
                     <span style={{ color:"var(--text-faint)",width:18 }}>#{r.i}</span>
                     {r.hash
-                      ? <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color:"var(--accent)",fontFamily:"var(--font-mono)" }}>{r.hash.slice(0,14)}…</a>
+                      ? <a href={`https://explorer.testnet.arc.io/tx/${r.hash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)",fontFamily:"var(--font-mono)" }}>{r.hash.slice(0,14)}…</a>
                       : <span style={{ color:"var(--danger)" }}>{r.error}</span>
                     }
                   </div>

@@ -334,7 +334,7 @@
 .mk-footer__grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; }
 .mk-footer__col h4 { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 14px; }
 .mk-footer__col a { display: block; font-size: 13.5px; color: var(--text-dim); padding: 5px 0; }
-.mk-footer__col a:hover { color: var(--accent); }
+.mk-footer__col a:hover { color: var(--accent-ink); }
 .mk-footer__tag { font-size: 13px; color: var(--text-dim); margin-top: 14px; max-width: 34ch; line-height: 1.6; }
 .mk-footer__bottom { margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; color: var(--text-dim); flex-wrap: wrap; }
 
@@ -439,7 +439,7 @@
 .mk-problem__item { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.45; color: var(--text-dim); }
 .mk-problem__panel.is-good .mk-problem__item { color: var(--text); }
 .mk-problem__mark { flex: none; font-weight: 700; line-height: 1.45; color: var(--danger); }
-.mk-problem__panel.is-good .mk-problem__mark { color: var(--accent); }
+.mk-problem__panel.is-good .mk-problem__mark { color: var(--accent-ink); }
 
 /* ── Redesign: integration pills ─────────────────────── */
 .mk-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; padding: 0; list-style: none; }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { keccak256, toBytes } from "viem";
 import { CONFIG, PPC_ABI } from "../../lib/config";
-import { errText } from "../../lib/utils";
+import { friendlyError } from "../../lib/utils";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -98,10 +98,10 @@ export default function Verify() {
         args: [callId as `0x${string}`, responseHash, respondedAt, signature],
       }, {
         onSuccess: (h) => { setRcpTxHash(h); setRcpStatus("⏳ Waiting for confirmation..."); },
-        onError: (e: unknown) => setRcpStatus(`❌ ${errText(e)}`),
+        onError: (e: unknown) => setRcpStatus(`❌ ${friendlyError(e)}`),
       });
     } catch (_err: unknown) {
-      setRcpStatus(`❌ ${errText(_err)}`);
+      setRcpStatus(`❌ ${friendlyError(_err)}`);
     }
   }, [rcpCallId, rcpPayload, address, walletClient, writeReceipt]);
 
@@ -235,7 +235,7 @@ export default function Verify() {
           <div style={result.ok ? s.success : s.error}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               {result.ok ? <CheckCircle size={18} color="var(--accent)" /> : <XCircle size={18} color="var(--danger)" />}
-              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent)" : "var(--danger)" }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: result.ok ? "var(--accent-ink)" : "var(--danger)" }}>
                 {result.ok ? "Receipt Verified" : "Verification Failed"}
               </span>
             </div>
@@ -251,7 +251,7 @@ export default function Verify() {
                 ].map(([k, v]) => (
                   <div key={k} style={s.row}>
                     <span style={s.rowLabel}>{k}</span>
-                    <span style={{ ...s.rowVal, color: k === "Status" ? "var(--accent)" : "var(--text)" }}>{v}</span>
+                    <span style={{ ...s.rowVal, color: k === "Status" ? "var(--accent-ink)" : "var(--text)" }}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -312,12 +312,12 @@ export default function Verify() {
         {rcpStatus && (
           <div style={{
             marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)",
-            color: rcpStatus.startsWith("✅") ? "var(--accent)" : rcpStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
+            color: rcpStatus.startsWith("✅") ? "var(--accent-ink)" : rcpStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
             padding: "7px 10px", background: "var(--bg-3)", borderRadius: 10,
           }}>
             {rcpStatus}
             {rcpTxHash && (
-              <a href={`https://explorer.testnet.arc.io/tx/${rcpTxHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", marginLeft: 8 }}>View tx ↗</a>
+              <a href={`https://explorer.testnet.arc.io/tx/${rcpTxHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)", marginLeft: 8 }}>View tx ↗</a>
             )}
           </div>
         )}
@@ -351,7 +351,7 @@ export default function Verify() {
         <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>
           Verify multiple call IDs programmatically via the REST API:
         </div>
-        <pre style={{ background: "var(--bg-3)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent)", overflowX: "auto" as const, margin: 0 }}>
+        <pre style={{ background: "var(--bg-3)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent-ink)", overflowX: "auto" as const, margin: 0 }}>
 {`curl https://arcsla.vercel.app/api/attestation\\
   ?callId=0x1234...&type=call`}
         </pre>

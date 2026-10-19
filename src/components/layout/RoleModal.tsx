@@ -90,7 +90,7 @@ export default function RoleModal() {
               Sell API calls. Stake USDC. Earn per request. Build reputation.
             </div>
             <div style={{
-              marginTop: 10, fontSize: 10, fontWeight: 600, color: "var(--accent)",
+              marginTop: 10, fontSize: 10, fontWeight: 600, color: "var(--accent-ink)",
               textTransform: "uppercase", letterSpacing: "0.06em",
             }}>
               → Pro mode
@@ -120,7 +120,7 @@ export default function RoleModal() {
               Use SLA-guaranteed APIs. Pay per request. Get refund if SLA is missed.
             </div>
             <div style={{
-              marginTop: 10, fontSize: 10, fontWeight: 600, color: "#1F77EF",
+              marginTop: 10, fontSize: 10, fontWeight: 600, color: "var(--info)",
               textTransform: "uppercase", letterSpacing: "0.06em",
             }}>
               → Simple mode

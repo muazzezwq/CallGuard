@@ -25,12 +25,12 @@ const s = {
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
-  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
+  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "var(--on-accent)" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
   section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : "var(--bg-3)", color: v === "primary" ? "#fff" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
+  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : "var(--bg-3)", color: v === "primary" ? "var(--on-accent)" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
 };
 
 type Tab = "browse" | "myslots" | "mint";
@@ -138,7 +138,7 @@ export default function Futures() {
       <p style={s.sub}>Providers tokenize future capacity as ERC-1155 slots. Callers reserve priority calls. Slots trade on secondary markets.</p>
 
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : "rgba(238,69,57,0.08)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : "rgba(238,69,57,0.2)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent)" : "#EE4539" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : "rgba(238,69,57,0.08)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : "rgba(238,69,57,0.2)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>
           {status}
         </div>
       )}
@@ -256,7 +256,7 @@ function BatchCard({ batchId }: { batchId: number }) {
     <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <span style={{ fontWeight: 600, fontSize: 13 }}>Batch #{batchId} · Provider #{String(b.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: b.active ? "rgba(25,209,134,0.15)" : "rgba(100,100,100,0.15)", color: b.active ? "var(--accent)" : "var(--text-faint)" }}>
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: b.active ? "rgba(25,209,134,0.15)" : "rgba(100,100,100,0.15)", color: b.active ? "var(--accent-ink)" : "var(--text-faint)" }}>
           {b.active ? "Active" : "Closed"}
         </span>
       </div>
@@ -266,7 +266,7 @@ function BatchCard({ batchId }: { batchId: number }) {
         <div>Deadline: <strong style={{ color: "var(--text)" }}>{deadline}</strong></div>
       </div>
       <div style={{ marginTop: 8, height: 4, background: "var(--bg-2)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${fill}%`, background: fill > 80 ? "#EE4539" : "var(--accent)", borderRadius: 2, transition: "width .3s" }} />
+        <div style={{ height: "100%", width: `${fill}%`, background: fill > 80 ? "var(--danger)" : "var(--accent)", borderRadius: 2, transition: "width .3s" }} />
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ const STEPS = ["Create Job", "Set Budget", "Fund Escrow", "Submit Work", "Comple
 
 const s: Record<string, React.CSSProperties> = {
   page: { padding: "20px 16px", maxWidth: 720, margin: "0 auto" },
-  eyebrow: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "var(--accent)", fontWeight: 700, marginBottom: 6 },
+  eyebrow: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "var(--accent-ink)", fontWeight: 700, marginBottom: 6 },
   h1: { fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 16, marginBottom: 12 },
@@ -32,7 +32,7 @@ const s: Record<string, React.CSSProperties> = {
   input: { width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius:10, padding: "9px 12px", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
   btn: { background: "var(--accent)", color: "#000", border: "none", borderRadius:999, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   btnSecondary: { background: "var(--bg-3)", color: "var(--text)", border: "1px solid var(--border)", borderRadius:999, padding: "8px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
-  output: { background: "var(--bg-0)", border: "1px solid var(--border)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" as const, minHeight: 60, marginTop: 10 },
+  output: { background: "var(--bg-0)", border: "1px solid var(--border)", borderRadius:10, padding: "10px 12px", fontSize: 11, color: "var(--accent-ink)", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" as const, minHeight: 60, marginTop: 10 },
 };
 
 export default function Jobs() {
@@ -279,7 +279,7 @@ export default function Jobs() {
       <label style={s.label} htmlFor="jb-id-complete">Job ID</label>
       <input id="jb-id-complete" style={{ ...s.input, marginBottom: 10 }} placeholder="Job ID" value={jobId} onChange={e => setJobId(e.target.value)} />
       <div style={{ padding: 12, background: "rgba(25,209,134,.08)", border: "1px solid rgba(25,209,134,.2)", borderRadius: 8, fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
-        <strong style={{ color: "var(--accent)" }}>Final step:</strong> Marks the job complete and releases USDC to the provider. Only the evaluator or client can call this.
+        <strong style={{ color: "var(--accent-ink)" }}>Final step:</strong> Marks the job complete and releases USDC to the provider. Only the evaluator or client can call this.
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button style={s.btn} onClick={doCompleteJob} disabled={loading || !address}>
@@ -294,7 +294,7 @@ export default function Jobs() {
     // Step 5: Done
     <div key="done" style={{ textAlign: "center" as const, padding: 24 }}>
       <CheckCircle size={40} color="var(--accent)" style={{ marginBottom: 12 }} />
-      <div style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)", marginBottom: 8 }}>Job Complete!</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "var(--accent-ink)", marginBottom: 8 }}>Job Complete!</div>
       <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>USDC has been released to the provider.</div>
       <button style={s.btn} onClick={() => { setStep(0); clearLog(); setJobId(""); setProviderAddr(""); setDescription(""); }}>
         Create Another Job
@@ -330,7 +330,7 @@ export default function Jobs() {
               }}>
                 {i < step ? "✓" : i + 1}
               </div>
-              <div style={{ fontSize: 10, color: i === step ? "var(--accent)" : "var(--text-faint)", fontWeight: i === step ? 600 : 400, whiteSpace: "nowrap" as const }}>
+              <div style={{ fontSize: 10, color: i === step ? "var(--accent-ink)" : "var(--text-faint)", fontWeight: i === step ? 600 : 400, whiteSpace: "nowrap" as const }}>
                 {label}
               </div>
             </div>
@@ -357,7 +357,7 @@ export default function Jobs() {
         </div>
         {checkResult && (
           checkResult.error ? (
-            <div style={{ fontSize: 12, color: "#EE4539" }}>{checkResult.error}</div>
+            <div style={{ fontSize: 12, color: "var(--danger)" }}>{checkResult.error}</div>
           ) : (
             <div style={{ display: "grid", gap: 4 }}>
               {Object.entries(checkResult).map(([k, v]) => (
@@ -384,7 +384,7 @@ export default function Jobs() {
           ["5. Complete", "Evaluator (or client) approves — USDC is automatically released to provider."],
         ].map(([step, desc]) => (
           <div key={step} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ width: 60, fontSize: 11, fontWeight: 700, color: "var(--accent)", flexShrink: 0 }}>{step}</div>
+            <div style={{ width: 60, fontSize: 11, fontWeight: 700, color: "var(--accent-ink)", flexShrink: 0 }}>{step}</div>
             <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{desc}</div>
           </div>
         ))}

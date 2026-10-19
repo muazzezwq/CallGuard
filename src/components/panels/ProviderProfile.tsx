@@ -107,24 +107,24 @@ export default function ProviderProfile() {
         <>
           <div style={S.card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--accent-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>#{queried}</div>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--accent-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: 'var(--accent-ink)' }}>#{queried}</div>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Provider #{queried}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{signer?.slice(0, 10)}...{signer?.slice(-6)}</div>
               </div>
-              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '999px', background: isActive ? 'var(--accent-bg)' : 'var(--bg-3)', color: isActive ? 'var(--accent)' : 'var(--text-dim)', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
+              <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '999px', background: isActive ? 'var(--accent-bg)' : 'var(--bg-3)', color: isActive ? 'var(--accent-ink)' : 'var(--text-dim)', fontSize: '12px', fontWeight: 600 }}>{isActive ? 'Active' : 'Inactive'}</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? 'var(--accent)' : honorRate > 50 ? 'var(--warn)' : 'var(--danger)' }}>{honorRate}%</div></div>
+              <div style={S.stat}><div style={S.label}>Honor Rate</div><div style={{ fontSize: '24px', fontWeight: 700, color: honorRate > 80 ? 'var(--accent-ink)' : honorRate > 50 ? 'var(--warn)' : 'var(--danger)' }}>{honorRate}%</div></div>
               <div style={S.stat}><div style={S.label}>Completed Calls</div><div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{completed}</div></div>
-              <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
+              <div style={S.stat}><div style={S.label}>Stake</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent-ink)' }}>{parseFloat(stake).toFixed(2)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>Price / Call</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{parseFloat(price).toFixed(3)} USDC</div></div>
               <div style={S.stat}><div style={S.label}>SLA Window</div><div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{slaWindow}s</div></div>
               <div style={S.stat}><div style={S.label}>Slashes</div><div style={{ fontSize: '18px', fontWeight: 700, color: slashed > 0 ? 'var(--danger)' : 'var(--text)' }}>{slashed}</div></div>
             </div>
 
-            <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
+            <a href={`https://explorer.testnet.arc.io/address/${p.signer}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-ink)', fontSize: '12px', display: 'block', marginBottom: '12px' }}>View on ArcScan →</a>
           </div>
 
           {/* Action buttons */}

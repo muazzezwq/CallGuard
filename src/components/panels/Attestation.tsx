@@ -106,7 +106,7 @@ export default function Attestation() {
         ].map(item => (
           <div key={item.label} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
             <div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)', margin: '4px 0' }}>{item.value}</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-ink)', margin: '4px 0' }}>{item.value}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{item.sub}</div>
           </div>
         ))}
@@ -140,7 +140,7 @@ export default function Attestation() {
             </div>
           )}
           <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-faint)' }}>
-            API endpoint: <code style={{ color: 'var(--accent)' }}>GET /api/attestation?providerId=1&type=score</code>
+            API endpoint: <code style={{ color: 'var(--accent-ink)' }}>GET /api/attestation?providerId=1&type=score</code>
           </div>
         </div>
       )}
@@ -153,7 +153,7 @@ export default function Attestation() {
           <button style={S.btn} onClick={issueAttestation} disabled={isPending || isConfirming || !address}>
             {isPending ? 'Confirming...' : isConfirming ? 'Writing...' : 'Issue Attestation'}
           </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent)' }}>✓ Attestation issued on-chain</div>}
+          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Attestation issued on-chain</div>}
         </div>
       )}
 

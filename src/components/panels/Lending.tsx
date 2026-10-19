@@ -24,14 +24,14 @@ const s = {
   h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
   sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
   tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
-  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "#fff" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
+  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "var(--on-accent)" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
   section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
   sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
   label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
   input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
   btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg, var(--accent), var(--accent-dim))" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "var(--danger)" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
   stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px", textAlign: "center" as const },
-  statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent)" },
+  statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent-ink)" },
   statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
 };
 
@@ -135,7 +135,7 @@ export default function Lending() {
       </div>
 
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, color: status.startsWith("✅") ? "var(--accent)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
           {status}
         </div>
       )}
@@ -238,7 +238,7 @@ function LoanRow({ loanId, addr, onRepay, loading }: { loanId: number; addr: str
       </div>
       {loan.active && (
         <button
-          style={{ padding: "7px 14px", borderRadius:999, border: "none", background: "var(--accent)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1 }}
+          style={{ padding: "7px 14px", borderRadius:999, border: "none", background: "var(--accent)", color: "var(--on-accent)", fontSize: 12, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1 }}
           onClick={() => onRepay(loanId, principal)}
           disabled={loading}
         >

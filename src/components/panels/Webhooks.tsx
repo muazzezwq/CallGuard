@@ -98,8 +98,8 @@ export default function Webhooks() {
 
       {/* Info */}
       <div style={{ background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
-        <strong style={{ color: "var(--accent)" }}>Quick start:</strong> Use{" "}
-        <a href="https://webhook.site" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>webhook.site</a>{" "}
+        <strong style={{ color: "var(--accent-ink)" }}>Quick start:</strong> Use{" "}
+        <a href="https://webhook.site" target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)" }}>webhook.site</a>{" "}
         to get a free URL and see the exact payload. Then point it to your own server.
         Failed deliveries are retried 3 times automatically.
       </div>
@@ -128,7 +128,7 @@ export default function Webhooks() {
         </button>
 
         {addStatus && (
-          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent)" : "var(--danger)" }}>{addStatus}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>{addStatus}</div>
         )}
       </div>
 
@@ -149,16 +149,16 @@ export default function Webhooks() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
                   {wh.events.map(ev => (
-                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(25,209,134,0.1)", color: "var(--accent)", fontWeight: 600 }}>{ev}</span>
+                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(25,209,134,0.1)", color: "var(--accent-ink)", fontWeight: 600 }}>{ev}</span>
                   ))}
                 </div>
                 {wh.lastTest && (
-                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent)" : "var(--danger)" }}>
+                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent-ink)" : "var(--danger)" }}>
                     Last: {wh.lastTest.status} · {wh.lastTest.latency}ms · {new Date(wh.lastTest.time).toLocaleTimeString("en-US", { hour12: false })}
                   </div>
                 )}
                 {testResults[wh.id] && (
-                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent)" : "var(--danger)" }}>
+                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>
                     {testResults[wh.id]}
                   </div>
                 )}
