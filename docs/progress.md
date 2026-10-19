@@ -182,6 +182,7 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - **`History.tsx` only gained the wiring** (`stageKey` state, `selected`/`onSelect` props); the legend, the `Stepper`, the Details card, the filters, the pager and the export buttons are untouched, and the canvas still unmounts when no call is selected.
 - Checks: `bun run typecheck` clean, `bun run lint` (`--max-warnings=0`) clean, `bun run build` ✓ 1m 57s. Browser (mock worktree `/app`, port 5208, own server, dark + light + `data-motion="reduced"`): COMPLETED (four `Done`, four accent edges), STARTED (words `Done / In progress / Waiting / Waiting`, cyan active plate, rails solid-emerald then dashed-grey, inspect `Service call · In progress · provider notified`), SLASHED (2 failed plates, `rgb(238,69,57)` edges, words `Done / Done / Failed / Failed`); click, keyboard `Enter` (dispatched keydown → selection moved to the plate) and `:focus-visible` (matched, edge went dashed `2.5px`) all confirmed; deselect unmounts the canvas; no horizontal overflow at 1280 or 411; **no console errors** in the whole session.
 - Limitations: the harness exposes only two viewports (1280 desktop, 411 phone), so the 640px stack/board switch was verified by code and CSS inspection at the midpoint rather than measured at 641/639px; `termfold-browser click` still does not reach React handlers in this session, so every interaction went through `eval "…click()"` / a dispatched `KeyboardEvent`; `respondedMs` is still supported by `slaStages()` but no caller passes it (the subgraph call entity has no `respondedAt`), so the board keeps showing `provider notified` for a completed call.
+- **Follow-up commit `ebe694a` (the a11y repair of the canvas, previously undocumented here).** It changed `src/components/viz/SLACanvas.tsx` (26 lines) and `src/components/layout/shell.css` (+5) and nothing else: the interactive board was wrapped in `role="img"`, a leaf role that hides every node inside it, so the stage buttons shipped invisible to assistive tech — it is now `role="group"` with `aria-label="SLA lifecycle"` when the plates are controls, and stays `role="img"` for the static, props-less call. The polite live region is rendered before it has text (a region that arrives already holding its content is not announced) and reserves its line so selecting a stage cannot shift the legend below. A pointer press on the label twin — which is `aria-hidden` — no longer moves focus into that node, because the plate owns keyboard focus. Reason it was split out of `f250e33`: the phase commit was already reviewed, and this was a behaviour fix found while measuring the accessibility tree.
 - Not committed and not pushed (brief: no push/deploy without explicit approval).
 
 ## Phase 17 — addendum (2026-10-19): cross-cutting a11y sweep over all 34 panels
@@ -195,3 +196,299 @@ Batch log. 3-line summary per batch (what changed / state / next).
 - **Method note:** the first-run onboarding dialog renders over the panel and darkens it, so axe scores the dimmed-under text — the same screen reports 7 contrast nodes with the dialog open and 3 with it closed. Audit after dismissing it.
 - **Still open, unchanged:** row 5's pointer focus hand-off (the keyboard path keeps focus on the plate; a real pointer click on a label twin leaves `document.activeElement` on `BODY`), and rows 2, 4, 6, 7, 13 of the Phase 4 checklist. `dist/` is gitignored and untracked, so no build output was regenerated for these changes.
 - Gates: `bun run typecheck` clean, `bun run lint` (`--max-warnings=0`) clean. Not committed and not pushed.
+
+## Phase 4 — completion pass (2026-10-19): rows 4, 5, 6, 7, 13
+
+Carried into this pass from `design/phase-checklists/PHASE_4_CHECKLIST.md`: row 5 (zoom/pan,
+return-from-zoom, the inert static-mode control, the label-twin focus hand-off), row 4 (the three
+unexercised outcomes and provider configuration as a *stated* fact), row 6 (configuration form
+validation and tx states, never attempted), row 7 (the unrendered protocol states), row 13
+(`ebe694a` was undocumented). Row 2 (no skill used during Phase 4) is a historical fact about the
+phase, so this pass records it rather than pretending it can be repaired.
+
+Files changed: `src/components/viz/SLACanvas.tsx`, `src/components/layout/shell.css`,
+`src/components/panels/History.tsx`, `src/components/panels/Register.tsx`, and rejection copy in
+`src/components/panels/{Requests,Verify,BulkCall,Payments}.tsx`. No store, no `src/lib/*` module and
+no other panel was touched. Plan of record: `docs/superpowers/plans/2026-10-19-phase4-completion.md`.
+
+### Row 5 — the canvas became navigable and the board stopped lying about its controls
+
+- **Zoom and pan.** `.sla-canvas__board` gained a tools group (`−`, the zoom readout, `+`, `Fit`):
+  steps `1 → 1.25 → 1.6 → 2 → 2.5`; the stage translates in whole percentages of its own box and
+  scales about its centre; the pan is clamped to half the growth, so the stage can never be dragged
+  clear of the frame. Only the SVG scales — **the label row is anchored outside the scaled stage and
+  re-positioned through the same "meet" fit the SVG uses**, so a label stays at its plate at a
+  constant, readable size instead of scaling out of the frame. Measured label-centre minus
+  plate-centre at 100 / 160 / 250%: **0, 0, 0, 0** for all four stages.
+- **Zoom targets what is in hand.** With a stage selected, the zoom re-centres on it and clamps
+  (measured: the selected Escrow plate lands centred at x = 1044). `Fit` returns to the full board.
+- **Pointer pan measured with a real mouse** (CDP `mouse move/down/up`): a net −130 px drag moved the
+  stage from `matrix(2.5,0,0,2.5,177.4,0)` to `…,47.4,0` — exactly −130 px, and the whole time
+  inside the clamp. Arrow keys pan the same way **while the board has focus** (`x` 177.4 → 185.3 →
+  180.1 → 163.6 across three presses); the board only becomes a tab stop while it is zoomed
+  (`tabindex` −1 at rest), so the default view gains no extra stop.
+- **The limits no longer cost the reader their place.** In the first implementation the tools used
+  `disabled`, and a control that becomes disabled while focused throws focus to `<body>` — measured
+  after `Fit` at 250%: `document.activeElement` = `BODY`. They now use `aria-disabled` with a no-op
+  guard and the same styling: at 250% the focus stays on `Zoom in`, and after `Fit` it stays on
+  `Reset view`.
+- **The label twin hands focus to the plate** (the row-5 defect). A real CDP pointer click on
+  `.sla-canvas__labels > .sla-canvas__label--btn:nth-child(3)` gives `document.activeElement` = `g`
+  with `role="button"` and name `"Receipt — Done. signature verified"`, `aria-pressed`
+  `[false,false,true,false]`, and the inspect line `"Receipt · Done · signature verified"`.
+- **The static mode stopped shipping an inert control.** With no `selected`/`onSelect` the stack
+  renders `div.sla-canvas__stack-btn` (cursor default, no hover border) instead of four
+  `<button>`s with no handler; measured in a props-less render: `svg role="img"`, 0 plate buttons,
+  4 static rows, and the only focusables on the board are the three view controls, which still work
+  on a static board (zoom → `matrix(1.25,0,0,1.25,0,0)`). axe on the static board: 0 violations.
+- **Motion.** `[data-motion="reduced"] .sla-canvas__stage` and the `prefers-reduced-motion` rule both
+  set `transition: none`; measured with the attribute set: `transition-duration` **0s**. The default
+  path now genuinely animates — see the token defect below.
+- **A token defect found while measuring this.** `--motion-fast` is itself
+  `var(--dur-fast) var(--ease-out)`, so every rule that wrote
+  `transition: X var(--motion-fast) var(--ease-out)` produced two timing functions, an invalid
+  declaration, and **no transition at all** — computed `transition: all 0s`. Five declarations in the
+  `.sla-canvas*` block were in that state (`.sla-canvas__stage`, `.sla-canvas__label--btn`,
+  `.sla-plate__outline`, `.sla-rail`, `.sla-canvas__stack-btn`). They now use `var(--motion-fast)`
+  alone; measured after: `0.12s cubic-bezier(0.22, 1, 0.36, 1)`. The rest of the repository was not
+  swept (recorded in `docs/audit.md`).
+- **axe, dark, all four states:** `.sla-canvas` **0 violations / 13 passes / 1 incomplete**; the
+  single `incomplete` is `color-contrast` on `.sla-canvas__zoom`, measured directly at **6.71:1**
+  (11 px, `--text-dim` on `--bg-1`) — above AA for its size. At 411 px the tools and the board are
+  `display: none`, the stack is visible and the page has no horizontal overflow; 0 violations.
+
+### Row 4 — the seven flow items, each one from a real field
+
+`History.tsx` now renders a **"Terms and outcome"** list inside the SLA Canvas card, one row per
+brief item: provider configuration, stake and pricing, caller request and payment, request
+execution, receipt, settlement or timeout, refund or slash. Every value comes from the call record
+or from a live `getProvider` read against the registry — the provider's `active` flag, concurrency
+cap, stake, price per call, slash bps and SLA window are read on-chain, not hardcoded. Where the
+product cannot answer, the row **says so in words**: request execution reads "not indexed — the
+subgraph does not record the response time" (the `calls` entity has no response timestamp), and a
+provider the registry does not know reads "not registered on the registry (provider #N)". A failed
+registry read is a third, distinct state ("the registry read failed, so the terms are unknown"), so
+an RPC hiccup cannot masquerade as a missing provider.
+
+- **Timeout is distinguished from a failed receipt.** A `SLASHED` call with no settlement timestamp
+  is a window that closed (`claimTimeout`); one that carries a settlement timestamp is a receipt
+  that did not verify. `slaStages(status, { timedOut })` carries that through to the plate sub-line
+  ("no receipt in the SLA window") and the stepper.
+- **A defect the rendering found.** The receipt row tested `responseHash` for truthiness, and the
+  zero hash is truthy: a SLASHED call whose stage said "no valid receipt" printed
+  "verified · 0x2c3d4e5f… → 0x00000000…". It now tests `/^0x0+$/`; re-measured on the same call:
+  "no receipt recorded · request 0x2c3d4e5f…", with the COMPLETED call still reading
+  "verified · 0x7a3f9e2b… → 0x7a3f9e2b…". Renders inspected: COMPLETED (four Done plates, all seven
+  rows populated) and SLASHED (two Failed plates, "no valid receipt" / "stake slashed").
+- Not exercised in a browser: the REFUNDED stage variant (the seed has no refunded call; the
+  "Refund or slash" row itself was exercised and reads "neither refunded nor slashed" / "escrow
+  refunded to the caller" / "provider stake slashed" by field). Recorded, not claimed.
+
+### Row 7 — the panel's protocol states are now distinct
+
+Measured on the mock worktree (own port 5202, its own server), each state rendered and read back:
+
+| state | what renders | how it was produced |
+|---|---|---|
+| loading | 6 skeletons in the list column | first paint after the panel opens |
+| populated | 6 rows, `Last indexed block 67917107 at 2:19:50 AM` | a live `_meta` read from the subgraph |
+| subgraph/RPC failure | `ErrorState` "Call history is unavailable" + "This is a read failure, not an empty history." + detail `Failed to fetch` + **Retry** | the worktree's `subgraphUrl` pointed at a dead port, so the fetch really failed |
+| wrong network | `ErrorState` "Wrong network" naming both chains + **Switch to Arc Testnet**; counts, filters and list withheld | a second chain configured in the throwaway worktree, then connecting the mock wallet on chain 1 |
+| stale / indexing errors | "The indexer reports indexing errors, so these figures may be incomplete. Last indexed block 1 at 12:56:24 AM — 90 minutes behind, values may be stale" | a throwaway `_meta` fixture (90 min old + error flag) — a rendering fixture, not a claim about the indexer |
+| no selection | detail column: "Select a transaction — Pick a row to trace its SLA lifecycle, hashes and settlement." | panel opens with nothing selected |
+| wallet disconnected | not reachable from this panel: `App.tsx` gates the whole shell on a connected wallet, so the landing screen *is* that state. The branch is kept as a defensive state and is recorded as unreachable rather than claimed as verified | — |
+
+The wrong-network action was exercised for real: pressing **Switch to Arc Testnet** moved the wallet
+to Arc, cleared the state and loaded the 6 rows with the freshness line. axe on `.tx-split` in the
+populated and SLASHED states: **0 violations / 17 passes / 1 incomplete**; the panel page in the
+error, stale, phone and wrong-network states: **0 violations** each. No console errors in any of them.
+
+### Row 6 — the registration form: validation, review, tx states
+
+`Register.tsx` (the SLA-relevant configuration form — stake, price, SLA window, slash bps, max
+concurrent, endpoint, signer) now validates each field against **the contract's own bounds**, read
+on-chain rather than written into the UI: `ServiceRegistry.minStake` (public immutable, read with
+`useReadContract` and shown next to the field), `MIN_RESPONSE_TIME = 5` (`contracts/ServiceRegistry.sol:56`)
+and `MAX_SLASH_BPS = 10_000` (`:57`), which are the exact conditions the contract enforces at
+`:252-253` and `:310-311`. USDC inputs are parsed with 6 decimals and a value with more than 6
+decimals is **rejected rather than rounded**. Every field carries `aria-required`, a visible
+required marker, and its error in a stable element referenced by `aria-describedby` with
+`aria-invalid` on the input.
+
+Measured in the browser: an invalid signer (`0x123`) on blur gives one `aria-invalid` control whose
+message reads "Enter a valid EVM address (0x + 40 hex chars).", and **Review does not advance while a
+field is invalid**. The review step names both wallet prompts ("This flow asks your wallet twice:
+(1) approve 10 USDC, then (2) register the provider"), prints every parameter with its base units,
+shows the computed allowance ("Required USDC allowance (computed) 10 USDC — Needs approval"), and
+offers "← Back to editing". Submitting drives a real failure path in the mock (the mock wallet
+cannot send a transaction) and the panel says so in a polite live region — "Transaction failed: The
+method \"eth_sendTransaction\" does not exist / is not available." — with the submit buttons
+released, and **no success is claimed**. axe over the panel: 0 violations.
+
+Not executed **at the time of that pass** with the mock wallet: the user-rejection (4001) and
+on-chain-revert branches, and a confirmed success (the mock transport cannot sign). They were
+code-read only then; **all three were executed later against a scripted provider double — see
+"Phase 4 — final pass" at the end of this file.** Rejection and revert copy was normalised through
+the existing `friendlyError` helper in `Requests.tsx`, `Verify.tsx`, `BulkCall.tsx` and
+`Payments.tsx`.
+
+### Gates
+
+`bun run typecheck` clean · `bun run lint` (`eslint src --max-warnings=0`) clean · `bun run build`
+✓ built in 1m 34s. Dark theme only; the light theme's measured contrast gap was left untouched, as
+before, pending the palette decision recorded in `docs/decisions.md`. **The final pass below closes
+that gap in both themes.**
+
+### Limits of this verification
+
+- No real screen reader exists in this environment; the accessibility tree (`agent-browser
+  snapshot`) and axe-core stand in for it (4.12.1 at the time of this pass, 4.14.0 in the final
+  pass — the difference mattered, see below).
+- The mock wallet cannot sign, so the rejection/revert/confirmed-success tx branches are code-read
+  only (above) **— executed against a scripted double in the final pass**.
+- The stale freshness line and the REFUNDED stage variant were rendered from throwaway fixtures in
+  the mock worktree; both are named as fixtures here rather than as indexer behaviour.
+- `--motion-fast` misuse outside the `.sla-canvas*` block was not swept.
+
+## Phase 4 — final pass (2026-10-19): AA in both themes, corrected axe baseline, tx branches executed
+
+### The earlier sweep was measured with the wrong axe
+
+The "34/34 panels, 0 violations, dark theme" result recorded above came from the axe-core **4.12.1**
+build embedded in the CLI. Re-running the identical sweep (same worktree, same rule tags
+`wcag2a,wcag2aa,wcag21a,wcag21aa`, same 34 sidebar entries) with axe-core **4.14.0** fetched into the
+page reported **109 dark-theme contrast nodes** and **18 light-theme contrast nodes** plus one
+`label-content-name-mismatch` on that tree. The old number was an artefact of the tool version, not
+a property of the app. Two other measurement faults were fixed at the same time:
+
+- the first-run onboarding dialog renders over the panel and dims the page behind it, and axe
+  reports the dimmed elements as contrast failures — it must be dismissed (`Skip tour`) before the
+  sweep;
+- the shell animates colour on theme switch (`transition: color 0.15s`), and axe reads a
+  mid-transition colour as a real value: one pass measured `2.35:1` on a button that is clean at
+  rest. With `transition: none` injected for the sweep, both themes report the same, stable result
+  on two consecutive passes.
+
+Final measurement: **all 34 panels, both themes, 0 violations**, with **49 dark / 54 light `color-contrast` nodes
+`incomplete`** across the 34 panels (0–19 per panel) — text over gradient or translucent
+backgrounds, which axe cannot resolve and which therefore stay a manual measurement.
+
+### What changed
+
+Dark theme — the only dark-theme visual change in this phase:
+
+| Token | Before | Worst measured ratio | After | Worst measured ratio |
+|---|---|---|---|---|
+| `--text-faint` | `#4D5F76` | 2.30:1 (`--bg-2`), 101 nodes | `#7C90A9` | 4.60:1 |
+| `--info` / `--pending` | `#1F77EF` | 3.66:1 (`--bg-2`) | `#3E8AF1` | 4.52:1 |
+| `--danger` / `--slash` | `#EE4539` | 4.30:1 (`--bg-2`) | `#EF4E43` | 4.52:1 |
+| `--on-danger` (new) | — | white on `--danger` 3.79:1 | `#06110D` | 5.34:1 |
+| `--on-warn` (new) | — | `#000` on `--warn` | `#06110D` | admin button stays AA |
+
+Light theme — every semantic ink re-measured against **its own tinted background**, not only
+against white: `--danger`/`--slash` `#CE1E12` → `#BC1B10` (4.59:1 worst), `--warn` `#AA4E08` →
+`#A24A08` (4.57:1), `--info`/`--pending` `#0F64D7` → `#0E5CC7` (4.55:1), plus `--on-danger` and
+`--on-warn` fixed to `#FFFFFF`. Earlier light passes had cleared these tokens against white only,
+which is why a tinted chip or alert still failed.
+
+The light text ladder moved too: `--text-dim`/`--text-mid` `#667A98` → `#424F63` (worst before:
+3.61:1, a kbd on `--bg-3`) and `--text-faint`/`--text-low` `#8A9BAE` → `#576A7E` (2.48:1 on `--bg-2`
+before), keeping the `--text` > `--text-dim` > `--text-faint` order; `--accent-ink` `#19D186` →
+`#0E7249` (1.74:1 on `--bg-2` before), while `--accent` stays bright because it is a fill, not ink.
+This is a deliberate, visible light-theme change — the one the previous pass had only recorded as a
+gap with candidate values.
+
+Seventeen hardcoded colours were repointed at tokens so they follow the theme: `ProviderCard.tsx`
+(reputation, honour), `Marketplace.tsx`, `Leaderboard.tsx` (the rate *text* split from the bar
+*fill*), `ProviderProfile.tsx`, `Agent.tsx`, `Futures.tsx`, `Jobs.tsx`, `Providers.tsx`,
+`Requests.tsx`, `Notifications.tsx` (active filter chip), `Bridge.tsx`, `Privacy.tsx`,
+`BulkCall.tsx`, `RoleModal.tsx`, and the CSS rules `.admin-btn-green/-orange/-red`,
+`.sla-flow-tab.active.red`, `.cg-feed-dot.red`, `.mp-tier-risk`, `.mp-val-red`, `.mp-risk`,
+`.admin-alert`. Text on accent- and danger-filled controls now comes from `--on-accent` /
+`--on-danger` instead of `#fff`, which also removes the one dark-theme difference the earlier pass
+flagged.
+
+`label-content-name-mismatch` (WCAG 2.5.3): the BulkCall CSV dropzone's `aria-label` ("Select CSV
+file to upload") did not contain its visible text ("Click to select CSV file / or drag & drop •
+columns: provider_id, payload"). The `aria-label` was removed, so the accessible name is derived
+from the contents and therefore contains the visible label.
+
+### Row 6 — the three transaction branches, executed
+
+The mock worktree's connector was scripted at the provider level: 4001 rejection, a contract revert,
+or a hash whose receipt is served as `status: "0x1"` with empty logs. wagmi's mock connector has no
+`getWalletClient`, which is why `useWalletClient()` stayed `undefined` and the NFT path reported
+"Connect wallet first"; the fixture supplies one built from the scripted provider, exactly as an
+injected wallet would. Executed in the browser:
+
+- **Rejection**, both entry points: `role="status"` reads "Rejected in your wallet — nothing was
+  submitted."; all three review controls stay enabled; no NFT id is written.
+- **Contract revert**: "Execution reverted with reason: MinStakeNotMet()." (NFT path) and
+  "Transaction reverted on-chain: …" (V1 path).
+- **Confirmed success**: V1 reaches the completion screen; the NFT path shows
+  "⏳ Step 1/3 — minting the ERC-8004 identity NFT…", then
+  "⏳ Step 2/3 — NFT #1 confirmed. Approving USDC…", then the completion screen, and writes
+  `localStorage.cgAgentNftId = "1"` — success comes from the receipt, never from the hash alone.
+
+This is a **test double**, not a real signer: it proves the panel's branching, copy and control
+state, not wallet interop.
+
+### Gates at the close of this pass
+
+`bun run typecheck` clean · `bun run lint` (`eslint src --max-warnings=0`) clean after deleting six
+imports that the rules extraction had left unused in `Register.tsx` · `bun test tests/` **22 pass /
+0 fail** (the script is scoped to `tests/`, because bare `bun test` also collects
+`lib/openzeppelin-contracts/test/*.js`, which need hardhat) · `bun run build` ✓ · axe as above · no
+console errors in any state.
+
+### Copy scope — resolved by restoring the original wording
+
+`design/RULES.md:7` requires every existing field, button and copy line to be kept, and `design/PHASE_4.md`
+§6 authorises a review step and the pending/success/rejection/failure states but says nothing about
+rewriting copy. The first cut of this pass had rewritten the status strings. It no longer does: the
+unstake lines, both NFT-path step lines, the approval line, the final `✅ Registered with NFT #…! TX: …`
+line, the mint timeout/`tokenId`/missing-registry errors, the completion paragraph, the review step's
+`USDC approved. Ready to register.`, the `Approve ${stake} USDC` / `Register as Provider` labels,
+the `Approving…` / `Registering…` busy labels and the section title `REGISTER (basic — no NFT)` are
+all verbatim again. New copy exists only for states that had no text before. The two
+`toast.error` fallbacks (`Approval failed`, `Registration failed`) are the exception: they were only
+reached when the error string was empty, and `friendlyError()` never returns empty, so the new flow
+always states the actual reason instead. The section title keeps its original "no NFT" wording
+because the default action behind that section is still the basic register; the NFT path is opt-in
+on the review step.
+
+### Re-run after the copy restore
+
+The scripted provider was replayed on the final code, in the browser:
+
+- **V1, rejection**: `Rejected in your wallet — nothing was submitted. Edit the form and try again.
+  (User rejected the request.)`, button back to `Approve 10 USDC`, no NFT id written.
+- **V1, revert**: `Transaction reverted on-chain: Execution reverted with reason: MinStakeNotMet().`,
+  same button state, no NFT id.
+- **V1, success**: completion screen reading `Registration complete!` / "You are now a provider on
+  Arc Testnet. Start listening for call events." / `View transaction ↗` / `Register another`.
+- **NFT path, success (slow provider)**: `⏳ Step 1/3 — Minting ERC-8004 identity NFT…` → `✅ NFT minted
+  #1 — Step 2/3 Approving USDC…` → `✅ USDC approved — Step 3/3 Registering provider with NFT…` →
+  completion screen, `localStorage.cgAgentNftId = "1"`.
+- **NFT path, rejection / revert**: `❌ Rejected in your wallet — nothing was submitted.` /
+  `❌ Execution reverted with reason: MinStakeNotMet().`; the NFT button stays enabled and no id is
+  written.
+
+Still a **scripted provider double**, not a real signer.
+
+### The overlay had its own contrast failure
+
+Dismissing `.cg-onboard` before a sweep is right for the panels and wrong for the wizard: its
+`Get started →` button was white on `--accent`, **1.99:1**. It now uses `var(--on-accent)`. Audited
+with the wizard open, both themes: 0 violations.
+
+### Motion tokens — found, measured, left for a separate change
+
+Three declarations still append a second timing function to a token that already carries one, so
+they are dropped: `.ov-bars-h__track i` (`shell.css:479`, and no TSX uses that class — dead rule),
+the mobile `.sidebar { transition: left … }` rule (`shell.css:806`, the drawer snaps), and `.app-shell`
+`grid-template-columns` (`index.css:677`, measured `transition: all 0s` — the sidebar collapse
+snaps). Not fixed here: the canvas block was in scope, the shell motion layer is not.
+
+Still open: the 49 dark / 54 light gradient `incomplete` nodes, the three `--motion-*` declarations
+above, and a real screen reader.
