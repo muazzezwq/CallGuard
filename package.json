@@ -7,6 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test tests/",
     "lint": "eslint src --max-warnings=0",
     "check": "bun run typecheck && bun run lint",
     "check-env": "node check.js",
