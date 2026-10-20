@@ -7,13 +7,16 @@
  * Fetches real kWh data from the Arkreen API (or returns a testnet mock).
  */
 
-import { settleEip3009, getRpcUrl } from './_settle.js';
+import { V7 } from './_contracts.js';
+import { settleEip3009 } from './_settle.js';
+import { getRpcUrl } from './_rpc.js';
+import { logError, safeLogValue } from './_redact.js';
 
-// LOW-02: prefer unprefixed env vars server-side
-const USDC_ADDR   = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS || '';
+// Canonical v7 USDC and chain; facilitator/seller remain runtime configuration.
+const USDC_ADDR   = V7.USDC;
 const FACILITATOR = process.env.FACILITATOR_ADDRESS  || '';
 const SELLER      = process.env.SELLER_ADDRESS       || '';
-const CHAIN_ID    = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || '5042002');
+const CHAIN_ID    = V7.CHAIN_ID;
 const PRICE_ATOMIC = '10000'; // 0.01 USDC in 6-decimal units
 
 const PAYMENT_TERMS = {
@@ -50,7 +53,7 @@ async function fetchArkreenData(minerAddr) {
       const res = await fetch(`${ARKREEN_API}/miner/${minerAddr}/latest`);
       if (res.ok) return await res.json();
     } catch (e) {
-      console.error('Arkreen API error:', e.message);
+      logError('Arkreen API error', e);
     }
   }
 
@@ -140,7 +143,7 @@ export default async function handler(req, res) {
     rpcUrl: getRpcUrl(),
   });
   if (!settlement.ok) {
-    console.error('[energy-data] settlement failed:', settlement.error);
+    logError('[energy-data] settlement failed', { message: settlement.error });
     return res.status(503).json({ error: 'Payment settlement unavailable' });
   }
 
@@ -148,8 +151,11 @@ export default async function handler(req, res) {
   const payload   = body.payload   || req.query.payload || 'kwh_now';
   const minerAddr = body.minerAddr || req.query.miner   || SELLER;
   const machineId = req.headers['x-machine-id'] || 'unknown';
+  const payloadLog = typeof payload === 'string' ? `len=${payload.length}` : 'non-string';
 
-  console.log(`[energy-data] machine=${machineId} payload=${payload} miner=${minerAddr}`);
+  // Never log the request payload contents: they can carry caller data and
+  // newline injection lets a caller forge additional log lines.
+  console.log(`[energy-data] machine=${safeLogValue(machineId, 64)} payload=${payloadLog} miner=${safeLogValue(minerAddr, 64)}`);
 
   const data = await fetchArkreenData(minerAddr);
 
@@ -167,7 +173,7 @@ export default async function handler(req, res) {
       machineId,
       payload,
       settlementTx: settlement.txHash,
-      callguardContract: process.env.VITE_PAY_PER_CALL,
+      callguardContract: V7.PAY_PER_CALL,
     }
   });
 }

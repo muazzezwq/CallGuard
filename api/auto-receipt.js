@@ -3,7 +3,10 @@
 // Set PROVIDER_1_WEBHOOK=https://arcsla.vercel.app/api/auto-receipt in Vercel env
 
 import { ethers } from "ethers";
+import { V7 } from "./_contracts.js";
 import { timingSafeEqual, createHash } from "node:crypto";
+import { getRpcUrl } from "./_rpc.js";
+import { errorSummary, logError, safeLogValue } from "./_redact.js";
 
 // Constant-time secret comparison (hash first so lengths always match).
 function secretEquals(a, b) {
@@ -13,27 +16,49 @@ function secretEquals(a, b) {
   return timingSafeEqual(ha, hb);
 }
 
-// HIGH-08 fix: fallback chain for multiple RPC env var names
-const RPC_URL = process.env.ARC_RPC_URL || process.env.ARC_TESTNET_RPC_URL || process.env.RPC_URL;
-// LOW-02: prefer unprefixed env vars on the server side; VITE_* as fallback
-const PAY_PER_CALL_ADDR = process.env.PAY_PER_CALL || process.env.VITE_PAY_PER_CALL;
-const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "5042002");
+// One resolver for every documented public RPC alias and the optional proxy.
+const RPC_URL = getRpcUrl();
+const PAY_PER_CALL_ADDR = V7.PAY_PER_CALL;
+const SERVICE_REGISTRY = V7.SERVICE_REGISTRY;
+const CHAIN_ID = V7.CHAIN_ID;
+
+const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const DECIMAL_RE = /^(0|[1-9][0-9]*)$/;
+
+function normalizeProviderId(value) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value);
+  if (!DECIMAL_RE.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? String(parsed) : null;
+}
+
+function normalizeAtomicAmount(value) {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : null;
+  }
+  if (typeof value === "string" && DECIMAL_RE.test(value)) return value;
+  return null;
+}
 
 // Per-provider keys: PROVIDER_1_KEY, PROVIDER_2_KEY, ...
-// Fallback: SELLER_PRIVATE_KEY (legacy, used when no per-provider key set)
+// No seller fallback: an auto-receipt must be signed by the provider's
+// registered signer, or it is not submitted.
 function getProviderKey(providerId) {
-  if (providerId) {
-    const k = process.env[`PROVIDER_${providerId}_KEY`];
-    if (k) return k;
-  }
-  return process.env.SELLER_PRIVATE_KEY || null;
+  if (!providerId) return null;
+  return process.env[`PROVIDER_${providerId}_KEY`] || null;
 }
 
 if (!RPC_URL) console.warn("[auto-receipt] ARC_RPC_URL not set");
-if (!PAY_PER_CALL_ADDR) console.warn("[auto-receipt] VITE_PAY_PER_CALL not set");
+if (!PAY_PER_CALL_ADDR) console.warn("[auto-receipt] canonical PayPerCall address missing");
 
 const ABI = [
   "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
+];
+
+const REGISTRY_ABI = [
+  "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
 ];
 
 // MEDIUM-07: domain name/version must match PayPerCall constructor EIP712("ArcSLA","1")
@@ -74,6 +99,23 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
 
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   const wallet = new ethers.Wallet(privateKey, provider);
+
+  const registry = new ethers.Contract(SERVICE_REGISTRY, REGISTRY_ABI, provider);
+  let providerInfo;
+  try {
+    providerInfo = await registry.getProvider(providerId);
+  } catch (err) {
+    console.error("[auto-receipt] provider lookup failed:", errorSummary(err));
+    return { ok: false, error: "provider signer lookup failed" };
+  }
+  if (!providerInfo?.active) {
+    return { ok: false, error: `provider ${providerId} is not active` };
+  }
+  const registeredSigner = String(providerInfo.signer || "");
+  if (registeredSigner.toLowerCase() !== wallet.address.toLowerCase()) {
+    return { ok: false, error: `provider ${providerId} signer mismatch` };
+  }
+
   const contract = new ethers.Contract(PAY_PER_CALL_ADDR, ABI, wallet);
 
   const response = `pong:${payload || "ok"}:${Date.now()}`;
@@ -86,7 +128,7 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
     { callId, responseHash, respondedAt }
   );
 
-  console.log(`[auto-receipt] attempt ${attempt} submitting for callId=${callId}`);
+  console.log(`[auto-receipt] attempt ${attempt} submitting for callId=${safeLogValue(callId, 80)}`);
 
   try {
     const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig, { gasLimit: 200000 });
@@ -99,12 +141,12 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
     // Retry on timeout or transient RPC errors, not on contract reverts
     const isRetryable = msg.includes("timeout") || msg.includes("network") || msg.includes("ECONNRESET");
     if (isRetryable && attempt < MAX_RETRIES) {
-      console.warn(`[auto-receipt] retrying (${attempt}/${MAX_RETRIES}): ${msg}`);
+      console.warn(`[auto-receipt] retrying (${attempt}/${MAX_RETRIES}):`, errorSummary(err));
       await new Promise(r => setTimeout(r, 1500 * attempt)); // backoff
       return autoSubmitReceipt({ callId, payload, providerId }, attempt + 1);
     }
-    console.error(`[auto-receipt] failed after ${attempt} attempt(s):`, msg);
-    return { ok: false, error: msg, attempts: attempt };
+    console.error(`[auto-receipt] failed after ${attempt} attempt(s):`, errorSummary(err));
+    return { ok: false, error: "receipt submission failed", attempts: attempt };
   }
 }
 
@@ -154,15 +196,21 @@ async function initiateCircleRefund({ disputeId, callId, caller, amount }) {
     console.log(`[auto-receipt] Circle Refund API status: ${resp.status}`);
     return { ok: resp.ok, status: resp.status, data };
   } catch (err) {
-    console.error("[auto-receipt] Circle Refund API error:", err.message);
-    return { ok: false, error: err.message };
+    logError("[auto-receipt] Circle Refund API error", err);
+    return { ok: false, error: "refund relay failed" };
   }
 }
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    const _key = process.env.SELLER_PRIVATE_KEY;
-    const addr = _key ? new ethers.Wallet(_key).address : "not configured";
+    let addr = "not configured";
+    if (process.env.SELLER_PRIVATE_KEY) {
+      try {
+        addr = new ethers.Wallet(process.env.SELLER_PRIVATE_KEY).address;
+      } catch {
+        addr = "not available";
+      }
+    }
     return res.json({
       ok: true,
       service: "CallGuard auto-receipt",
@@ -186,21 +234,45 @@ export default async function handler(req, res) {
 
   const { event, callId, payload, providerId, disputeId, caller, amount } = req.body || {};
 
-  // ERC-8004 / Circle Refund Protocol: dispute resolved CallerWins.
-  // Financial action — requires webhook secret to be configured AND valid.
-  if (event === "circle.refund.initiate" && callId) {
-    if (!WEBHOOK_SECRET) return res.status(403).json({ error: "refund path disabled: webhook secret not configured" });
-    if (!caller || !/^0x[0-9a-fA-F]{40}$/.test(caller)) return res.status(400).json({ error: "invalid caller" });
-    const result = await initiateCircleRefund({ disputeId, callId, caller, amount });
-    // Never log the full upstream response (may contain sensitive metadata).
-    return res.json({ received: true, event, callId, disputeId, result: { ok: result.ok, status: result.status } });
-  }
+  try {
+    // ERC-8004 / Circle Refund Protocol: dispute resolved CallerWins.
+    // Financial action — requires webhook secret to be configured AND valid.
+    if (event === "circle.refund.initiate") {
+      if (typeof callId !== "string" || !BYTES32_RE.test(callId)) {
+        return res.status(400).json({ error: "invalid callId" });
+      }
+      if (typeof caller !== "string" || !ADDRESS_RE.test(caller)) {
+        return res.status(400).json({ error: "invalid caller" });
+      }
+      if (disputeId != null && (typeof disputeId !== "string" || disputeId.length > 128)) {
+        return res.status(400).json({ error: "invalid disputeId" });
+      }
+      const atomicAmount = normalizeAtomicAmount(amount);
+      if (atomicAmount === null) return res.status(400).json({ error: "invalid amount" });
 
-  if (event === "call.opened" && callId) {
-    // Await the receipt submission BEFORE responding so Vercel keeps function alive
-    const result = await autoSubmitReceipt({ callId, payload, providerId });
-    return res.json({ received: true, callId, event, providerId, result });
-  }
+      const result = await initiateCircleRefund({ disputeId, callId, caller, amount: atomicAmount });
+      // Never log the full upstream response (may contain sensitive metadata).
+      return res.json({ received: true, event, callId, disputeId, result: { ok: result.ok, status: result.status } });
+    }
 
-  return res.json({ received: true, callId, event });
+    if (event === "call.opened") {
+      if (typeof callId !== "string" || !BYTES32_RE.test(callId)) {
+        return res.status(400).json({ error: "invalid callId" });
+      }
+      let normalizedProviderId;
+      if (providerId != null) {
+        normalizedProviderId = normalizeProviderId(providerId);
+        if (normalizedProviderId === null) return res.status(400).json({ error: "invalid providerId" });
+      }
+
+      // Await the receipt submission BEFORE responding so Vercel keeps function alive
+      const result = await autoSubmitReceipt({ callId, payload, providerId: normalizedProviderId });
+      return res.json({ received: true, callId, event, providerId: normalizedProviderId, result });
+    }
+
+    return res.json({ received: true, callId, event });
+  } catch (err) {
+    logError("[auto-receipt] webhook processing failed", err);
+    return res.status(500).json({ error: "webhook processing failed" });
+  }
 }

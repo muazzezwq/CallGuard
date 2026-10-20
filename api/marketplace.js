@@ -1,23 +1,24 @@
 /**
- * GET  /api/marketplace        — x402 Bazaar discovery schema (Circle Agent Marketplace compatible)
+ * GET  /api/marketplace        — x402 discovery schema with dynamic provider pricing
  * GET  /api/marketplace/health — live provider endpoint health check
  *
- * The schema follows the Circle Agent Marketplace listing format so that any
- * x402 buyer agent can auto-discover and pay CallGuard providers without
- * reading documentation.
+ * This is a CallGuard discovery document. The payment amount is dynamic, so
+ * `pricing.amountSource` points at the endpoint's 402 challenge rather than a
+ * fixed `accepts` amount; the legacy JSON request shape is documented there.
  *
  * References:
  *   https://developers.circle.com/agent-stack/agent-marketplace
  *   https://developers.circle.com/agent-stack/agent-marketplace/discovery-api
  */
 
-const ARC_TESTNET_CHAIN_ID = "eip155:5042002";
-const USDC_ARC = "0x3600000000000000000000000000000000000000";
+import { V7 } from "./_contracts.js";
 
-// Canonical contract addresses (from AGENTS.md / .env).
-const PAY_PER_CALL  = process.env.VITE_PAY_PER_CALL  || process.env.PAY_PER_CALL;
-const SERVICE_REG   = process.env.VITE_SERVICE_REGISTRY || process.env.SERVICE_REGISTRY;
-const FACILITATOR   = process.env.VITE_FACILITATOR_ADDRESS || process.env.FACILITATOR_ADDRESS;
+const {
+  PAY_PER_CALL,
+  SERVICE_REGISTRY: SERVICE_REG,
+  USDC: USDC_ARC,
+  NETWORK: ARC_TESTNET_CHAIN_ID,
+} = V7;
 
 // Resolve the public base URL for this deployment.
 function baseUrl(req) {
@@ -88,15 +89,27 @@ export default async function handler(req, res) {
   const base = baseUrl(req);
 
   // ── /api/marketplace/health ──────────────────────────────────────────────
-  if (path === "/api/marketplace/health" || path?.endsWith("/health")) {
+  if (path === "/api/marketplace/health" || path?.endsWith("/health") || req.query?.health === "1") {
     return handleHealth(req, res);
   }
 
   // ── /api/marketplace ─────────────────────────────────────────────────────
 
-  // Facilitator wallet acts as the payTo address on Arc Testnet.
-  // Falls back to a zero address placeholder — operator should set env vars.
-  const payTo = FACILITATOR || "0x0000000000000000000000000000000000000000";
+  // PayPerCall pulls the caller's USDC into escrow. It is the only address a
+  // call-service authorization can target, so it is also the discovery payTo.
+  const amountSource = `${base}/api/call-service`;
+  const paymentRequirement = {
+    scheme: "exact",
+    network: ARC_TESTNET_CHAIN_ID,
+    asset: USDC_ARC,
+    description: "USDC on Arc Testnet (native gas asset)",
+    pricing: "provider-specific",
+    amountSource,
+    // Verified against @x402/evm 2.14.0: the exact scheme reads the USDC
+    // EIP-712 domain from these fields before asking the client to sign.
+    extra: { name: "USDC", version: "2" },
+    ...(PAY_PER_CALL ? { payTo: PAY_PER_CALL } : {}),
+  };
 
   const listing = {
     x402Version: 1,
@@ -124,22 +137,20 @@ export default async function handler(req, res) {
         protocol: "x402",
         version: "1.0.0",
 
-        // Payment rails this listing supports.
+        // Payment rails this listing supports. call-service settles with
+        // PayPerCall's EIP-3009 entry point, not Circle Gateway batching.
         supportsVanillax402: true,
-        supportsCircleGateway: true,
+        supportsCircleGateway: false,
 
-        // Accepted payment specifications.
-        // Each entry follows the x402 `accepts` array schema.
-        accepts: [
-          {
-            scheme: "exact",
-            network: ARC_TESTNET_CHAIN_ID,
-            asset: USDC_ARC,
-            maxAmountRequired: "10000000", // 10 USDC max per call
-            payTo,
-            description: "USDC on Arc Testnet (native gas asset)",
-          },
-        ],
+        // Payment target is stable; the amount is not. Each provider sets its
+        // own on-chain pricePerCall, so a fixed amount here would be false.
+        // A buyer must request the endpoint's 402 challenge for its providerId.
+        pricing: {
+          model: "provider-price",
+          amountSource,
+          note: "POST providerId to amountSource; its 402 terms contain the selected provider's exact pricePerCall.",
+        },
+        accepts: [paymentRequirement],
 
         // Machine-readable schemas for agent auto-integration.
         inputSchema: INPUT_SCHEMA,

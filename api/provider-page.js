@@ -1,4 +1,7 @@
 // /api/provider-page.js — SSR provider profile + sitemap for SEO
+import { V7 } from './_contracts.js';
+import { getRpcUrl } from './_rpc.js';
+
 const SG_URL = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn';
 
 async function handleSitemap(req, res) {
@@ -7,7 +10,9 @@ async function handleSitemap(req, res) {
   try {
     const r = await fetch(SG_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:'{ providers(first:50,where:{active:true}){id} }'}) });
     const d = await r.json();
-    providerIds = (d?.data?.providers||[]).map(p=>p.id);
+    providerIds = (d?.data?.providers||[])
+      .map(p=>String(p.id).replace(/\D/g, ''))
+      .filter(Boolean);
   } catch(e) { providerIds = ['1','2','3','4','5','6','7','8']; }
   const today = new Date().toISOString().split('T')[0];
   const urls = [
@@ -24,23 +29,18 @@ export default async function handler(req, res) {
   if (req.url?.includes('sitemap') || req.query?.sitemap) return handleSitemap(req, res);
   const id = (req.query.id || '1').toString().replace(/\D/g, '') || '1';
 
-  // RPC: prefer provisioned proxy, fall back to env var
-  const proxyBase = process.env.RPC_PROXY_BASE_URL;
-  const proxyToken = process.env.RPC_PROXY_TOKEN;
-  const proxyChains = (process.env.RPC_PROXY_CHAINS || '').split(',');
-  const rpcUrl = proxyBase && proxyChains.includes('Arc_Testnet')
-    ? `${proxyBase}/api/rpc/Arc_Testnet?_rpc_token=${proxyToken}`
-    : process.env.ARC_RPC_URL;
+  // One resolver for every documented public RPC alias and the optional proxy.
+  const rpcUrl = getRpcUrl();
 
-  const registryAddr = process.env.VITE_SERVICE_REGISTRY;
+  const registryAddr = V7.SERVICE_REGISTRY;
   const sgUrl = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn';
 
   if (!rpcUrl) {
-    res.status(503).json({ error: 'ARC_RPC_URL not configured' });
+    res.status(503).json({ error: 'RPC URL not configured' });
     return;
   }
   if (!registryAddr) {
-    res.status(503).json({ error: 'VITE_SERVICE_REGISTRY not configured' });
+    res.status(503).json({ error: 'SERVICE_REGISTRY not configured' });
     return;
   }
 
@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
     });
+    if (!r.ok) throw new Error(`rpc http ${r.status}`);
     return (await r.json()).result;
   }
 

@@ -589,3 +589,268 @@ background-image arrow, 3 glyph buttons, 2 decorative `·`) were measured by han
 - Out of scope and still unsupported: `CallBuilder.tsx:32` ("High chance of timeout" from an honor
   rate), the RepFi hint's "> 90% honor rate" loan claim, `Agent.tsx:290` ("scores providers by
   honor rate") and the marketing page's "ranked by on-chain honor rate". Recorded in `docs/audit.md`.
+
+## Phase 6 — Call Builder and transaction UX (2026-10-20)
+
+Prompt delivered in chat; `design/PHASE_6.md` does not exist (recorded in the checklist, not
+invented). Plan: `design/PHASE_6_PLAN.md`. Evidence: `design/phase-checklists/PHASE_6_CHECKLIST.md`.
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Provider → builder identity, endpoint, record states | PASS | `getEndpoint` read gated on the loaded record; unknown id, RPC failure, inactive and unstaked providers block submission with the contract's own reason |
+| Cost transparency, exact integers, estimate vs charge | PASS | `lib/callCosts.ts` (BigInt only); escrow = `pricePerCall`, no protocol fee; fee shown as an estimate or "unavailable" |
+| Wallet/network/balance preconditions | PASS | allowance, USDC balance, native balance, open-call cap and chain read live; `wrong-network` blocks |
+| Transaction lifecycle (hash ≠ confirmation) | PASS | `lib/txLifecycle.ts`; rejection, submitted, confirmed, reverted, unreadable-receipt each have their own state; explorer link only after a hash exists |
+| Timeout/refund/slash labels | PASS | Claim waits for its receipt and prints the decoded `CallSlashed` amounts, or says they are unverified |
+| Duplicate submissions | PASS | `submittingRef` + `checkNoPendingTx` + disabled controls while any stage is active |
+| Tests | PASS | `bun test tests/` → 82 pass, 0 fail (24 new: `call-costs`, `tx-lifecycle`) |
+| Gates | PASS | `bun run check` exit 0; `bun run build` exit 0 |
+| Responsive | PARTIAL | 411 px (dark + light) and 1280 px (light) checked, no horizontal overflow; 834 px not re-measured this phase |
+| Keyboard / screen reader | PARTIAL | labels, `aria-invalid`, `aria-describedby`, `role="status"` verified in the DOM; no screen reader available; keyboard traversal not exhaustively exercised |
+
+Fixed here: the invented 100 % honor rate and its causal claim; "No gas required" / "Gas-free ·
+EIP-3009" copy on the on-chain path; "✅ Receipt submitted — escrow released" before confirmation;
+`claimTimeout` never waiting for a receipt; the 1 USDC batch fallback; float cost maths.
+
+Disabled here: the CCTP path. `CrossChainReceiver.handleReceiveFinalizedTransfer` requires 96 bytes
+of `hookData`, which the panel's `depositForBurn` does not send, so the bridge could never create a
+call. The selector and the action remain, the CTA is disabled and explains why. Fixing it is a
+separate change (hook-encoded burn) and was not authorised.
+
+## Phase 7 — Call history, activity and notifications (2026-10-20)
+
+Prompt delivered in chat; `design/PHASE_7.md` does not exist (recorded in the checklist, not
+invented). Plan: `design/PHASE_7_PLAN.md`. Evidence: `design/phase-checklists/PHASE_7_CHECKLIST.md`.
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| History uses only indexed fields | PASS | `calls` entity: `id providerId amount status createdAt completedAt requestHash responseHash refunded slashed`; a missing amount renders `—`, never `0` |
+| Transaction hash / explorer link | PARTIAL | The subgraph `Call` has no transaction hash, so the detail pane says "not indexed" and no link is invented; notifications can link because event logs carry the hash |
+| Submitted vs confirmed vs completed | PASS | Call rows show indexer status; detail says a receipt makes escrow *claimable*, not withdrawn; notifications are mined logs, labelled as such |
+| Dedupe and deterministic order | PASS | `normalizeCalls` + tests; ties break by call id; repeated refresh does not add a row |
+| Filters, search, pagination, export | PASS | Status filters, call-id/provider search, clamped pages, CSV escaping, no zero fallback; the unreachable `REFUNDED` filter was removed |
+| Notification identity and persistence | PASS | Dedupe key `txHash:logIndex:event`, per-account `cg_notifs_v3:<address>`, sanitised on load, capped at 50 |
+| Notification truthfulness | PASS | Global logs labelled network-wide with caller; "Listening while this panel is open"; stream errors shown; no success claim from a request |
+| Refresh / polling / account change | PARTIAL | Existing 15–30 s polling and `useQuery` keys per wallet; no explicit invalidation after a confirmed transaction (next poll), indexer lag is stated in History |
+| Loading / empty / error distinction | PASS | History (empty vs filter-empty vs RPC error vs stale), Requests (error vs empty), Receipts (error vs empty), Notifications (no alerts vs filter-empty vs stream error) |
+| Accessibility / responsive | PARTIAL | 411 px and 1280 px, no horizontal overflow; `aria-pressed`, `role="status"`, labels, 44 px filter targets; keyboard traversal and screen reader not exhaustively tested |
+| Tests / gates | PASS | `bun run check` exit 0; `bun test tests/` 97 pass, 0 fail; `bun run build` exit 0 |
+| Docs | PASS | This file, `decisions.md`, `audit.md`, `panel-inventory.md` |
+
+Data sources: Goldsky `calls` entity (History, Requests, Receipts, Overview list) and direct
+`useWatchContractEvent` logs on `PayPerCall` (Notifications, Overview live strip). No new store,
+dependency, contract or address change; nothing committed, pushed or deployed.
+
+## Phase 8 — Reliability, recovery and verification (2026-10-20)
+
+Scope/acceptance: `design/PHASE_8.md` (new). Evidence: `design/phase-checklists/PHASE_8_CHECKLIST.md`.
+Starts from the pre-Phase 8 audit; Phase 6/7 work is preserved, not rewritten.
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Unknown transaction outcome keeps the pending marker | PASS | Call/x402/approval/batch paths no longer clear the marker on an unread receipt; `readPendingTx()` reads it on mount; the recovery check is read-only |
+| Pending recovery UI | PASS | "Check receipt" reads the stored hash only; browser-run against real Arc transactions (confirmed, reverted, unknown) |
+| Native gas readiness | PASS | `assessCall` adds a native-balance input, a `native-gas` blocker and a low-gas warning; `tests/call-costs.test.ts` |
+| Claim/receipt simulated before writing | PASS | `claimTimeout` and `submitReceipt` are simulated first, so a would-revert claim is reported before gas is spent |
+| Verify uses the real verdict | PASS | `classifyVerdict` maps `HONORED`/`COMPLETED`/`PENDING`/`VIOLATED`/`SLASHED`/unknown; API `UNKNOWN` and non-JSON bodies fall through to the RPC/tx fallback; `tests/tx-lifecycle.test.ts` |
+| Transaction lookup ≠ receipt verification | PASS | "Transaction Confirmed" with explicit copy; explorer link is `/tx/<hash>` only |
+| x402 fallback is gated per provider + request | PARTIAL | Fallback only on a `PRE_SETTLEMENT` response whose nonce state was checked and whose error is allowlisted (for example `Provider not active`). A valid hash is never overridden by `demo:true`/`settled:false`; contradictory or malformed responses stay uncertain and keep the guard. The guard now blocks the direct call, batch and CCTP paths for the same attempt, not only the x402 button. It is tab-scoped and is not a global no-duplicate-payment guarantee; see the limitations below. |
+| Targeted invalidation after confirmed writes | PASS | `refreshAfterSettlement` invalidates balances/allowance/open calls/subgraph/providers/activity/network stats |
+| Requests claim consistency | PASS | Chain guard, claim simulation, pending guard, receipt-status classification, invalidation, no fabricated refund/slash amounts |
+| Accessibility / responsive | PASS | Live regions and `aria-busy`; SLA labels re-associated; light-theme SLA label contrast 16.26:1; 834 px and 411 px show no horizontal overflow |
+| Tests / gates | PASS | `bun run typecheck`, `bun run lint`, `bun test tests/` (101 pass at that stage; 138 after the review fixes), `bun run build` all exit 0 |
+| Live E2E (happy path, timeout) | BLOCKED | `ARC_RPC_URL`, `CALLER_PK`, `PROVIDER_PK` absent; no `.env`; `scripts/e2e-lifecycle.js` not wired into `package.json` |
+| Screen reader / keyboard-only run | UNVERIFIED | Not available in this harness |
+| Wallet-signed browser writes | BLOCKED | No browser wallet; write paths covered by code/unit tests and the read-only recovery UI |
+
+Browser verification used Chromium via the agent-browser MCP. Wallet-gated panels were reached
+with a temporary, read-only `?audit=1` bypass in `src/App.tsx`; it was reverted, and
+`git diff -- src/App.tsx` is empty. No contract, address or dependency change; nothing committed,
+pushed or deployed.
+
+### Phase 8 post-review fixes (2026-10-20)
+
+An independent review found four issues; all four were fixed. `Verify` receipt submission now
+preflights with `simulateContract`; a facilitator settlement guard
+(`src/lib/facilitatorGuard.ts`, key `cg_facilitator_unsettled`) blocks only that
+provider + request attempt until the user acknowledges it; a dropped/replaced pending marker has
+an explicit, confirmed recovery action that sends nothing; and the Phase 8 docs were corrected.
+
+A second read-only review found fail-open storage handling. The follow-up hardening makes the
+guard fail closed: a `prepared` marker is persisted and read back *before* the facilitator
+request, unreadable or corrupt storage blocks payments instead of looking like "no unresolved
+payment", and only an explicitly allowlisted pre-settlement 402 error, demo/no-settlement, or a
+confirmed/reverted transaction clears the marker. `beginGuardedFacilitatorRequest` starts the
+request only after that read-back, and tests prove its callback is skipped when storage cannot be
+read, written or verified. `src/lib/facilitatorOutcome.ts` owns the fallback decision. If the
+facilitator returns a hash but pending-marker storage fails, the hash is still shown with an
+explorer link and the durable x402 marker keeps the retry blocked; `setPendingTx`/`clearPendingTx`
+report verified success, and `Verify`/`Requests` surface a failed write instead of claiming
+success.
+
+A third read-only review found that HTTP 402 was treated as unconditionally pre-settlement even
+for `Nonce already used`, which is returned after the authorization nonce has been consumed. The
+fix permits fallback only for an explicit allowlist of errors emitted before
+`callServiceWithAuthorization`; `Nonce already used`, unknown 402 errors, and 402 responses that
+claim success or a hash stay uncertain. `CallBuilder` keeps the guard, sends no fallback, shows
+the reason, and offers a read-only transaction-history check and explicit acknowledgment. The
+decision and guard-retention rules have unit tests; the UI remains code-inspected.
+
+A fourth review found two payment-safety gaps: the guard only disabled the x402 button, so the
+direct call and batch paths could still start a payment, and a facilitator response with a valid
+hash plus `demo:true`/`settled:false` could clear the guard. The follow-up adds one
+`checkFacilitatorGuard` decision used by every payment handler immediately before its write,
+disables all payment CTAs while the guard is active or unreadable, and keeps a valid hash as
+uncertain when the response contradicts it. `api/call-service.js` now checks the authorization
+nonce before signature, validity, target, provider and value validation, and returns structured
+`PRE_SETTLEMENT` or `AUTHORIZATION_ALREADY_USED` codes. A malformed payment request returns
+`PAYMENT_REQUIRED`, which is never fallback-eligible. Replayed authorizations therefore cannot
+receive a pre-settlement result through a later validation failure.
+
+Tests grew to 168 pass / 0 fail / 481 expect() calls / 10 files. `bun run typecheck` and
+`bun run lint` are clean; `bun run build` passed in 1m42s with only the existing large-chunk
+warnings. Limits unchanged: live E2E, wallet-signed writes, keyboard-only and screen-reader runs
+remain unverified; no component-level test runner exists, so the handler wiring is inspected and
+the shared pure gate, classifier and API ordering are unit-tested. `sessionStorage` is per tab,
+and when it is unavailable all payment starts are blocked rather than allowed. At that stage no
+server-side idempotency store was wired; Stage 1/2 now exist in the working tree but production is
+still inactive (see the Idempotency Stage 1/2 section), so the shipped guarantee remains scoped to
+the current tab's guarded provider + request attempt, not a global "pay at most once" guarantee.
+
+A fifth review found the remaining P0 gaps. `src/lib/paymentGate.ts` is now the single
+fail-closed start decision: it combines the durable `cg_pending_tx` marker, an in-memory record of
+a hash whose marker write or read-back failed, a per-tab operation lock, the CCTP operation marker
+and the facilitator guard. Every payment-starting handler calls it immediately before its write
+(Call Builder call/x402/batch/CCTP/claim/receipt, the Verify/Receipt claim paths, both Bulk Call
+loops, Overview multi-call, the Bridge and the Payments transfer); each loop re-checks before
+every item and stops if the marker cannot be persisted. A failed marker write keeps the hash in memory and blocks further
+payments, including programmatic ones, until a verified clear; the UI states that a reload will
+forget it.
+
+The Bridge panel uses the same CCTP marker, verifies the relay's hash on Arc before claiming a
+mint, and keeps the marker when the relay returns no hash.
+
+CCTP now has its own durable stage marker (`cg_cctp_operation`): `started`, `approval-pending`,
+`approval-confirmed`, `burn-pending`, `burn-confirmed`, `mint-pending`, `mint-confirmed`. Each
+stage is written and byte-verified before its write, hashes are preserved, and only forward
+transitions are accepted. A reverted approval/burn/mint may clear the marker because that stage
+provably did nothing; an unknown receipt, a storage failure or an attestation error keeps it, so a
+second burn or mint is refused and manual recovery is required.
+
+The client no longer trusts facilitator claims. `facilitatorOutcome` has two outcomes: `settled`
+(a hash, which the client still verifies by reading the receipt itself) and `uncertain`. A
+`PRE_SETTLEMENT` code, `demo:true` or `settled:false` no longer clears the guard or starts an
+automatic on-chain fallback; `permitsOnChainFallback` always returns false. The guard is cleared
+only by independent receipt evidence or an explicit user acknowledgment. As a consequence, demo
+mode now leaves a warning that must be acknowledged before the next x402 attempt.
+
+Guard writes also refuse a same-attempt downgrade (`prepared`/`uncertain` after `submitted`) and
+never drop an existing transaction hash. Acknowledgment and discard controls refuse while a write,
+facilitator request or receipt wait is running.
+
+Tests grew to 207 pass / 0 fail / 640 expect() calls / 12 files. `bun run typecheck` and
+`bun run lint` are clean; `git diff --check` is clean. The build was not rerun in this round.
+
+Limits unchanged and still material: no server-side idempotency store was wired at that stage;
+Stage 1/2 now exist but are inactive (see below), and there is no authenticated facilitator
+outcome, so the shipped guarantee is per tab and per `providerId + requestHash`, not global
+at-most-once settlement; a reload loses an unpersisted hash (the UI says so); a single
+nonce read is never treated as proof; cross-tab, cleared-storage and direct contract calls are not
+covered. The Agent wallet writes and the Lending deposit still have no pending marker. CCTP remains disabled in the UI. No component-level test runner exists, so handler wiring
+is inspected and the pure rules are unit-tested; keyboard-only and screen-reader behaviour remain
+unverified.
+
+## Idempotency Stage 1/2 — prepared, not active (2026-10-21)
+
+Stage 1 (`api/_idempotency.js`, `api/_idempotency_state.js`) and Stage 2
+(`api/_upstash_idempotency_store.js`) are present in the working tree but are not committed,
+deployed, or wired into the production default handler. `defaultHandler` still calls `handler`
+without an `idempotencyStore`; production idempotency remains off.
+
+Stage 1 is a pure state machine for operation and nonce-reservation records: forward-only
+transitions, explicit revisions, recovery leases, and versioned records. Legacy v1 `prepared`
+records stay read-only because they may already own a signed transaction. Stage 2 is an opt-in
+Upstash REST `EVAL` adapter with create-if-absent and state + revision compare-and-set; it never
+uses `/pipeline`, never falls back to memory, and fails closed on transport, HTTP, or payload
+errors. It does not allocate sender nonces, sign transactions, persist raw signed transactions,
+claim recovery leases, or activate production idempotency.
+
+The opt-in real integration test exists at
+`tests/upstash-idempotency-store.integration.test.ts`. It is skipped unless
+`UPSTASH_IDEMPOTENCY_INTEGRATION=isolated-test-db`; it reads only dedicated
+`UPSTASH_TEST_REST_URL` / `UPSTASH_TEST_REST_TOKEN`, requires an HTTPS URL whose hostname exactly
+matches `UPSTASH_TEST_EXPECTED_HOST`, and verifies a SHA-256 of the database marker at
+`callguard:test:db-identity` before creating clients. A missing or mismatched marker stops after
+one read-only `GET`; no write, `SCAN`, or `DEL` runs. Cleanup is limited to the generated
+`callguard:test:idempotency:<uuid>:` prefix, and the marker is outside that prefix. The real
+isolated database has not been provisioned or contacted, so only fake-fetch tests have run.
+
+Current local evidence (2026-10-21): `bun test tests/` → **377 pass / 4 skip / 0 fail / 1444
+expect() calls / 30 files**; `forge test -vv` → **300 pass / 0 fail / 11 suites**; `bun run check`
+and `bun run build` exit 0. The four skipped tests are the opt-in real Upstash integration suite.
+No commit, push, deploy, wallet operation, or real Upstash request was performed. Local `.env` is
+absent, so `bun run check-env` was not run; deploy variable names are listed in `.env.example` and
+`check.js`. CCTP remains disabled in the UI because the panel's burn has no 96-byte hook data for
+`CrossChainReceiver`.
+
+Remaining blockers before activation: sender/nonce strategy, durable raw signed-transaction
+persistence, recovery-worker host/scheduler, bounded receipt wait, and replacement policy. Stage 3
+and cross-endpoint idempotency remain unauthorised.
+
+## Production v7 alignment — prepared, not deployed (2026-10-21)
+
+Read-only inspection of deployment `3d858a2ffed9d73a086fc89a34490508e2a37b26` found a split
+configuration. The deployed client bundle contains the v7 addresses, but the deployed server
+routes still read `VITE_SERVICE_REGISTRY` / `VITE_PAY_PER_CALL` from the Vercel runtime
+environment, which carries retired values (`0xdb73903c904f83251bc345e591a769e0a4ca32d9` and
+`0xcdbfb84aabd49785862c5ccb981e9af8f96efd0a`). `/api/marketplace` therefore advertised the old
+contracts, and `/providers/1` read the old registry. The basic demo is **not verified** on this
+deployment.
+
+The smallest code fix is `api/_contracts.js`, the server-side v7 source of truth, used by
+`marketplace`, `call-service`, `provider-page`, `auto-receipt`, `notify-provider`, `attestation`,
+and `energy-data`. These routes no longer let retired server env values choose the contracts. No
+Vercel environment setting was changed.
+
+`VITE_*` variables are build-time inputs. Vite inlines them into the browser bundle during
+`bun run build`; they are not read by Vercel Functions at request time, and changing them does not
+change an already-built bundle. The current client does not read these address variables at all:
+`src/lib/config.ts` hardcodes the v7 registry and PayPerCall addresses. Server routes read runtime
+environment variables at invocation time. After this fix, the changed routes use canonical v7
+addresses and ignore `SERVICE_REGISTRY`, `PAY_PER_CALL`, `USDC_ADDRESS`, `CHAIN_ID`,
+`VITE_SERVICE_REGISTRY`, `VITE_PAY_PER_CALL`, `VITE_USDC_ADDRESS`, and `VITE_CHAIN_ID` for those
+values. Runtime configuration still includes `ARC_RPC_URL`, `FACILITATOR_ADDRESS`,
+`SELLER_ADDRESS`, `FACILITATOR_PRIVATE_KEY`, `PROVIDER_<id>_KEY`, `PROVIDER_WEBHOOK_SECRET`,
+`CIRCLE_API_KEY`, and the E2E-only `CALLER_PK` / `PROVIDER_PK`.
+
+`/api/marketplace/health` returned the SPA because `vercel.json` had no route for it and the
+catch-all `/(.*) -> /index.html` won. The fix adds
+`/api/marketplace/health -> /api/marketplace?health=1` before the catch-all and teaches the
+marketplace handler to accept that query. This is prepared locally; the live deployment still
+returns HTML until a redeploy.
+
+Auto-receipt no longer falls back to `SELLER_PRIVATE_KEY`. It requires
+`PROVIDER_<id>_KEY`, reads the active v7 provider from `ServiceRegistry`, and refuses to submit
+unless the wallet address equals the registered `signer`. The deployed provider 1 signer is
+`0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`; the deployed seller is
+`0x9adEDa85604C205791B98B4C239b5625688a4ba5`, so the old fallback was the wrong signer.
+`PROVIDER_1_KEY` and `PROVIDER_WEBHOOK_SECRET` are still absent, and POST remains gated by the
+missing webhook secret.
+
+`scripts/e2e-lifecycle.js` now uses the canonical v7 PayPerCall and USDC addresses, its `getCall`
+tuple matches the v7 eight-field `Call` struct, it preflights the active provider signer against
+`PROVIDER_PK`, and it prints only the RPC origin rather than a URL that could contain a token. It
+was syntax-checked, not executed; no wallet or network operation ran.
+
+Local evidence for this change (2026-10-21): `bun test tests/` → **382 pass / 4 skip / 0 fail /
+1460 expect() calls / 30 files**; `bun run typecheck` and `bun run lint` exit 0. The four skipped
+tests are the opt-in isolated Upstash suite. The prior `forge test -vv` result remains **300 pass /
+0 fail / 11 suites**; Foundry was not rerun for this change. `bun run build` was not rerun. No
+commit, push, deploy, Vercel environment change, wallet signature, USDC spend, secret read, CCTP
+change, idempotency activation, or `/root/projects/onur-mock` sync was performed.
+
+Remaining live-demo blockers: the above changes are not deployed; `PROVIDER_1_KEY` must be
+provisioned for signer `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` before auto-receipt can work;
+`PROVIDER_WEBHOOK_SECRET` must be set before POST is accepted; and a live `callService` plus
+provider-signed `submitReceipt` still needs an explicit approval to sign and spend USDC. Until
+then, use a direct on-chain `callService` and a manual provider receipt, not x402 or auto-receipt.

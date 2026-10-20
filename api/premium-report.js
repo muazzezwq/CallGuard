@@ -1,11 +1,21 @@
 import { ethers } from "ethers";
 import { settleEip3009 } from "./_settle.js";
+import { getRpcUrl } from "./_rpc.js";
+import { logError } from "./_redact.js";
 
 const USDC_ADDR = process.env.USDC_ADDRESS || "0x3600000000000000000000000000000000000000";
 const CHAIN_ID = Number(process.env.CHAIN_ID || process.env.VITE_CHAIN_ID || "5042002");
 
-function getRpcUrl() {
-  return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL || null;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
+const SIGNATURE_RE = /^0x[0-9a-fA-F]{130}$/;
+const DECIMAL_RE = /^(0|[1-9][0-9]*)$/;
+
+function isAtomicValue(value) {
+  return (
+    (typeof value === "string" && DECIMAL_RE.test(value)) ||
+    (typeof value === "number" && Number.isSafeInteger(value) && value >= 0)
+  );
 }
 
 export default async function handler(req, res) {
@@ -23,7 +33,7 @@ export default async function handler(req, res) {
       error: "Payment Required",
       accepts: [{
         scheme: "exact",
-        network: "arc-testnet",
+        network: "eip155:5042002",
         maxAmountRequired: amountAtomic,
         resource: "/api/premium-report",
         description: "Premium Analytics Report",
@@ -47,31 +57,50 @@ export default async function handler(req, res) {
         return res.status(402).json({ error: "Malformed payment signature" });
       }
       const auth = payment.authorization || payment;
-      if (!auth?.from || !auth?.to || !auth?.value || !auth?.nonce) {
-        return res.status(402).json({ error: "Incomplete payment authorization" });
+      if (
+        !auth ||
+        typeof auth !== "object" ||
+        typeof auth.from !== "string" ||
+        typeof auth.to !== "string" ||
+        typeof auth.nonce !== "string" ||
+        !ADDRESS_RE.test(auth.from) ||
+        !ADDRESS_RE.test(auth.to) ||
+        !BYTES32_RE.test(auth.nonce) ||
+        !isAtomicValue(auth.value) ||
+        !isAtomicValue(auth.validAfter) ||
+        !isAtomicValue(auth.validBefore)
+      ) {
+        return res.status(402).json({ error: "Malformed payment authorization" });
       }
 
       // Real EIP-3009 verification: signature, recipient, amount, expiry.
       const paymentSig = payment.signature;
-      if (!paymentSig) return res.status(402).json({ error: "Missing payment signature bytes" });
+      if (typeof paymentSig !== "string" || !SIGNATURE_RE.test(paymentSig)) {
+        return res.status(402).json({ error: "Malformed payment signature" });
+      }
       const domain = { name: "USDC", version: "2", chainId: CHAIN_ID, verifyingContract: USDC_ADDR };
       const types = { TransferWithAuthorization: [
         { name: "from", type: "address" }, { name: "to", type: "address" },
         { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" },
         { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
       ]};
-      const recovered = ethers.verifyTypedData(domain, types, auth, paymentSig);
-      if (recovered.toLowerCase() !== String(auth.from).toLowerCase()) {
+      let recovered;
+      try {
+        recovered = ethers.verifyTypedData(domain, types, auth, paymentSig);
+      } catch {
         return res.status(402).json({ error: "Signature mismatch" });
       }
-      if (String(auth.to).toLowerCase() !== payTo.toLowerCase()) {
+      if (recovered.toLowerCase() !== auth.from.toLowerCase()) {
+        return res.status(402).json({ error: "Signature mismatch" });
+      }
+      if (auth.to.toLowerCase() !== payTo.toLowerCase()) {
         return res.status(402).json({ error: "Payment recipient mismatch" });
       }
       if (BigInt(auth.value) < BigInt(amountAtomic)) {
         return res.status(402).json({ error: "Payment amount too low" });
       }
-      const now = Math.floor(Date.now() / 1000);
-      if (Number(auth.validAfter) > now || Number(auth.validBefore) < now) {
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      if (BigInt(auth.validAfter) > now || BigInt(auth.validBefore) < now) {
         return res.status(402).json({ error: "Authorization not currently valid" });
       }
       // Consume the nonce by settling on-chain. Without this a single signed
@@ -79,7 +108,7 @@ export default async function handler(req, res) {
       const rpcUrl = getRpcUrl();
       const settlement = await settleEip3009({ auth, signature: paymentSig, usdcAddress: USDC_ADDR, rpcUrl });
       if (!settlement.ok) {
-        console.error("[premium] settlement failed:", settlement.error);
+        logError("[premium] settlement failed", { message: settlement.error });
         return res.status(503).json({ error: "Payment settlement unavailable" });
       }
 
@@ -114,7 +143,7 @@ export default async function handler(req, res) {
       return res.json(report);
     } catch(e) {
       // Never leak provider error messages (may embed the RPC URL + token).
-      console.error("[premium] Error:", e.shortMessage || e.reason || e.name || "error");
+      logError("[premium] Error", e);
       return res.status(500).json({ error: "Internal error" });
     }
   }

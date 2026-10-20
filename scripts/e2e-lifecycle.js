@@ -8,33 +8,37 @@
  * Requires: ARC_RPC_URL, CALLER_PK, PROVIDER_PK in .env
  */
 import { ethers } from "ethers";
+import { V7 } from "../api/_contracts.js";
 
 const RPC = process.env.ARC_RPC_URL;
 if (!RPC) { console.error("❌ ARC_RPC_URL not set"); process.exit(1); }
+if (!process.env.CALLER_PK) { console.error("❌ CALLER_PK not set"); process.exit(1); }
+if (!process.env.PROVIDER_PK) { console.error("❌ PROVIDER_PK not set"); process.exit(1); }
 
-const PPC_ADDR = process.env.VITE_PAY_PER_CALL;
-if (!PPC_ADDR) { console.error("❌ VITE_PAY_PER_CALL not set"); process.exit(1); }
+const PPC_ADDR = V7.PAY_PER_CALL;
+const USDC_ADDR = V7.USDC;
 
 const provider = new ethers.JsonRpcProvider(RPC);
-const callerWallet  = new ethers.Wallet(process.env.CALLER_PK || "", provider);
-const providerWallet = new ethers.Wallet(process.env.PROVIDER_PK || "", provider);
+const callerWallet  = new ethers.Wallet(process.env.CALLER_PK, provider);
+const providerWallet = new ethers.Wallet(process.env.PROVIDER_PK, provider);
 
 const PPC_ABI = [
   "function callService(uint256 providerId, bytes32 requestHash) external returns (bytes32)",
   "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes calldata signature) external",
   "function claimTimeout(bytes32 callId) external",
-  "function calls(bytes32) external view returns (uint8 status, address caller, uint256 providerId, uint256 amount, uint32 deadline)",
+  "function getCall(bytes32) external view returns (uint256 providerId, address caller, uint256 amount, uint32 startedAt, uint32 deadline, bytes32 requestHash, bytes32 responseHash, uint8 status)",
   "function hashReceipt(tuple(bytes32 callId, bytes32 responseHash, uint64 respondedAt)) external view returns (bytes32)",
 ];
 const USDC_ABI = [
   "function approve(address, uint256) external returns (bool)",
   "function balanceOf(address) external view returns (uint256)",
 ];
+const REGISTRY_ABI = [
+  "function getProvider(uint256 providerId) external view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
+];
 
 const ppc = new ethers.Contract(PPC_ADDR, PPC_ABI, callerWallet);
-const usdcAddr = process.env.VITE_USDC_ADDRESS;
-if (!usdcAddr) { console.error("❌ VITE_USDC_ADDRESS not set"); process.exit(1); }
-const usdc = new ethers.Contract(usdcAddr, USDC_ABI, callerWallet);
+const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, callerWallet);
 
 const PROVIDER_ID = process.env.TEST_PROVIDER_ID ? Number(process.env.TEST_PROVIDER_ID) : 1;
 const REQUEST_HASH = ethers.keccak256(ethers.toUtf8Bytes("e2e-test-" + Date.now()));
@@ -116,13 +120,33 @@ async function runTimeoutPath() {
   }
 }
 
+async function preflight() {
+  const registry = new ethers.Contract(V7.SERVICE_REGISTRY, REGISTRY_ABI, provider);
+  const info = await registry.getProvider(PROVIDER_ID);
+  if (!info.active) throw new Error(`provider ${PROVIDER_ID} is not active`);
+  if (String(info.signer).toLowerCase() !== providerWallet.address.toLowerCase()) {
+    throw new Error(`PROVIDER_PK signer ${providerWallet.address} does not match registered signer ${info.signer}`);
+  }
+  ok(`provider ${PROVIDER_ID} active; signer matches PROVIDER_PK`);
+}
+
 async function main() {
+  const rpcLabel = (() => {
+    try { return new URL(RPC).origin; } catch { return "configured"; }
+  })();
   console.log("🚀 CallGuard E2E Lifecycle Test");
-  console.log(`   RPC: ${RPC}`);
+  console.log(`   RPC: ${rpcLabel}`);
   console.log(`   Contract: ${PPC_ADDR}`);
   console.log(`   Caller: ${callerWallet.address}`);
   console.log(`   Provider: ${providerWallet.address}`);
   console.log(`   Provider ID: ${PROVIDER_ID}`);
+
+  try {
+    await preflight();
+  } catch (e) {
+    console.error(`  ❌ Preflight failed: ${e.message}`);
+    process.exit(1);
+  }
 
   await runHappyPath();
   await runTimeoutPath();

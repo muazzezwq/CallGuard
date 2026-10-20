@@ -3,7 +3,10 @@
 // with the call details so they can respond and submit a receipt automatically.
 
 import { ethers } from "ethers";
+import { V7 } from "./_contracts.js";
 import { timingSafeEqual, createHash } from "node:crypto";
+import { getRpcUrl } from "./_rpc.js";
+import { errorSummary, logError } from "./_redact.js";
 
 // Constant-time secret comparison (hash first so lengths always match).
 function secretEquals(a, b) {
@@ -13,16 +16,23 @@ function secretEquals(a, b) {
   return timingSafeEqual(ha, hb);
 }
 
-// RPC via proxy when available, else env-configured public endpoint
-const proxyChains = (process.env.RPC_PROXY_CHAINS || "").split(",");
-const RPC_URL =
-  process.env.RPC_PROXY_BASE_URL && proxyChains.includes("Arc_Testnet")
-    ? `${process.env.RPC_PROXY_BASE_URL}/api/rpc/Arc_Testnet?_rpc_token=${process.env.RPC_PROXY_TOKEN}`
-    : process.env.ARC_RPC_URL; // set in Vercel env — no literal fallback
+// One resolver for every documented public RPC alias and the optional proxy.
+const RPC_URL = getRpcUrl();
 
-const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY;
-// LOW-02: prefer unprefixed env vars server-side
-const PAY_PER_CALL = process.env.PAY_PER_CALL || process.env.VITE_PAY_PER_CALL;
+const SERVICE_REGISTRY = V7.SERVICE_REGISTRY;
+const PAY_PER_CALL = V7.PAY_PER_CALL;
+
+const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const DECIMAL_RE = /^(0|[1-9][0-9]*)$/;
+
+function normalizeProviderId(value) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value);
+  if (!DECIMAL_RE.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? String(parsed) : null;
+}
 
 // FIXED: ABI must match the actual ServiceRegistry.ProviderView (9 fields)
 // including maxConcurrentCalls and zkTier, and PayPerCall.Call struct.
@@ -50,14 +60,24 @@ export default async function handler(req, res) {
   const got = req.headers["x-webhook-secret"] || "";
   if (!secretEquals(got, WEBHOOK_SECRET)) return res.status(401).json({ error: "unauthorized webhook" });
 
-  if (!RPC_URL) return res.status(500).json({ error: "ARC_RPC_URL not configured" });
-  if (!SERVICE_REGISTRY) return res.status(500).json({ error: "VITE_SERVICE_REGISTRY not configured" });
-  if (!PAY_PER_CALL) return res.status(500).json({ error: "VITE_PAY_PER_CALL not configured" });
+  if (!RPC_URL) return res.status(500).json({ error: "RPC URL not configured" });
+  if (!SERVICE_REGISTRY) return res.status(500).json({ error: "SERVICE_REGISTRY not configured" });
+  if (!PAY_PER_CALL) return res.status(500).json({ error: "PAY_PER_CALL not configured" });
 
   try {
-    const { callId, providerId, requestHash, payload, caller } = req.body;
-    if (!callId || !providerId) {
-      return res.status(400).json({ error: "callId and providerId required" });
+    const { callId, providerId: rawProviderId, requestHash, payload, caller } = req.body || {};
+    if (typeof callId !== "string" || !BYTES32_RE.test(callId)) {
+      return res.status(400).json({ error: "invalid callId" });
+    }
+    const providerId = normalizeProviderId(rawProviderId);
+    if (providerId === null) {
+      return res.status(400).json({ error: "invalid providerId" });
+    }
+    if (requestHash != null && (typeof requestHash !== "string" || !BYTES32_RE.test(requestHash))) {
+      return res.status(400).json({ error: "invalid requestHash" });
+    }
+    if (caller != null && (typeof caller !== "string" || !ADDRESS_RE.test(caller))) {
+      return res.status(400).json({ error: "invalid caller" });
     }
 
     const rpc = new ethers.JsonRpcProvider(RPC_URL);
@@ -69,7 +89,7 @@ export default async function handler(req, res) {
     try {
       providerInfo = await registry.getProvider(providerId);
     } catch (e) {
-      console.error("[notify-provider] getProvider failed:", e.message);
+      logError("[notify-provider] getProvider failed", e);
       return res.status(404).json({ error: "Provider not found" });
     }
 
@@ -117,9 +137,10 @@ export default async function handler(req, res) {
           result: d,
         });
       } catch (e) {
+        logError("[notify-provider] auto-receipt fallback failed", e);
         return res.status(200).json({
           notified: false,
-          reason: `No webhook + auto-receipt failed: ${e.message}`,
+          reason: "No webhook + auto-receipt failed",
           callId,
           hint: `Add env var ${webhookEnvKey} or PROVIDER_${providerId}_KEY in Vercel`,
         });
@@ -162,9 +183,10 @@ export default async function handler(req, res) {
       webhookResponse = { status: r.status, ok: r.ok };
     } catch (e) {
       clearTimeout(timeout);
+      logError("[notify-provider] webhook delivery failed", e);
       return res.status(200).json({
         notified: false,
-        reason: `Webhook delivery failed: ${e.message}`,
+        reason: "Webhook delivery failed",
         callId,
         providerId,
       });
@@ -177,7 +199,7 @@ export default async function handler(req, res) {
       providerId,
     });
   } catch (e) {
-    console.error("[notify-provider] error:", e.message || e);
+    logError("[notify-provider] error", e);
     return res.status(500).json({ error: "notify failed" });
   }
 }

@@ -9,19 +9,11 @@
 // USDC's `authorizationState[from][nonce]` to true, making replay impossible.
 
 import { ethers } from "ethers";
+import { redact } from "./_redact.js";
 
 const TRANSFER_ABI = [
   "function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s)",
 ];
-
-export function getRpcUrl() {
-  return (
-    process.env.ARC_TESTNET_RPC_URL ||
-    process.env.ARC_RPC_URL ||
-    process.env.RPC_URL ||
-    null
-  );
-}
 
 /**
  * Settle an EIP-3009 authorization on-chain by submitting
@@ -55,6 +47,6 @@ export async function settleEip3009({ auth, signature, usdcAddress, rpcUrl }) {
     return { ok: true, txHash: receipt.hash };
   } catch (e) {
     // Never leak RPC URL/token embedded in provider error messages.
-    return { ok: false, error: e.shortMessage || e.reason || e.name || "settlement failed" };
+    return { ok: false, error: redact(e.shortMessage || e.reason || e.name || "settlement failed") };
   }
 }

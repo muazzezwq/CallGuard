@@ -7,6 +7,21 @@
  * POST /api/attestation  body:{callId}|{providerId,type}  → issue on-chain attestation
  */
 
+import { V7 } from "./_contracts.js";
+import { getRpcUrl } from "./_rpc.js";
+import { logError } from "./_redact.js";
+
+const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
+const DECIMAL_RE = /^(0|[1-9][0-9]*)$/;
+
+function parseProviderId(value) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value);
+  if (!DECIMAL_RE.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
 // ---------------------------------------------------------------------------
 // Raw JSON-RPC helper — no viem dependency needed
 // ---------------------------------------------------------------------------
@@ -20,6 +35,7 @@ async function ethCall(rpcUrl, to, data) {
     headers: { "Content-Type": "application/json" },
     body,
   });
+  if (!r.ok) throw new Error(`rpc http ${r.status}`);
   const json = await r.json();
   if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
   return json.result; // hex string
@@ -97,18 +113,18 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const rpcUrl = process.env.ARC_RPC_URL;
+  const rpcUrl = getRpcUrl();
   if (!rpcUrl) {
     return res.status(503).json({
       ok: false,
-      error: "ARC_RPC_URL env var is not set.",
+      error: "RPC URL is not configured.",
     });
   }
 
   // LOW-02: prefer unprefixed env vars server-side
   const BRIDGE   = process.env.SLA_ATTESTATION_BRIDGE || process.env.VITE_SLA_ATTESTATION_BRIDGE;
-  const REGISTRY = process.env.SERVICE_REGISTRY       || process.env.VITE_SERVICE_REGISTRY;
-  const PPC      = process.env.PAY_PER_CALL            || process.env.VITE_PAY_PER_CALL;
+  const REGISTRY = V7.SERVICE_REGISTRY;
+  const PPC      = V7.PAY_PER_CALL;
 
   try {
     if (req.method === "GET") {
@@ -117,16 +133,23 @@ export default async function handler(req, res) {
       // ── Provider score ───────────────────────────────────────────────────
       if (providerId) {
         if (!REGISTRY) {
-          return res.status(503).json({ ok: false, error: "VITE_SERVICE_REGISTRY not set." });
+          return res.status(503).json({ ok: false, error: "SERVICE_REGISTRY not set." });
         }
-        const result = await peekScoreDirect(rpcUrl, REGISTRY, Number(providerId));
+        const parsedProviderId = parseProviderId(providerId);
+        if (parsedProviderId === null) {
+          return res.status(400).json({ ok: false, error: "invalid providerId" });
+        }
+        const result = await peekScoreDirect(rpcUrl, REGISTRY, parsedProviderId);
         return res.status(200).json(result);
       }
 
       // ── Call verdict (raw eth_call to PayPerCall.getCall) ────────────────
       if (callId) {
         if (!PPC) {
-          return res.status(503).json({ ok: false, error: "VITE_PAY_PER_CALL not set." });
+          return res.status(503).json({ ok: false, error: "PAY_PER_CALL not set." });
+        }
+        if (typeof callId !== "string" || !BYTES32_RE.test(callId)) {
+          return res.status(400).json({ ok: false, error: "invalid callId" });
         }
         const arg  = encodeBytes32(callId);
         // getCall selector: keccak256("getCall(bytes32)") first 4 bytes
@@ -162,7 +185,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method not allowed." });
 
   } catch (err) {
-    console.error("[attestation api error]", err.message, err.stack);
+    logError("[attestation api error]", err);
     return res.status(500).json({ ok: false, error: "attestation request failed" });
   }
 }

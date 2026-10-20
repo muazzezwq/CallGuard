@@ -23,6 +23,7 @@
     { "source": "/nano/balance",      "destination": "/api/nano-call?balance=1" },
     { "source": "/sitemap.xml",       "destination": "/api/provider-page?sitemap=1" },
     { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
+    { "source": "/api/marketplace/health", "destination": "/api/marketplace?health=1" },
     { "source": "/(.*)",              "destination": "/index.html" }
   ],
   "headers": [
