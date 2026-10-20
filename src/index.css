@@ -3557,6 +3557,8 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .pv-table td:first-child { color: var(--text-dim); }
 .pv-src { font-size: .7rem; color: var(--text-faint); white-space: nowrap; }
 .pv-hint { color: var(--text-muted); font-size: .72rem; }
+.pv-endpoint { overflow-wrap: anywhere; }
+.pp-endpoint { overflow-wrap: anywhere; }
 .pv-note { font-size: .78rem; line-height: 1.55; color: var(--text-dim); margin: 12px 0 0; max-width: 74ch; }
 .pv-inline-link {
   background: none; border: none; padding: 0; font: inherit;
@@ -3587,6 +3589,82 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 @media (max-width: 560px) {
   .pv-lookup .ui-field { flex: 1 1 100%; }
   .pv-table th:nth-child(3), .pv-table td:nth-child(3) { display: none; }
+}
+
+/* ══════════════════════════════════════════════
+   PROVIDER DETAILS  (.pp-*)
+   Shares the primitives (SectionCard, Stat, AddressPill, Table); only the
+   layout below is local. Source labels: "indexed" = Goldsky, otherwise the
+   value comes from the registry read.
+══════════════════════════════════════════════ */
+
+.pp-root { padding-bottom: 96px; }
+
+.pp-lookup {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg);
+}
+.pp-lookup__label { font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
+.pp-lookup__input {
+  width: 130px; padding: 8px 10px;
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: .88rem; font-family: var(--font-mono);
+}
+.pp-lookup__input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--accent); }
+.pp-lookup__input[aria-invalid="true"] { border-color: var(--danger); }
+.pp-lookup__hint { font-size: .76rem; color: var(--text-faint); margin: 0; }
+.pp-lookup__err { flex-basis: 100%; margin: 0; font-size: .78rem; color: var(--danger); }
+
+.pp-loading { display: flex; flex-direction: column; gap: 12px; margin: 18px 0; }
+
+.pp-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.pp-actions__note { font-size: .78rem; color: var(--text-dim); }
+
+.pp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.pp-grid .ui-section + .ui-section { margin-top: 0; }
+.pp-grid > .ui-section:last-child { grid-column: 1 / -1; }
+
+.pp-kv { display: grid; gap: 10px; margin: 0; }
+.pp-kv > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.pp-kv > div:last-child { padding-bottom: 0; border-bottom: none; }
+.pp-kv dt { font-size: .76rem; color: var(--text-dim); flex-shrink: 0; }
+.pp-kv dd { margin: 0; font-size: .82rem; color: var(--text); text-align: right; min-width: 0; overflow-wrap: anywhere; }
+
+.pp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pp-stats small { font-size: .55em; font-weight: 600; color: var(--text-dim); }
+
+.pp-src {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  border: 1px solid var(--border); border-radius: 999px;
+  font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-faint); vertical-align: middle;
+}
+.pp-muted { color: var(--text-faint); font-size: .82rem; }
+.pp-break { word-break: break-all; font-size: .72rem !important; }
+.pp-note { margin: 14px 0 0; font-size: .75rem; line-height: 1.5; color: var(--text-dim); }
+.pp-linkbtn {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent-ink); font-size: inherit; text-decoration: underline;
+}
+.pp-calls-skel { display: flex; flex-direction: column; gap: 8px; }
+.pp-share { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pp-share .pp-lookup__input { flex: 1 1 300px; width: auto; font-size: .74rem; }
+.pp-share .ui-copy { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .pp-stats { grid-template-columns: 1fr; }
+  .pp-kv > div { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .pp-kv dd { text-align: left; }
 }
 
 /* ══════════════════════════════════════════════════════
