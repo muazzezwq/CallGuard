@@ -476,7 +476,7 @@
 .ov-bars-h__row { display: grid; grid-template-columns: 88px 1fr 64px; align-items: center; gap: 10px; }
 .ov-bars-h__label { font-size: 12px; color: var(--text-dim); }
 .ov-bars-h__track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-.ov-bars-h__track i { display: block; height: 100%; border-radius: 3px; transition: width var(--motion-base) var(--ease-out); }
+.ov-bars-h__track i { display: block; height: 100%; border-radius: 3px; transition: width var(--motion-base); }
 .ov-bars-h__val { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums;
   display: inline-flex; gap: 6px; justify-content: flex-end; }
 .ov-bars-h__pct { color: var(--text-dim); }
@@ -803,7 +803,7 @@
     width: 260px;
     height: auto;
     z-index: 150;
-    transition: left var(--motion-base) var(--ease-out);
+    transition: left var(--motion-base);
   }
   .sidebar.open { left: 0; }
   .sidebar.collapsed { width: 260px; }

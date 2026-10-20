@@ -674,7 +674,7 @@ body::before {
   grid-template-rows: var(--topbar-h) 1fr;
   height: 100vh;
   overflow: hidden;
-  transition: grid-template-columns var(--motion-base) var(--ease-in-out);
+  transition: grid-template-columns var(--motion-base);
   position: relative;
   z-index: 1;
 }
