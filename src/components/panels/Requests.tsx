@@ -1,10 +1,22 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { formatUnits } from "viem";
 // MEDIUM-09: import canonical ABI from config (was local duplicate)
-import { CONFIG, PPC_ABI } from "../../lib/config";
+import { arcTestnet, CONFIG, PPC_ABI } from "../../lib/config";
+import { callStatusLabel, csvCell, normalizeCalls, usdcAmount } from "../../lib/activity";
 import { friendlyError } from "../../lib/utils";
+import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation } from "../../lib/paymentGate";
+import { classifyReceipt } from "../../lib/txLifecycle";
+
+/** Accessing `sessionStorage` itself can throw in restricted browser modes. */
+function browserStorage(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
 
 type Call = {
   id: string; providerId?: string | number; caller?: string; amount?: string; status?: string;
@@ -27,8 +39,8 @@ function exportCalls(calls: Call[], fmt: "csv" | "json") {
   if (fmt === "csv") {
     const header = "callId,providerId,caller,amount,status,createdAt,completedAt,refunded,slashed";
     const rows = calls.map(c =>
-      [c.id, c.providerId, c.caller, formatUnits(BigInt(c.amount ?? 0), 6),
-       c.status, c.createdAt, c.completedAt ?? "", c.refunded, c.slashed].join(",")
+      [c.id, c.providerId, c.caller, usdcAmount(c.amount) ?? "",
+       c.status, c.createdAt, c.completedAt ?? "", c.refunded, c.slashed].map(csvCell).join(",")
     );
     content = [header, ...rows].join("\n");
     mime = "text/csv"; ext = "csv";
@@ -45,9 +57,14 @@ function exportCalls(calls: Call[], fmt: "csv" | "json") {
 
 export default function Requests() {
   const { address } = useAccount();
+  const walletChainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "open" | "completed" | "slashed">("all");
   const [timeoutCallId, setTimeoutCallId] = useState("");
   const [timeoutStatus, setTimeoutStatus] = useState<string | null>(null);
+  const [claimHash, setClaimHash] = useState<`0x${string}` | undefined>();
 
   const q = `{
     calls(
@@ -59,12 +76,14 @@ export default function Requests() {
     }
   }`;
 
-  const { data, loading, refetch } = useSubgraph<{ calls: Call[] }>(address ? q : "", {
+  const { data, loading, error, refetch } = useSubgraph<{ calls: Call[] }>(address ? q : "", {
     enabled: !!address,
     pollInterval: 15000,
   });
 
-  const calls = useMemo(() => data?.calls ?? [], [data]);
+  /* One row per call, newest first, with an id tie-break: a refresh merged with
+     cached data must not list a call twice or jump pages. */
+  const calls = useMemo(() => normalizeCalls(data?.calls ?? []), [data]);
   const filtered = filter === "all" ? calls
     : filter === "open" ? calls.filter(c => c.status === "STARTED")
     : filter === "completed" ? calls.filter(c => c.status === "COMPLETED")
@@ -73,54 +92,96 @@ export default function Requests() {
   const openCount = calls.filter(c => c.status === "STARTED").length;
 
   // Timeout claim
-  const { writeContract, data: txHash } = useWriteContract();
-  const { isLoading: txPending, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { writeContract, isPending: claimSigning } = useWriteContract();
+  const { data: claimReceipt, isLoading: claimWaiting, isError: claimReceiptError } = useWaitForTransactionReceipt({ hash: claimHash, chainId: arcTestnet.id });
+  const txPending = claimSigning || claimWaiting;
+
+  useEffect(() => {
+    if (!claimReceipt) return;
+    const outcome = classifyReceipt(claimReceipt.status);
+    const cleared = resolvePendingTx(browserStorage()).cleared;
+    endOperation("requests-claim");
+    const clearNote = cleared
+      ? ""
+      : " ⚠️ The local pending marker could not be cleared; fix site storage before another submission.";
+    if (outcome === "confirmed") {
+      setTimeoutStatus(`✅ Claim transaction confirmed. A refund or slash is recorded only if this call was past its SLA window and grace period; this panel does not decode the amounts.${clearNote}`);
+      void queryClient.invalidateQueries({ queryKey: ["subgraph"] });
+      void queryClient.invalidateQueries({ queryKey: ["recentActivity"] });
+      void queryClient.invalidateQueries({ queryKey: ["networkStats"] });
+    } else if (outcome === "reverted") {
+      setTimeoutStatus(`❌ The claim reverted. Nothing was refunded or slashed; the contract only allows a claim after the response window plus grace, once per call.${clearNote}`);
+    } else {
+      setTimeoutStatus(`⚠️ The claim has an unrecognised receipt status. Do not retry until the explorer shows a result.${clearNote}`);
+    }
+  }, [claimReceipt, queryClient]);
+
+  useEffect(() => {
+    if (claimReceiptError) {
+      setTimeoutStatus("⚠️ The claim was submitted but its receipt could not be read. Check the explorer before retrying; it may still confirm.");
+    }
+  }, [claimReceiptError]);
 
   const handleClaimTimeout = useCallback(async () => {
     const id = timeoutCallId.trim();
-    if (!id || id.length !== 66) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(id)) {
       setTimeoutStatus("❌ Enter a valid 32-byte call ID (0x + 64 hex chars)");
       return;
     }
     if (!address) { setTimeoutStatus("❌ Connect wallet first"); return; }
-    setTimeoutStatus("⏳ Submitting...");
+    if (txPending) { setTimeoutStatus("❌ A claim is still pending. Check it before submitting another."); return; }
+    if (!publicClient) { setTimeoutStatus("❌ Arc RPC is unavailable. Nothing was submitted."); return; }
     try {
+      if (walletChainId !== arcTestnet.id) {
+        setTimeoutStatus("⏳ Switching the wallet to Arc Testnet…");
+        await switchChainAsync({ chainId: arcTestnet.id });
+      }
+      setTimeoutStatus("⏳ Checking whether this call can be claimed...");
+      await publicClient.simulateContract({
+        address: CONFIG.payPerCall as `0x${string}`,
+        abi: PPC_ABI,
+        functionName: "claimTimeout",
+        args: [id as `0x${string}`],
+        account: address as `0x${string}`,
+      });
+      const gate = checkPaymentStart({ storage: browserStorage(), operation: "requests-claim" });
+      if (!gate.ok) {
+        setTimeoutStatus(`❌ No transaction was submitted. ${gate.message}`);
+        return;
+      }
+      if (!beginOperation("requests-claim")) {
+        setTimeoutStatus("❌ Another payment flow is still running in this tab. Wait for it to finish.");
+        return;
+      }
+
+      setTimeoutStatus("⏳ Submitting...");
       writeContract({
         address: CONFIG.payPerCall as `0x${string}`,
         abi: PPC_ABI,
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
+        chainId: arcTestnet.id,
       }, {
-        onError: (e: unknown) => setTimeoutStatus(`❌ ${friendlyError(e)}`),
+        onSuccess: (h) => {
+          const persisted = recordSubmittedTx(h, browserStorage()).persisted;
+          setClaimHash(h);
+          setTimeoutStatus(persisted
+            ? "⏳ Claim submitted; waiting for confirmation..."
+            : "⚠️ Claim submitted, but the pending marker could not be saved. The hash is shown below; this tab stays blocked and a reload will not remember it. Check the explorer before retrying.");
+        },
+        onError: (e: unknown) => {
+          endOperation("requests-claim");
+          setTimeoutStatus(`❌ ${friendlyError(e)}`);
+        },
       });
     } catch (_err: unknown) {
-      setTimeoutStatus(`❌ ${friendlyError(_err)}`);
+      endOperation("requests-claim");
+      setTimeoutStatus(`❌ The claim would revert, so nothing was submitted and no gas was spent: ${friendlyError(_err)}`);
     }
-  }, [timeoutCallId, address, writeContract]);
+  }, [timeoutCallId, address, writeContract, txPending, publicClient, walletChainId, switchChainAsync]);
 
-  // SLA countdown: tick every second for STARTED calls
-  const [nowMs, setNowMs] = useState(Date.now());
-  useEffect(() => {
-    const hasOpen = calls.some(c => c.status === "STARTED");
-    if (!hasOpen) return;
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [calls]);
-
-  function slaCountdown(call: Record<string, unknown>): string | null {
-    if (call.status !== "STARTED") return null;
-    // createdAt + maxResponseTime = deadline; we use completedAt as deadline if set
-    const maxResp = 120; // 120s fallback; real value from provider config if available
-    const createdTs = Number(call.createdAt) * 1000;
-    const deadlineMs = call.completedAt
-      ? Number(call.completedAt) * 1000
-      : createdTs + maxResp * 1000;
-    const remaining = Math.floor((deadlineMs - nowMs) / 1000);
-    if (remaining <= 0) return "⏰ Claimable now";
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    return `⏱ ${m > 0 ? `${m}m ` : ""}${s}s remaining`;
-  }
+  // SLA countdown was removed: the provider's real `maxResponseTime` is not in
+  // the `calls` entity, so any deadline (and "claimable now") would be invented.
 
   // Auto-fill timeout ID when clicking a call row
   const fillTimeout = (id: string) => {
@@ -147,12 +208,13 @@ export default function Requests() {
         background: "var(--bg-2)", border: "1px solid var(--border)",
         borderRadius: 10, padding: "16px 18px", marginBottom: 20
       }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 10 }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text)", fontWeight: 600, marginBottom: 10 }}>
           Claim Timeout / Refund
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             id="timeout-input"
+            aria-label="Call ID to claim"
             value={timeoutCallId}
             onChange={e => setTimeoutCallId(e.target.value)}
             placeholder="0x... call ID (auto-filled when you click a row)"
@@ -163,7 +225,9 @@ export default function Requests() {
             }}
           />
           <button
+            type="button"
             onClick={handleClaimTimeout}
+            aria-busy={txPending}
             disabled={txPending || !address}
             style={{
               padding: "9px 18px", background: "var(--danger)", color: "var(--on-danger)",
@@ -175,25 +239,28 @@ export default function Requests() {
           </button>
         </div>
         {timeoutStatus && (
-          <div style={{
-            marginTop: 8, fontSize: 12, fontFamily: "var(--font-mono)",
-            color: timeoutStatus.startsWith("✅") ? "var(--accent-ink)" : timeoutStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
-            padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6
-          }}>
+          <div
+            role={timeoutStatus.startsWith("❌") || timeoutStatus.startsWith("⚠️") ? "alert" : "status"}
+            aria-live="polite"
+            style={{
+              marginTop: 8, fontSize: 12, fontFamily: "var(--font-mono)",
+              color: timeoutStatus.startsWith("✅") ? "var(--accent-ink)" : timeoutStatus.startsWith("❌") ? "var(--danger)" : "var(--text)",
+              padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6
+            }}
+          >
             {timeoutStatus}
-          </div>
-        )}
-        {txSuccess && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent-ink)", padding: "6px 10px", background: "var(--bg-3)", borderRadius: 6 }}>
-            ✅ Timeout claimed — provider slashed. {txHash && (
-              <a href={`https://explorer.testnet.arc.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)" }}>
-                View tx ↗
-              </a>
+            {claimHash && (
+              <>
+                {" "}<code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{claimHash}</code>
+                <a href={CONFIG.explorerTx(claimHash)} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)", marginLeft: 8 }}>
+                  View tx ↗
+                </a>
+              </>
             )}
           </div>
         )}
-        <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-faint)" }}>
-          Click any STARTED call below to auto-fill the call ID.
+        <div style={{ marginTop: 8, fontSize: 11, color: "var(--text)" }}>
+          Click an open call below to prepare its call ID. The contract decides whether it is claimable.
         </div>
       </div>
 
@@ -201,8 +268,9 @@ export default function Requests() {
       <div className="cg-tabs mb-4">
         {(["all","open","completed","slashed"] as const).map(f => (
           <button key={f} className={`cg-tab${filter===f?" active":""}`}
+            aria-pressed={filter === f}
             onClick={() => setFilter(f)}>
-            {f.charAt(0).toUpperCase()+f.slice(1)}
+            {f === "all" ? "All" : f === "open" ? "Open" : f === "completed" ? "Completed" : "Timeout claimed"}
             {f === "open" && openCount > 0 &&
               <span className="badge-dot ml-1">{openCount}</span>}
           </button>
@@ -217,18 +285,37 @@ export default function Requests() {
         <div className="skeleton-list">{[...Array(4)].map((_,i)=><div key={i} className="skeleton-row"/>)}</div>
       )}
 
-      {address && !loading && filtered.length === 0 && (
+      {address && error && calls.length > 0 && (
+        <p role="status" style={{ fontSize: 12, color: "var(--warn)", margin: "0 0 10px" }}>
+          The last refresh failed, so this is the most recent data that arrived.
+        </p>
+      )}
+
+      {address && !loading && error && calls.length === 0 && (
         <div className="empty-state">
-          <p>No {filter === "all" ? "" : filter} requests yet.</p>
+          <p>The indexer did not answer, so no request is shown. This is a read failure, not an empty history.</p>
+          <button className="btn btn-sm" onClick={() => void refetch()}>Retry</button>
+        </div>
+      )}
+
+      {address && !loading && !error && filtered.length === 0 && (
+        <div className="empty-state">
+          <p>
+            {filter === "all"
+              ? "No calls indexed for this wallet yet. A call that just confirmed can take a moment to appear."
+              : `No indexed call has the ${filter} status.`}
+          </p>
         </div>
       )}
 
       <div className="call-list">
         {filtered.map(call => {
           const isOpen = call.status === "STARTED";
-          const deadlineMs = call.completedAt ? Number(call.completedAt) * 1000 : null;
-          const now = Date.now();
-          const expired = deadlineMs && now > deadlineMs;
+          const amount = usdcAmount(call.amount);
+          const createdTs = Number(call.createdAt);
+          const createdLabel = Number.isFinite(createdTs) && createdTs > 0
+            ? new Date(createdTs * 1000).toLocaleString()
+            : "time unavailable";
 
           return (
             <div
@@ -247,26 +334,20 @@ export default function Requests() {
                 <span className="call-provider text-dim">Provider #{call.providerId}</span>
               </div>
               <div className="call-row-mid">
-                <span className="call-amount">{formatUnits(BigInt(call.amount??0),6)} USDC</span>
+                <span className="call-amount">{amount ? `${amount} USDC` : "amount unavailable"}</span>
                 <span className="call-time text-dim" style={{ fontSize: 11 }}>
-                  {new Date(Number(call.createdAt)*1000).toLocaleString()}
+                  {createdLabel}
                 </span>
               </div>
               <div className="call-row-right">
                 <span className="status-badge" style={{color: STATUS_COLORS[call.status ?? ""] ?? "var(--text-dim)"}}>
-                  {call.status}
+                  {callStatusLabel(call.status)}
                 </span>
-                {isOpen && (() => {
-                  const countdown = slaCountdown(call as Record<string, unknown>);
-                  return countdown ? (
-                    <span style={{
-                      fontSize: 10, display: "block", marginTop: 3, fontFamily: "var(--font-mono)",
-                      color: expired ? "var(--danger)" : "var(--warn)"
-                    }}>
-                      {countdown}
-                    </span>
-                  ) : null;
-                })()}
+                {isOpen && (
+                  <span style={{ fontSize: 10, display: "block", marginTop: 3, color: "var(--text)" }}>
+                    open in the indexer
+                  </span>
+                )}
               </div>
             </div>
           );

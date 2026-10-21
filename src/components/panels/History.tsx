@@ -2,8 +2,15 @@ import { useState, useCallback } from "react";
 import { useAccount, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { ArrowLeft } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { formatUnits } from "viem";
 import { CONFIG, REGISTRY_ABI, arcTestnet } from "../../lib/config";
+import {
+  callStatusLabel,
+  clampPage,
+  csvCell,
+  normalizeCalls,
+  positiveUsdc,
+  usdcAmount,
+} from "../../lib/activity";
 import {
   PageHeader, SectionCard, StatCard, Toolbar, Chip, ChipRow,
   Input, Button, Badge, EmptyState, ErrorState, Skeleton, Stepper,
@@ -26,21 +33,18 @@ const FILTERS = [
   { id: "all", label: "All" },
   { id: "COMPLETED", label: "Completed" },
   { id: "STARTED", label: "Open" },
-  { id: "SLASHED", label: "Slashed" },
-  { id: "REFUNDED", label: "Refunded" },
+  { id: "SLASHED", label: "Timeout claimed" },
 ];
 
 function usdc(v: unknown) {
-  if (v === null || v === undefined || v === "") return null;
-  try { return formatUnits(BigInt(String(v)), 6); } catch { return null; }
+  return usdcAmount(v);
 }
 
 /* `refunded` and `slashed` are USDC amounts (BigInt in the schema), not flags:
    a `=== "true"` test reads "neither" for every call, including a real slash.
    Exported for the rule tests. */
 export function refundedAmount(v: unknown) {
-  const s = usdc(v);
-  return s && Number(s) > 0 ? s : null;
+  return positiveUsdc(v);
 }
 
 /* A call the indexer has not given a settlement timestamp is one whose SLA
@@ -76,12 +80,14 @@ function exportHistory(calls: Call[], format: "csv" | "json") {
     const rows = calls.map(c => [
       c.id ?? "",
       c.providerId ?? "",
-      usdc(c.amount) ?? "0",
+      /* A missing amount leaves the cell empty; writing "0" would export a
+         payment that was never recorded. */
+      usdc(c.amount) ?? "",
       c.status ?? "",
       when(c.createdAt) ?? "",
       c.requestHash ?? "",
     ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -123,7 +129,10 @@ export default function History() {
     { enabled: !!address, pollInterval: 30000 }
   );
 
-  const all = data?.calls ?? [];
+  /* One row per call: the indexer already keys by call id, and a merge of a
+     refresh with older data must not double a call. Order is explicit
+     (newest first, id as the tie-break) so pagination is deterministic. */
+  const all = normalizeCalls(data?.calls ?? []);
   const wrongNetwork = !!address && chainId !== arcTestnet.id;
 
   const meta = data?._meta;
@@ -140,7 +149,10 @@ export default function History() {
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  /* A filter can shrink the result under the current page. Clamp instead of
+     showing "no transactions" while matching records sit on an earlier page. */
+  const currentPage = clampPage(page, totalPages);
+  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   const onSearch = useCallback((v: string) => { setSearch(v); setPage(0); }, []);
   const onFilter = useCallback((v: string) => { setStatusFilter(v); setPage(0); }, []);
@@ -225,8 +237,10 @@ export default function History() {
          names what the data shows and no more. */
       v: selected.completedAt
         ? String(selected.status) === "SLASHED"
-          ? `slashed ${when(selected.completedAt) ?? "on chain"} — no valid receipt in the SLA window`
-          : `settled ${when(selected.completedAt) ?? "on chain"}`
+          ? positiveUsdc(selected.slashed)
+            ? `timeout claimed ${when(selected.completedAt) ?? "on chain"} — no valid receipt; ${positiveUsdc(selected.slashed)} USDC slashed from the provider stake`
+            : `timeout claimed ${when(selected.completedAt) ?? "on chain"} — no valid receipt; no provider stake was slashed`
+          : `receipt indexed ${when(selected.completedAt) ?? "on chain"} — the escrow became claimable by the provider; the withdrawal is a separate transaction`
         : "no settlement recorded yet",
     },
     {
@@ -242,7 +256,7 @@ export default function History() {
     <div className="ov-page tx-page">
       <PageHeader
         title="Transactions"
-        subtitle="Every call, receipt and settlement recorded on chain."
+        subtitle="Calls and indexed outcomes for this wallet on Arc Testnet."
         actions={
           <>
             <Button variant="secondary" size="sm" onClick={() => exportHistory(filtered, "csv")}>Export CSV</Button>
@@ -260,7 +274,7 @@ export default function History() {
           <StatCard label="Total calls" value={all.length} loading={loading} />
           <StatCard label="Completed" value={completed} loading={loading} />
           <StatCard label="Open" value={open} loading={loading} />
-          <StatCard label="Slashed" value={slashed} loading={loading} />
+          <StatCard label="Timeout claims" value={slashed} loading={loading} />
         </div>
       )}
 
@@ -344,8 +358,10 @@ export default function History() {
 
             {!loading && filtered.length === 0 && (
               <EmptyState
-                title="No transactions match"
-                description={statusFilter === "all" ? "This wallet has no calls on Arc yet." : "Try another status filter."}
+                title={statusFilter === "all" ? "No calls indexed yet" : "No calls match this filter"}
+                description={statusFilter === "all"
+                  ? "No call for this wallet is in the indexer yet. A call that just confirmed can take a moment to appear; a missing row is not a failed transaction."
+                  : "The indexer answered and no indexed call has this status. Try the All filter."}
               />
             )}
 
@@ -369,16 +385,16 @@ export default function History() {
                     <span className="tx-row__time">{when(c.createdAt) ?? "—"}</span>
                   </span>
                   <span className="tx-row__amt">{amount ? `${amount} USDC` : "—"}</span>
-                  <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status || "UNKNOWN"}</Badge>
+                  <Badge tone={STATUS_TONE[status] ?? "neutral"}>{callStatusLabel(status)}</Badge>
                 </button>
               );
             })}
 
             {totalPages > 1 && (
               <div className="tx-pager">
-                <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</Button>
-                <span className="tx-pager__lbl">Page {page + 1} / {totalPages}</span>
-                <Button variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</Button>
+                <Button variant="secondary" size="sm" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Prev</Button>
+                <span className="tx-pager__lbl">Page {currentPage + 1} / {totalPages}</span>
+                <Button variant="secondary" size="sm" disabled={currentPage >= totalPages - 1} onClick={() => setPage(currentPage + 1)}>Next</Button>
               </div>
             )}
           </SectionCard>
@@ -409,7 +425,7 @@ export default function History() {
                     <span className="tx-detail__id mono">{String(selected.id).slice(0, 22)}…</span>
                   </div>
                   <Badge tone={STATUS_TONE[String(selected.status)] ?? "neutral"}>
-                    {String(selected.status) || "UNKNOWN"}
+                    {callStatusLabel(selected.status)}
                   </Badge>
                 </div>
 
@@ -451,7 +467,8 @@ export default function History() {
                       { k: "Call ID", v: String(selected.id), mono: true, copy: true },
                       { k: "Provider", v: `#${String(selected.providerId)}`, mono: true },
                       { k: "Amount", v: usdc(selected.amount) ? `${usdc(selected.amount)} USDC` : "—", mono: true },
-                      { k: "Status", v: String(selected.status) || "—" },
+                      { k: "Status", v: `${callStatusLabel(selected.status)} · ${String(selected.status) || "unknown"}` },
+                      { k: "Transaction hash", v: "not indexed — the subgraph stores the call id, so no explorer transaction link can be built" },
                       { k: "Created", v: when(selected.createdAt) ?? "—" },
                       { k: "Completed", v: when(selected.completedAt) ?? "—" },
                       { k: "Request hash", v: selected.requestHash ? String(selected.requestHash) : "—", mono: true },
@@ -475,10 +492,10 @@ export default function History() {
                       </div>
                     ))}
                   </dl>
-                  {(Number(selected.refunded ?? 0) > 0 || Number(selected.slashed ?? 0) > 0) && (
+                  {(positiveUsdc(selected.refunded) || positiveUsdc(selected.slashed)) && (
                     <div className="tx-flags">
-                      {Number(selected.refunded ?? 0) > 0 && <Badge tone="info" dot>Refunded to caller</Badge>}
-                      {Number(selected.slashed ?? 0) > 0 && <Badge tone="slash" dot>Stake slashed</Badge>}
+                      {positiveUsdc(selected.refunded) && <Badge tone="info" dot>Refunded to caller</Badge>}
+                      {positiveUsdc(selected.slashed) && <Badge tone="slash" dot>Stake slashed</Badge>}
                     </div>
                   )}
                 </SectionCard>
