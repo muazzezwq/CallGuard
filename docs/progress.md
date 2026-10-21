@@ -1043,3 +1043,49 @@ four lib modules they import (`activity.ts`, `paymentGate.ts`, `facilitatorGuard
 `cctpOperation.ts`); separating those from the Phase 3 rewrite would change the behaviour that
 was tested, so they are included in the same commit and named in its body. Other uncommitted
 working-tree changes remain untouched. No push or deploy was performed.
+
+## Phase 4 — current-tree re-verification and label fix (2026-10-21)
+
+The first pass was verification-only; it found the label collision below. The follow-up fix
+changes `SLACanvas.tsx` and `shell.css` only. The mock-wallet worktree was synchronised with the
+current `SLACanvas.tsx`, `History.tsx`, `shell.css`, `index.css` and `utils.ts`, and a test-only
+GraphQL fixture supplied COMPLETED, SLASHED and STARTED calls. Browser measurements used
+`agent-browser` Chromium, real keyboard/CDP input and axe-core 4.12.1.
+
+**Found: the desktop and tablet Canvas label row collided.** At 1280×900, 1440×960 and 834×1112
+the four 112 px labels sat 47.3 px apart and overlapped every neighbour by **64.7 px**, rendering
+as `EscrowService callReceiptSettlement`. The cause was structural: four fixed-width labels cannot
+fit over the board's resting plate spacing. Before screenshots:
+`/tmp/opencode/cg-phase4-canvas-1280-{light,dark}.png` and
+`/tmp/opencode/cg-phase4-canvas-834-light.png`.
+
+**Fix:** `.sla-canvas__labels` is now a four-column grid; each label is a static, shrinkable cell
+(90.5 px at 1280, 107.6 px at 1440, 123 px at 834, 138.2 px at 641) and no adjacent pair overlaps.
+The pointer twins still select a stage and hand focus to its plate. The label row is hidden while
+zoomed, because the columns no longer sit under the transformed plates; the existing
+`role="status"` line carries the selected stage and the board keeps its arrow-key pan. The phone
+stack is unchanged.
+
+Measured after the fix: overlaps **[]** at 641, 834, 1024, 1280 and 1440; labels `display:none` at
+125% and `display:grid` after `Fit`; real click on the Receipt label set `aria-pressed` and focus to
+`Receipt — Done. signature verified`; stack `Enter` still announced
+`Settlement · Done · paid to provider`. Axe over `.sla-canvas` in both themes: **0 violations**
+with the same single `color-contrast` incomplete (manual ratios unchanged: dark 6.71–9.18:1, light
+5.75–8.00:1). Fixed screenshots:
+`/tmp/opencode/cg-phase4-fix-1280-light.png`,
+`/tmp/opencode/cg-phase4-fix-1280-light-theme.png`,
+`/tmp/opencode/cg-phase4-fix-834-light.png`, `/tmp/opencode/cg-phase4-fix-375-light.png`.
+
+The phone layout is sound: at 411×891 and 375×812 the board is hidden, the four stack buttons are
+readable, and `Enter` on Settlement set `aria-pressed=true` and announced the live-region text.
+The 320 px shell shift and the 375 px topbar clipping remain the pre-existing shell min-content
+issue recorded under Phase 3; the Canvas itself fits at 375.
+
+Other passing checks: real COMPLETED / SLASHED / STARTED stage words, keyboard selection with
+focus retained, zoom 100→250%, pointer and arrow-key pan, `Fit`, `aria-disabled` without
+`disabled` at the limit, focus-visible 2.5 px plate outline, reduced-motion `0s`, no page errors,
+and `bun run typecheck` / `bun run lint` clean after the fix. Gates: `bun run build` exit 0;
+`bun test tests/` **387 pass / 4 skip / 0 fail / 1506 expect() calls / 32 files**, including the
+new `tests/sla-canvas-layout.test.ts` guard.
+
+Details and exact numbers: `design/phase-checklists/PHASE_4_CHECKLIST.md`, final addendum.

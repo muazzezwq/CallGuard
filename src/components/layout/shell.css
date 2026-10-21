@@ -642,10 +642,13 @@
 /* SLA canvas (isometric lifecycle board) */
 .sla-canvas { position: relative; padding: 8px 4px 0; }
 .sla-canvas svg { display: block; width: 100%; height: auto; max-height: 190px; }
-.sla-canvas__labels { position: relative; height: 34px; margin-top: 8px; overflow: hidden; }
+.sla-canvas__labels {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+  min-height: 34px; margin-top: 10px;
+}
 .sla-canvas__label {
-  position: absolute; top: 0; transform: translateX(-50%);
-  display: flex; flex-direction: column; gap: 2px; text-align: center; width: 112px;
+  display: flex; flex-direction: column; gap: 2px; text-align: center;
+  min-width: 0; padding: 0 3px;
 }
 .sla-canvas__name { font-size: 11.5px; font-weight: 600; color: var(--text-dim); }
 .sla-canvas__name--done { color: var(--accent-ink); }
@@ -666,6 +669,10 @@
    its plate. Overflow is clipped: the frame stays the frame. */
 .sla-canvas__stage { transform-origin: center center; transition: transform var(--motion-fast); }
 .sla-canvas__board { overflow: hidden; }
+/* The label row is a four-column legend at rest. Once the board is zoomed the
+   plates no longer sit under those columns, so the inspect line carries the
+   selected stage instead of a misleading label position. */
+.sla-canvas__board.is-zoomed .sla-canvas__labels { display: none; }
 .sla-canvas__board.is-zoomed { cursor: grab; touch-action: none; }
 .sla-canvas__board.is-zoomed:active { cursor: grabbing; }
 .sla-canvas__board:focus-visible { outline: none; }
@@ -704,7 +711,7 @@
 .sla-rail.is-near { stroke-width: 2.5; }
 
 .sla-canvas__label--btn {
-  appearance: none; background: none; border: 0; padding: 0; color: inherit;
+  appearance: none; background: none; border: 0; padding: 0 3px; color: inherit;
   font: inherit; cursor: pointer; border-radius: var(--radius-sm);
 }
 .sla-canvas__label--btn:hover .sla-canvas__name { color: var(--text); }

@@ -214,3 +214,11 @@ Conservative choices made without stopping. Format: decision + reason.
 - **Phase 3 — count-up animation was removed and values render immediately.** The only motion is a short fade/rise and bar transition; the reduced-motion media query and the app's `data-motion` switch both disable it. Reason: a fabricated count-up makes a static read look like a live update, and the number is the payload.
 - **Phase 3 — `SectionCard` gained an optional `titleAs` instead of changing its default.** Overview uses `h2` headings; every existing panel keeps its current markup until it is deliberately revisited. Reason: a shared primitive change that silently alters heading structure in 34 panels is not a Phase 3 edit.
 - **Phase 3 — the 320px shell clip is recorded, not patched.** The app shell's topbar min-content width is 363px, so a 320px viewport clips the topbar and the panel column; 375px and 411px are clean. Reason: the trigger is shell chrome outside the Overview body, and the Phase 5 shell fix already owns topbar overflow; a panel rule cannot shrink a grid column.
+- **Phase 4 — the desktop Canvas labels are a four-column legend, not absolute plate captions.** At
+  641–1440 px the previous four 112 px absolute labels sat 47.3 px apart and overlapped by 64.7 px,
+  rendering as `EscrowService callReceiptSettlement`. The label row is now a four-column grid
+  (90.5 px cells at 1280, 123 px at 834) with no overlaps; the pointer twins remain `aria-hidden`
+  and hand focus to their plates. Zoom hides the row because its columns no longer sit under the
+  transformed plates, and the existing `role="status"` line names the selected stage. Reason:
+  keeping the absolute captions would require a label narrower than the word "Settlement" or a
+  board wider than the detail column.

@@ -8,6 +8,11 @@ rows 9 and 10 were measured and moved to `PASS` later the same day, and rows 4, 
 2026-10-19 — see the two addenda at the end of this file. Only row 2 remains not `PASS`, and it is a
 historical fact about the phase that no later work can change)
 
+**Current-tree re-verification (2026-10-21): found a 64.7 px label collision, then fixed it.**
+The desktop/tablet Canvas labels rendered as `EscrowService callReceiptSettlement`; they are now a
+four-column legend with no overlaps, and the responsive part of row 12 passes on the current tree.
+Before/after evidence is in the final two addenda.
+
 Scope note: this checklist was written **after** Phase 4 finished, from the phase prompt and from
 verified evidence (file contents, commit diffs, command output, browser measurements recorded in
 `docs/progress.md`). It is a retrospective record, not a claim that the process was followed.
@@ -281,3 +286,127 @@ wallet interop.
 imports the rules extraction left unused · `bun test tests/` **22 pass / 0 fail** (the script is
 scoped to `tests/`; bare `bun test` also picks up `lib/openzeppelin-contracts/test/*.js`) ·
 `bun run build` ✓ · axe as recorded above · no console errors in any state.
+
+## Addendum — 2026-10-21: current-tree re-verification finds a Canvas label collision
+
+This pass was requested as a verification only. No product code, contract, API, dependency or
+navigation was changed. The findings below are evidence about the current tree, not a retrospective
+change to the 2026-10-18/19 record.
+
+**Environment.** The mock-wallet worktree at `/tmp/opencode/cg-phase2-mock` (its own Vite server on
+port 5183) was synchronised with the current `src/components/viz/SLACanvas.tsx`,
+`src/components/panels/History.tsx`, `src/components/layout/shell.css`, `src/index.css` and
+`src/lib/utils.ts`. A test-only GraphQL fixture on `127.0.0.1:5199` supplied one COMPLETED, one
+SLASHED and one STARTED call for the mock wallet `0x9adE…4ba5`; the fixture and its URL override
+live only in `/tmp`, and the main tree was not pointed at it. Browser: `agent-browser` Chromium with
+axe-core 4.12.1, real accessibility tree, keyboard input, CDP pointer drag and viewport overrides.
+
+### FAIL — desktop/tablet label row collides
+
+At **1280×900**, **1440×960** and **834×1112**, the board is `display:block` and the four
+`.sla-canvas__labels` buttons are 112 px wide while their centres are only **47.3 px** apart. Every
+adjacent pair overlaps by **64.7 px**:
+
+```
+overlaps: [64.7, 64.7, 64.7]  (1280, 1440 and 834)
+visible text: "EscrowService callReceiptSettlement"
+              "1 USDCprovider notifiedEIP-712 signedpayout or slash"
+```
+
+The screenshots show the same collision in both themes:
+`/tmp/opencode/cg-phase4-canvas-1280-light.png`,
+`/tmp/opencode/cg-phase4-canvas-1280-dark.png`,
+`/tmp/opencode/cg-phase4-canvas-834-light.png`.
+
+This contradicts row 9's "labels neither collide nor clip" claim and the responsive sub-check in
+row 12. The cause is structural, not a one-off width: four fixed 112 px labels cannot fit over a
+board whose plate spacing is about 47 px at rest. Shrinking the board further does not fix it.
+
+**Not a failure at phone width.** At **411×891** and **375×812** the board is `display:none`, the
+stack is `display:flex`, and the four stage buttons are readable. Pressing `Enter` on
+`Settlement — Waiting. payout or slash` set `aria-pressed=true` and announced
+`Settlement · Waiting · payout or slash`; no page-level horizontal scroll (`scrollWidth === 375`
+and `411`).
+
+**Secondary, pre-existing shell limit.** At 375 px `.main-content` is **391.3 px** wide (16.3 px
+wider than the viewport), so the topbar title is clipped; the Canvas itself sits at 31–360 px and
+is not clipped. At **320 px** the shell shifts left (`x=-36`) and the Canvas occupies **-5…324 px**
+(4.3 px clipped on both sides). This is the same shell min-content issue recorded in Phase 3, not a
+new Canvas layout rule.
+
+### Checks that passed on this tree
+
+- **Stage controls and states.** COMPLETED: `Escrow — Done. 1 USDC`,
+  `Service call — Done. provider notified`, `Receipt — Done. signature verified`,
+  `Settlement — Done. paid to provider`. SLASHED: Receipt and Settlement are `Failed`
+  (`no valid receipt`, `stake slashed`). STARTED: Service call is `In progress`; Receipt and
+  Settlement are `Waiting`. No invented stage.
+- **Keyboard and live region.** Focus + `Enter` on a plate selected it, kept focus on the
+  `role=button` group, set `aria-pressed`, and updated the mounted `role=status` line.
+- **Zoom, pan, return.** 100% → 125% → 250% changed the transform; `ArrowRight` on the focused
+  board moved the transform from `translate(7.90189%, 0%)` to `translate(3.90189%, 0%)`; a real
+  pointer drag moved it to `translate(12.5%, 10.5263%)`; `Fit` returned `scale(1)` and left the
+  board's `tabindex` at `-1`. At 250% `Zoom in` had `aria-disabled=true` while `disabled=false`,
+  and focus stayed on it.
+- **Accessibility.** Axe over `.sla-canvas`, both themes, tags
+  `wcag2a,wcag2aa,wcag21a,wcag21aa`: **0 violations, 1 incomplete** (color-contrast, 11 nodes).
+  Direct measurement against the effective surface: dark **6.71:1** for `--text-dim` and
+  **9.18:1** for `--accent-ink`; light **8.00:1** and **5.75:1**. All above 4.5:1 at their sizes.
+  Focus-visible on a plate produced `stroke-width: 2.5px` and `stroke-dasharray: 3px, 2px`.
+- **Reduced motion.** With `prefers-reduced-motion: reduce`, the plate animation was `none`, and
+  stage/stack/outline transition durations were `0s`; normal motion restored `0.12s`.
+- **Console.** No page errors. The only console output was Vite/React DevTools and pre-existing
+  `THREE.WebGLRenderer` context-lost/restored messages from the shell background.
+
+### Unverified / blocked
+
+- A real screen reader is unavailable; the accessibility tree, keyboard run and axe stand in.
+- The mock wallet cannot sign; this pass made no transaction.
+- The label collision was reported in the verification pass; it is repaired in the next addendum.
+
+## Addendum — 2026-10-21: label collision repaired
+
+The request after the verification pass was "düzelt" (fix). Only two product files changed:
+`src/components/viz/SLACanvas.tsx` (removed the absolute `left` anchors and the unused
+`labelLeft`) and `src/components/layout/shell.css` (the label row is a four-column grid; the
+captions are static, shrinkable cells; the row is hidden while the board is zoomed).
+
+Why this shape: four fixed 112 px captions cannot fit over plate centres 47.3 px apart. Shrinking
+the captions below the word "Settlement" would clip the copy, and widening the board past the
+detail column would break the two-column layout. A four-column legend keeps each stage readable
+and leaves the plates as the visual diagram; hiding it while zoomed avoids pretending the columns
+still line up with the transformed plates, and the existing live inspect line names the selected
+stage.
+
+Measured after the fix:
+
+| Viewport | Label cells | Adjacent overlaps | Board / stack |
+|---|---|---|---|
+| 1440×960 | 107.6 px | none | board |
+| 1280×900 | 90.5 px | none | board |
+| 1024×900 | 170.5 px | none | board |
+| 834×1112 | 123.0 px | none | board |
+| 641×900 | 138.2 px | none | board |
+| 411×891 | — | — | stack, no page overflow |
+| 375×812 | — | — | stack, no page overflow |
+
+- The four labels are `position: static` in the grid; no pair overlaps at 641–1440 px.
+- Zoom 100→125% changes the label row to `display:none`; `Fit` restores `display:grid`. The board
+  keeps its arrow-key pan and `tabindex=0` while zoomed.
+- A real pointer click on the Receipt caption selected it and moved focus to
+  `Receipt — Done. signature verified`; the stack `Enter` path still announced
+  `Settlement · Done · paid to provider`.
+- Axe over `.sla-canvas` in both themes: **0 violations**, 1 `color-contrast` incomplete (11
+  nodes, manual ratios unchanged: dark 6.71–9.18:1, light 5.75–8.00:1).
+- No page errors. `bun run typecheck` and `bun run lint` (`--max-warnings=0`) exit 0;
+  `bun run build` exit 0; `bun test tests/` **387 pass / 4 skip / 0 fail / 1506 expect() calls /
+  32 files**. A source regression guard, `tests/sla-canvas-layout.test.ts`, asserts the four-column
+  grid, the non-absolute caption, and the zoom-hide rule.
+- Fixed screenshots: `/tmp/opencode/cg-phase4-fix-1280-light.png`,
+  `/tmp/opencode/cg-phase4-fix-1280-light-theme.png`,
+  `/tmp/opencode/cg-phase4-fix-834-light.png`, `/tmp/opencode/cg-phase4-fix-375-light.png`.
+
+The earlier failure remains recorded above as the before state. With the repaired label row, the
+current tree passes row 9's layout check and the responsive part of row 12; the historical row 2
+skill-usage `FAIL` is unchanged. The 320 px shell clip and 375 px topbar clipping remain the
+pre-existing shell min-content limits, not Canvas rules.

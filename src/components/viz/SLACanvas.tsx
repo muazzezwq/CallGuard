@@ -263,16 +263,6 @@ export function SLACanvas({ stages, selected, onSelect }: {
   const pick = (key: string) => onSelect?.(key);
   const stageTitle = (st: SlaStage) => `${st.label} — ${STATE_WORD[st.state]}${st.sub ? `. ${st.sub}` : ""}`;
 
-  /* Labels are anchored to their plate's position *after* the zoom transform, so
-     they track the board instead of scaling with it. At rest the position is
-     clamped inward (an edge label would otherwise hang outside the card); while
-     zoomed the position is exact, and a plate that is off-frame takes its label
-     with it. */
-  const labelLeft = (c: { x: number }) => {
-    const t = 0.5 + (atRest(c) - 0.5) * view.s + view.x;
-    return view.s === 1 ? `clamp(56px, ${t * 100}%, calc(100% - 56px))` : `${t * 100}%`;
-  };
-
   return (
     <div className="sla-canvas">
       {/* View controls. At a limit the control reports itself unavailable with
@@ -390,18 +380,16 @@ export function SLACanvas({ stages, selected, onSelect }: {
         </svg>
         </div>
 
-        {/* Labels sit outside the scaled stage: they follow the plates (see
-            `labelLeft`) but keep their own size, so text stays readable at any
-            zoom. Off-frame labels are clipped with their plate. */}
+        {/* The label row is a four-column legend at rest. It keeps its own
+            size, and the board hides it while zoomed (see shell.css) so a
+            caption cannot imply a position it no longer occupies. */}
         <div className="sla-canvas__labels">
           {stages.map((st, i) => {
-            const c = iso(i * gap, 0, thickness);
             return interactive ? (
               <button
                 key={st.key}
                 type="button"
                 className={clsx("sla-canvas__label", "sla-canvas__label--btn", selIndex === i && "is-selected")}
-                style={{ left: labelLeft(c) }}
                 aria-pressed={selIndex === i}
                 aria-label={stageTitle(st)}
                 /* The plate above is the accessible control; this is the
@@ -421,7 +409,7 @@ export function SLACanvas({ stages, selected, onSelect }: {
                 <LabelBody stage={st} />
               </button>
             ) : (
-              <div key={st.key} className="sla-canvas__label" style={{ left: labelLeft(c) }}>
+              <div key={st.key} className="sla-canvas__label">
                 <LabelBody stage={st} />
               </div>
             );
