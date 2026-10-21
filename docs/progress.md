@@ -938,3 +938,108 @@ only); `git diff --check` exit 0. Phase 1.1 changes and every unrelated working-
 uncommitted and preserved. No commit, push, deploy, contract/API/wallet change, or CCTP activation
 was performed. Screen-reader and live-signature verification remain out of scope for this
 environment; the mock harness never signed or sent a transaction.
+
+## Phase 3 — premium Overview dashboard (2026-10-21)
+
+Phase 3 replaced the Overview panel body with a metric-led operations dashboard. It did not
+change contracts, API routes, settlement logic, wallet connection, panel ids or navigation.
+The existing 30-second subgraph query, the `useWatchContractEvent` subscriptions, the payment
+guard and the auto-router / multi-call handlers were kept.
+
+### Implementation
+
+- New `src/components/overview/` modules: `types.ts` (subgraph shapes), `format.ts` (USDC,
+  count, id, timestamp and status helpers), `OverviewUi.tsx` (metric, chart, Live Network and
+  Recent Activity components) and `overview.css` (all `ovd-` styles). The shared `.ov-` classes
+  remain because other panels still use them.
+- `src/components/panels/Overview.tsx` now renders the status strip, four metric cards, 24-hour
+  activity and SLA-outcome charts, Live Network, Recent Activity, Next actions, Operations,
+  Transaction flow, Contract endpoints, wallet balance, welcome steps and the existing role CTA
+  and event stream.
+- `src/ui/SectionCard.tsx` accepts an optional `titleAs`; Overview uses `h2` section headings
+  while every other panel keeps the existing default.
+- The network query is bounded to `first: 1000` for calls and providers. The panel discloses
+  that cap, says when a count is only the indexed count, and does not claim a percentage change
+  when the call window is truncated.
+- No dependency was added. No contract, API, subgraph mapping, facilitator or transaction
+  semantics were changed.
+
+### Data audit
+
+Live Goldsky query on `callguard-v7/1.1.0`, 2026-10-21:
+
+- calls: `[]`; `_meta.block.number` `68313689`; `_meta.block.timestamp` `null`;
+  `hasIndexingErrors` `false`; deployment `QmP26iyD1my5ib1rVyu1oM3XaFV39Brf32PgX9hzgRDk99`.
+- providers: `[{"id":"1","active":true,"pricePerCall":"1000000","stake":"10000000",
+  "completedCalls":0,"slashedCalls":0}]`.
+- `ServiceRegistry.nextProviderId()` returned `2`, so the displayed provider count is `1`.
+
+Every Overview figure maps to one of these sources:
+
+| Figure | Source | Live result |
+|---|---|---|
+| Calls indexed | length of `calls(first: 1000)` | `0` |
+| Providers | on-chain `nextProviderId() - 1` | `1` |
+| Escrowed | sum of `amount` on `STARTED` / `OPEN` / `PENDING` calls | `0.00` USDC |
+| SLA success | `COMPLETED / (COMPLETED + SLASHED)` | unknown (`—`); no settled calls |
+| 7-day sparkline / change | `createdAt` daily buckets from the same call list | no series and no percentage claim |
+| Call activity | hourly `createdAt` buckets, last 24 hours | measured zero |
+| SLA outcomes | current `status` on every indexed call | empty indexed set |
+| Live Network | active / price / stake / completed / slashed provider fields | 1 of 1 active; 1.00 USDC; 10.00 USDC stake |
+| Recent Activity | newest indexed calls, exact id | empty indexed set |
+| On-chain Events | wagmi watchers for `CallStarted`, `ReceiptSubmitted`, `CallSlashed` | no events this session |
+| Contract endpoints | the configured v7 addresses | explorer links only; no health probe is implied |
+
+The subgraph does not index a transaction hash for a call, so Recent Activity shows the call id
+and the existing Verify destination. Rows in the live event stream link to the real transaction
+hash when the log has one. The `Indexer` status item omits the "indexed … ago" suffix when
+`_meta.block.timestamp` is `null`; it still shows the indexed block and measured lag.
+
+### Verification
+
+Browser checks used the mock-wallet worktree at `/tmp/opencode/cg-phase2-mock` with the real
+Goldsky endpoint restored after each test. Populated states used a test-only CORS fixture served
+at `127.0.0.1:5199`; no fixture is in the repository and no production data was altered.
+
+- Empty real state at **1280×900**, **834×1000**, **411×900** and **375×812**: zero calls, one
+  provider, `0.00` escrow, unknown SLA success, empty chart/outcome/activity states and the
+  "indexer timestamp unavailable" note. `scrollWidth === innerWidth` at each width.
+- Populated fixture: metric values, 24-hour bars, Refunded outcome row, one active provider,
+  recent rows with long call ids, Copy and Verify actions, and stale badges. The 5-second
+  delayed fixture showed skeleton loading, then the populated cards.
+- Failure states: stopping the fixture and refreshing kept the old data and marked it cached;
+  reloading with the fixture down showed error cards and `—` values, not zeros. Empty and
+  populated states were checked in light and dark themes; the failure states were checked in
+  light.
+- Headings: one `h1` (`Overview`), `h2` for every section and `h3` inside Live Network.
+- Axe 4.14.0 (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, scoped to `.ovd-page`): **0
+  violations** in light and dark; 3 unresolved `color-contrast` nodes in the final empty state
+  and 5 in the earlier populated run, where axe could not read the background (metric values
+  and ring text on pseudo/overlapping surfaces). The bundled CLI axe 4.12.1 also reported 0
+  violations (59 incomplete nodes).
+- Visible controls at desktop: 102; unnamed controls: 0; images without `alt`: 0. Keyboard
+  focus on Refresh, Call Builder, View providers, View all, Copy call id and Verify produced a
+  2px accent outline or a 3px accent ring.
+- Reduced motion: `prefers-reduced-motion: reduce` and `[data-motion="reduced"]` both computed
+  `animation-name: none` and `transition-duration: 0s` for the metric value and chart bars.
+- Console: no application errors. The mock harness still emits its existing Vite
+  `createRoot()` hot-reload warning; it is a harness artifact, not an Overview error.
+
+### Gates and limits
+
+`bun run typecheck` exit 0; `bun run lint` exit 0; `bun test tests/` → **385 pass / 4 skip /
+0 fail / 1500 expect() calls / 31 files**; `bun run build` exit 0 (existing chunk-size warnings
+only); `git diff --check` exit 0.
+
+Honest limits: there is no screen-reader harness; the mock connector cannot sign, so no live
+wallet-signed transaction was performed; the event stream stayed empty because the contracts
+did not emit during the session. A 320px viewport is clipped by the existing shell topbar
+min-content width (363px), not by an Overview rule; 375px and 411px are clean. No push, deploy,
+contract/API change or CCTP activation was performed.
+
+Committed as `feat(overview): rebuild as live protocol operations dashboard`.
+`Overview.tsx` carries the pre-existing payment-gate, live-event and USDC-balance edits plus the
+four lib modules they import (`activity.ts`, `paymentGate.ts`, `facilitatorGuard.ts`,
+`cctpOperation.ts`); separating those from the Phase 3 rewrite would change the behaviour that
+was tested, so they are included in the same commit and named in its body. Other uncommitted
+working-tree changes remain untouched. No push or deploy was performed.

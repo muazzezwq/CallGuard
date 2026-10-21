@@ -1,17 +1,20 @@
-import { useState, useEffect, useMemo } from "react";
-import { useCountUp } from "../../hooks/useCountUp";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   useReadContract, useWriteContract, useAccount, useWatchContractEvent,
-  useBlockNumber, useChainId,
+  useBlockNumber, useChainId, usePublicClient,
 } from "wagmi";
 import { formatUnits, keccak256, stringToBytes } from "viem";
 import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI, arcTestnet } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
+import { usdcAmount } from "../../lib/activity";
 import { useAppStore } from "../../store/useAppStore";
 import { errText } from "../../lib/utils";
 import {
-  PageHeader, SectionCard, StatCard, Stepper, Button,
-  Badge, Field, Input, Copy, EmptyState, ErrorState,
+  checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
+} from "../../lib/paymentGate";
+import {
+  PageHeader, SectionCard, Stepper, Button,
+  Badge, Field, Input, EmptyState, ErrorState,
 } from "../../ui";
 import type { Step } from "../../ui";
 import {
@@ -19,11 +22,19 @@ import {
   Radio, ReceiptText, Pencil, Shuffle, Layers,
   ShieldCheck, Server, Activity, Wifi, WifiOff, Database, Clock,
 } from "lucide-react";
+import {
+  MetricCard, ActivityChart, OutcomeChart, LiveNetwork, RecentActivity,
+} from "../overview/OverviewUi";
+import {
+  formatClock, formatCount, formatUsdc, relTime, shortId, statusMeta,
+} from "../overview/format";
+import type { SgCall, SgMeta, SgProvider } from "../overview/types";
+import "../overview/overview.css";
 
 const CONTRACTS = [
   { name: "ServiceRegistry", addr: CONFIG.registryAddress },
   { name: "PayPerCall",      addr: CONFIG.ppcAddress },
-  { name: "DisputeQuality",  addr: CONFIG.disputeQualityAddress },
+  { name: "DisputeQuality",  addr: CONFIG.disputeQualityAddress, retired: !CONFIG.disputeQualityEnabled },
   { name: "SLAFutures",      addr: CONFIG.slaFuturesAddress },
   { name: "ReputationLoan",  addr: CONFIG.reputationLoanAddress },
   { name: "SLABridge",       addr: CONFIG.slaAttestationBridge as `0x${string}` },
@@ -34,78 +45,26 @@ const CONTRACTS = [
 const SUBGRAPH = `{
   _meta { block { number timestamp } hasIndexingErrors deployment }
   calls(first:1000,orderBy:createdAt,orderDirection:desc){id providerId caller amount status createdAt}
-  providers(first:50,orderBy:completedCalls,orderDirection:desc){id active completedCalls slashedCalls pricePerCall stake}
+  providers(first:1000,orderBy:completedCalls,orderDirection:desc){id active completedCalls slashedCalls pricePerCall stake}
 }`;
 
 const OPEN_STATES = new Set(["STARTED", "OPEN", "PENDING"]);
 const CALLS_CAP = 1000;
+const PROVIDERS_CAP = 1000;
 const DAY = 86400;
 
-type SgCall = {
-  id?: string;
-  status?: string;
-  providerId?: string | number;
-  caller?: string;
-  amount?: string;
-  createdAt?: string;
+type LiveEvent = {
+  label: string;
+  detail: string;
+  time: string;
+  hash?: string;
 };
-
-type SgProvider = {
-  id: string;
-  active?: boolean;
-  completedCalls: string;
-  slashedCalls: string;
-  pricePerCall?: string;
-  stake?: string;
-};
-
-type SgMeta = {
-  block?: { number?: number; timestamp?: number };
-  hasIndexingErrors?: boolean;
-  deployment?: string;
-};
-
-/* ── Formatting helpers ─────────────────────────────────────────────────────
-   Every value the dashboard prints comes from the chain or the indexer; these
-   only decide how it is written, never what it means. */
-
-function relTime(ts: number): string {
-  const diff = Math.floor(Date.now() / 1000) - ts;
-  if (!Number.isFinite(diff) || diff < 0) return "—";
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < DAY) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / DAY)}d ago`;
-}
-
-function shortId(id: string, head = 10, tail = 6): string {
-  return id.length <= head + tail + 1 ? id : `${id.slice(0, head)}…${id.slice(-tail)}`;
-}
-
-function usdc(raw: string | bigint | undefined, dp = 2): string {
-  return Number(formatUnits(BigInt(raw || "0"), 6)).toLocaleString("en-US", {
-    minimumFractionDigits: dp, maximumFractionDigits: dp,
-  });
-}
 
 /* Bayesian reputation, the same formula the registry-facing panels use. */
 function repPct(p: { completedCalls?: string; slashedCalls?: string }): number {
   const c = parseInt(p.completedCalls || "0");
   const s = parseInt(p.slashedCalls || "0");
   return Math.round(((c + 2) / (c + s + 3)) * 100);
-}
-
-const STATUS_META: Record<string, { label: string; tone: "guard" | "slash" | "info" | "pending" }> = {
-  COMPLETED: { label: "Completed", tone: "guard" },
-  SLASHED: { label: "Slashed", tone: "slash" },
-  REFUNDED: { label: "Refunded", tone: "pending" },
-  STARTED: { label: "Started", tone: "info" },
-  OPEN: { label: "Open", tone: "info" },
-  PENDING: { label: "Pending", tone: "pending" },
-};
-
-function statusMeta(status?: string) {
-  return STATUS_META[status ?? ""] ?? { label: status || "Unknown", tone: "neutral" as const };
 }
 
 /* Status tone is carried by an icon, a label and a value as well as colour, so
@@ -128,7 +87,6 @@ function StatusItem({ tone, icon, label, value, hint }: {
     </div>
   );
 }
-
 
 /* 24h hourly buckets from subgraph calls, oldest first.
    `ago` is hours before now (0 = the current hour), which is what the chart is
@@ -163,8 +121,18 @@ function weeklySeries(calls: { createdAt?: string }[]): { series: number[]; last
 
 const WB_KEY = "cg_welcome_dismissed";
 
+/** Accessing `sessionStorage` itself can throw in restricted browser modes. */
+function overviewStorage(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export default function Overview() {
   const setPanel = useAppStore(s => s.setPanel);
+  const openVerify = useAppStore(s => s.openVerify);
   const role = useAppStore(s => s.role);
   const markStep = useAppStore(s => s.markStep);
   const { address, isConnected } = useAccount();
@@ -177,63 +145,117 @@ export default function Overview() {
     localStorage.setItem(WB_KEY, "1");
     setWelcomeDismissed(true);
   };
-  const { data: sg, isLoading: sgLoading, error: sgError, isFetching: sgFetching, dataUpdatedAt, refetch } = useSubgraph(SUBGRAPH);
 
-  const { data: providerCountRaw } = useReadContract({ address: CONFIG.registryAddress as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
-  const { data: usdcBal } = useReadContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
+  const {
+    data: sg, isLoading: sgLoading, error: sgError, isFetching: sgFetching,
+    dataUpdatedAt, refetch,
+  } = useSubgraph(SUBGRAPH);
+  const {
+    data: providerCountRaw, isLoading: providerCountLoading,
+    isFetching: providerCountFetching, refetch: refetchProviderCount,
+  } = useReadContract({
+    address: CONFIG.registryAddress as `0x${string}`,
+    abi: REGISTRY_ABI,
+    functionName: "nextProviderId",
+  });
+  const {
+    data: usdcBal, isLoading: usdcBalLoading, isError: usdcBalError,
+  } = useReadContract({
+    address: CONFIG.usdcAddress as `0x${string}`,
+    abi: USDC_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
 
   const sgPayload = sg as { providers?: SgProvider[]; calls?: SgCall[]; _meta?: SgMeta } | undefined;
   const sgMeta = sgPayload?._meta;
   const sgProviders: SgProvider[] = sgPayload?.providers ?? [];
   const sgCalls: SgCall[] = useMemo(() => sgPayload?.calls ?? [], [sgPayload]);
-  /* The indexer answered with a body, so a zero below is a real zero and not a
-     request that failed. */
-  const indexerAnswered = !sgError && !!sgPayload;
+
+  /* A body from the indexer makes a zero a measured zero. `calls` and
+     `providers` are checked separately because a partial failure must not turn
+     one list into an invented empty list. */
+  const callsIndexed = Array.isArray(sgPayload?.calls);
+  const providersIndexed = Array.isArray(sgPayload?.providers);
+  const indexerHasData = callsIndexed || providersIndexed;
+  const indexerStale = !!sgError && indexerHasData;
+  const initialLoading = sgLoading && !indexerHasData;
   const callsNum = sgCalls.length;
   const callsTruncated = callsNum >= CALLS_CAP;
+  const providersTruncated = sgProviders.length >= PROVIDERS_CAP;
 
   /* nextProviderId is the registry counter and counts the reserved id 0, so the
      live provider count is one less. Fall back to the indexed count only when
      the contract read has not arrived. */
   const providerCount = providerCountRaw !== undefined
     ? Math.max(0, Number(providerCountRaw) - 1)
-    : (indexerAnswered ? sgProviders.length : 0);
-  const providersKnown = providerCountRaw !== undefined || indexerAnswered;
-
-  const animProviders = useCountUp(providerCount);
-  const animCalls = useCountUp(callsNum);
+    : (providersIndexed ? sgProviders.length : null);
+  const providersKnown = providerCount !== null;
 
   const completedNum = sgCalls.filter((c: SgCall) => c.status === "COMPLETED").length;
   const slashedNum = sgCalls.filter((c: SgCall) => c.status === "SLASHED").length;
+  const refundedNum = sgCalls.filter((c: SgCall) => c.status === "REFUNDED").length;
   const openNum = sgCalls.filter((c: SgCall) => OPEN_STATES.has(c.status ?? "")).length;
   /* The SLA rate is measured over calls that reached a terminal outcome; open
      calls are neither a success nor a failure yet. */
   const settledNum = completedNum + slashedNum;
   const honorPctNum = settledNum > 0 ? Math.round((completedNum / settledNum) * 100) : null;
-  const honorRate = honorPctNum === null ? "—" : `${honorPctNum}%`;
-
-  const usdcFormatted = usdcBal ? Number(formatUnits(usdcBal as bigint, 6)).toFixed(2) : null;
 
   const { series: weekSeries, last7, prev7 } = weeklySeries(sgCalls);
-  const callsDelta = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : null;
+  /* A truncated window cannot prove the previous 7 days are complete, so no
+     percentage change is claimed from it. */
+  const callsDelta = !callsTruncated && prev7 > 0
+    ? Math.round(((last7 - prev7) / prev7) * 100)
+    : null;
 
   const escrowRaw = sgCalls
     .filter((c: SgCall) => OPEN_STATES.has(c.status ?? ""))
-    .reduce((sum: bigint, c: SgCall) => sum + BigInt(c.amount || "0"), 0n);
-  const escrowUsdc = indexerAnswered ? Number(formatUnits(escrowRaw, 6)) : null;
-
+    .reduce((sum: bigint, c: SgCall) => {
+      try { return sum + BigInt(c.amount || "0"); } catch { return sum; }
+    }, 0n);
   const activeProviders = sgProviders.filter(p => p.active).length;
-  const stakeRaw = sgProviders.reduce((s, p) => s + BigInt(p.stake || "0"), 0n);
-  const prices = sgProviders.map(p => Number(formatUnits(BigInt(p.pricePerCall || "0"), 6)));
-  const priceRange = prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null;
+  const completedAll = sgProviders.reduce((sum, p) => sum + (parseInt(p.completedCalls || "0", 10) || 0), 0);
+  const slashedAll = sgProviders.reduce((sum, p) => sum + (parseInt(p.slashedCalls || "0", 10) || 0), 0);
 
-  const allCalls = sgCalls;
-  const activities = allCalls.slice(0, 8);
-  const topProviders = sgProviders;
-  const chartData = buildActivityChart(allCalls);
-  const latestCall = allCalls[0];
+  const stakeRaw = sgProviders.reduce((sum: bigint, p: SgProvider) => {
+    try { return sum + BigInt(p.stake || "0"); } catch { return sum; }
+  }, 0n);
 
+  let minPrice: bigint | null = null;
+  let maxPrice: bigint | null = null;
+  for (const p of sgProviders) {
+    try {
+      const value = BigInt(p.pricePerCall || "0");
+      if (value <= 0n) continue;
+      if (minPrice === null || value < minPrice) minPrice = value;
+      if (maxPrice === null || value > maxPrice) maxPrice = value;
+    } catch { /* an unreadable price is omitted, never guessed */ }
+  }
+  const priceRange = minPrice !== null && maxPrice !== null
+    ? { min: formatUsdc(minPrice) ?? "—", max: formatUsdc(maxPrice) ?? "—" }
+    : null;
+
+  const callsSpark = callsIndexed && weekSeries.some(v => v > 0) ? weekSeries : undefined;
+  const activities = sgCalls.slice(0, 6);
+  const topProviders = sgProviders.slice(0, 5);
+  const myActivity = sgCalls
+    .filter((c: SgCall) => c.caller?.toLowerCase() === address?.toLowerCase())
+    .slice(0, 5);
+  const chartData = buildActivityChart(sgCalls);
+  const latestCall = sgCalls[0];
   const flowSteps: Step[] = computeFlowSteps(latestCall);
+
+  const totalCalls24h = chartData.reduce((sum, b) => sum + b.count, 0);
+  const peak = chartData.reduce((best, b) => (b.count > best.count ? b : best), { ago: -1, count: 0 });
+  const otherNum = callsNum - completedNum - slashedNum - refundedNum - openNum;
+  const outcomeRows = [
+    { key: "completed", label: "Completed", count: completedNum, color: "var(--accent)" },
+    { key: "open", label: "Open", count: openNum, color: "var(--accent-2)" },
+    { key: "slashed", label: "Timeout claimed", count: slashedNum, color: "var(--danger)" },
+    ...(refundedNum > 0 ? [{ key: "refunded", label: "Refunded", count: refundedNum, color: "var(--warn)" }] : []),
+    ...(otherNum > 0 ? [{ key: "other", label: "Other", count: otherNum, color: "var(--text-dim)" }] : []),
+  ].map(r => ({ ...r, pct: callsNum > 0 ? Math.round((r.count / callsNum) * 100) : 0 }));
 
   // Auto-router state
   const [autoOpen, setAutoOpen] = useState(false);
@@ -250,40 +272,75 @@ export default function Overview() {
 
   const [callProvider, setCallProvider] = useState("1");
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
   const [multiResults, setMultiResults] = useState<{ pid: string; hash?: string; err?: string }[]>([]);
   const [multiRunning, setMultiRunning] = useState(false);
 
-  const [liveEvents, setLiveEvents] = useState<{ label: string; detail: string; time: string }[]>([]);
-  const pushEvent = (label: string, detail: string) => {
-    const e = { label, detail, time: new Date().toLocaleTimeString("en-US", { hour12: false }) };
-    setLiveEvents(prev => [e, ...prev].slice(0, 20));
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  /* A re-subscription can replay logs. The log identity is the only stable
+     dedupe key; a repeated delivery must not add a second row. */
+  const seenLogs = useRef<Set<string>>(new Set());
+  const pushEvent = (label: string, detail: string, key: string, hash?: string) => {
+    if (seenLogs.current.has(key)) return;
+    seenLogs.current.add(key);
+    const event: LiveEvent = {
+      label, detail, hash,
+      time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+    };
+    setLiveEvents(prev => [event, ...prev].slice(0, 20));
   };
+  const liveFailed = (err: unknown) => setLiveError(String((err as Error)?.message ?? err).slice(0, 160));
 
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
     abi: PPC_ABI,
     eventName: "CallStarted",
+    chainId: arcTestnet.id,
+    onError: liveFailed,
     onLogs: (logs) => logs.forEach(l => {
+      setLiveError(null);
       const a = l.args;
-      pushEvent(`Call → Provider #${a.providerId}`, `${a.amount ? Number(formatUnits(BigInt(a.amount), 6)).toFixed(4) : "?"} USDC · ${String(a.callId || "").slice(0, 10)}…`);
+      pushEvent(
+        `Call → Provider #${a.providerId ?? "unknown"}`,
+        `${usdcAmount(a.amount) ?? "amount unavailable"} USDC · ${shortId(String(a.callId || ""))}`,
+        `started:${l.transactionHash}:${l.logIndex}`,
+        l.transactionHash,
+      );
     }),
   });
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
     abi: PPC_ABI,
     eventName: "ReceiptSubmitted",
+    chainId: arcTestnet.id,
+    onError: liveFailed,
     onLogs: (logs) => logs.forEach(l => {
+      setLiveError(null);
       const a = l.args;
-      pushEvent("Receipt submitted", `callId: ${String(a.callId || "").slice(0, 10)}…`);
+      pushEvent(
+        "Receipt submitted",
+        `Call ${shortId(String(a.callId || ""))}`,
+        `receipt:${l.transactionHash}:${l.logIndex}`,
+        l.transactionHash,
+      );
     }),
   });
   useWatchContractEvent({
     address: CONFIG.ppcAddress as `0x${string}`,
     abi: PPC_ABI,
     eventName: "CallSlashed",
+    chainId: arcTestnet.id,
+    onError: liveFailed,
     onLogs: (logs) => logs.forEach(l => {
+      setLiveError(null);
       const a = l.args;
-      pushEvent("Deadline missed — provider slashed", `${Number(a.slashed || 0) / 1e6} USDC · refund ${Number(a.refunded || 0) / 1e6}`);
+      pushEvent(
+        "Timeout claimed — refund and slash recorded",
+        `${usdcAmount(a.slashed) ?? "slash unavailable"} USDC slashed · refund ${usdcAmount(a.refunded) ?? "unavailable"} USDC`,
+        `slash:${l.transactionHash}:${l.logIndex}`,
+        l.transactionHash,
+      );
     }),
   });
 
@@ -317,26 +374,52 @@ export default function Overview() {
   const runMultiCall = async () => {
     const ids = multiProvider.split(",").map(s => s.trim()).filter(Boolean);
     if (!ids.length || !address) return;
+    if (!beginOperation("overview-multi")) return;
     setMultiRunning(true);
     setMultiResults([]);
-    for (const pid of ids) {
-      for (let i = 0; i < multiCount; i++) {
-        try {
-          const reqHash = keccak256(stringToBytes(`${multiPayload}-${pid}-${i}-${Date.now()}`)) as `0x${string}`;
-          const hash = await writeContractAsync({
-            address: CONFIG.ppcAddress as `0x${string}`,
-            abi: PPC_ABI,
-            functionName: "callService",
-            args: [BigInt(pid), reqHash],
-          });
-          setMultiResults(r => [...r, { pid, hash }]);
-        } catch (_err: unknown) {
-          setMultiResults(r => [...r, { pid, err: errText(_err) }]);
+    try {
+      for (const pid of ids) {
+        for (let i = 0; i < multiCount; i++) {
+          /* Same fail-closed gate as the Call Builder, before every write. */
+          const gate = checkPaymentStart({ storage: overviewStorage(), operation: "overview-multi" });
+          if (!gate.ok) {
+            setMultiResults(r => [...r, { pid, err: gate.message }]);
+            return;
+          }
+          try {
+            const reqHash = keccak256(stringToBytes(`${multiPayload}-${pid}-${i}-${Date.now()}`)) as `0x${string}`;
+            const hash = await writeContractAsync({
+              address: CONFIG.ppcAddress as `0x${string}`,
+              abi: PPC_ABI,
+              functionName: "callService",
+              args: [BigInt(pid), reqHash],
+            });
+            if (!recordSubmittedTx(hash, overviewStorage()).persisted) {
+              setMultiResults(r => [...r, { pid, err: `Submitted ${hash}, but its pending marker could not be saved. The tab stays blocked; check the explorer before retrying.` }]);
+              return;
+            }
+            const receipt = await publicClient?.waitForTransactionReceipt({ hash, timeout: 60_000 });
+            if (!receipt) {
+              setMultiResults(r => [...r, { pid, err: `Submitted ${hash}, but no receipt reader is available. The tab stays blocked.` }]);
+              return;
+            }
+            resolvePendingTx(overviewStorage());
+            if (receipt.status !== "success") {
+              setMultiResults(r => [...r, { pid, err: `Transaction ${hash} reverted.` }]);
+              return;
+            }
+            setMultiResults(r => [...r, { pid, hash }]);
+          } catch (_err: unknown) {
+            setMultiResults(r => [...r, { pid, err: errText(_err) }]);
+            return;
+          }
+          await new Promise(r => setTimeout(r, 600));
         }
-        await new Promise(r => setTimeout(r, 600));
       }
+    } finally {
+      endOperation("overview-multi");
+      setMultiRunning(false);
     }
-    setMultiRunning(false);
   };
 
   const shorten = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -347,40 +430,44 @@ export default function Overview() {
     if (sgCalls.some((c: SgCall) => c.status === "COMPLETED" && c.caller?.toLowerCase() === address?.toLowerCase())) markStep("receipt");
   }, [isConnected, sgCalls, address, markStep]);
 
-  const myActivity = sgCalls.filter((c: SgCall) =>
-    c.caller?.toLowerCase() === address?.toLowerCase()
-  ).slice(0, 5);
-
-  const totalCalls24h = chartData.reduce((s, b) => s + b.count, 0);
-  const peak = chartData.reduce((best, b) => (b.count > best.count ? b : best), { ago: -1, count: 0 });
-  const peakAgo = peak.count > 0 ? peak.ago : -1;
-  const peakCount = peak.count;
-
-  /* Outcome split over every indexed call, so the counts always add up to the
-     Total Calls metric. "Other" covers any state the indexer reports that this
-     panel does not know, instead of silently dropping it. */
-  const otherNum = callsNum - completedNum - slashedNum - openNum;
-  const outcomeRows = [
-    { key: "completed", label: "Completed", count: completedNum, color: "var(--accent-ink)" },
-    { key: "open", label: "Open", count: openNum, color: "var(--accent-2)" },
-    { key: "slashed", label: "Slashed", count: slashedNum, color: "var(--danger)" },
-    ...(otherNum > 0 ? [{ key: "other", label: "Other", count: otherNum, color: "var(--text-dim)" }] : []),
-  ].map(r => ({ ...r, pct: callsNum > 0 ? Math.round((r.count / callsNum) * 100) : 0 }));
+  const handleRefresh = () => {
+    refetch();
+    refetchProviderCount?.();
+  };
+  const isRefreshing = sgFetching || providerCountFetching;
+  const updatedLabel = dataUpdatedAt
+    ? `Last read ${formatClock(dataUpdatedAt)}`
+    : "Awaiting first read";
 
   return (
-    <div className="ov-page">
+    <div className="ov-page ovd-page">
       <PageHeader
+        eyebrow={
+          <span className="ovd-eyebrow">
+            <span className="ovd-eyebrow__dot" aria-hidden="true" />
+            Arc Testnet · Protocol operations
+          </span>
+        }
         title="Overview"
-        subtitle={`Protocol state on ${CONFIG.chainName}, read from the contracts and the indexed subgraph.`}
+        subtitle="Current protocol state from the registry, PayPerCall events and the indexed subgraph. Every figure below has a source; unavailable data stays unavailable."
         actions={
           <>
-            <span className="ov-refresh">
+            <span className="ovd-refresh">
               <Clock size={13} aria-hidden="true" />
-              {dataUpdatedAt ? `Updated ${relTime(Math.floor(dataUpdatedAt / 1000))}` : "Awaiting first read"}
+              {updatedLabel}
             </span>
-            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={sgFetching} aria-label="Refresh protocol data">
-              <RefreshCw size={14} className={sgFetching ? "ov-spin" : undefined} aria-hidden="true" />
-              {sgFetching ? "Refreshing…" : "Refresh"}
+            <span className="visually-hidden" role="status" aria-live="polite">
+              {isRefreshing ? "Refreshing protocol data" : ""}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              aria-label="Refresh protocol data"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "ovd-spin" : undefined} aria-hidden="true" />
+              {isRefreshing ? "Refreshing…" : "Refresh"}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setPanel("calls")}>
               <Zap size={14} aria-hidden="true" /> Call Builder
@@ -392,7 +479,8 @@ export default function Overview() {
       {/* ── Protocol status ── */}
       <ProtocolStatus
         meta={sgMeta}
-        indexerAnswered={indexerAnswered}
+        indexerHasData={indexerHasData}
+        indexerStale={indexerStale}
         indexerLoading={sgLoading}
         indexerError={!!sgError}
       />
@@ -400,264 +488,251 @@ export default function Overview() {
       {/* ── Primary metrics ──
           A value is shown as 0 only when the indexer answered, "—" only when the
           source failed, and a skeleton only while the first read is in flight. */}
-      <div className="ov-grid4">
-        <StatCard
-          label="Total Calls"
-          value={!indexerAnswered ? "—" : (callsNum > 0 ? animCalls : 0)}
-          hint={callsTruncated ? `Capped at the ${CALLS_CAP} most recent calls` : `Every call indexed for this deployment`}
-          delta={callsDelta}
-          spark={weekSeries}
-          loading={sgLoading && !indexerAnswered}
-          unavailable={!indexerAnswered && !sgLoading}
-        />
-        <StatCard
-          label="Providers"
-          value={!providersKnown ? "—" : (providerCount > 0 ? animProviders : 0)}
-          hint="ServiceRegistry nextProviderId − 1 (id 0 is reserved)"
-          loading={sgLoading && !providersKnown}
-          unavailable={!providersKnown}
-        />
-        <StatCard
-          label="Escrowed USDC"
-          value={escrowUsdc === null ? "—" : usdc(escrowRaw, 2)}
-          hint={openNum > 0 ? `Held by ${openNum} open call${openNum === 1 ? "" : "s"}` : "No calls are open right now"}
-          unavailable={escrowUsdc === null}
-          loading={sgLoading && !indexerAnswered}
-        />
-        <StatCard
-          label="SLA Success Rate"
-          value={honorRate}
-          hint={settledNum > 0 ? `${completedNum} completed of ${settledNum} settled calls` : "No settled calls yet — the rate is unknown, not zero"}
-          unavailable={honorPctNum === null}
-          loading={sgLoading && !indexerAnswered}
-        />
-      </div>
+      <section className="ovd-metrics-section" aria-labelledby="ovd-metrics-title">
+        <div className="ovd-section-head">
+          <div>
+            <h2 id="ovd-metrics-title">Protocol metrics</h2>
+            <p>Registry counters and the latest indexed call records.</p>
+          </div>
+          {indexerStale && <Badge tone="pending">Cached indexer read</Badge>}
+        </div>
 
-      {/* ── Provider network + recent activity ── */}
-      <div className="ov-2col">
-        <SectionCard
-          title="Provider Network"
-          subtitle="Aggregated from indexed provider records"
-          action={
-            <Badge tone={activeProviders > 0 ? "guard" : "neutral"}>
-              {indexerAnswered ? `${activeProviders} active` : "—"}
-            </Badge>
-          }
-          bodyClass="ui-section__body--flush"
-        >
-          {sgError ? (
-            <ErrorState
-              title="Provider records unavailable"
-              description="The indexer request failed, so the provider state cannot be read."
-              detail={errText(sgError)}
-              action={<Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>}
-            />
-          ) : sgLoading && !indexerAnswered ? (
-            <div className="ov-facts">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="ov-skel" />)}</div>
-          ) : sgProviders.length === 0 ? (
-            <EmptyState
-              icon={<Database size={20} />}
-              title="No providers indexed"
-              description="No provider has registered for this deployment yet. This is an empty registry, not a failed request."
-              action={<Button size="sm" variant="secondary" onClick={() => setPanel("register")}>Register a provider</Button>}
-            />
-          ) : (
-            <ul className="ov-facts">
-              <li className="ov-facts__row"><span>Providers indexed</span><b>{sgProviders.length}</b></li>
-              <li className="ov-facts__row"><span>Accepting calls</span><b>{activeProviders}</b></li>
-              <li className="ov-facts__row"><span>Completed calls (all providers)</span><b>{sgProviders.reduce((s, p) => s + parseInt(p.completedCalls || "0"), 0).toLocaleString("en-US")}</b></li>
-              <li className="ov-facts__row"><span>Slashed calls (all providers)</span><b>{sgProviders.reduce((s, p) => s + parseInt(p.slashedCalls || "0"), 0).toLocaleString("en-US")}</b></li>
-              <li className="ov-facts__row"><span>Stake locked</span><b>{usdc(stakeRaw, 2)} USDC</b></li>
-              <li className="ov-facts__row">
-                <span>Price per call</span>
-                <b>{priceRange ? (priceRange.min === priceRange.max ? `${priceRange.min.toFixed(2)} USDC` : `${priceRange.min.toFixed(2)} – ${priceRange.max.toFixed(2)} USDC`) : "—"}</b>
-              </li>
-            </ul>
-          )}
-        </SectionCard>
+        <div className="ovd-metrics">
+          <MetricCard
+            tone="accent"
+            icon={<Activity size={15} />}
+            label="Calls indexed"
+            value={callsIndexed ? formatCount(callsNum) : "—"}
+            hint={callsIndexed
+              ? callsTruncated
+                ? `Latest ${formatCount(CALLS_CAP)} records · the true total may be higher`
+                : "All calls returned by the subgraph"
+              : "The indexer did not return a call list"}
+            delta={callsDelta}
+            spark={callsSpark}
+            sparkLabel="Calls per day over the last 7 days, oldest first."
+            unavailable={!callsIndexed}
+            loading={initialLoading && !callsIndexed}
+            stale={indexerStale && callsIndexed}
+          />
+          <MetricCard
+            icon={<Server size={15} />}
+            label="Providers"
+            value={providersKnown ? formatCount(providerCount!) : "—"}
+            hint={providerCountRaw !== undefined
+              ? providersIndexed
+                ? `${formatCount(activeProviders)} accepting calls · registry nextProviderId − 1${providersTruncated ? " · indexer capped at 1,000" : ""}`
+                : sgLoading
+                  ? "Registry count read · provider records loading…"
+                  : "Registry count read · provider records unavailable"
+              : "Indexed provider count · registry read unavailable"}
+            unavailable={!providersKnown}
+            loading={providerCountLoading && !providersKnown}
+            stale={indexerStale && providerCountRaw === undefined}
+          />
+          <MetricCard
+            tone="cyan"
+            icon={<Database size={15} />}
+            label="Escrowed"
+            value={callsIndexed ? formatUsdc(escrowRaw) ?? "—" : "—"}
+            unit={callsIndexed ? "USDC" : undefined}
+            hint={callsIndexed
+              ? openNum > 0
+                ? `${formatCount(openNum)} open call${openNum === 1 ? "" : "s"}${callsTruncated ? " · latest 1,000 records" : ""}`
+                : "No open calls in the indexed set"
+              : "Escrow cannot be derived without the call list"}
+            unavailable={!callsIndexed}
+            loading={initialLoading && !callsIndexed}
+            stale={indexerStale && callsIndexed}
+          />
+          <MetricCard
+            icon={<ShieldCheck size={15} />}
+            label="SLA success"
+            value={honorPctNum === null ? "—" : `${honorPctNum}%`}
+            hint={!callsIndexed
+              ? "Call states unavailable · not shown as zero"
+              : settledNum > 0
+                ? `${formatCount(completedNum)} completed of ${formatCount(settledNum)} settled${callsTruncated ? " · latest 1,000 records" : ""}`
+                : "No settled calls yet · unknown, not zero"}
+            unavailable={honorPctNum === null}
+            loading={initialLoading && !callsIndexed}
+            stale={indexerStale && callsIndexed}
+          />
+        </div>
+      </section>
 
+      {/* ── Analytical charts ── */}
+      <div className="ovd-analytics">
         <SectionCard
-          title="Recent Activity"
-          subtitle="Most recent calls, newest first"
-          action={<button className="ov-linkbtn" onClick={() => setPanel("history")}>View all</button>}
-          bodyClass="ui-section__body--flush"
+          title="Call activity"
+          subtitle="Calls created per hour, from indexed timestamps"
+          titleAs="h2"
+          action={<span className="ovd-mono-dim">{callsIndexed ? `${indexerStale ? "cached · " : ""}${formatCount(totalCalls24h)} in 24h` : initialLoading ? "loading…" : "unavailable"}</span>}
         >
-          {sgError ? (
+          {initialLoading && !callsIndexed ? (
+            <div aria-busy="true"><SkeletonBlock /></div>
+          ) : !callsIndexed ? (
             <ErrorState
-              title="Activity unavailable"
-              description="The indexer request failed. No activity is shown rather than an arrangement."
+              title="Activity series unavailable"
+              description="The indexer did not return call timestamps. No series is drawn from guesses."
               detail={errText(sgError)}
-              action={<Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>}
+              action={<Button size="sm" variant="secondary" onClick={handleRefresh}>Retry</Button>}
             />
-          ) : sgLoading && !indexerAnswered ? (
-            <div className="ov-activity">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="ov-skel ov-skel--row" />)}</div>
-          ) : activities.length === 0 ? (
+          ) : totalCalls24h === 0 ? (
             <EmptyState
               icon={<Activity size={20} />}
-              title="No calls indexed yet"
-              description="No call has been made against this deployment. The ledger is empty, not unreachable."
-              action={<Button size="sm" variant="secondary" onClick={() => setPanel("calls")}>Make the first call</Button>}
+              title="No calls in the last 24 hours"
+              description="The indexer returned no calls in this window. This is a measured zero from the indexed set, not a missing series."
             />
           ) : (
-            <ul className="ov-activity">
-              {activities.map((a: SgCall) => {
-                const meta = statusMeta(a.status);
-                const icon = a.status === "SLASHED" ? <ShieldCheck size={15} />
-                  : a.status === "COMPLETED" ? <ReceiptText size={15} />
-                    : <Radio size={15} />;
-                const ts = parseInt(a.createdAt || "0");
-                return (
-                  <li key={a.id} className="ov-activity__row">
-                    <span className={`ov-activity__ico ov-activity__ico--${meta.tone === "guard" ? "ok" : meta.tone === "slash" ? "danger" : "info"}`}>{icon}</span>
-                    <span className="ov-activity__body">
-                      <span className="ov-activity__title">{meta.label} · Provider #{a.providerId}</span>
-                      <span className="ov-activity__sub">
-                        {usdc(a.amount, 2)} USDC · {ts ? <span title={new Date(ts * 1000).toISOString()}>{relTime(ts)}</span> : "timestamp unavailable"}
-                      </span>
-                      {a.id && (
-                        <span className="ov-activity__id" title={a.id}>
-                          <span className="mono">{shortId(a.id)}</span>
-                          <Copy value={a.id} label="Copy call id" />
-                        </span>
-                      )}
-                    </span>
-                    <Badge tone={meta.tone}>{meta.label}</Badge>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* ── Transaction flow + service health ── */}
-      <div className="ov-2col">
-        <SectionCard title="Transaction Flow">
-          {latestCall ? (
-            <>
-              <Stepper steps={flowSteps} />
-              <div className="ov-flow__meta">
-                Call #{String(latestCall.id).slice(0, 6)}…{String(latestCall.id).slice(-4)}
-              </div>
-            </>
-          ) : (
-            <Stepper steps={computeFlowSteps(null)} />
+            <ActivityChart
+              buckets={chartData}
+              total={totalCalls24h}
+              peak={peak}
+              truncated={callsTruncated}
+            />
           )}
         </SectionCard>
 
-        <SectionCard title="Service Health" bodyClass="ui-section__body--flush">
-          <ul className="ov-health">
-            {[
-              { name: "PayPerCall", addr: CONFIG.ppcAddress },
-              { name: "ServiceRegistry", addr: CONFIG.registryAddress },
-            ].map(c => (
-              <li key={c.name} className="ov-health__row">
-                <span className="ov-health__name"><Server size={14} />{c.name}</span>
-                <a className="ov-health__addr" href={CONFIG.explorerAddr(c.addr)} target="_blank" rel="noreferrer">
-                  {shorten(c.addr)}<ExternalLink size={10} aria-hidden="true" />
-                </a>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      </div>
-
-      {/* ── Role-aware CTA banner ── */}
-      {isConnected && role && (
-        <div className={`ov-role ov-role--${role}`}>
-          <div>
-            <div className="ov-role__title">{role === "provider" ? "Provider Dashboard" : "Caller Dashboard"}</div>
-            <div className="ov-role__sub">
-              {role === "provider"
-                ? "Register your service, set your stake and SLA terms."
-                : "Browse providers, call services, and track your receipts."}
-            </div>
-          </div>
-          <Button variant="primary" size="sm" onClick={() => setPanel(role === "provider" ? "register" : "calls")}>
-            {role === "provider" ? "Register" : "Make a call"}
-          </Button>
-        </div>
-      )}
-
-      {/* ── USDC balance ── */}
-      {usdcFormatted && (
-        <div className="ov-balance">
-          <span className="ov-balance__label">Your USDC balance</span>
-          <span className="ov-balance__val">{usdcFormatted} USDC</span>
-        </div>
-      )}
-
-      {/* ── Welcome ── */}
-      {showWelcome && (
         <SectionCard
-          title="Welcome to CallGuard"
-          subtitle="Three steps to your first on-chain SLA."
-          action={
-            <button className="ov-iconbtn" onClick={dismissWelcome} title="Dismiss" aria-label="Dismiss">
-              <X size={15} />
-            </button>
-          }
+          title="SLA outcomes"
+          subtitle="Every indexed call by current state"
+          titleAs="h2"
+          action={<span className="ovd-mono-dim">{callsIndexed ? `${indexerStale ? "cached · " : ""}${formatCount(callsNum)} indexed` : initialLoading ? "loading…" : "unavailable"}</span>}
         >
-          <ol className="ov-steps">
-            <li className="ov-steps__row">
-              <span className="ov-steps__n">1</span>
-              <span className="ov-steps__body">
-                <strong>Get testnet USDC</strong>
-                <span>You need USDC to stake or to pay for calls. On Arc it is also the gas token.</span>
-              </span>
-              <a className="ov-steps__cta" href="https://faucet.circle.com/?chain=arc-testnet" target="_blank" rel="noreferrer">Open faucet</a>
-            </li>
-            <li className="ov-steps__row">
-              <span className="ov-steps__n">2</span>
-              <span className="ov-steps__body">
-                <strong>Pick a role</strong>
-                <span><b className="c-accent">Provider</b> sells API calls, stakes USDC, earns per request. <b className="c-info">Caller</b> pays USDC for an SLA guarantee.</span>
-              </span>
-              <button className="ov-steps__cta" onClick={() => setPanel("register")}>Register</button>
-            </li>
-            <li className="ov-steps__row">
-              <span className="ov-steps__n">3</span>
-              <span className="ov-steps__body">
-                <strong>Make your first call</strong>
-                <span>Call provider #1 to see the full SLA lifecycle — escrow, receipt, payout.</span>
-              </span>
-              <button className="ov-steps__cta ov-steps__cta--primary" onClick={() => setPanel("calls")}>Call a service</button>
-            </li>
-          </ol>
+          {initialLoading && !callsIndexed ? (
+            <div aria-busy="true"><SkeletonBlock /></div>
+          ) : !callsIndexed ? (
+            <ErrorState
+              title="Outcome split unavailable"
+              description="The indexer did not return call states. The split is not filled in."
+              detail={errText(sgError)}
+              action={<Button size="sm" variant="secondary" onClick={handleRefresh}>Retry</Button>}
+            />
+          ) : callsNum === 0 ? (
+            <EmptyState
+              icon={<ShieldCheck size={20} />}
+              title="No outcomes to report"
+              description="Outcomes appear once calls have been made and settled."
+            />
+          ) : (
+            <OutcomeChart
+              rows={outcomeRows}
+              total={callsNum}
+              completed={completedNum}
+              slashed={slashedNum}
+              refunded={refundedNum}
+              open={openNum}
+              honorPct={honorPctNum}
+              truncated={callsTruncated}
+            />
+          )}
         </SectionCard>
-      )}
+      </div>
 
-      {/* ── My activity ── */}
-      {isConnected && myActivity.length > 0 && (
-        <SectionCard title="My Activity" action={<button className="ov-linkbtn" onClick={() => setPanel("requests")}>My requests</button>} bodyClass="ui-section__body--flush">
-          <ul className="ov-activity">
-            {myActivity.map((c: SgCall) => (
-              <li key={c.id} className="ov-activity__row">
-                <span className={`ov-activity__ico ov-activity__ico--${c.status === "SLASHED" ? "danger" : c.status === "STARTED" ? "info" : "ok"}`}>
-                  <ReceiptText size={15} />
-                </span>
-                <span className="ov-activity__body">
-                  <span className="ov-activity__title">Call #{String(c.id).slice(-4)}</span>
-                  <span className="ov-activity__sub">{c.amount ? `${Number(formatUnits(BigInt(c.amount), 6)).toFixed(4)} USDC` : ""}</span>
-                </span>
-                <Badge tone={c.status === "SLASHED" ? "slash" : c.status === "STARTED" ? "info" : "guard"}>{c.status}</Badge>
-              </li>
-            ))}
-          </ul>
+      {/* ── Live Network + Recent Activity ── */}
+      <div className="ovd-livegrid">
+        <SectionCard
+          className="ovd-live-card"
+          title="Live Network"
+          subtitle="Provider availability from indexed records, not a simulated topology"
+          titleAs="h2"
+          action={<Badge tone={indexerStale ? "pending" : activeProviders > 0 ? "guard" : "neutral"}>
+            {indexerStale ? "Cached" : providersIndexed ? `${formatCount(activeProviders)} active` : "—"}
+          </Badge>}
+          bodyClass="ui-section__body--flush"
+        >
+          <LiveNetwork
+            providers={sgProviders}
+            providerCount={providerCount}
+            activeProviders={activeProviders}
+            completedAll={completedAll}
+            slashedAll={slashedAll}
+            stakeRaw={providersIndexed ? stakeRaw : null}
+            priceRange={priceRange}
+            meta={sgMeta}
+            loading={initialLoading && !providersIndexed}
+            unavailable={!providersIndexed}
+            stale={indexerStale}
+            truncated={providersTruncated}
+            errorText={errText(sgError)}
+            onRetry={handleRefresh}
+            onViewProviders={() => setPanel("providers")}
+            onRegister={() => setPanel("register")}
+          />
         </SectionCard>
-      )}
 
-      {/* ── Actions ── */}
-      <SectionCard title="Actions" bodyClass="ui-section__body--flush">
+        <SectionCard
+          className="ovd-activity-card"
+          title="Recent Activity"
+          subtitle="Newest indexed calls, with the exact call id"
+          titleAs="h2"
+          action={<button className="ovd-linkbtn" onClick={() => setPanel("history")}>View all</button>}
+          bodyClass="ui-section__body--flush"
+        >
+          <RecentActivity
+            calls={activities}
+            loading={initialLoading && !callsIndexed}
+            unavailable={!callsIndexed}
+            errorText={errText(sgError)}
+            onRetry={handleRefresh}
+            onViewAll={() => setPanel("history")}
+            onMakeCall={() => setPanel("calls")}
+            onVerify={openVerify}
+          />
+        </SectionCard>
+      </div>
+
+      {/* ── Next actions ── */}
+      <section className="ovd-next" aria-labelledby="ovd-next-title">
+        <div className="ovd-next__head">
+          <div>
+            <h2 id="ovd-next-title">Next actions</h2>
+            <p>Only destinations that already exist in this app.</p>
+          </div>
+        </div>
+        <div className="ovd-next__grid">
+          <button className="ovd-next__item" onClick={() => setPanel("marketplace")}>
+            <span className="ovd-next__icon ovd-next__icon--accent" aria-hidden="true"><Server size={16} /></span>
+            <span><b>Browse marketplace</b><small>Compare live provider price and SLA terms</small></span>
+          </button>
+          <button className="ovd-next__item" onClick={() => setPanel("history")}>
+            <span className="ovd-next__icon ovd-next__icon--info" aria-hidden="true"><ReceiptText size={16} /></span>
+            <span><b>View transactions</b><small>Inspect every indexed call and settlement</small></span>
+          </button>
+          <button className="ovd-next__item" onClick={() => setPanel("verify")}>
+            <span className="ovd-next__icon ovd-next__icon--warn" aria-hidden="true"><ShieldCheck size={16} /></span>
+            <span><b>Verify a receipt</b><small>Check an EIP-712 response against a call</small></span>
+          </button>
+          <button className="ovd-next__item" onClick={() => setPanel("register")}>
+            <span className="ovd-next__icon ovd-next__icon--cyan" aria-hidden="true"><Pencil size={16} /></span>
+            <span><b>Become a provider</b><small>Stake USDC and publish an SLA</small></span>
+          </button>
+        </div>
+      </section>
+
+      {/* ── Operations ── */}
+      <SectionCard
+        title="Operations"
+        subtitle="On-chain actions available from this wallet"
+        titleAs="h2"
+        bodyClass="ui-section__body--flush"
+      >
         <div className="ov-actions">
           <div className="ov-actions__row">
             <span className="ov-actions__icon ov-actions__icon--accent"><Zap size={15} /></span>
             <span className="ov-actions__body">
               <span className="ov-actions__title">Call a service</span>
-              <span className="ov-actions__sub">Pay per request · EIP-3009 gasless</span>
+              <span className="ov-actions__sub">Pay per request · USDC escrow</span>
             </span>
             <div className="ov-actions__ctrl">
-              <Input value={callProvider} onChange={(e) => setCallProvider(e.target.value)} placeholder="Provider ID" className="ov-input-sm" />
+              <Input
+                value={callProvider}
+                onChange={(e) => setCallProvider(e.target.value)}
+                placeholder="Provider ID"
+                aria-label="Provider ID"
+                className="ov-input-sm"
+              />
               <Button variant="primary" size="sm" onClick={() => setPanel("calls")}>Quick Call</Button>
             </div>
           </div>
@@ -699,7 +774,7 @@ export default function Overview() {
               <span className="ov-actions__icon ov-actions__icon--info"><Layers size={15} /></span>
               <span className="ov-actions__body">
                 <span className="ov-actions__title">Multi-provider call</span>
-                <span className="ov-actions__sub">Parallel calls · fastest receipt wins</span>
+                <span className="ov-actions__sub">Sequential calls · per-call receipts</span>
               </span>
               {multiOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
@@ -716,7 +791,7 @@ export default function Overview() {
                   </div>
                 </div>
                 <div className="ov-note ov-note--muted">
-                  Cost: ~{multiProvider.split(",").filter(Boolean).length * multiCount} USDC total
+                  Cost: each call escrows its provider's listed price
                 </div>
                 <Button variant="primary" size="sm" className="ov-full" onClick={runMultiCall} disabled={multiRunning || !address}>
                   {multiRunning ? `Running (${multiResults.length}/${multiProvider.split(",").filter(Boolean).length * multiCount})…` : "Run multi-call"}
@@ -739,6 +814,146 @@ export default function Overview() {
         </div>
       </SectionCard>
 
+      {/* ── Transaction flow + contract endpoints ── */}
+      <div className="ovd-twocol">
+        <SectionCard
+          title="Transaction flow"
+          subtitle={latestCall ? "Lifecycle of the latest indexed call" : "No indexed call to trace yet"}
+          titleAs="h2"
+        >
+          <Stepper steps={flowSteps} />
+          {latestCall?.id && (
+            <div className="ov-flow__meta">
+              Call {shortId(latestCall.id, 8, 6)}
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Contract endpoints"
+          subtitle="Explorer links for the active deployment — no health probe is implied"
+          titleAs="h2"
+          bodyClass="ui-section__body--flush"
+        >
+          <ul className="ov-health">
+            {[
+              { name: "PayPerCall", addr: CONFIG.ppcAddress },
+              { name: "ServiceRegistry", addr: CONFIG.registryAddress },
+            ].map(c => (
+              <li key={c.name} className="ov-health__row">
+                <span className="ov-health__name"><Server size={14} />{c.name}</span>
+                <a className="ov-health__addr" href={CONFIG.explorerAddr(c.addr)} target="_blank" rel="noreferrer">
+                  {shorten(c.addr)}<ExternalLink size={10} aria-hidden="true" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      </div>
+
+      {/* ── Role-aware CTA banner ── */}
+      {isConnected && role && (
+        <div className={`ov-role ov-role--${role}`}>
+          <div>
+            <div className="ov-role__title">{role === "provider" ? "Provider Dashboard" : "Caller Dashboard"}</div>
+            <div className="ov-role__sub">
+              {role === "provider"
+                ? "Register your service, set your stake and SLA terms."
+                : "Browse providers, call services, and track your receipts."}
+            </div>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => setPanel(role === "provider" ? "register" : "calls")}>
+            {role === "provider" ? "Register" : "Make a call"}
+          </Button>
+        </div>
+      )}
+
+      {/* ── USDC balance ── */}
+      {address && (
+        <div className="ovd-balance">
+          <span className="ovd-balance__label">Your USDC balance</span>
+          <span className="ovd-balance__val">
+            {usdcBalLoading
+              ? "Reading…"
+              : usdcBalError
+                ? "Unavailable"
+                : `${formatUsdc(usdcBal) ?? "—"} USDC`}
+          </span>
+        </div>
+      )}
+
+      {/* ── Welcome ── */}
+      {showWelcome && (
+        <SectionCard
+          title="Welcome to CallGuard"
+          subtitle="Three steps to your first on-chain SLA."
+          titleAs="h2"
+          action={
+            <button className="ov-iconbtn" onClick={dismissWelcome} title="Dismiss" aria-label="Dismiss">
+              <X size={15} />
+            </button>
+          }
+        >
+          <ol className="ov-steps">
+            <li className="ov-steps__row">
+              <span className="ov-steps__n">1</span>
+              <span className="ov-steps__body">
+                <strong>Get testnet USDC</strong>
+                <span>You need USDC to stake or to pay for calls. On Arc it is also the gas token.</span>
+              </span>
+              <a className="ov-steps__cta" href="https://faucet.circle.com/?chain=arc-testnet" target="_blank" rel="noreferrer">Open faucet</a>
+            </li>
+            <li className="ov-steps__row">
+              <span className="ov-steps__n">2</span>
+              <span className="ov-steps__body">
+                <strong>Pick a role</strong>
+                <span><b className="c-accent">Provider</b> sells API calls, stakes USDC, earns per request. <b className="c-info">Caller</b> pays USDC for an SLA guarantee.</span>
+              </span>
+              <button className="ov-steps__cta" onClick={() => setPanel("register")}>Register</button>
+            </li>
+            <li className="ov-steps__row">
+              <span className="ov-steps__n">3</span>
+              <span className="ov-steps__body">
+                <strong>Make your first call</strong>
+                <span>Call provider #1 to see the full SLA lifecycle — escrow, receipt, payout.</span>
+              </span>
+              <button className="ov-steps__cta ov-steps__cta--primary" onClick={() => setPanel("calls")}>Call a service</button>
+            </li>
+          </ol>
+        </SectionCard>
+      )}
+
+      {/* ── My activity ── */}
+      {isConnected && myActivity.length > 0 && (
+        <SectionCard
+          title="My Activity"
+          titleAs="h2"
+          action={<button className="ovd-linkbtn" onClick={() => setPanel("requests")}>My requests</button>}
+          bodyClass="ui-section__body--flush"
+        >
+          <ul className="ov-activity">
+            {myActivity.map((c: SgCall) => {
+              const meta = statusMeta(c.status);
+              return (
+                <li key={c.id} className="ov-activity__row">
+                  <span className={`ov-activity__ico ov-activity__ico--${meta.tone === "slash" ? "danger" : meta.tone === "info" ? "info" : "ok"}`}>
+                    <ReceiptText size={15} />
+                  </span>
+                  <span className="ov-activity__body">
+                    <span className="ov-activity__title">Call {shortId(String(c.id ?? ""), 8, 6)}</span>
+                    <span className="ov-activity__sub">
+                      {formatUsdc(c.amount) === null ? "Amount unavailable" : `${formatUsdc(c.amount)} USDC`}
+                      {c.createdAt && <> · {relTime(parseInt(c.createdAt, 10))}</>}
+                    </span>
+                  </span>
+                  <Badge tone={meta.tone}>{meta.label}</Badge>
+                </li>
+              );
+            })}
+          </ul>
+        </SectionCard>
+      )}
+
       {/* ── On-chain event stream ──
           A live log subscription on PayPerCall. Only events actually received
           are listed; the badge turns active once one has arrived, so the card
@@ -746,18 +961,23 @@ export default function Overview() {
       <SectionCard
         title="On-chain Events"
         subtitle="Live log subscription on PayPerCall — CallStarted, ReceiptSubmitted, CallSlashed"
+        titleAs="h2"
         action={
-          <Badge tone={liveEvents.length > 0 ? "guard" : "neutral"} dot={liveEvents.length > 0}>
-            {liveEvents.length > 0 ? `${liveEvents.length} this session` : "Listening"}
-          </Badge>
+          <span role="status" aria-live="polite">
+            <Badge tone={liveError ? "slash" : liveEvents.length > 0 ? "guard" : "neutral"} dot={!liveError && liveEvents.length > 0}>
+              {liveError ? "Feed error" : liveEvents.length > 0 ? `${liveEvents.length} this session` : "Listening"}
+            </Badge>
+          </span>
         }
         bodyClass="ui-section__body--flush"
       >
         {liveEvents.length === 0 ? (
           <EmptyState
             icon={<Radio size={20} />}
-            title="No events in this session"
-            description="The subscription is open. Events appear here only while this page is mounted — silence means the contracts have not emitted, not that the feed is broken."
+            title={liveError ? "Event stream unavailable" : "No events in this session"}
+            description={liveError
+              ? `The subscription reported an error, so nothing is claimed as delivered: ${liveError}`
+              : "The subscription is open. Events appear here only while this page is mounted — silence means the contracts have not emitted, not that the feed is broken."}
           />
         ) : (
           <ul className="ov-activity">
@@ -767,6 +987,12 @@ export default function Overview() {
                 <span className="ov-activity__body">
                   <span className="ov-activity__title">{e.label}</span>
                   <span className="ov-activity__sub">{e.detail} · {e.time}</span>
+                  {e.hash && (
+                    <a className="ov-activity__id" href={CONFIG.explorerTx(e.hash)} target="_blank" rel="noreferrer">
+                      <span className="mono">{shortId(e.hash)}</span>
+                      <ExternalLink size={10} aria-hidden="true" />
+                    </a>
+                  )}
                 </span>
               </li>
             ))}
@@ -775,8 +1001,32 @@ export default function Overview() {
       </SectionCard>
 
       {/* ── Top providers ── */}
-      {topProviders.length > 0 && (
-        <SectionCard title="Top Providers" bodyClass="ui-section__body--flush">
+      <SectionCard
+        title="Top Providers"
+        subtitle="Ranked by the reputation formula used across the app; list is bounded"
+        titleAs="h2"
+        action={
+          <span className="ovd-card-actions">
+            {indexerStale && <Badge tone="pending">Cached</Badge>}
+            <button className="ovd-linkbtn" onClick={() => setPanel("providers")}>View providers</button>
+          </span>
+        }
+        bodyClass="ui-section__body--flush"
+      >
+        {!providersIndexed ? (
+          <EmptyState
+            icon={<Server size={20} />}
+            title="Provider ranking unavailable"
+            description="The indexer did not return provider records, so no ranking is shown."
+          />
+        ) : topProviders.length === 0 ? (
+          <EmptyState
+            icon={<Server size={20} />}
+            title="No providers to rank"
+            description="Provider records will appear after a provider registers and the indexer catches up."
+            action={<Button size="sm" variant="secondary" onClick={() => setPanel("register")}>Register a provider</Button>}
+          />
+        ) : (
           <ul className="ov-rank">
             {topProviders.map((p, i) => {
               const rep = Math.round(repPct(p));
@@ -790,87 +1040,22 @@ export default function Overview() {
               );
             })}
           </ul>
-        </SectionCard>
-      )}
-
-      {/* ── Analytics ──
-          Two charts, each answering one question: when did calls happen, and
-          how did they end. Both are computed from the same indexed call list. */}
-      <div className="ov-2col">
-        <SectionCard
-          title="Call Activity (24h)"
-          subtitle="Calls created per hour, from indexed timestamps"
-          action={<span className="ov-mono-dim">{totalCalls24h} calls</span>}
-        >
-          {totalCalls24h === 0 ? (
-            <EmptyState
-              icon={<Activity size={20} />}
-              title="No calls in the last 24 hours"
-              description="Nothing has been called in this window. This is a measured zero from the indexer, not a missing series."
-            />
-          ) : (
-            <div>
-              <div className="ov-bars" role="img" aria-label={`Calls per hour over the last 24 hours. ${totalCalls24h} calls in total, busiest ${peakCount === 0 ? "hour has no calls" : `${peakAgo === 0 ? "in the current hour" : `${peakAgo} hours ago`} with ${peakCount} call${peakCount === 1 ? "" : "s"}`}.`}>
-                {chartData.map((b, i) => (
-                  <div
-                    key={i}
-                    title={`${b.ago === 0 ? "This hour" : `${b.ago}h ago`} — ${b.count} call${b.count !== 1 ? "s" : ""}`}
-                    className="ov-bars__bar"
-                    style={{ height: `${Math.max(3, (b.count / Math.max(peakCount, 1)) * 48)}px`, opacity: b.count > 0 ? 0.8 : 0.2 }}
-                  />
-                ))}
-              </div>
-              <div className="ov-bars__labels" aria-hidden="true">
-                <span>23h ago</span><span>12h ago</span><span>now</span>
-              </div>
-              <p className="ov-chart-summary">
-                {totalCalls24h} call{totalCalls24h === 1 ? "" : "s"} in the last 24 hours
-                {peakCount > 0 && <> · busiest {peakAgo === 0 ? "in the current hour" : `${peakAgo}h ago`} with {peakCount} call{peakCount === 1 ? "" : "s"}</>}
-              </p>
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="SLA Outcomes"
-          subtitle="Every indexed call by final state"
-          action={<span className="ov-mono-dim">{callsNum} calls</span>}
-        >
-          {callsNum === 0 ? (
-            <EmptyState
-              icon={<ShieldCheck size={20} />}
-              title="No outcomes to report"
-              description="Outcomes appear once calls have been made and settled."
-            />
-          ) : (
-            <div>
-              <ul className="ov-bars-h">
-                {outcomeRows.map(r => (
-                  <li key={r.key} className="ov-bars-h__row">
-                    <span className="ov-bars-h__label">{r.label}</span>
-                    <span className="ov-bars-h__track">
-                      <i style={{ width: `${r.pct}%`, background: r.color }} />
-                    </span>
-                    <span className="ov-bars-h__val">{r.count}<span className="ov-bars-h__pct">{r.pct}%</span></span>
-                  </li>
-                ))}
-              </ul>
-              <p className="ov-chart-summary">
-                {completedNum} completed · {slashedNum} slashed · {openNum} still open
-                {honorPctNum !== null && <> · SLA success rate {honorPctNum}% of settled calls</>}
-                {honorPctNum === null && <> · the success rate is unknown until a call settles</>}
-              </p>
-            </div>
-          )}
-        </SectionCard>
-      </div>
+        )}
+      </SectionCard>
 
       {/* ── Deployed contracts ── */}
-      <SectionCard title="Deployed Contracts">
+      <SectionCard
+        title="Deployed Contracts"
+        subtitle="Active v7 deployment addresses; the explorer is the source of truth"
+        titleAs="h2"
+      >
         <div className="ov-contracts">
           {CONTRACTS.map(c => (
             <div key={c.name} className="ov-contract">
-              <div className="ov-contract__name">{c.name}</div>
+              <div className="ov-contract__name">
+                {c.name}
+                {c.retired && <Badge tone="pending">Retired</Badge>}
+              </div>
               <a href={CONFIG.explorerAddr(c.addr)} target="_blank" rel="noreferrer">
                 {shorten(c.addr)}<ExternalLink size={10} aria-hidden="true" />
               </a>
@@ -886,9 +1071,10 @@ export default function Overview() {
    Four independent facts, never merged: the wallet, the chain the wallet is on,
    the RPC head, and the indexer's own position. The block subscription lives
    here so a new block re-renders this strip only, not the whole dashboard. */
-function ProtocolStatus({ meta, indexerAnswered, indexerLoading, indexerError }: {
+function ProtocolStatus({ meta, indexerHasData, indexerStale, indexerLoading, indexerError }: {
   meta?: SgMeta;
-  indexerAnswered: boolean;
+  indexerHasData: boolean;
+  indexerStale: boolean;
   indexerLoading: boolean;
   indexerError: boolean;
 }) {
@@ -908,36 +1094,57 @@ function ProtocolStatus({ meta, indexerAnswered, indexerLoading, indexerError }:
     ? { tone: "unknown" as const, icon: <WifiOff size={15} />, label: "Network", value: "Unknown until a wallet connects" }
     : onArc
       ? { tone: "ok" as const, icon: <Wifi size={15} />, label: "Network", value: CONFIG.chainName, hint: `chain ${chainId}` }
-      : { tone: "err" as const, icon: <WifiOff size={15} />, label: "Network", value: `Wrong network`, hint: `wallet on chain ${chainId}, expected ${arcTestnet.id}` };
+      : { tone: "err" as const, icon: <WifiOff size={15} />, label: "Network", value: "Wrong network", hint: `wallet on chain ${chainId}, expected ${arcTestnet.id}` };
 
   const rpc = rpcError
     ? { tone: "err" as const, icon: <WifiOff size={15} />, label: "RPC", value: "Unreachable" }
     : rpcLoading || blockNumber === undefined
       ? { tone: "unknown" as const, icon: <Clock size={15} />, label: "RPC", value: "Reading head block…" }
-      : { tone: "ok" as const, icon: <Wifi size={15} />, label: "RPC", value: `Block ${Number(blockNumber).toLocaleString("en-US")}` };
+      : { tone: "ok" as const, icon: <Wifi size={15} />, label: "RPC", value: `Block ${formatCount(blockNumber)}` };
 
   const idxBlock = meta?.block?.number;
   const idxTs = meta?.block?.timestamp;
   const lag = idxBlock !== undefined && blockNumber !== undefined ? Math.max(0, Number(blockNumber) - idxBlock) : undefined;
-  const indexer = indexerError
-    ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Query failed" }
-    : !indexerAnswered || indexerLoading && idxBlock === undefined
-      ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "Reading…" }
-      : idxBlock === undefined
-        ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "No _meta in response" }
-        : meta?.hasIndexingErrors
-          ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Indexing error", hint: `block ${idxBlock.toLocaleString("en-US")}` }
-          : {
-            tone: (lag !== undefined && lag > 50 ? "warn" : "ok") as "warn" | "ok",
-            icon: <Database size={15} />,
-            label: "Indexer",
-            value: `Block ${idxBlock.toLocaleString("en-US")}`,
-            hint: `${lag !== undefined ? `lag ${lag} block${lag === 1 ? "" : "s"} · ` : ""}${idxTs ? `indexed ${relTime(idxTs)}` : ""}`,
-          };
+  const indexer = indexerStale
+    ? {
+      tone: "warn" as const,
+      icon: <Database size={15} />,
+      label: "Indexer",
+      value: idxBlock === undefined ? "Cached read" : `Cached block ${formatCount(idxBlock)}`,
+      hint: "last refresh failed · values are marked cached",
+    }
+    : indexerError && !indexerHasData
+      ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Query failed" }
+      : !indexerHasData || indexerLoading && idxBlock === undefined
+        ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "Reading…" }
+        : idxBlock === undefined
+          ? { tone: "unknown" as const, icon: <Database size={15} />, label: "Indexer", value: "No _meta in response" }
+          : meta?.hasIndexingErrors
+            ? { tone: "err" as const, icon: <Database size={15} />, label: "Indexer", value: "Indexing error", hint: `block ${formatCount(idxBlock)}` }
+            : {
+              tone: (lag !== undefined && lag > 50 ? "warn" : "ok") as "warn" | "ok",
+              icon: <Database size={15} />,
+              label: "Indexer",
+              value: `Block ${formatCount(idxBlock)}`,
+              hint: [
+                lag !== undefined ? `lag ${formatCount(lag)} block${lag === 1 ? "" : "s"}` : null,
+                idxTs ? `indexed ${relTime(idxTs)}` : null,
+              ].filter(Boolean).join(" · "),
+            };
 
   return (
-    <div className="ov-status">
+    <div className="ov-status ovd-status">
       {[wallet, network, rpc, indexer].map(item => <StatusItem key={item.label} {...item} />)}
+    </div>
+  );
+}
+
+function SkeletonBlock() {
+  return (
+    <div className="ovd-skeleton-block">
+      <div className="ovd-skeleton-block__line" />
+      <div className="ovd-skeleton-block__line" />
+      <div className="ovd-skeleton-block__line" />
     </div>
   );
 }
@@ -962,12 +1169,20 @@ function computeFlowSteps(call: { status?: string } | null | undefined): Step[] 
       mk("settlement", "Settlement", "On-chain", "done"),
     ];
   }
-  if (s === "SLASHED" || s === "REFUNDED") {
+  if (s === "SLASHED") {
     return [
       mk("payment", "Payment", "USDC", "done"),
       mk("sla", "SLA", "Deadline missed", "failed"),
       mk("receipt", "Receipt", "No receipt", "idle"),
-      mk("settlement", "Settlement", s === "SLASHED" ? "Stake slashed" : "Refunded", "failed"),
+      mk("settlement", "Settlement", "Stake slashed", "failed"),
+    ];
+  }
+  if (s === "REFUNDED") {
+    return [
+      mk("payment", "Payment", "USDC", "done"),
+      mk("sla", "SLA", "Closed without receipt", "failed"),
+      mk("receipt", "Receipt", "No receipt", "idle"),
+      mk("settlement", "Settlement", "Refunded", "failed"),
     ];
   }
   return [
