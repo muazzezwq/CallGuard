@@ -3817,7 +3817,11 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 
 /* ── Call Builder: form + right rail stacks on mobile ── */
 .cg-split-rail { grid-template-columns: 1fr 320px; align-items: start; }
+@media (max-width: 960px) { .cg-split-rail { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .cg-split-rail { grid-template-columns: 1fr; } }
+@media (max-width: 560px) {
+  .cb-fields, .cb-terms, .cb-actions { grid-template-columns: 1fr !important; }
+}
 
 /* ── Onboarding wizard: clear the mobile bottom nav ── */
 .cg-onboard { bottom: 24px; }
