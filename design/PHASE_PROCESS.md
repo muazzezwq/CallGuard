@@ -15,8 +15,11 @@ cannot.
 
 ## 1. Phase requirements live in the repository
 
-- The delivered prompt of each phase is stored verbatim in `design/PHASE_<n>.md`
-  (`PHASE_1.md` … `PHASE_5.md`; `PHASE_5.md` is currently an explicit "not delivered" placeholder).
+- The delivered prompt of a phase is stored verbatim in `design/PHASE_<n>.md` when such a file
+  exists (`PHASE_1.md` … `PHASE_5.md` today; the markers below are what make it verbatim).
+  Phases 6, 7 and 8 have no verbatim prompt file: their prompts arrived in chat and are recorded
+  instead as plans, a scope note and checklists — `design/PHASE_6_PLAN.md`,
+  `design/PHASE_7_PLAN.md`, `design/PHASE_8.md`, and the files in `design/phase-checklists/`.
 - The original wording sits between the markers
   `<!-- BEGIN VERBATIM PROMPT (original wording, unchanged) -->` and `<!-- END VERBATIM PROMPT -->`.
   **Never edit inside the markers.** Notes go in the provenance header or outside the markers.

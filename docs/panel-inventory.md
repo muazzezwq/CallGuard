@@ -12,9 +12,9 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 |---|---|---|---|---|---|
 | 1 | Overview | `overview` | `src/components/panels/Overview.tsx` | useSubgraph + fetch + lib/config | done |
 | 2 | Marketplace | `marketplace` | `src/components/panels/Marketplace.tsx` | useSubgraph + useReadContracts (registry SLA) | done |
-| 3 | Call Builder | `calls` (`x402` alias) | `src/components/panels/CallBuilder.tsx` | useSubgraph + useBudgetCap + lib/cctp + fetch `/api` | done |
-| 4 | Transactions | `history` | `src/components/panels/History.tsx` | useSubgraph + fetch | done |
-| 5 | Receipts | `receipts` | `src/components/panels/Receipts.tsx` | useSubgraph + fetch | done |
+| 3 | Call Builder | `calls` (`x402` alias) | `src/components/panels/CallBuilder.tsx` | useSubgraph + useBudgetCap + lib/cctp + lib/callCosts + lib/txLifecycle + fetch `/api` | done (Phase 6: cost + lifecycle, CCTP path disabled) |
+| 4 | Transactions | `history` | `src/components/panels/History.tsx` | useSubgraph + fetch + lib/activity | done (Phase 7: dedupe, page clamp, exact amounts, escaped export, hash gap stated) |
+| 5 | Receipts | `receipts` | `src/components/panels/Receipts.tsx` | useSubgraph + fetch + lib/activity | done (Phase 7: COMPLETED only, no zero amount, error state) |
 | 6 | Providers | `providers` | `src/components/panels/Providers.tsx` | useReadContracts + lib/config | done |
 | 7 | Rankings | `leaderboard` | `src/components/panels/Leaderboard.tsx` | useSubgraph + useReadContracts (compare only) | done |
 | 8 | Provider details | `provprofile` | `src/components/panels/ProviderProfile.tsx` | useReadContracts + useSubgraph | done |
@@ -27,7 +27,7 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 15 | Unified Balance | `balance` | `src/components/UnifiedBalance.tsx` | fetch `/api` (unified-balance) | done |
 | 16 | Agent Wallet | `agent` | `src/components/panels/Agent.tsx` | useSubgraph + fetch + lib/config | done |
 | 17 | Passkey Wallet | `passkey` | `src/components/PasskeyWallet.tsx` | usePasskeyWallet + lib/config | done |
-| 18 | My Requests | `requests` | `src/components/panels/Requests.tsx` | useSubgraph + fetch + lib/config | done |
+| 18 | My Requests | `requests` | `src/components/panels/Requests.tsx` | useSubgraph + fetch + lib/config + lib/activity | done (Phase 7: no invented deadline, escaped export, honest claim copy) |
 | 19 | Payments | `payments` | `src/components/panels/Payments.tsx` | useSubgraph + lib/config | done |
 | 20 | Disputes | `disputes` | `src/components/panels/Disputes.tsx` | useSubgraph + lib/config | done |
 | 21 | Quality Disputes | `quality` | `src/components/panels/Quality.tsx` | lib/config | done |
@@ -42,7 +42,7 @@ Every panel/page found in the repo. Status is `todo` for all rows (this is a pla
 | 30 | Privacy | `privacy` | `src/components/panels/Privacy.tsx` | static / local | done |
 | 31 | Admin Panel | `admin` | `src/components/panels/AdminPanel.tsx` | lib/config | done |
 | 32 | Analytics | `analytics` | `src/components/panels/Analytics.tsx` | fetch + lib/config | done |
-| 33 | Logs | `notifications` | `src/components/panels/Notifications.tsx` | lib/config | done |
+| 33 | Logs | `notifications` | `src/components/panels/Notifications.tsx` | lib/config + lib/activity | done (Phase 7: per-account, deduped, pinned chain, stream error) |
 | 34 | Settings | `settings` | `src/components/panels/SettingsPanel.tsx` | lib/config + store | done |
 
 > Rows marked `lib/config` only also use wagmi (`useOnchain`) indirectly through shared UI/child components; the direct data source per file is what is listed.

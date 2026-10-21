@@ -64,8 +64,11 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `git submodule update --init` after clone.
 - Both `bun.lock` and `package-lock.json` are committed. Frontend/Vercel build with **bun**;
   subgraph and facilitator use **npm**.
-- `dist/` and `app/` are **committed build output** (tracked in git, not ignored). If you
-  keep the tracked build current, rebuild with `bun run build` after frontend changes.
+- `dist/` is **generated build output and ignored by Git** (`.gitignore:25`). Vercel builds
+  the site from source with `bun run build` and publishes `dist/` (`vercel.json`); never
+  commit it. A local build leaves `git status` clean.
+- `app/` no longer exists. It was the legacy static HTML app, removed in `54dbd38`
+  (2026-10-16); `dist/` was intentionally untracked in `e06494b` (2026-10-17).
 - Env: server code (`api/`, `x402-facilitator/`) reads **unprefixed** vars first, falling
   back to `VITE_*`. `VITE_*` ships in the browser bundle — **never** put `*_PRIVATE_KEY`
   or secrets in a `VITE_*` var. `.env.example` documents all vars; never commit `.env`.

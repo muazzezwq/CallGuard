@@ -323,3 +323,74 @@ SPEC_1 values are themselves sub-AA.
   ranks by that metric after this phase.
 - The subgraph's `Provider` type declares `maxResponseTime`, `slashBps` and `endpoint` as optional
   but never selects them (`src/lib/subgraph.ts:76-83`); consumers must not assume they are present.
+
+## Phase 6 — Call Builder findings (2026-10-20)
+
+Verified against `contracts/PayPerCall.sol`, `contracts/CrossChainReceiver.sol` and the live Arc
+registry, then fixed in `src/components/panels/CallBuilder.tsx`:
+
+- `useWaitForTransactionReceipt({ hash: txHash })` was bound to the shared `writeContractAsync`
+  hash. Approving USDC and then calling produced two hashes on the same hook, so the approval's
+  receipt could render "✅ Confirmed" for the call.
+- `submitReceipt` printed "✅ Receipt submitted — escrow released." from the returned hash alone.
+- `claimTimeout` never awaited a receipt and left `isLoading` true on success.
+- The primary button read "⚡ Gas-free call" and the banner "No gas required" while it called the
+  on-chain `callService`, which needs native gas; the "Gas-free" claim describes only the x402 path.
+- `RiskBadge` printed a 100 % honour rate for a provider with no settled calls and turned it into
+  "High chance of timeout"; the underfunded branch said "Slash may be partial" where the contract
+  reverts with `InsufficientProviderStake` unless `stake * slashBps / 10_000 >= pricePerCall`
+  (`PayPerCall.sol:348`).
+- Batch pricing fell back to 1 USDC when the price read failed.
+- The x402 fallback called `callService` without the approval the direct path performs, so it would
+  revert on `transferFrom`, and reported "Fallback call sent" from the hash.
+- **`CrossChainReceiver.handleReceiveFinalizedTransfer` requires `hookData.length == 96` and
+  `depositor == address(this)`** (`CrossChainReceiver.sol:62-95`). The panel's `depositForBurn`
+  call sends no hook, so the CCTP path could not create a call. The path is now disabled with that
+  explanation; implementing hook-encoded burning is a separate, protocol-facing change.
+- `PayPerCall.openCallsPerCaller` is a public mapping capped by `maxConcurrentCalls || 10`
+  (doubled at zk tier 2, `PayPerCall.sol:352-354`); the panel now reads it and blocks at the cap
+  instead of letting `TooManyConcurrentCalls` surprise the caller.
+
+Fixed in this pass and no longer matching the "still unsupported" list above: the CallBuilder honour
+rate / "High chance of timeout" string.
+
+## Phase 7 — history and notification findings (2026-10-20)
+
+Inspected: `History.tsx`, `Notifications.tsx`, `Requests.tsx`, `Receipts.tsx`, `Overview.tsx` live
+strip, `hooks/useSubgraph.ts`, `lib/subgraph.ts`, `subgraph/schema.graphql`,
+`subgraph/src/mapping.ts`, `contracts/PayPerCall.sol`.
+
+Verified data model: `Call` is keyed by call id and written by `handleCallStarted`
+(`STARTED`), `handleReceiptSubmitted` (`COMPLETED`) and `handleCallSlashed` (`SLASHED`); the
+`REFUNDED` enum value is never written. `submitReceipt` credits `claimable[p.owner]` and does not
+transfer, so a receipt is not a withdrawal.
+
+Fixed this phase:
+
+- History CSV wrote `"0"` for a missing amount and did not double inner quotes.
+- History compared 6-decimal `refunded`/`slashed` with `Number(...) > 0`; flags now use a BigInt
+  positivity test.
+- History did not dedupe or define a deterministic order, and could show an empty page after a
+  filter shrank the list; both are fixed in `lib/activity.ts` with tests.
+- History detail had no transaction-hash row and therefore no explanation for the missing link; it
+  now states that the subgraph does not index the hash. Adding the field is a subgraph deploy, not
+  a UI change.
+- Notifications used random ids, one global list, `Number(x)/1e6` amounts, an unused Dispute
+  filter/filter tab, no `chainId`, and a green "Listening" banner even after a stream error.
+- Requests rendered a missing amount as `0`, a missing timestamp as 1970, exported
+  `formatUnits(BigInt(amount ?? 0))`, joined CSV unescaped, invented a 120 s deadline with
+  "Claimable now", and printed "✅ Timeout claimed" from the receipt alone.
+- Receipts listed `SLASHED` calls as receipts, rendered `0 USDC` for an unread amount, and showed a
+  read failure as an empty list.
+
+Recorded, not changed (out of scope):
+
+- `lib/subgraph.ts:fetchRecentActivity` is unused. It maps status to an event type
+  (`COMPLETED` → `ReceiptSubmitted`) and returns `txHash: ""`; if it is ever wired up, it must be
+  rewritten in the same terms as this phase.
+- No transaction hash, block timestamp or provider address exists on the `Call` entity, so history
+  cannot support transaction search or per-provider-address search without a subgraph change.
+- Notifications only observe events while the panel is mounted and have no push/email channel; the
+  code does not claim otherwise.
+- The event subscription is network-wide; receipt and slash events do not carry a caller, so
+  wallet-scoped filtering of those two events is not possible from the log alone.

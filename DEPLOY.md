@@ -51,7 +51,7 @@ Open `.env` file and ensure these lines exist:
 ```bash
 # Required for deployment
 USDC_ADDRESS=0x3600000000000000000000000000000000000000
-ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
+ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.io
 
 # For subsequent steps (throwaway key added in Step 2)
 PRIVATE_KEY=0x...throwaway...
