@@ -28,6 +28,10 @@ export default function handler(req, res) {
   if (window.__cgWidgetLoaded) return;
   window.__cgWidgetLoaded = true;
 
+  const esc = (value) => String(value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+
   const STYLE = \`
     .cg-widget-btn {
       display: inline-flex; align-items: center; gap: 8px;
@@ -57,7 +61,7 @@ export default function handler(req, res) {
     const amt = btn.dataset.callguardAmount || ${jsAmount};
     const lbl = btn.dataset.callguardLabel || ${jsLabel};
 
-    btn.innerHTML = \`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>\${lbl}\`;
+    btn.innerHTML = \`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>\${esc(lbl)}\`;
     btn.className += ' cg-widget-btn';
     btn.onclick = () => {
       const modal = document.createElement('div');
@@ -69,12 +73,12 @@ export default function handler(req, res) {
         </div>
         <div style="background:#131c2e;border:1px solid #1f2d42;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px">
           <div style="color:#8899b4;margin-bottom:4px">Provider</div>
-          <div style="font-weight:600">#\${pid}</div>
+          <div style="font-weight:600">#\${esc(pid)}</div>
           <div style="color:#8899b4;margin-top:8px;margin-bottom:4px">Amount</div>
-          <div style="font-weight:600;color:#10b981">\${amt} USDC</div>
+          <div style="font-weight:600;color:#10b981">\${esc(amt)} USDC</div>
           <div style="color:#8899b4;margin-top:8px;font-size:11px">SLA-guaranteed · Refunded if missed</div>
         </div>
-        <a href="https://arcsla.vercel.app/?provider=\${pid}" target="_blank"
+        <a href="https://arcsla.vercel.app/?provider=\${encodeURIComponent(String(pid))}" target="_blank"
           style="display:block;text-align:center;padding:12px;background:#10b981;color:white;border-radius:8px;font-weight:600;text-decoration:none">
           Open in CallGuard →
         </a>

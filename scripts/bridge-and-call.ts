@@ -115,7 +115,7 @@ export async function bridgeAndCall({
 
   const arcClient = createWalletClient({
     chain: destinationViemChain,
-    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network"),
+    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.io"),
     account,
   });
 
@@ -134,7 +134,7 @@ export async function bridgeAndCall({
 
   const publicClient = createPublicClient({
     chain: arcTestnet,
-    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network"),
+    transport: http(process.env.ARC_RPC_URL || "https://rpc.testnet.arc.io"),
   });
 
   const receipt = await publicClient.getTransactionReceipt({ hash: arcTxHash });

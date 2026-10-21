@@ -176,7 +176,7 @@ server.tool(
       const best = providers[0];
 
       // 2. Call via AgentWallet
-      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.io");
       const agentSigner = new ethers.Wallet(agentPrivKey, provider);
       const AGENT_WALLET_ABI = [
         "function agentCall(uint256 providerId, bytes32 requestHash, uint256 amount, bytes calldata extraData) returns (bytes32 callId)",
@@ -214,7 +214,7 @@ server.tool(
     try {
       const agentWalletAddr = process.env.AGENT_WALLET_ADDRESS;
       if (!agentWalletAddr) return { content: [{ type: "text", text: "❌ AGENT_WALLET_ADDRESS env var not set." }] };
-      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.io");
       const aw = new ethers.Contract(agentWalletAddr, [
         "function getStats() view returns (uint256 balance, uint256 spentToday, uint256 remainingToday, uint256 totalSpent, uint256 totalCalls)",
         "function dailyLimit() view returns (uint256)",
@@ -262,7 +262,7 @@ server.tool(
       const p = data.data?.provider;
       if (!p?.active) return { content: [{ type: "text", text: `❌ Provider #${providerId} not found or inactive.` }] };
 
-      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.network");
+      const rpcProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.testnet.arc.io");
       const agentSigner = new ethers.Wallet(agentPrivKey, rpcProvider);
       const aw = new ethers.Contract(agentWalletAddr, [
         "function agentCall(uint256 providerId, bytes32 requestHash, uint256 amount, bytes calldata extraData) returns (bytes32 callId)",

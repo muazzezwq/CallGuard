@@ -119,7 +119,7 @@ console.log("Facilitator wallet:", fac.facilitatorAddress);
 
 // Facilitator wallet for Memo transactions
 import { ethers } from "ethers";
-const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.network");
+const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.io");
 const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
 
 const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY; // arc-studio-allow-onchain-literal

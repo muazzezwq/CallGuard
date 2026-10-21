@@ -3,13 +3,22 @@
  *
  * Sends a 0.001 USDC nano-payment on Arc Testnet via two rails:
  *
- *   1. Gateway Nanopayments (preferred) — @circle-fin/x402-batching
- *      Uses Circle's off-chain batching service for sub-cent, sub-second
- *      transfers. Activated when GATEWAY_BATCH_URL env var is set.
- *      Falls back to Rail 2 if the Gateway call fails.
+ *   1. Gateway Nanopayments (preferred) — Circle Gateway batching endpoint
+ *      configured by GATEWAY_BATCH_URL. Uses Circle's off-chain batching
+ *      service for sub-cent, sub-second transfers. Falls back to Rail 2 only
+ *      when Gateway is not configured.
  *
  *   2. Standard ERC-20 transfer (fallback) — direct on-chain USDC.transfer()
- *      Always available. Used when Gateway is unconfigured or unreachable.
+ *      Used only when the Gateway rail is not configured. It is never used
+ *      after a Gateway request may have reached submission.
+ *
+ * Failure policy:
+ *   The installed Gateway integration has no documented idempotency key or
+ *   request-status contract for this endpoint. Once fetch() is invoked, a
+ *   timeout, connection reset, ambiguous 5xx, malformed success body, or any
+ *   other non-verifiable response is an unknown payment outcome. It must not
+ *   trigger a second payment. Such requests return a controlled pending result
+ *   and require out-of-band reconciliation.
  *
  * Security:
  *   - Rate limit: 5 req/min per IP (Upstash Redis if configured, else in-memory)
@@ -25,6 +34,8 @@
  */
 import { ethers } from "ethers";
 import crypto from "node:crypto";
+import { getRpcUrl } from "./_rpc.js";
+import { logError } from "./_redact.js";
 
 // Constant-time string compare (hash first so lengths always match).
 function safeEqual(a, b) {
@@ -33,44 +44,108 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(ab, bb);
 }
 
-const BUYER_KEY = process.env.BUYER_PRIVATE_KEY;
-const SELLER    = process.env.SELLER_ADDRESS;
-// Required API key — callers must send X-Api-Key: <value> header
-const NANO_API_KEY = process.env.NANO_API_KEY;
-
-// Gateway Nanopayments (Rail 1) config.
-// Set GATEWAY_BATCH_URL to enable — Circle Gateway batching endpoint.
-const GATEWAY_BATCH_URL     = process.env.GATEWAY_BATCH_URL;
-const GATEWAY_BATCH_API_KEY = process.env.GATEWAY_BATCH_API_KEY;
-
-// Persistent rate limiter via Upstash Redis REST API (serverless-safe).
-// Falls back to in-memory if UPSTASH_REDIS_REST_URL is not set.
 const RATE_LIMIT  = 5;
 const RATE_WINDOW = 60; // seconds
-
-const UPSTASH_URL   = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const GATEWAY_TIMEOUT_MS = 12_000;
+const CANONICAL_ARC_USDC = "0x3600000000000000000000000000000000000000";
 
 // In-memory fallback (single-instance only — not reliable on serverless)
 const _memStore = new Map();
 
-async function checkRateLimit(ip) {
+function readConfig(env) {
+  return {
+    buyerKey:      env.BUYER_PRIVATE_KEY,
+    seller:        env.SELLER_ADDRESS,
+    apiKey:        env.NANO_API_KEY,
+    gatewayUrl:    env.GATEWAY_BATCH_URL,
+    gatewayApiKey: env.GATEWAY_BATCH_API_KEY,
+    usdcAddress:   env.USDC_ADDRESS || env.VITE_USDC_ADDRESS,
+  };
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function firstString(...values) {
+  return values.find(value => typeof value === "string" && value.length > 0) || null;
+}
+
+function gatewayCorrelationId(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  return firstString(payload.batchId, payload.txHash, payload.transferId, payload.id);
+}
+
+function gatewayEvidence(payload) {
+  if (!payload || typeof payload !== "object") {
+    return { accepted: false, batchId: null, txHash: null, correlationId: null };
+  }
+  const batchId = firstString(payload.batchId);
+  const txHash = firstString(payload.txHash);
+  const rejected = payload.ok === false || payload.success === false;
+  return {
+    accepted: !rejected && Boolean(batchId || txHash),
+    batchId,
+    txHash,
+    correlationId: gatewayCorrelationId(payload),
+  };
+}
+
+function pendingGateway(res, correlationId = null) {
+  return res.status(202).json({
+    ok: false,
+    pending: true,
+    status: "pending",
+    code: "PAYMENT_OUTCOME_UNKNOWN",
+    error: "Gateway payment outcome is unknown. Do not retry until the payment is verified.",
+    rail: "gateway",
+    correlationId,
+    retryable: false,
+  });
+}
+
+function timeoutSignal() {
+  try {
+    return AbortSignal.timeout(GATEWAY_TIMEOUT_MS);
+  } catch {
+    return undefined;
+  }
+}
+
+async function readJsonBody(response) {
+  try {
+    const text = await response.text();
+    if (!text) return { ok: true, payload: null };
+    return { ok: true, payload: JSON.parse(text) };
+  } catch {
+    return { ok: false, payload: null };
+  }
+}
+
+async function checkRateLimit(ip, env, fetchImpl) {
   const key = `rl:nano:${ip}`;
+  const upstashUrl = env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = env.UPSTASH_REDIS_REST_TOKEN;
 
   // --- Upstash persistent path ---
-  if (UPSTASH_URL && UPSTASH_TOKEN) {
+  if (upstashUrl && upstashToken) {
     try {
       // INCR key
-      const incrRes = await fetch(`${UPSTASH_URL}/incr/${key}`, {
+      const incrRes = await fetchImpl(`${upstashUrl}/incr/${key}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+        headers: { Authorization: `Bearer ${upstashToken}` },
       });
       const { result: count } = await incrRes.json();
       // Set TTL only on first request (count === 1)
       if (count === 1) {
-        await fetch(`${UPSTASH_URL}/expire/${key}/${RATE_WINDOW}`, {
+        await fetchImpl(`${upstashUrl}/expire/${key}/${RATE_WINDOW}`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+          headers: { Authorization: `Bearer ${upstashToken}` },
         });
       }
       return count <= RATE_LIMIT;
@@ -91,153 +166,215 @@ async function checkRateLimit(ip) {
   return true;
 }
 
-function getRpcUrl() {
-  const base  = process.env.RPC_PROXY_BASE_URL;
-  const token = process.env.RPC_PROXY_TOKEN;
-  const chains = (process.env.RPC_PROXY_CHAINS || "").split(",");
-  if (base && chains.includes("Arc_Testnet")) {
-    return `${base}/api/rpc/Arc_Testnet?_rpc_token=${token}`;
-  }
-  return process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL;
-}
+export function createNanoCallHandler({ env = process.env, fetchImpl = fetch } = {}) {
+  return async function handler(req, res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Api-Key");
 
-const USDC_ABI_BALANCE = ["function balanceOf(address) view returns (uint256)"];
-const USDC_ADDR = process.env.VITE_USDC_ADDRESS || process.env.USDC_ADDRESS;
+    if (req.method === "OPTIONS") return res.status(200).end();
 
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Api-Key");
+    const cfg = readConfig(env);
+    const rpcUrl = getRpcUrl(env);
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  // GET /api/nano-call?balance=1&address=0x...  (merged from nano-balance to stay within Hobby 12-fn limit)
-  if (req.method === "GET" && req.query.balance === "1") {
-    const address = req.query.address;
-    if (!address || !ethers.isAddress(address))
-      return res.status(400).json({ error: "?address=0x... required" });
-    const rpcUrl = getRpcUrl();
-    if (!rpcUrl) return res.status(500).json({ error: "No RPC URL configured" });
-    if (!USDC_ADDR) return res.status(500).json({ error: "VITE_USDC_ADDRESS not configured" });
-    try {
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI_BALANCE, provider);
-      const raw = await usdc.balanceOf(address);
-      const formatted = ethers.formatUnits(raw, 6);
-      return res.json({ address, raw: raw.toString(), formatted, symbol: "USDC" });
-    } catch (e) {
-      console.error("[nano-call] balance error:", e.message);
-      return res.status(500).json({ error: "balance lookup failed" });
+    // GET /api/nano-call?balance=1&address=0x...  (merged from nano-balance to stay within Hobby 12-fn limit)
+    if (req.method === "GET" && req.query.balance === "1") {
+      const address = req.query.address;
+      if (!address || !ethers.isAddress(address))
+        return res.status(400).json({ error: "?address=0x... required" });
+      if (!rpcUrl) return res.status(500).json({ error: "No RPC URL configured" });
+      if (!cfg.usdcAddress) return res.status(500).json({ error: "VITE_USDC_ADDRESS not configured" });
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const usdc = new ethers.Contract(cfg.usdcAddress, ["function balanceOf(address) view returns (uint256)"], provider);
+        const raw = await usdc.balanceOf(address);
+        const formatted = ethers.formatUnits(raw, 6);
+        return res.json({ address, raw: raw.toString(), formatted, symbol: "USDC" });
+      } catch (e) {
+        logError("[nano-call] balance error", e);
+        return res.status(500).json({ error: "balance lookup failed" });
+      }
     }
-  }
 
-  if (req.method !== "POST") return res.status(405).json({ error: "POST required" });
+    if (req.method !== "POST") return res.status(405).json({ error: "POST required" });
 
-  // Auth check — fail CLOSED. This endpoint spends BUYER_PRIVATE_KEY funds,
-  // so an unauthenticated POST is a direct drain. Set NANO_API_KEY in env.
-  if (!NANO_API_KEY) {
-    return res.status(503).json({ ok: false, error: "NANO_API_KEY not configured — endpoint disabled" });
-  }
-  {
-    const provided = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
-    if (!provided || !safeEqual(provided, NANO_API_KEY)) {
-      return res.status(401).json({ ok: false, error: "Unauthorized — X-Api-Key required" });
+    // Auth check — fail CLOSED. This endpoint spends BUYER_PRIVATE_KEY funds,
+    // so an unauthenticated POST is a direct drain. Set NANO_API_KEY in env.
+    if (!cfg.apiKey) {
+      return res.status(503).json({ ok: false, error: "NANO_API_KEY not configured — endpoint disabled" });
     }
-  }
+    {
+      const provided = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
+      if (!provided || !safeEqual(provided, cfg.apiKey)) {
+        return res.status(401).json({ ok: false, error: "Unauthorized — X-Api-Key required" });
+      }
+    }
 
-  // Rate limit by IP
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
-  if (!(await checkRateLimit(ip))) {
-    return res.status(429).json({ ok: false, error: "Rate limit exceeded — max 5 calls per minute" });
-  }
+    // Rate limit by IP
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+    if (!(await checkRateLimit(ip, env, fetchImpl))) {
+      return res.status(429).json({ ok: false, error: "Rate limit exceeded — max 5 calls per minute" });
+    }
 
-  // Validate required env
-  if (!BUYER_KEY) return res.status(503).json({ ok: false, error: "BUYER_PRIVATE_KEY not configured" });
-  if (!SELLER)   return res.status(503).json({ ok: false, error: "SELLER_ADDRESS not configured" });
-  // FIX: validate SELLER is a well-formed EVM address
-  if (!/^0x[0-9a-fA-F]{40}$/.test(SELLER)) {
-    return res.status(503).json({ ok: false, error: "SELLER_ADDRESS is not a valid EVM address" });
-  }
+    // Validate required env
+    if (!cfg.buyerKey) return res.status(503).json({ ok: false, error: "BUYER_PRIVATE_KEY not configured" });
+    if (!cfg.seller)   return res.status(503).json({ ok: false, error: "SELLER_ADDRESS not configured" });
+    // FIX: validate SELLER is a well-formed EVM address
+    if (!/^0x[0-9a-fA-F]{40}$/.test(cfg.seller)) {
+      return res.status(503).json({ ok: false, error: "SELLER_ADDRESS is not a valid EVM address" });
+    }
 
-  const rpcUrl = getRpcUrl();
-  if (!rpcUrl) return res.status(503).json({ ok: false, error: "No RPC URL configured" });
+    if (!rpcUrl) return res.status(503).json({ ok: false, error: "No RPC URL configured" });
 
-  // Amount validation — only 0.001 USDC allowed (must be positive)
-  const { amount } = req.body || {};
-  const parsedAmount = parseFloat(amount);
-  if (amount !== undefined && (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 0.001)) {
-    return res.status(400).json({ ok: false, error: "Amount exceeds max 0.001 USDC" });
-  }
+    // Amount validation — only 0.001 USDC allowed (must be positive)
+    const { amount } = req.body || {};
+    const parsedAmount = parseFloat(amount);
+    if (amount !== undefined && (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 0.001)) {
+      return res.status(400).json({ ok: false, error: "Amount exceeds max 0.001 USDC" });
+    }
 
-  // ── Rail 1: Gateway Nanopayments ─────────────────────────────────────────
-  // Preferred path: Circle's off-chain batching service handles sub-cent
-  // transfers without on-chain gas per call. The batch is settled to Arc
-  // Testnet periodically by the Gateway relayer.
-  if (GATEWAY_BATCH_URL && SELLER) {
-    try {
-      const headers = { "Content-Type": "application/json" };
-      if (GATEWAY_BATCH_API_KEY) headers["Authorization"] = `Bearer ${GATEWAY_BATCH_API_KEY}`;
-
-      const gatewayRes = await fetch(GATEWAY_BATCH_URL, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          to:     SELLER,
-          amount: "1000",        // 0.001 USDC in 6-decimal units
-          asset:  process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS ||
-                  "0x3600000000000000000000000000000000000000",
-          chain:  "arc-testnet",
-          memo:   "callguard-nano",
-        }),
-      });
-
-      if (gatewayRes.ok) {
-        const data = await gatewayRes.json();
-        console.log("[nano-call] Gateway rail succeeded:", data?.batchId);
-        return res.json({
-          ok: true,
-          amount: "0.001",
-          rail: "gateway",
-          batchId: data?.batchId || null,
-          txHash:  data?.txHash  || null,
+    // ── Rail 1: Gateway Nanopayments ─────────────────────────────────────────
+    // Preferred path: Circle's off-chain batching service handles sub-cent
+    // transfers without on-chain gas per call. The batch is settled to Arc
+    // Testnet periodically by the Gateway relayer.
+    if (cfg.gatewayUrl) {
+      // Invalid configuration is caught before fetch(), so it cannot have
+      // reached payment submission. Do not silently spend on-chain instead.
+      if (!isHttpUrl(cfg.gatewayUrl)) {
+        console.error("[nano-call] GATEWAY_BATCH_URL is not a valid HTTP(S) URL");
+        return res.status(503).json({
+          ok: false,
+          code: "GATEWAY_CONFIG_INVALID",
+          error: "Gateway payment is not configured correctly",
         });
       }
 
-      // Gateway returned an error — log and fall through to Rail 2.
-      const errText = await gatewayRes.text().catch(() => "(unreadable)");
-      console.warn("[nano-call] Gateway rail failed, falling back to ERC-20:", gatewayRes.status, errText);
-    } catch (gatewayErr) {
-      console.warn("[nano-call] Gateway rail threw, falling back to ERC-20:", gatewayErr.message);
+      const headers = { "Content-Type": "application/json" };
+      if (cfg.gatewayApiKey) headers["Authorization"] = `Bearer ${cfg.gatewayApiKey}`;
+
+      let gatewayRes;
+      try {
+        // The timeout is an HTTP client bound, not a Gateway idempotency field.
+        gatewayRes = await fetchImpl(cfg.gatewayUrl, {
+          method: "POST",
+          headers,
+          signal: timeoutSignal(),
+          body: JSON.stringify({
+            to:     cfg.seller,
+            amount: "1000",        // 0.001 USDC in 6-decimal units
+            asset:  cfg.usdcAddress || CANONICAL_ARC_USDC,
+            chain:  "arc-testnet",
+            memo:   "callguard-nano",
+          }),
+        });
+      } catch (gatewayErr) {
+        // fetch() was invoked. The request may have reached the provider.
+        // Never fall through to a second, independent payment.
+        console.warn("[nano-call] Gateway outcome unknown:", gatewayErr?.name || "request failed", gatewayErr?.code || "");
+        return pendingGateway(res);
+      }
+
+      if (!gatewayRes || gatewayRes.ok !== true) {
+        // The installed integration does not document that any post-submission
+        // HTTP error proves the payment was not accepted. Treat it as unknown.
+        console.warn("[nano-call] Gateway returned an ambiguous status:", gatewayRes?.status ?? "none");
+        const parsed = gatewayRes ? await readJsonBody(gatewayRes) : { payload: null };
+        return pendingGateway(res, gatewayCorrelationId(parsed.payload));
+      }
+
+      const parsed = await readJsonBody(gatewayRes);
+      if (!parsed.ok) {
+        console.warn("[nano-call] Gateway success response was not valid JSON");
+        return pendingGateway(res);
+      }
+
+      const evidence = gatewayEvidence(parsed.payload);
+      if (!evidence.accepted) {
+        console.warn("[nano-call] Gateway success response had no payment evidence");
+        return pendingGateway(res, evidence.correlationId);
+      }
+
+      console.log("[nano-call] Gateway rail succeeded:", evidence.batchId || evidence.txHash);
+      return res.json({
+        ok: true,
+        amount: "0.001",
+        rail: "gateway",
+        batchId: evidence.batchId,
+        txHash: evidence.txHash,
+      });
     }
-  }
 
-  // ── Rail 2: Standard ERC-20 transfer ─────────────────────────────────────
-  // Direct on-chain USDC.transfer(). Always available; requires BUYER_PRIVATE_KEY.
-  try {
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const buyer    = new ethers.Wallet(BUYER_KEY, provider);
-    const usdcAbi  = [
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function balanceOf(address) view returns (uint256)",
-    ];
-    // USDC address from env (public value)
-    const usdcAddr = process.env.USDC_ADDRESS || process.env.VITE_USDC_ADDRESS;
-    if (!usdcAddr) return res.status(503).json({ ok: false, error: "USDC_ADDRESS not configured" });
+    // ── Rail 2: Standard ERC-20 transfer ─────────────────────────────────────
+    // Direct on-chain USDC.transfer(). Only reached when Gateway is not
+    // configured. It requires BUYER_PRIVATE_KEY.
+    try {
+      if (!cfg.usdcAddress) return res.status(503).json({ ok: false, error: "USDC_ADDRESS not configured" });
 
-    const usdc = new ethers.Contract(usdcAddr, usdcAbi, buyer);
-    const transferAmount = ethers.parseUnits("0.001", 6);
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const buyer    = new ethers.Wallet(cfg.buyerKey, provider);
+      const usdcAbi  = [
+        "function transfer(address to, uint256 amount) returns (bool)",
+        "function balanceOf(address) view returns (uint256)",
+      ];
 
-    // Balance check before sending.
-    const bal = await usdc.balanceOf(buyer.address);
-    if (bal < transferAmount) {
-      return res.status(402).json({ ok: false, error: "Insufficient demo wallet balance" });
+      const usdc = new ethers.Contract(cfg.usdcAddress, usdcAbi, buyer);
+      const transferAmount = ethers.parseUnits("0.001", 6);
+
+      // Balance check before sending.
+      const bal = await usdc.balanceOf(buyer.address);
+      if (bal < transferAmount) {
+        return res.status(402).json({ ok: false, error: "Insufficient demo wallet balance" });
+      }
+
+      let tx;
+      try {
+        tx = await usdc.transfer(cfg.seller, transferAmount);
+      } catch (e) {
+        console.error("[nano-call] ERC-20 submission failed:", e.name || "error");
+        return res.status(500).json({ ok: false, code: "TRANSFER_FAILED", error: "nano transfer failed" });
+      }
+
+      try {
+        const receipt = await tx.wait();
+        if (receipt?.status === 0) {
+          return res.status(500).json({ ok: false, code: "TRANSFER_FAILED", error: "nano transfer reverted" });
+        }
+        if (receipt?.status !== 1) {
+          return res.status(202).json({
+            ok: false,
+            pending: true,
+            status: "pending",
+            code: "TRANSFER_OUTCOME_UNKNOWN",
+            error: "Transfer outcome is unknown. Do not retry until the transaction is verified.",
+            rail: "erc20",
+            txHash: tx.hash,
+            correlationId: tx.hash,
+            retryable: false,
+          });
+        }
+      } catch (e) {
+        // The transaction hash exists, so the payment may have landed even
+        // though the receipt could not be read. Never retry automatically.
+        console.error("[nano-call] ERC-20 receipt unknown:", e.name || "error");
+        return res.status(202).json({
+          ok: false,
+          pending: true,
+          status: "pending",
+          code: "TRANSFER_OUTCOME_UNKNOWN",
+          error: "Transfer outcome is unknown. Do not retry until the transaction is verified.",
+          rail: "erc20",
+          txHash: tx.hash,
+          correlationId: tx.hash,
+          retryable: false,
+        });
+      }
+
+      return res.json({ ok: true, amount: "0.001", rail: "erc20", txHash: tx.hash });
+    } catch (e) {
+      console.error("[nano-call] ERC-20 rail error:", e.name || "error");
+      return res.status(500).json({ ok: false, code: "TRANSFER_FAILED", error: "nano transfer failed" });
     }
-
-    const tx = await usdc.transfer(SELLER, transferAmount);
-    await tx.wait();
-    return res.json({ ok: true, amount: "0.001", rail: "erc20", txHash: tx.hash });
-  } catch (e) {
-    console.error("[nano-call] ERC-20 rail error:", e.message);
-    return res.status(500).json({ ok: false, error: "nano transfer failed" });
-  }
+  };
 }
+
+export default createNanoCallHandler();

@@ -21,7 +21,7 @@ const { ethers } = require('ethers');
 // =====================================================================
 const CONFIG = {
   port: process.env.PORT || 3000,
-  arcRpc: process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network',
+  arcRpc: process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.io',
   usdc: '0x3600000000000000000000000000000000000000',
   payPerCall: '0x1A64e531Dc7498931A658F14AD6801108F372ed8',
   providerId: parseInt(process.env.PROVIDER_ID || '1', 10),

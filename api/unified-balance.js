@@ -8,6 +8,8 @@
  *   address  — EVM address of the depositor (required)
  */
 
+import { logError } from "./_redact.js";
+
 export default async function handler(req, res) {
   const { address } = req.query || {};
 
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
         error: "UnifiedBalanceKit not installed. Run: bun add @circle-fin/unified-balance-kit @circle-fin/adapter-viem-v2",
       });
     }
-    console.error("[unified-balance] error:", msg);
-    return res.status(500).json({ ok: false, error: msg });
+    logError("[unified-balance] error", err);
+    return res.status(500).json({ ok: false, error: "balance lookup failed" });
   }
 }
