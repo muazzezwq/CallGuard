@@ -864,5 +864,5 @@
   .sidebar.collapsed { width: 260px; }
   /* The drawer is out of flow here, so the grid must be a single column —
      otherwise the content falls into the sidebar's 52px track. */
-  .app-shell, .app-shell.sb-collapsed { grid-template-columns: 1fr; }
+  .app-shell, .app-shell.sb-collapsed { grid-template-columns: minmax(0, 1fr); }
 }
