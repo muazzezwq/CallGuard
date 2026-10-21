@@ -1,9 +1,21 @@
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits, parseUnits } from "viem";
 import { useState } from "react";
 import { CONFIG, USDC_ABI, PPC_ABI, arcTestnet } from "../../lib/config";
 import { friendlyError } from "../../lib/utils";
+import {
+  checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
+} from "../../lib/paymentGate";
+
+/** Accessing `sessionStorage` itself can throw in restricted browser modes. */
+function payStorage(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
 
 type PayCall = { id: string; providerId?: string | number; amount?: string; completedAt?: string };
 
@@ -34,6 +46,7 @@ export default function Payments() {
   const hasClaimable = claimableData ? (claimableData as bigint) > 0n : false;
 
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
 
   const { data, loading } = useSubgraph<{calls: PayCall[]}>(address ? `{
     calls(where:{caller:"${address.toLowerCase()}",status:"COMPLETED"} orderBy:completedAt orderDirection:desc first:20){
@@ -65,17 +78,41 @@ export default function Payments() {
     if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setStatus("Invalid address format"); return; }
     const amt = parseFloat(sendAmt);
     if (isNaN(amt) || amt <= 0) { setStatus("Invalid amount"); return; }
+    const gate = checkPaymentStart({ storage: payStorage(), operation: "payments-send" });
+    if (!gate.ok) { setStatus(gate.message); return; }
+    if (!beginOperation("payments-send")) {
+      setStatus("Another payment flow is still running in this tab. Wait for it to finish.");
+      return;
+    }
     try {
       setStatus("Sending...");
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: CONFIG.usdcAddress as `0x${string}`,
         abi: USDC_ABI,
         functionName: "transfer",
         args: [sendTo as `0x${string}`, parseUnits(sendAmt, 6)],
       });
+      if (!recordSubmittedTx(hash, payStorage()).persisted) {
+        setStatus(`Submitted ${hash}, but its pending marker could not be saved. This tab stays blocked; check the explorer before sending again.`);
+        return;
+      }
+      let receipt = null;
+      try {
+        receipt = await publicClient?.waitForTransactionReceipt({ hash, timeout: 60_000 }) ?? null;
+      } catch { receipt = null; }
+      if (!receipt) {
+        setStatus(`Submitted ${hash}; its receipt is not available yet. Do not resend; check the explorer.`);
+        return;
+      }
+      resolvePendingTx(payStorage());
+      if (receipt.status !== "success") {
+        setStatus(`Transaction ${hash} reverted; no USDC moved.`);
+        return;
+      }
       setStatus("Sent!");
       setSendTo(""); setSendAmt("");
     } catch(e:unknown){ setStatus(friendlyError(e) || "Transaction failed"); }
+    finally { endOperation("payments-send"); }
   };
 
   const balance = balanceData ? formatUnits(balanceData as bigint, 6) : "—";

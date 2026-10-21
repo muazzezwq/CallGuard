@@ -2,6 +2,12 @@ import { createWalletClient, createPublicClient, http, keccak256, toHex, toBytes
 import { privateKeyToAccount } from "viem/accounts";
 import { CONFIG, PPC_ABI } from "./config";
 import { arcTestnet } from "./config";
+import {
+  readPending,
+  pendingMemory,
+  markerIsUntrusted,
+  type PendingRead as PendingReadResult,
+} from "./paymentGate";
 
 // ── friendlyError ─────────────────────────────────────────────────────────
 const ERROR_SELECTORS: Record<string, string> = {
@@ -148,27 +154,46 @@ export async function tryClientAutoReceipt(
   }
 }
 
-// ── checkNoPendingTx ──────────────────────────────────────────────────────
-// Returns true if no TX is pending in sessionStorage (prevents double-submit)
-const PENDING_KEY = "cg_pending_tx";
-
-export function setPendingTx(hash: string): void {
-  sessionStorage.setItem(PENDING_KEY, hash);
-}
-
-export function clearPendingTx(): void {
-  sessionStorage.removeItem(PENDING_KEY);
-}
+// ── pending transaction marker ────────────────────────────────────────────
+// The marker prevents a duplicate write after a submitted transaction. The
+// rules live in `paymentGate.ts`; these wrappers keep the historical names for
+// the panels and the tests, and always read the same `cg_pending_tx` key.
+export {
+  PENDING_TX_KEY,
+  readPending as readPendingTx,
+  writePending as setPendingTx,
+  clearPending as clearPendingTx,
+  type PendingRead,
+} from "./paymentGate";
 
 export function checkNoPendingTx(
   toastFn: (opts: { kind: string; title: string; detail?: string }) => void
 ): boolean {
-  const pending = sessionStorage.getItem(PENDING_KEY);
-  if (pending) {
+  const memory = pendingMemory();
+  if (memory.kind !== "none" || markerIsUntrusted()) {
     toastFn({
       kind: "warn",
       title: "Transaction pending",
-      detail: `Wait for ${pending.slice(0, 10)}… to confirm before sending another.`,
+      detail: memory.kind === "untracked"
+        ? `A submitted transaction (${memory.hash || "hash unavailable"}) could not be saved. Check the explorer before sending another.`
+        : "An earlier transaction is still unresolved. Check its receipt before sending another.",
+    });
+    return false;
+  }
+  const pending: PendingReadResult = readPending();
+  if (!pending.ok) {
+    toastFn({
+      kind: "error",
+      title: "Cannot verify pending transactions",
+      detail: "Session storage is unavailable or its marker is unreadable, so a duplicate transaction cannot be ruled out. Nothing was sent.",
+    });
+    return false;
+  }
+  if (pending.hash) {
+    toastFn({
+      kind: "warn",
+      title: "Transaction pending",
+      detail: `Wait for ${pending.hash.slice(0, 10)}… to confirm before sending another.`,
     });
     return false;
   }

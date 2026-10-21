@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { useAccount, useWriteContract } from 'wagmi'
+import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
 import { stringToBytes, keccak256 } from 'viem'
 import { CONFIG, PPC_ABI } from '../../lib/config'
 import { friendlyError } from '../../lib/utils'
+import {
+  checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
+} from '../../lib/paymentGate'
 
 const ADDR = CONFIG.ppcAddress as `0x${string}`
 const S = {
@@ -27,6 +30,31 @@ export default function BulkCall() {
   const [csvRows, setCsvRows] = useState<CsvRow[]>([])
   const [, setCsvMode] = useState(false)
   const { writeContractAsync } = useWriteContract()
+  const publicClient = usePublicClient()
+
+  function storage(): Storage | null {
+    try { return window.sessionStorage } catch { return null }
+  }
+
+  /* One item: gate immediately before the write, persist the hash, then resolve
+     it only from a receipt. Unknown or unpersisted stops the loop. */
+  async function submitOne(requestHash: `0x${string}`, provider: string): Promise<{ hash?: string; error?: string }> {
+    const gate = checkPaymentStart({ storage: storage(), operation: 'bulk' })
+    if (!gate.ok) return { error: gate.message }
+    try {
+      const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: 'callService', args: [BigInt(provider), requestHash] })
+      if (!recordSubmittedTx(hash, storage()).persisted) {
+        return { hash, error: `Submitted ${hash}, but its pending marker could not be saved. The tab stays blocked; check the explorer before retrying.` }
+      }
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash, timeout: 60_000 })
+      if (!receipt) return { hash, error: `Submitted ${hash}, but no receipt reader is available. The tab stays blocked.` }
+      resolvePendingTx(storage())
+      if (receipt.status !== 'success') return { hash, error: `Transaction ${hash} reverted.` }
+      return { hash }
+    } catch (_err: unknown) {
+      return { error: friendlyError(_err) }
+    }
+  }
 
   function parseCsvFile(file: File) {
     const reader = new FileReader();
@@ -45,43 +73,42 @@ export default function BulkCall() {
 
   async function runCsvBatch() {
     if (!address || running || !csvRows.length) return;
+    if (!beginOperation('bulk')) return;
     setRunning(true); setResults([]);
-    for (let i = 0; i < csvRows.length; i++) {
-      const r = csvRows[i];
-      try {
+    try {
+      for (let i = 0; i < csvRows.length; i++) {
+        const r = csvRows[i];
         const requestHash = keccak256(stringToBytes(`${r.payload}-${i}-${Date.now()}`));
-        const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: "callService", args: [BigInt(r.provider_id), requestHash] });
-        setResults(prev => [...prev, { i: i + 1, hash }]);
-      } catch (_err: unknown) {
-        setResults(prev => [...prev, { i: i + 1, error: friendlyError(_err) }]);
+        const outcome = await submitOne(requestHash, r.provider_id);
+        setResults(prev => [...prev, { i: i + 1, ...outcome }]);
+        if (outcome.error) break;
+        await new Promise(res => setTimeout(res, 800));
       }
-      await new Promise(res => setTimeout(res, 800));
+    } finally {
+      endOperation('bulk');
+      setRunning(false);
     }
-    setRunning(false);
   }
 
   const estimatedCost = count * 1
 
   async function runBatch() {
     if (!address || running) return
+    if (!beginOperation('bulk')) return
     setRunning(true)
     setResults([])
-    for (let i = 0; i < count; i++) {
-      try {
+    try {
+      for (let i = 0; i < count; i++) {
         const requestHash = keccak256(stringToBytes(`${payload}-${i}-${Date.now()}`))
-        const hash = await writeContractAsync({
-          address: ADDR,
-          abi: PPC_ABI,
-          functionName: 'callService',
-          args: [BigInt(providerId), requestHash],
-        })
-        setResults(r => [...r, { i: i + 1, hash }])
-      } catch (_err: unknown) {
-        setResults(r => [...r, { i: i + 1, error: friendlyError(_err) }])
+        const outcome = await submitOne(requestHash, providerId)
+        setResults(r => [...r, { i: i + 1, ...outcome }])
+        if (outcome.error) break
+        await new Promise(res => setTimeout(res, 1000))
       }
-      await new Promise(res => setTimeout(res, 1000))
+    } finally {
+      endOperation('bulk')
+      setRunning(false)
     }
-    setRunning(false)
   }
 
   return (

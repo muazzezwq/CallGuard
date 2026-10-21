@@ -1,18 +1,22 @@
 import { useState, useCallback } from "react";
-import { useAccount, useWalletClient, usePublicClient } from "wagmi";
-import { parseUnits } from "viem";
-import { CONFIG } from "../../lib/config";
+import { useAccount, useWalletClient, usePublicClient, useWriteContract } from "wagmi";
+import { createPublicClient, http, parseUnits } from "viem";
+import { CONFIG, arcTestnet } from "../../lib/config";
+import {
+  checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
+} from "../../lib/paymentGate";
+import {
+  readCctpOperation, startCctpOperation, updateCctpOperation, clearCctpOperation, cctpStageDecision,
+} from "../../lib/cctpOperation";
+import {
+  CCTP_CONFIG, MESSAGE_TRANSMITTER_ABI, switchToChain, validateCctpMintMessage, waitForAttestation,
+} from "../../lib/cctp";
+import { BRIDGE_SOURCE_CHAINS } from "../../lib/bridgeChains";
 
-// CCTP supported source chains → Arc Testnet
-const SOURCE_CHAINS = [
-  { id: 11155111, name: "Ethereum Sepolia", symbol: "ETH", usdcAddr: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as `0x${string}`, domain: 0, tokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5" as `0x${string}` },
-  { id: 84532,    name: "Base Sepolia",     symbol: "ETH", usdcAddr: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as `0x${string}`, domain: 6, tokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5" as `0x${string}` },
-  { id: 80002,    name: "Polygon Amoy",     symbol: "MATIC", usdcAddr: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582" as `0x${string}`, domain: 7, tokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5" as `0x${string}` },
-] as const;
+const SOURCE_CHAINS = BRIDGE_SOURCE_CHAINS;
 
 // CRITICAL-05 fix: Arc Testnet CCTP domain is 26, not 9 (matches cctp.ts)
-const ARC_DOMAIN = 26;
-// ARC_TOKEN_MESSENGER is unused here — each source chain has its own tokenMessenger address above
+const ARC_DOMAIN = CCTP_CONFIG.domains.arc;
 
 const USDC_ABI = [
   { name: "approve", type: "function" as const, stateMutability: "nonpayable" as const, inputs: [{ name: "spender", type: "address" }, { name: "value", type: "uint256" }], outputs: [{ type: "bool" }] },
@@ -70,9 +74,19 @@ function addressToBytes32(addr: string): `0x${string}` {
   return `0x${addr.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
 }
 
+/** Accessing `sessionStorage` itself can throw in restricted browser modes. */
+function bridgeStorage(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export default function Bridge() {
   const { address, isConnected, chain } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
 
   const [srcIdx, setSrcIdx] = useState(0);
@@ -87,33 +101,13 @@ export default function Bridge() {
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
-  // MEDIUM-06: use CCTP v2 Iris endpoint (v1 /attestations/:txHash is deprecated)
-  const pollAttestation = useCallback(async (txHash: string, sourceDomain: number): Promise<string | null> => {
-    for (let i = 0; i < 40; i++) {
-      await new Promise(r => setTimeout(r, 8000));
-      try {
-        const res = await fetch(
-          `https://iris-api-sandbox.circle.com/v2/messages/${sourceDomain}/${txHash}`
-        );
-        const data = await res.json();
-        // v2 response: { messages: [{ status, attestation }] }
-        const msg = data?.messages?.[0];
-        if (msg?.status === "complete" && msg?.attestation) {
-          return msg.attestation;
-        }
-        addLog(`⏳ Attestation pending (attempt ${i + 1}/40)…`);
-      } catch { addLog("⚠ Attestation poll error, retrying…"); }
-    }
-    return null;
-  }, []);
-
   const handleBridge = useCallback(async () => {
     if (!address || !walletClient || !isConnected) return;
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       addLog("❌ Invalid amount"); return;
     }
     const dest = recipient.trim() || address;
-    if (!/^0x[0-9a-fA-F]{40}$/.test(dest)) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(dest) || /^0x0{40}$/i.test(dest)) {
       addLog("❌ Invalid recipient address"); return;
     }
 
@@ -123,16 +117,62 @@ export default function Bridge() {
       return;
     }
 
+    const storage = bridgeStorage();
+    const gate = checkPaymentStart({ storage, operation: "bridge" });
+    if (!gate.ok) {
+      setStep("error");
+      addLog(`❌ No transaction was started. ${gate.message}`);
+      return;
+    }
+    const existing = readCctpOperation(storage);
+    if (!existing.ok || existing.operation) {
+      setStep("error");
+      addLog(existing.ok
+        ? `❌ A previous bridge operation is unresolved (stage: ${existing.operation?.stage}). Check the explorer and clear this tab's site storage before another bridge.`
+        : "❌ The bridge operation marker cannot be read, so a repeated burn cannot be ruled out. Nothing was sent.");
+      return;
+    }
+    if (!beginOperation("bridge")) {
+      setStep("error");
+      addLog("❌ Another payment flow is still running in this tab. Wait for it to finish.");
+      return;
+    }
+
     setStep("approving");
     setLog([`🌉 Bridging ${amount} USDC from ${src.name} → Arc Testnet`]);
     setBurnHash(null);
     setAttestation(null);
 
+    /* True once any transaction was submitted. Before that an error means
+       nothing reached a chain; afterwards the marker is never cleared here. */
+    let anySubmitted = false;
+
+    /* A marker-write failure before a write leaves a stage that provably did
+       nothing. Clear it so a retry is possible, but stay blocked if the clear
+       itself cannot be verified. */
+    const abortBeforeWrite = (message: string) => {
+      const cleared = clearCctpOperation(storage);
+      const resolved = resolvePendingTx(storage);
+      setStep("error");
+      addLog(cleared.ok && resolved.cleared ? message : `${message} The safety marker could not be cleared; check storage before retrying.`);
+    };
+
     try {
       const parsedAmount = parseUnits(amount, 6);
 
+      const started = startCctpOperation(storage, { chain: String(src.id), amount: parsedAmount.toString() });
+      if (!started.ok) {
+        setStep("error");
+        addLog("❌ The bridge operation marker could not be saved and verified, so no approval or burn was sent.");
+        return;
+      }
+
       // Step 1: Approve TokenMessenger to spend USDC
       addLog("Step 1/4 — Approving USDC…");
+      if (!updateCctpOperation(storage, { stage: "approval-pending" }).ok) {
+        abortBeforeWrite("❌ The approval marker could not be saved, so no approval was sent.");
+        return;
+      }
       const approveTx = await walletClient.writeContract({
         address: src.usdcAddr,
         abi: USDC_ABI,
@@ -141,12 +181,49 @@ export default function Bridge() {
         chain: undefined,
         account: address,
       });
+      anySubmitted = true;
+      recordSubmittedTx(approveTx, storage);
+      if (!updateCctpOperation(storage, { stage: "approval-pending", approvalHash: approveTx }).ok) {
+        setStep("error");
+        addLog(`❌ Approval ${approveTx} was submitted, but the marker could not record its hash. Check the explorer; do not continue.`);
+        return;
+      }
       addLog(`✅ Approved — TX: ${approveTx}`);
-      await publicClient!.waitForTransactionReceipt({ hash: approveTx, timeout: 60_000 });
+
+      let approveReceipt = null;
+      try {
+        approveReceipt = await publicClient!.waitForTransactionReceipt({ hash: approveTx, timeout: 60_000 });
+      } catch { approveReceipt = null; }
+      const approveDecision = cctpStageDecision(
+        "approval-pending",
+        !approveReceipt ? "unknown" : approveReceipt.status === "success" ? "confirmed" : "reverted",
+      );
+      if (approveDecision.action === "stop") {
+        setStep("error");
+        addLog(`⚠ ${approveDecision.message} Do not retry; check the explorer first.`);
+        return;
+      }
+      if (approveDecision.action === "fail") {
+        clearCctpOperation(storage);
+        resolvePendingTx(storage);
+        setStep("error");
+        addLog(`❌ ${approveDecision.message}`);
+        return;
+      }
+      if (!updateCctpOperation(storage, { stage: "approval-confirmed" }).ok) {
+        setStep("error");
+        addLog("❌ The approval confirmed, but the marker could not record that stage. Check the explorer; do not continue.");
+        return;
+      }
+      resolvePendingTx(storage);
 
       // Step 2: depositForBurn
       setStep("burning");
       addLog("Step 2/4 — Burning USDC on source chain…");
+      if (!updateCctpOperation(storage, { stage: "burn-pending" }).ok) {
+        abortBeforeWrite("❌ The burn marker could not be saved, so no burn was sent.");
+        return;
+      }
       const mintRecipient = addressToBytes32(dest);
       const burnTx = await walletClient.writeContract({
         address: src.tokenMessenger,
@@ -158,50 +235,189 @@ export default function Bridge() {
         account: address,
       });
       setBurnHash(burnTx);
-      addLog(`✅ Burned — TX: ${burnTx}`);
-      await publicClient!.waitForTransactionReceipt({ hash: burnTx, timeout: 120_000 });
-
-      // Step 3: Poll Circle IRIS for attestation
-      setStep("attesting");
-      addLog("Step 3/4 — Waiting for Circle attestation (up to 5 min)…");
-      const att = await pollAttestation(burnTx, src.domain);
-      if (!att) {
+      recordSubmittedTx(burnTx, storage);
+      if (!updateCctpOperation(storage, { stage: "burn-pending", burnHash: burnTx }).ok) {
         setStep("error");
-        addLog("❌ Attestation timed out. Check https://iris-api-sandbox.circle.com/v2/messages/" + src.domain + "/" + burnTx);
+        addLog(`❌ Burn ${burnTx} was submitted, but the marker could not record its hash. Check the explorer; do not continue.`);
         return;
       }
-      setAttestation(att);
-      addLog("✅ Attestation received");
+      addLog(`✅ Burned — TX: ${burnTx}`);
 
-      // Step 4: receiveMessage on Arc Testnet
-      setStep("minting");
-      addLog("Step 4/4 — Arc Testnet: switch wallet to Arc and call receiveMessage via /api/call-service…");
-      // Since we can't easily switch chains in-browser for the user,
-      // relay through our backend which has Arc RPC access
-      const relayRes = await fetch("/api/call-service", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cctp-receive", attestation: att, burnTx }),
-      });
-      const relayData = await relayRes.json();
-      if (relayData.ok || relayData.txHash) {
-        setStep("done");
-        addLog(`✅ Minted on Arc Testnet — TX: ${relayData.txHash || "pending"}`);
-        addLog(`🎉 Bridge complete! ${amount} USDC should arrive at ${dest.slice(0,8)}…`);
-      } else {
-        // Manual fallback instructions
-        setStep("done");
-        addLog(`⚠ Auto-relay not available. Manual step:`);
-        addLog(`  1. Switch wallet to Arc Testnet (chain 5042002)`);
-        addLog(`  2. Call receiveMessage on MessageTransmitter with attestation: ${att.slice(0, 40)}…`);
-        addLog(`  3. Your USDC will arrive at: ${dest}`);
+      let burnReceipt = null;
+      try {
+        burnReceipt = await publicClient!.waitForTransactionReceipt({ hash: burnTx, timeout: 120_000 });
+      } catch { burnReceipt = null; }
+      const burnDecision = cctpStageDecision(
+        "burn-pending",
+        !burnReceipt ? "unknown" : burnReceipt.status === "success" ? "confirmed" : "reverted",
+      );
+      if (burnDecision.action === "stop") {
+        setStep("error");
+        addLog(`⚠ ${burnDecision.message} Do not burn again; check the explorer first.`);
+        return;
       }
+      if (burnDecision.action === "fail") {
+        clearCctpOperation(storage);
+        resolvePendingTx(storage);
+        setStep("error");
+        addLog(`❌ ${burnDecision.message}`);
+        return;
+      }
+      if (!updateCctpOperation(storage, { stage: "burn-confirmed" }).ok) {
+        setStep("error");
+        addLog("❌ The burn confirmed, but the marker could not record that stage. Check the explorer; do not continue.");
+        return;
+      }
+      resolvePendingTx(storage);
+
+      // Step 3: Poll Circle IRIS for the message and attestation
+      setStep("attesting");
+      addLog("Step 3/4 — Waiting for Circle attestation (up to 5 min)…");
+      let attested: Awaited<ReturnType<typeof waitForAttestation>>;
+      try {
+        attested = await waitForAttestation(src.domain, burnTx);
+      } catch {
+        setStep("error");
+        addLog("❌ Attestation timed out. The burn is confirmed and stays recorded, so no second burn will start. Check https://iris-api-sandbox.circle.com/v2/messages/" + src.domain + "/" + burnTx + " and complete the mint manually.");
+        return;
+      }
+      setAttestation(attested.attestation);
+
+      /* An attestation only proves Circle signed this message. Check that the
+         message is the burn this operation just made before minting it. */
+      const validation = validateCctpMintMessage(attested.decoded, {
+        sourceDomain: src.domain,
+        destinationDomain: ARC_DOMAIN,
+        mintRecipient: dest,
+        burnToken: src.usdcAddr,
+        amount: parsedAmount,
+        destinationCaller: "0x0000000000000000000000000000000000000000",
+        recipient: CCTP_CONFIG.contracts.TokenMessengerV2,
+        sender: src.tokenMessenger,
+        messageSender: address,
+        maxFee: 0n,
+        hookData: "0x",
+      });
+      if (!validation.ok) {
+        setStep("error");
+        addLog(`⚠ Refusing to mint: ${validation.reason}`);
+        addLog("The burn is confirmed. The operation stays recorded; do not burn again.");
+        addLog(`  Attestation: ${attested.attestation}`);
+        addLog(`  Message: ${attested.message}`);
+        return;
+      }
+
+      // Step 4: receiveMessage on Arc Testnet from the connected wallet
+      setStep("minting");
+      addLog("Step 4/4 — Minting on Arc Testnet…");
+      try {
+        await switchToChain("arc");
+      } catch (e: unknown) {
+        setStep("error");
+        addLog(`⚠ Could not switch wallet to Arc Testnet: ${(e as { shortMessage?: string }).shortMessage ?? (e instanceof Error ? e.message : String(e))}. The burn is confirmed; do not burn again.`);
+        return;
+      }
+
+      const arcClient = createPublicClient({ chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
+      let balanceBefore: bigint;
+      try {
+        balanceBefore = await arcClient.readContract({
+          address: CONFIG.usdcAddress,
+          abi: USDC_ABI,
+          functionName: "balanceOf",
+          args: [dest as `0x${string}`],
+        });
+      } catch {
+        setStep("error");
+        addLog("❌ Could not read the Arc USDC balance before minting. No mint was sent; the burn stays recorded. Do not burn again.");
+        return;
+      }
+
+      if (!updateCctpOperation(storage, { stage: "mint-pending" }).ok) {
+        setStep("error");
+        addLog("❌ The burn is confirmed, but the mint marker could not be saved. No mint was requested; keep the attestation and complete it manually.");
+        return;
+      }
+
+      let mintHash: `0x${string}`;
+      try {
+        mintHash = await writeContractAsync({
+          address: CCTP_CONFIG.contracts.MessageTransmitterV2 as `0x${string}`,
+          abi: MESSAGE_TRANSMITTER_ABI,
+          functionName: "receiveMessage",
+          args: [attested.message, attested.attestation],
+          chainId: arcTestnet.id,
+        });
+      } catch (e: unknown) {
+        setStep("error");
+        addLog(`⚠ Mint was not submitted: ${(e as { shortMessage?: string }).shortMessage ?? (e instanceof Error ? e.message : String(e))}. The burn is confirmed; the operation stays recorded. Do not burn again.`);
+        return;
+      }
+
+      recordSubmittedTx(mintHash, storage);
+      if (!updateCctpOperation(storage, { stage: "mint-pending", mintHash }).ok) {
+        setStep("error");
+        addLog(`❌ Mint ${mintHash} was submitted, but the marker could not record it. Check the explorer; do not mint again.`);
+        return;
+      }
+
+      let mintReceipt = null;
+      try {
+        mintReceipt = await arcClient.waitForTransactionReceipt({ hash: mintHash, timeout: 120_000 });
+      } catch { mintReceipt = null; }
+      const mintDecision = cctpStageDecision(
+        "mint-pending",
+        !mintReceipt ? "unknown" : mintReceipt.status === "success" ? "confirmed" : "reverted",
+      );
+      if (mintDecision.action !== "advance") {
+        setStep("error");
+        addLog(`⚠ ${mintDecision.message} Do not mint again; check the explorer first.`);
+        return;
+      }
+
+      let balanceAfter: bigint;
+      try {
+        balanceAfter = await arcClient.readContract({
+          address: CONFIG.usdcAddress,
+          abi: USDC_ABI,
+          functionName: "balanceOf",
+          args: [dest as `0x${string}`],
+        });
+      } catch {
+        setStep("error");
+        addLog(`⚠ Mint ${mintHash} confirmed, but the Arc USDC balance could not be read back. The operation stays recorded; do not burn again.`);
+        return;
+      }
+      if (balanceAfter < balanceBefore + parsedAmount) {
+        setStep("error");
+        addLog(`⚠ Mint ${mintHash} confirmed, but the recipient balance did not increase by ${amount} USDC. The operation stays recorded; do not burn again.`);
+        return;
+      }
+
+      const cleared = clearCctpOperation(storage);
+      const resolved = resolvePendingTx(storage);
+      if (!cleared.ok || !resolved.cleared) {
+        setStep("error");
+        addLog(`⚠ Mint ${mintHash} confirmed and balanced, but the local operation marker could not be cleared. It stays recorded; check the explorer before another bridge.`);
+        return;
+      }
+      setStep("done");
+      addLog(`✅ Mint confirmed on Arc — TX: ${mintHash}`);
+      addLog(`🎉 Bridge complete! ${amount} USDC arrived at ${dest.slice(0,8)}…`);
     } catch (e: unknown) {
-      setStep("error");
       const msg = e instanceof Error ? e.message : String(e);
-      addLog(`❌ Error: ${(e as { shortMessage?: string }).shortMessage ?? msg}`);
+      if (!anySubmitted) {
+        clearCctpOperation(storage);
+        addLog(`❌ Error: ${(e as { shortMessage?: string }).shortMessage ?? msg}. Nothing was sent.`);
+      } else {
+        addLog(`❌ Error: ${(e as { shortMessage?: string }).shortMessage ?? msg}. The operation stays recorded; check the explorer before retrying.`);
+      }
+      setStep("error");
+    } finally {
+      endOperation("bridge");
     }
-  }, [address, walletClient, isConnected, chain, src, amount, recipient, publicClient, pollAttestation]);
+  }, [address, walletClient, isConnected, chain, src, amount, recipient, publicClient, writeContractAsync]);
+
 
   const steps: [string, Step[]][] = [
     ["Approve USDC", ["approving"]],

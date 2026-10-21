@@ -52,17 +52,182 @@ export async function switchToChain(chainKey: string): Promise<void> {
   }
 }
 
-export async function waitForAttestation(sourceDomain: number, burnTxHash: string): Promise<{ message: string; attestation: string }> {
+export type CctpDecodedMessage = {
+  sourceDomain: number;
+  destinationDomain: number;
+  recipient: string;
+  mintRecipient: string;
+  destinationCaller: string;
+  burnToken: string;
+  amount: string;
+  cctpVersion: number;
+  bodyVersion: number;
+  sender: string;
+  messageSender: string;
+  maxFee: string;
+  feeExecuted: string;
+  hookData: string;
+};
+
+export type CctpAttestation = {
+  message: `0x${string}`;
+  attestation: `0x${string}`;
+  /* Decoded from the actual message bytes, not from IRIS's JSON summary. */
+  decoded: CctpDecodedMessage | null;
+};
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const MESSAGE_HEADER_BYTES = 148;
+const BURN_BODY_BYTES = 228;
+const BURN_BODY_OFFSET = MESSAGE_HEADER_BYTES;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asHexBytes(value: unknown): `0x${string}` | null {
+  return typeof value === "string" && /^0x(?:[0-9a-fA-F]{2})+$/.test(value)
+    ? value as `0x${string}`
+    : null;
+}
+
+function hexSlice(message: string, byteOffset: number, byteLength: number): string {
+  const start = 2 + byteOffset * 2;
+  return message.slice(start, start + byteLength * 2);
+}
+
+function uintAt(message: string, byteOffset: number): number {
+  return Number.parseInt(hexSlice(message, byteOffset, 4), 16);
+}
+
+function uint256At(message: string, byteOffset: number): string {
+  return BigInt(`0x${hexSlice(message, byteOffset, 32)}`).toString();
+}
+
+function addressAt(message: string, byteOffset: number): string {
+  return `0x${hexSlice(message, byteOffset, 32).slice(-40)}`;
+}
+
+function sameAddress(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Decodes the fixed CCTP v2 header and BurnMessage body. */
+export function decodeCctpMessage(message: `0x${string}`): CctpDecodedMessage | null {
+  if (!/^0x(?:[0-9a-fA-F]{2})+$/.test(message)) return null;
+  if (message.length < 2 + (MESSAGE_HEADER_BYTES + BURN_BODY_BYTES) * 2) return null;
+
+  return {
+    cctpVersion: uintAt(message, 0),
+    sourceDomain: uintAt(message, 4),
+    destinationDomain: uintAt(message, 8),
+    sender: addressAt(message, 44),
+    recipient: addressAt(message, 76),
+    destinationCaller: addressAt(message, 108),
+    bodyVersion: uintAt(message, BURN_BODY_OFFSET),
+    burnToken: addressAt(message, BURN_BODY_OFFSET + 4),
+    mintRecipient: addressAt(message, BURN_BODY_OFFSET + 36),
+    amount: uint256At(message, BURN_BODY_OFFSET + 68),
+    messageSender: addressAt(message, BURN_BODY_OFFSET + 100),
+    maxFee: uint256At(message, BURN_BODY_OFFSET + 132),
+    feeExecuted: uint256At(message, BURN_BODY_OFFSET + 164),
+    hookData: `0x${message.slice(2 + (BURN_BODY_OFFSET + 228) * 2)}`,
+  };
+}
+
+/** Parses one IRIS v2 message. Returns null until a usable attestation is complete. */
+export function parseCctpAttestationResponse(payload: unknown): CctpAttestation | null {
+  const root = asRecord(payload);
+  const messages = root?.messages;
+  if (!Array.isArray(messages)) return null;
+  const first = asRecord(messages[0]);
+  if (!first || first.status !== "complete") return null;
+
+  const message = asHexBytes(first.message);
+  const attestation = asHexBytes(first.attestation);
+  if (!message || !attestation) return null;
+
+  const decoded = decodeCctpMessage(message);
+  if (!decoded) return null;
+  return { message, attestation, decoded };
+}
+
+export type CctpMintExpectation = {
+  sourceDomain: number;
+  destinationDomain: number;
+  mintRecipient: string;
+  burnToken: string;
+  amount: bigint;
+  destinationCaller?: string;
+  recipient?: string;
+  sender?: string;
+  messageSender?: string;
+  maxFee?: bigint;
+  hookData?: string;
+};
+
+/** Validates the decoded message against the burn this UI just made. The
+    on-chain attestation remains the final authority; this check prevents a
+    different valid message from being minted for this operation. */
+export function validateCctpMintMessage(
+  decoded: CctpDecodedMessage | null,
+  expected: CctpMintExpectation,
+): { ok: true } | { ok: false; reason: string } {
+  if (!decoded) return { ok: false, reason: "Decoded CCTP message data is unavailable." };
+  if (decoded.cctpVersion !== 2 || decoded.bodyVersion !== 2) {
+    return { ok: false, reason: `Unexpected CCTP version: header=${decoded.cctpVersion}, body=${decoded.bodyVersion}.` };
+  }
+  if (decoded.sourceDomain !== expected.sourceDomain) {
+    return { ok: false, reason: `Source domain mismatch: message=${decoded.sourceDomain}, expected=${expected.sourceDomain}.` };
+  }
+  if (decoded.destinationDomain !== expected.destinationDomain) {
+    return { ok: false, reason: `Destination domain mismatch: message=${decoded.destinationDomain}, expected=${expected.destinationDomain}.` };
+  }
+  if (!sameAddress(decoded.mintRecipient, expected.mintRecipient)) {
+    return { ok: false, reason: "Mint recipient does not match the Bridge recipient." };
+  }
+  if (!sameAddress(decoded.burnToken, expected.burnToken)) {
+    return { ok: false, reason: "Burn token does not match the selected source-chain USDC." };
+  }
+  if (!sameAddress(decoded.destinationCaller, expected.destinationCaller ?? ZERO_ADDRESS)) {
+    return { ok: false, reason: "Destination caller does not match the burn settings." };
+  }
+  if (expected.recipient && !sameAddress(decoded.recipient, expected.recipient)) {
+    return { ok: false, reason: "Message recipient is not the Arc TokenMessenger." };
+  }
+  if (expected.sender && !sameAddress(decoded.sender, expected.sender)) {
+    return { ok: false, reason: "Message sender is not the selected source-chain TokenMessenger." };
+  }
+  if (expected.messageSender && !sameAddress(decoded.messageSender, expected.messageSender)) {
+    return { ok: false, reason: "Burn initiator does not match the connected wallet." };
+  }
+  if (BigInt(decoded.amount) !== expected.amount) {
+    return { ok: false, reason: `Mint amount mismatch: message=${decoded.amount}, expected=${expected.amount.toString()}.` };
+  }
+  const expectedMaxFee = expected.maxFee ?? 0n;
+  if (BigInt(decoded.maxFee) !== expectedMaxFee) {
+    return { ok: false, reason: `Max fee mismatch: message=${decoded.maxFee}, expected=${expectedMaxFee.toString()}.` };
+  }
+  if (BigInt(decoded.feeExecuted) > BigInt(decoded.maxFee)) {
+    return { ok: false, reason: "Executed fee exceeds the message max fee." };
+  }
+  const expectedHookData = (expected.hookData ?? "0x").toLowerCase();
+  if (decoded.hookData.toLowerCase() !== expectedHookData) {
+    return { ok: false, reason: "Unexpected hook data in the CCTP message." };
+  }
+  return { ok: true };
+}
+
+export async function waitForAttestation(sourceDomain: number, burnTxHash: string): Promise<CctpAttestation> {
   const url = `${CCTP_CONFIG.irisApi}/${sourceDomain}/${burnTxHash}`;
   const maxAttempts = 100;
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const res = await fetch(url);
-      const json = await res.json();
-      const msg = json.messages?.[0];
-      if (msg?.status === "complete" && msg?.attestation && msg?.attestation !== "PENDING") {
-        return { message: msg.message, attestation: msg.attestation };
-      }
+      const parsed = parseCctpAttestationResponse(await res.json());
+      if (parsed) return parsed;
     } catch { /* transient fetch/parse error — retry */ }
     await new Promise(r => setTimeout(r, 3000));
   }
