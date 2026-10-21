@@ -7,6 +7,7 @@ import {
   PageHeader, SectionCard, Skeleton, Table, Tabs, Td, Th, Tr,
 } from "../../ui";
 import { usdcCompact, usdcExact } from "./providerMetrics";
+import { endpointHref, endpointState } from "./endpointUrl";
 
 const REGISTRY = CONFIG.registryAddress as `0x${string}`;
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -175,6 +176,21 @@ export default function Providers() {
     };
   }, [data]);
 
+  /* getProvider does not include the endpoint, so it is a separate read. It is
+     only requested once a record exists, to avoid reading unset ids. */
+  const endpointQuery = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI,
+    functionName: "getEndpoint",
+    args: [BigInt(idValid ? idNum : 1)],
+    query: { enabled: idValid && record !== null, staleTime: 15_000 },
+  });
+
+  const endpoint = endpointState(endpointQuery);
+  /* The link is the gate, not a formatting detail: only a usable endpoint
+     produces one, so a placeholder can never be clicked or pinged. */
+  const endpointLink = endpointHref(endpoint);
+
   const samples = useMemo(codeSamples, []);
   const concurrency = record
     ? record.maxConcurrentCalls === 0
@@ -205,7 +221,7 @@ export default function Providers() {
 
       <SectionCard
         title="Look up a provider"
-        subtitle="Values come from ServiceRegistry.getProvider on Arc Testnet. The registry stores no endpoint, so this page cannot show or ping one."
+        subtitle="Values come from ServiceRegistry.getProvider and getEndpoint on Arc Testnet. The endpoint is the string recorded at registration; it is not verified."
       >
         <div className="pv-lookup">
           <Field
@@ -228,7 +244,7 @@ export default function Providers() {
               onChange={e => setRawId(e.target.value)}
             />
           </Field>
-          <Button size="sm" onClick={() => refetch()} disabled={!idValid || isFetching}>
+          <Button size="sm" onClick={() => { refetch(); endpointQuery.refetch(); }} disabled={!idValid || isFetching}>
             {isFetching ? "Reading…" : "Read record"}
           </Button>
           {record && idValid && (
@@ -343,6 +359,41 @@ export default function Providers() {
                 <Tr>
                   <Td>zkML tier</Td>
                   <Td mono>{record.zkTier === 0 ? "0 · no attestation" : `${record.zkTier} · doubles the concurrent cap at tier 2+`}</Td>
+                  <Td className="pv-src">registry</Td>
+                </Tr>
+                <Tr>
+                  <Td>Endpoint</Td>
+                  <Td mono>
+                    {endpoint.kind === "loading" ? (
+                      <span className="pv-hint">Reading the endpoint…</span>
+                    ) : endpoint.kind === "error" ? (
+                      <span className="pv-hint">
+                        Endpoint read failed.{" "}
+                        <button type="button" className="pv-inline-link" onClick={() => endpointQuery.refetch()}>
+                          Retry
+                        </button>
+                      </span>
+                    ) : endpoint.kind === "empty" ? (
+                      <span className="pv-hint">No endpoint recorded at registration.</span>
+                    ) : endpoint.kind === "placeholder" ? (
+                      <>
+                        <span className="pv-endpoint">{endpoint.value}</span>
+                        <span className="pv-hint"> · placeholder from the registration form, not a usable endpoint</span>
+                      </>
+                    ) : endpoint.kind === "invalid" ? (
+                      <>
+                        <span className="pv-endpoint">{endpoint.value}</span>
+                        <span className="pv-hint"> · not an http(s) URL, so it cannot be called</span>
+                      </>
+                    ) : (
+                      <>
+                        <a className="pv-endpoint" href={endpointLink ?? undefined} target="_blank" rel="noreferrer noopener">
+                          {endpoint.value}
+                        </a>
+                        <span className="pv-hint"> · recorded at registration, not verified</span>
+                      </>
+                    )}
+                  </Td>
                   <Td className="pv-src">registry</Td>
                 </Tr>
               </tbody>

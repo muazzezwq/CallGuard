@@ -9,7 +9,7 @@ export const arcTestnet = defineChain({
   // EVM gas layer uses 18 decimals (Arc native); ERC-20 decimals() returns 6.
   // MetaMask reads nativeCurrency.decimals for gas display — must be 18.
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.testnet.arc.io", "https://rpc.testnet.arc.network"] } },
+  rpcUrls: { default: { http: ["https://rpc.testnet.arc.io"] } },
   blockExplorers: { default: { name: "ArcScan", url: "https://explorer.testnet.arc.io" } },
 });
 
@@ -297,6 +297,9 @@ export const REGISTRY_ABI = [
     inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint64"}] },
   { name: "slashedCalls", type: "function", stateMutability: "view",
     inputs: [{name:"id",type:"uint256"}], outputs: [{type:"uint64"}] },
+  // Endpoint is stored in the Provider struct, but is not part of the getProvider tuple.
+  { name: "getEndpoint", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"string"}] },
   // HLB-06: timelock for payPerCall updates
   { name: "proposePayPerCall", type: "function", stateMutability: "nonpayable",
     inputs: [{name:"_new",type:"address"}], outputs: [] },

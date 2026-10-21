@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useReadContracts } from "wagmi";
+import { useReadContract, useReadContracts } from "wagmi";
 import { CONFIG, REGISTRY_ABI } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
@@ -10,6 +10,7 @@ import {
 import {
   callOutcomes, countLabel, honorRate, reputationScore, usdcCompact, usdcExact,
 } from "./providerMetrics";
+import { endpointHref, endpointState } from "./endpointUrl";
 
 const REGISTRY = CONFIG.registryAddress as `0x${string}`;
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
@@ -105,6 +106,21 @@ export default function ProviderProfile() {
   const zkTier = Number(r?.zkTier ?? r?.[8] ?? 0);
 
   const registered = Boolean(owner) && owner !== ZERO_ADDR;
+
+  /* getProvider does not carry the endpoint, so it is a second read against the
+     same registry. It waits for a valid id and a registered record, so an unset
+     id never triggers a call. */
+  const endpointQuery = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI,
+    functionName: "getEndpoint",
+    args: [BigInt(validId ? queriedId : "0")],
+    query: { enabled: validId && registered, staleTime: 15_000 },
+  });
+  const endpoint = endpointState(endpointQuery);
+  /* Only a usable endpoint becomes a link; a placeholder or free text stays
+     inert text, so nothing here can ping an endpoint by accident. */
+  const endpointLink = endpointHref(endpoint);
   const completed = completedRes?.status === "success" ? Number(completedRes.result ?? 0) : 0;
   const slashed = slashedRes?.status === "success" ? Number(slashedRes.result ?? 0) : 0;
   const counts = callOutcomes(completed, slashed);
@@ -149,7 +165,7 @@ export default function ProviderProfile() {
         eyebrow="Discover"
         title="Provider details"
         subtitle="One provider as the registry stores it, next to the history the subgraph indexes. Every value states its source."
-        actions={<Button variant="secondary" size="sm" onClick={() => { refetch(); refetchIndex(); }} disabled={isFetching || indexLoading}>Refresh</Button>}
+        actions={<Button variant="secondary" size="sm" onClick={() => { refetch(); refetchIndex(); endpointQuery.refetch(); }} disabled={isFetching || indexLoading}>Refresh</Button>}
       />
 
       <form className="pp-lookup" onSubmit={submit} noValidate>
@@ -293,10 +309,41 @@ export default function ProviderProfile() {
                 <div><dt>Chain ID</dt><dd className="mono">{CONFIG.chainId}</dd></div>
                 <div><dt>ZK tier</dt><dd className="mono">{Number.isFinite(zkTier) ? zkTier : "—"}</dd></div>
                 <div><dt>Subgraph</dt><dd className="pp-break mono">{CONFIG.subgraphUrl}</dd></div>
+                <div>
+                  <dt>Endpoint</dt>
+                  <dd className="pp-endpoint mono" aria-busy={endpoint.kind === "loading" ? true : undefined}>
+                    {endpoint.kind === "loading" ? (
+                      <span className="pp-muted">Reading the endpoint…</span>
+                    ) : endpoint.kind === "error" ? (
+                      <span className="pp-muted">
+                        Endpoint read failed.{" "}
+                        <button type="button" className="pp-linkbtn" onClick={() => endpointQuery.refetch()}>Retry</button>
+                      </span>
+                    ) : endpoint.kind === "empty" ? (
+                      <span className="pp-muted">No endpoint recorded at registration.</span>
+                    ) : endpoint.kind === "placeholder" ? (
+                      <>
+                        {endpoint.value}{" "}
+                        <span className="pp-muted">placeholder from the registration form, not a usable endpoint</span>
+                      </>
+                    ) : endpoint.kind === "invalid" ? (
+                      <>
+                        {endpoint.value}{" "}
+                        <span className="pp-muted">not an http(s) URL, so it cannot be called</span>
+                      </>
+                    ) : (
+                      <>
+                        <a href={endpointLink ?? undefined} target="_blank" rel="noreferrer noopener">{endpoint.value}</a>{" "}
+                        <span className="pp-muted">recorded at registration, not verified</span>
+                      </>
+                    )}
+                  </dd>
+                </div>
               </dl>
               <p className="pp-note">
-                The endpoint string is accepted at registration but is not part of the
-                getProvider record, so this screen cannot show it.
+                The endpoint is stored in the provider record but not in the getProvider tuple,
+                so it is read through ServiceRegistry.getEndpoint. It can only be set at
+                registration and cannot be updated afterwards.
               </p>
             </SectionCard>
 
