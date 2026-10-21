@@ -47,6 +47,8 @@ export default function CommandPalette({ open, onClose }: Props) {
   const { setPanel } = useAppStore();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const filtered = query.trim()
     ? ALL_COMMANDS.filter(c =>
@@ -61,12 +63,19 @@ export default function CommandPalette({ open, onClose }: Props) {
     onClose();
   }, [setPanel, onClose]);
 
-  // focus input when opened
+  // focus input when opened, restore the previous target on close
   useEffect(() => {
-    if (open) {
-      setQuery("");
-      setTimeout(() => inputRef.current?.focus(), 50);
+    if (!open) {
+      returnFocusRef.current?.focus?.();
+      returnFocusRef.current = null;
+      return;
     }
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    setQuery("");
+    const timer = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
   }, [open]);
 
   // keyboard: Escape to close, Arrow up/down + Enter
@@ -77,6 +86,19 @@ export default function CommandPalette({ open, onClose }: Props) {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Tab") {
+        const root = panelRef.current;
+        if (!root) return;
+        const items = Array.from(root.querySelectorAll<HTMLElement>(
+          'input:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        )).filter((el) => el.getClientRects().length > 0);
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (!first || !last) return;
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        return;
+      }
       if (e.key === "ArrowDown") { e.preventDefault(); setCursor(c => Math.min(c + 1, filtered.length - 1)); }
       if (e.key === "ArrowUp")   { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)); }
       if (e.key === "Enter" && filtered[cursor]) { pick(filtered[cursor].id); }
@@ -94,6 +116,10 @@ export default function CommandPalette({ open, onClose }: Props) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         style={{ width: "min(560px, 94vw)", background: "var(--bg-2)", border: "1px solid var(--border-hi)", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.6)" }}
       >
         {/* Search input */}

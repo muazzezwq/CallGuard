@@ -18,6 +18,7 @@
   --text-hi: #FDFEFF;
   --text-dim: #8A9FB2;
   --text-mid: #8A9FB2;
+  --text-disabled: #5C6F86;
   /* --text-faint must clear 4.5:1 as text. #4D5F76 measured 2.30:1 on --bg-2,
      2.81:1 on --bg-1 and 3.00:1 on --bg-0; #7C90A9 gives 4.60/5.61/5.99. */
   --text-faint: #7C90A9;
@@ -30,6 +31,8 @@
   --accent-dim: #0E9F6E;
   --accent-bg: rgba(25,209,134,0.10);
   --accent-fg: rgba(25,209,134,0.16);
+  --accent-hover: #1CE08E;
+  --accent-pressed: #14B874;
   --guard: #19D186;
   --guard-hi: #1CE08E;
 
@@ -69,6 +72,34 @@
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
+  /* Type scale — dense app UI, nine steps.
+     Half-pixel legacy sizes resolve to the nearest step. */
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-3xl: 26px;
+  --lh-none: 1;
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-base: 1.5;
+  --lh-relaxed: 1.6;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+  --tracking-snug: -0.01em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-caps: 0.07em;
+  --numeric: tabular-nums;
+
   --sidebar-w: 232px;
   --sidebar-w-collapsed: 52px;
   --topbar-h: 52px;
@@ -95,6 +126,9 @@
   --page-pad: 28px;     /* panel gutter */
   --section-gap: 20px;  /* between page sections */
   --gutter: 24px;       /* responsive page gutter */
+  --control-h-sm: 32px;
+  --control-h: 40px;
+  --control-h-lg: 48px;
 
   /* Shape */
   --radius-xs: 6px;
@@ -177,6 +211,7 @@
   --text-mid: #424F63;
   --text-faint: #576A7E;
   --text-low: #576A7E;
+  --text-disabled: #8A9BAE;
   --accent: #19D186;
   /* --accent-ink: small accent text on light surfaces (AA for <18px).
      --accent stays bright because it is a fill (buttons, dots, bars); only the
@@ -185,6 +220,8 @@
   --accent-dim: #0B855C;
   --accent-bg: rgba(25,209,134,0.10);
   --accent-fg: rgba(25,209,134,0.16);
+  --accent-hover: #1CE08E;
+  --accent-pressed: #14B874;
   --guard: #19D186;
   --guard-hi: #1CE08E;
   --accent-2: #0891B2;

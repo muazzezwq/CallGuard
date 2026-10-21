@@ -21,6 +21,7 @@ export { Toolbar, Chip, ChipRow } from "./Toolbar";
 export { Switch } from "./Switch";
 export { Checkbox } from "./Checkbox";
 export { Tooltip } from "./Tooltip";
+export { Popover } from "./Popover";
 export { TextLink } from "./TextLink";
 export { Sparkline } from "./Sparkline";
 export { Table, TableWrap, TableEmpty, Tr, Th, Td } from "./Table";

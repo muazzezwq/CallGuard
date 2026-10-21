@@ -123,7 +123,12 @@ export default function AppShell() {
     const focusables = () => aside
       ? Array.from(aside.querySelectorAll<HTMLElement>(
           'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ))
+        )).filter((el) => {
+          /* The collapse control is display:none on mobile; hidden controls
+             must not become the wrap target or focus appears stuck. */
+          const style = getComputedStyle(el);
+          return el.getClientRects().length > 0 && style.visibility !== "hidden";
+        })
       : [];
     focusables()[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -207,6 +212,8 @@ export default function AppShell() {
 
   return (
     <div className={sidebarCollapsed ? "app-shell sb-collapsed" : "app-shell"}>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+
       {/* ── Topbar ── */}
       <AppTopbar
         onHamburger={() => setSidebarOpen(o => !o)}
@@ -247,7 +254,7 @@ export default function AppShell() {
       </aside>
 
       {/* ── Main ── */}
-      <main className="main-content" ref={mainRef} tabIndex={-1}>
+      <main id="main-content" className="main-content" ref={mainRef} tabIndex={-1}>
         <LiveBar />
         <UsdcBanner />
         <div className="app-panel" key={activePanel}>

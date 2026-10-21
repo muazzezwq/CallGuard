@@ -854,3 +854,87 @@ provisioned for signer `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` before auto-
 `PROVIDER_WEBHOOK_SECRET` must be set before POST is accepted; and a live `callService` plus
 provider-signed `submitReceipt` still needs an explicit approval to sign and spend USDC. Until
 then, use a direct on-chain `callService` and a manual provider receipt, not x402 or auto-receipt.
+
+## Phase 1.1 — semantic type and interaction layer (2026-10-21)
+
+Phase 1.1 closed the remaining Phase 1 foundation gaps without changing panel behaviour or
+transaction/API semantics:
+
+- `src/index.css`: nine-step type scale (`--fs-2xs` … `--fs-3xl`), line-height, weight, tracking
+  and tabular-numeric tokens; `--text-disabled` in both themes; `--accent-hover` and
+  `--accent-pressed`; `--control-h-sm` / `--control-h` / `--control-h-lg`.
+- `src/ui/ui.css`: every `font-size`, `line-height`, `font-weight`, `letter-spacing` and
+  `font-variant-numeric` declaration now uses the token layer; matched padding/gap values moved to
+  `--sp-*`, card/field dimensions use `--card-pad` / `--control-h*`. Added pressed states for every
+  button variant, disabled text for inputs/selects/textareas/switches/checkboxes, and moved primary
+  hover/link hover to `--accent-hover`.
+- `src/ui/Popover.tsx` + `src/ui/index.ts`: non-modal disclosure primitive. The trigger is a native
+  button with `aria-expanded`, `aria-controls` and `aria-haspopup="dialog"`; Escape and outside
+  pointer close it; opening focuses the first focusable child; the panel animation is disabled by
+  `prefers-reduced-motion`.
+- `tests/design-tokens.test.ts`: contract test for the token set, both theme state overrides, the
+  absence of raw type values in `ui.css`, and the Popover export.
+
+Verification (2026-10-21): `bun run typecheck` exit 0; `bun run lint` exit 0; `bun test tests/` →
+**385 pass / 4 skip / 0 fail / 1500 expect() calls / 31 files**; `bun run build` exit 0 (Vite
+chunk-size warnings only). Browser at `http://localhost:5174`, phone viewport: landing rendered in
+dark and light; computed `--fs-base` 13px, `--lh-base` 1.5, `--text-disabled` `#5C6F86` (dark) /
+`#8A9BAE` (light), `--accent-pressed` `#14B874`; `.ui-popover__panel` and the reduced-motion rule
+were present; console errors none. Application panels remain wallet-gated, so the Popover was not
+exercised inside a mounted panel. No commit, push, deploy, contract/API/wallet change, or CCTP
+activation was performed.
+
+## Phase 2 — premium application shell and navigation (2026-10-21)
+
+Phase 2 was an audit-and-close pass over the existing shell, not a rebuild. The shell already
+existed in commits `22eda23`, `0fa1ba6` and `3581ac6`; this pass verified it and closed the
+remaining gaps in shell chrome, focus handling, mobile state and command-palette semantics.
+
+- `AppShell.tsx`: added a keyboard `Skip to main content` link targeting `#main-content`; the
+  drawer focus trap now filters zero-rect/hidden elements, so the mobile-only hidden
+  `.sidebar-collapse-btn` can no longer become the wrap target.
+- `AppTopbar.tsx`: the wrong-chain pill performs a real `switchChain({ chainId: arcTestnet.id })`
+  with a pending label and the ConnectKit modal as fallback; Connect uses the shared `Button`;
+  Simple/Pro expose `aria-pressed`; theme labels state the destination; the command-palette
+  trigger has an accessible name; network and copy changes are announced; the wallet menu moves
+  focus to `Copy address`, supports Arrow/Home/End/Escape, restores the trigger, and closes on
+  Tab into the next topbar control. `aria-controls` is emitted only while the menu exists.
+- `CommandPalette.tsx`: the panel is now `role="dialog"` with `aria-modal` and an accessible name;
+  Tab/Shift+Tab wrap inside the dialog; closing restores the previous focus target.
+- `shell.css`: shell chrome typography, spacing, radii, elevation and motion use the Phase 1
+  tokens; `#06110d` became `--on-accent`; `touch-action: manipulation` and
+  `overscroll-behavior: contain` were added; the mobile bottom-nav active item gained an 18×2px
+  accent bar in addition to colour; the closed offscreen drawer is `visibility: hidden` with a
+  delayed transition; the skip link participates in both reduced-motion guards.
+
+Browser evidence on the mock-wallet worktree at `http://localhost:5179`:
+
+- **34/34** sidebar destinations clicked at 1280×900 with **34 unique ids, 0 mismatches** between
+  the clicked id, `aria-current`, breadcrumb and `.app-panel`.
+- No horizontal overflow at **1280, 834 or 411** (`scrollWidth === innerWidth`). Tablet expanded
+  rail measured `232px / 602px`; phone grid measured `411px`; mobile nav 63px.
+- Drawer at 411×900: `body { overflow: hidden }`, overlay active, sidebar `left: 0`; Escape closed
+  it to `left: -260`, `visibility: hidden` after 260ms and returned focus to the hamburger.
+- Skip link exposed at `top: 6.8px` with a 2px accent ring; Enter focused `MAIN#main-content`.
+- Drawer trap: first `Overview`, last visible `Privacy`, Shift+Tab wrapped to `Privacy`.
+- Command palette: `role="dialog"`, `aria-modal="true"`, input focused, Tab wrap both directions,
+  `Ctrl+K` → `privacy` → Enter activated the Privacy panel, Escape restored the trigger.
+- Wallet menu: open focused `Copy address`, ArrowDown moved to `Disconnect`, Escape restored
+  `.tb-wallet`, Tab moved to `.tb-cmd`.
+- Theme: light and dark tokens measured (`--bg-0` `#F1F5FA` / `#000D1A`).
+- OS reduced motion: `data-motion="reduced"` and computed `transition: none` on shell, panel,
+  mobile nav and skip link. In-app pref set through the store produced the same result and
+  returned to `data-motion="full"` when cleared.
+- Wrong chain: a test-only chain 1 was added to the mock worktree; the topbar showed
+  `Wrong network`, clicking the pill switched back to Arc and it became `net-pill ok` /
+  `Arc Testnet`.
+- Axe 4.12.1: **0 violations**; 1 unresolved `color-contrast` group (51 nodes) on translucent or
+  gradient surfaces. Console had no app errors. Four `429` responses came from
+  `https://rpc.testnet.arc.io/` during the repeated sweep; this is an external RPC rate limit.
+
+Gates: `bun run typecheck` exit 0; `bun run lint` exit 0; `bun test tests/` → **385 pass / 4 skip /
+0 fail / 1500 expect() calls / 31 files**; `bun run build` exit 0 (existing chunk-size warnings
+only); `git diff --check` exit 0. Phase 1.1 changes and every unrelated working-tree change remain
+uncommitted and preserved. No commit, push, deploy, contract/API/wallet change, or CCTP activation
+was performed. Screen-reader and live-signature verification remain out of scope for this
+environment; the mock harness never signed or sent a transaction.
