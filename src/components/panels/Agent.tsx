@@ -3,6 +3,10 @@ import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { parseUnits, formatUnits, keccak256, stringToBytes } from "viem";
 import { arcTestnet, CONFIG, USDC_ABI } from "../../lib/config";
 import { errText } from "../../lib/utils";
+import { Badge, Button, Field, Input, PageHeader, Stat, Tabs } from "../../ui";
+import {
+  KeyValue, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
 const AGENT_WALLET_ABI = [
   { name: "deposit",          type: "function", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }], outputs: [] },
@@ -18,32 +22,22 @@ const AGENT_WALLET_ABI = [
   { name: "paused",           type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "bool" }] },
   { name: "dailyLimit",       type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
   { name: "maxPerCall",       type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+  { name: "owner",            type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "address" }] },
 ] as const;
 
 // Subgraph URL is read from CONFIG.subgraphUrl via useSubgraph hook
 
-const s = {
-  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (variant = "default", disabled = false) => ({
-    padding: "9px 16px", borderRadius:999, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
-    background: variant === "primary" ? "linear-gradient(135deg, var(--accent), var(--accent-dim))" : variant === "danger" ? "rgba(238,69,57,0.12)" : "var(--bg-3)",
-    color: variant === "primary" ? "var(--on-accent)" : variant === "danger" ? "var(--danger)" : "var(--text)",
-    opacity: disabled ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6,
-  }) as React.CSSProperties,
-  stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", textAlign: "center" as const },
-  statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent-ink)", fontFamily: "var(--font-display)" },
-  statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
-  tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
-  tab: (active: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: active ? "var(--accent)" : "transparent", color: active ? "var(--on-accent)" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
-};
-
 type Tab = "setup" | "autoroute" | "settings";
+
+function statusTone(status: string): "success" | "danger" | "info" {
+  if (status.startsWith("✅")) return "success";
+  if (status.startsWith("❌")) return "danger";
+  return "info";
+}
+
+function stripStatus(status: string): string {
+  return status.replace(/^[✅❌⏳🔍]\s*/u, "");
+}
 
 export default function Agent() {
   const { address, isConnected } = useAccount();
@@ -63,25 +57,36 @@ export default function Agent() {
   const [autoResult, setAutoResult] = useState<string | null>(null);
   const [autoRunning, setAutoRunning] = useState(false);
 
+  const validAgent = !!agentAddr && agentAddr.startsWith("0x") && agentAddr.length === 42;
+
   // Read agent wallet stats
   const { data: stats, refetch: refetchStats } = useReadContract({
     address: agentAddr as `0x${string}`,
     abi: AGENT_WALLET_ABI,
     functionName: "getStats",
     chainId: arcTestnet.id,
-    query: { enabled: !!agentAddr && agentAddr.startsWith("0x") && agentAddr.length === 42, refetchInterval: 15_000 },
+    query: { enabled: validAgent, refetchInterval: 15_000 },
   });
   const { data: isPaused, refetch: refetchPaused } = useReadContract({
     address: agentAddr as `0x${string}`,
     abi: AGENT_WALLET_ABI,
     functionName: "paused",
     chainId: arcTestnet.id,
-    query: { enabled: !!agentAddr && agentAddr.startsWith("0x") && agentAddr.length === 42, refetchInterval: 15_000 },
+    query: { enabled: validAgent, refetchInterval: 15_000 },
   });
-  const { data: currentDailyLimit } = useReadContract({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "dailyLimit", chainId: arcTestnet.id, query: { enabled: !!agentAddr && agentAddr.startsWith("0x") && agentAddr.length === 42 } });
-  const { data: currentMaxPerCall } = useReadContract({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "maxPerCall", chainId: arcTestnet.id, query: { enabled: !!agentAddr && agentAddr.startsWith("0x") && agentAddr.length === 42 } });
+  const { data: currentDailyLimit } = useReadContract({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "dailyLimit", chainId: arcTestnet.id, query: { enabled: validAgent } });
+  const { data: currentMaxPerCall } = useReadContract({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "maxPerCall", chainId: arcTestnet.id, query: { enabled: validAgent } });
+  const { data: owner } = useReadContract({ address: agentAddr as `0x${string}`, abi: AGENT_WALLET_ABI, functionName: "owner", chainId: arcTestnet.id, query: { enabled: validAgent } });
 
   const st = stats as { balance?: bigint; spentToday?: bigint; totalCalls?: bigint } | undefined;
+
+  const sourceState = !validAgent ? "unavailable" : isPaused === undefined ? "idle" : isPaused ? "unavailable" : "live";
+  const sourceValue = !validAgent ? "invalid address" : isPaused === undefined ? "reading" : isPaused ? "paused" : "active";
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "setup", label: "Setup" },
+    { id: "autoroute", label: "Auto-Route" },
+    { id: "settings", label: "Settings" },
+  ];
 
   const connectAddr = () => {
     if (!addrInput.startsWith("0x") || addrInput.length !== 42) { setStatus("❌ Invalid address"); return; }
@@ -204,144 +209,314 @@ export default function Agent() {
     setAutoRunning(false);
   }, [isConnected, agentAddr, autoPayload, autoMaxPrice, writeContractAsync, refetchStats]);
 
+  const ownerShort = owner ? `${owner.slice(0, 10)}…${owner.slice(-6)}` : "—";
+
   return (
-    <div style={s.page}>
-      <h1 style={s.h1}>Agent Wallet</h1>
-      <p style={s.sub}>Autonomous USDC spending wallet with daily limits, per-call caps, and whitelist enforcement.</p>
+    <PanelShell>
+      <PageHeader
+        title="Agent Wallet"
+        subtitle="Autonomous USDC spending wallet with daily limits, per-call caps, and whitelist enforcement."
+      />
+      <PanelSource
+        label="AgentWallet v2"
+        value={sourceValue}
+        hint="15s stats refresh"
+        state={sourceState}
+      />
 
-      {/* Stats */}
-      {st && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
-          {[
-            ["Balance", formatUnits(BigInt(st.balance ?? 0), 6) + " USDC"],
-            ["Spent Today", formatUnits(BigInt(st.spentToday ?? 0), 6) + " USDC"],
-            ["Total Calls", String(st.totalCalls ?? 0)],
-          ].map(([l, v]) => (
-            <div key={l} style={s.stat}>
-              <div style={s.statVal}>{v}</div>
-              <div style={s.statLbl}>{l}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <SignalRow label="Agent wallet position and limits" className="pg-signals--pair">
+        <Stat label="Balance" value={st ? `${formatUnits(BigInt(st.balance ?? 0), 6)} USDC` : "—"} hint={st ? "USDC" : "Stats unavailable"} />
+        <Stat label="Spent Today" value={st ? `${formatUnits(BigInt(st.spentToday ?? 0), 6)} USDC` : "—"} hint={st ? "USDC" : "Stats unavailable"} />
+        <Stat label="Total Calls" value={st ? String(st.totalCalls ?? 0) : "—"} hint={st ? "Lifetime" : "Stats unavailable"} />
+        <Stat label="Daily Limit" value={currentDailyLimit != null ? `${formatUnits(currentDailyLimit, 6)} USDC` : "—"} hint="On-chain policy" />
+        <Stat label="Max Per Call" value={currentMaxPerCall != null ? `${formatUnits(currentMaxPerCall, 6)} USDC` : "—"} hint="On-chain policy" />
+      </SignalRow>
 
-      {/* Status */}
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)" }}>
-          {status}
-        </div>
+        <StatusNotice tone={statusTone(status)} title={stripStatus(status)} />
       )}
 
-      {/* Tabs */}
-      <div style={s.tabs}>
-        {(["setup", "autoroute", "settings"] as Tab[]).map(t => (
-          <button key={t} style={s.tab(tab === t)} onClick={() => setTab(t)}>
-            {t === "setup" ? "💳 Setup" : t === "autoroute" ? "⚡ Auto-Route" : "⚙ Settings"}
-          </button>
-        ))}
+      <div className="pg-tabbar">
+        <Tabs tabs={tabs} value={tab} onChange={setTab} />
       </div>
 
-      {/* Setup tab */}
-      {tab === "setup" && (
-        <>
-          <div style={s.section}>
-            <div style={s.sectionTitle}>AGENT WALLET ADDRESS</div>
-            <label style={s.label} htmlFor="ag-wallet">Agent Wallet Contract</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input id="ag-wallet" style={{ ...s.input, flex: 1 }} value={addrInput} onChange={e => setAddrInput(e.target.value)} placeholder="0x…" />
-              <button style={s.btn("primary")} onClick={connectAddr}>Connect</button>
-            </div>
-            {agentAddr && (
-              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 6 }}>
-                Connected: {agentAddr.slice(0, 12)}…{agentAddr.slice(-6)}
-                {isPaused !== undefined && (
-                  <span style={{ marginLeft: 10, color: isPaused ? "var(--danger)" : "var(--accent-ink)", fontWeight: 600 }}>
-                    {isPaused ? "⏸ PAUSED" : "▶ ACTIVE"}
-                  </span>
-                )}
-              </div>
+      <PanelSplit
+        main={(
+          <>
+            {tab === "setup" && (
+              <>
+                <section className="ui-section">
+                  <div className="ui-section__head">
+                    <h2 className="ui-section__title">Agent Wallet Address</h2>
+                  </div>
+                  <div className="ui-section__body">
+                    <div className="pg-inline-form">
+                      <Field className="pg-inline-form__field" label="Agent Wallet Contract" htmlFor="ag-wallet">
+                        <Input
+                          id="ag-wallet"
+                          mono
+                          value={addrInput}
+                          onChange={e => setAddrInput(e.target.value)}
+                          placeholder="0x…"
+                        />
+                      </Field>
+                      <Button variant="primary" onClick={connectAddr}>Connect</Button>
+                    </div>
+                    {agentAddr && (
+                      <p className="pg-note">
+                        Connected: <span className="pg-mono">{agentAddr.slice(0, 12)}…{agentAddr.slice(-6)}</span>
+                        {isPaused !== undefined && (
+                          <Badge tone={isPaused ? "slash" : "guard"} className="pg-badge-gap">
+                            {isPaused ? "PAUSED" : "ACTIVE"}
+                          </Badge>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="ui-section pg-section--spaced">
+                  <div className="ui-section__head">
+                    <h2 className="ui-section__title">Deposit / Withdraw</h2>
+                  </div>
+                  <div className="ui-section__body">
+                    <Field label="Amount (USDC)" htmlFor="ag-amount">
+                      <Input
+                        id="ag-amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={amount}
+                        onChange={e => setAmount(e.target.value)}
+                        placeholder="1.0"
+                      />
+                    </Field>
+                    <div className="pg-form__actions pg-form__actions--spaced">
+                      <Button variant="primary" onClick={handleDeposit} disabled={loading || !isConnected} loading={loading}>
+                        Deposit
+                      </Button>
+                      <Button variant="secondary" onClick={handleWithdraw} disabled={loading || !isConnected} loading={loading}>
+                        Withdraw
+                      </Button>
+                      <Button variant="danger" onClick={handlePauseToggle} disabled={loading || !isConnected} loading={loading}>
+                        {isPaused ? "Unpause" : "Pause"}
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              </>
             )}
-          </div>
 
-          <div style={s.section}>
-            <div style={s.sectionTitle}>DEPOSIT / WITHDRAW</div>
-            <label style={s.label} htmlFor="ag-amount">Amount (USDC)</label>
-            <input id="ag-amount" style={s.input} type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="1.0" />
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button style={s.btn("primary", loading || !isConnected)} onClick={handleDeposit} disabled={loading || !isConnected}>
-                {loading ? "⏳" : "Deposit"}
-              </button>
-              <button style={s.btn("default", loading || !isConnected)} onClick={handleWithdraw} disabled={loading || !isConnected}>
-                {loading ? "⏳" : "Withdraw"}
-              </button>
-              <button style={s.btn("danger", loading || !isConnected)} onClick={handlePauseToggle} disabled={loading || !isConnected}>
-                {isPaused ? "▶ Unpause" : "⏸ Pause"}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+            {tab === "autoroute" && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Autonomous Call — Auto-Router</h2>
+                </div>
+                <div className="ui-section__body">
+                  <p className="pg-copy">
+                    Agent scores providers by honor rate, price, and stake. Picks the best and calls autonomously.
+                  </p>
+                  <div className="pg-form">
+                    <Field label="Request payload" htmlFor="ag-auto-payload">
+                      <Input
+                        id="ag-auto-payload"
+                        value={autoPayload}
+                        onChange={e => setAutoPayload(e.target.value)}
+                        placeholder="ping"
+                      />
+                    </Field>
+                    <Field label="Max price per call (USDC)" htmlFor="ag-auto-maxprice">
+                      <Input
+                        id="ag-auto-maxprice"
+                        type="number"
+                        min="0.001"
+                        step="0.01"
+                        value={autoMaxPrice}
+                        onChange={e => setAutoMaxPrice(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={handleAutoRoute}
+                      disabled={autoRunning || !isConnected}
+                      loading={autoRunning}
+                      block
+                    >
+                      {autoRunning ? "Routing…" : "Auto-route & call"}
+                    </Button>
+                  </div>
+                  {autoResult && (
+                    <pre className="pg-output pg-output--pre" aria-live="polite">
+                      {autoResult}
+                    </pre>
+                  )}
+                </div>
+              </section>
+            )}
 
-      {/* Auto-route tab */}
-      {tab === "autoroute" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>AUTONOMOUS CALL — AUTO-ROUTER</div>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>
-            Agent scores providers by honor rate, price, and stake. Picks the best and calls autonomously.
-          </p>
-          <label style={s.label} htmlFor="ag-auto-payload">Request payload</label>
-          <input id="ag-auto-payload" style={s.input} value={autoPayload} onChange={e => setAutoPayload(e.target.value)} placeholder="ping" />
-          <label style={{ ...s.label, marginTop: 10 }} htmlFor="ag-auto-maxprice">Max price per call (USDC)</label>
-          <input id="ag-auto-maxprice" style={s.input} type="number" min="0.001" step="0.01" value={autoMaxPrice} onChange={e => setAutoMaxPrice(e.target.value)} />
-          <button
-            style={{ ...s.btn("primary", autoRunning || !isConnected), marginTop: 12, width: "100%" }}
-            onClick={handleAutoRoute}
-            disabled={autoRunning || !isConnected}
-          >
-            {autoRunning ? "⏳ Routing…" : "⚡ Auto-route & call"}
-          </button>
-          {autoResult && (
-            <pre style={{ marginTop: 12, padding: "10px 12px", background: "var(--bg-3)", borderRadius:10, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-dim)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-              {autoResult}
-            </pre>
-          )}
-        </div>
-      )}
+            {tab === "settings" && (
+              <>
+                <section className="ui-section">
+                  <div className="ui-section__head">
+                    <h2 className="ui-section__title">Spending Limits</h2>
+                  </div>
+                  <div className="ui-section__body">
+                    <div className="pg-form pg-form--2">
+                      <div className="pg-stack">
+                        <Field
+                          label={<>Daily limit (USDC){currentDailyLimit != null ? ` · current: ${formatUnits(currentDailyLimit, 6)}` : ""}</>}
+                          htmlFor="ag-daily"
+                        >
+                          <Input
+                            id="ag-daily"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={dailyLimit}
+                            onChange={e => setDailyLimit(e.target.value)}
+                          />
+                        </Field>
+                        <Button
+                          variant="primary"
+                          className="pg-self-start pg-justify-start"
+                          onClick={handleSetDailyLimit}
+                          disabled={loading || !isConnected}
+                          loading={loading}
+                        >
+                          Set
+                        </Button>
+                      </div>
+                      <div className="pg-stack">
+                        <Field
+                          label={<>Max per call (USDC){currentMaxPerCall != null ? ` · current: ${formatUnits(currentMaxPerCall, 6)}` : ""}</>}
+                          htmlFor="ag-maxpercall"
+                        >
+                          <Input
+                            id="ag-maxpercall"
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={maxPerCall}
+                            onChange={e => setMaxPerCall(e.target.value)}
+                          />
+                        </Field>
+                        <Button
+                          variant="primary"
+                          className="pg-self-start pg-justify-start"
+                          onClick={handleSetMaxPerCall}
+                          disabled={loading || !isConnected}
+                          loading={loading}
+                        >
+                          Set
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
-      {/* Settings tab */}
-      {tab === "settings" && (
-        <>
-          <div style={s.section}>
-            <div style={s.sectionTitle}>SPENDING LIMITS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label style={s.label} htmlFor="ag-daily">Daily limit (USDC){currentDailyLimit ? ` · current: ${formatUnits(currentDailyLimit as bigint, 6)}` : ""}</label>
-                <input id="ag-daily" style={s.input} type="number" min="0" step="1" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
-                <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 8 }} onClick={handleSetDailyLimit} disabled={loading || !isConnected}>Set</button>
-              </div>
-              <div>
-                <label style={s.label} htmlFor="ag-maxpercall">Max per call (USDC){currentMaxPerCall ? ` · current: ${formatUnits(currentMaxPerCall as bigint, 6)}` : ""}</label>
-                <input id="ag-maxpercall" style={s.input} type="number" min="0" step="0.1" value={maxPerCall} onChange={e => setMaxPerCall(e.target.value)} />
-                <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 8 }} onClick={handleSetMaxPerCall} disabled={loading || !isConnected}>Set</button>
-              </div>
-            </div>
-          </div>
-
-          <div style={s.section}>
-            <div style={s.sectionTitle}>PROVIDER WHITELIST</div>
-            <label style={s.label} htmlFor="ag-whitelist">Provider ID</label>
-            <input id="ag-whitelist" style={s.input} type="number" min="1" value={whitelistId} onChange={e => setWhitelistId(e.target.value)} placeholder="1" />
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <button style={s.btn("primary", loading || !isConnected)} onClick={() => handleWhitelist(true)} disabled={loading || !isConnected}>Add to whitelist</button>
-              <button style={s.btn("danger", loading || !isConnected)} onClick={() => handleWhitelist(false)} disabled={loading || !isConnected}>Remove</button>
-            </div>
-          </div>
-        </>
-      )}
+                <section className="ui-section pg-section--spaced">
+                  <div className="ui-section__head">
+                    <h2 className="ui-section__title">Provider Whitelist</h2>
+                  </div>
+                  <div className="ui-section__body">
+                    <Field label="Provider ID" htmlFor="ag-whitelist">
+                      <Input
+                        id="ag-whitelist"
+                        type="number"
+                        min="1"
+                        value={whitelistId}
+                        onChange={e => setWhitelistId(e.target.value)}
+                        placeholder="1"
+                      />
+                    </Field>
+                    <div className="pg-form__actions pg-form__actions--spaced">
+                      <Button
+                        variant="primary"
+                        onClick={() => handleWhitelist(true)}
+                        disabled={loading || !isConnected}
+                        loading={loading}
+                      >
+                        Add to whitelist
+                      </Button>
+                      <Button
+                        variant="danger"
+                        onClick={() => handleWhitelist(false)}
+                        disabled={loading || !isConnected}
+                        loading={loading}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+          </>
+        )}
+        rail={(
+          <>
+            <KeyValue
+              label="Policy"
+              rows={[
+                {
+                  label: "State",
+                  value: (
+                    <Badge tone={isPaused === undefined ? "neutral" : isPaused ? "slash" : "guard"} dot>
+                      {isPaused === undefined ? "READING" : isPaused ? "PAUSED" : "ACTIVE"}
+                    </Badge>
+                  ),
+                },
+                { label: "Daily limit", value: currentDailyLimit != null ? `${formatUnits(currentDailyLimit, 6)} USDC` : "—", mono: true },
+                { label: "Max per call", value: currentMaxPerCall != null ? `${formatUnits(currentMaxPerCall, 6)} USDC` : "—", mono: true },
+                {
+                  label: "Owner",
+                  value: owner ? (
+                    <a
+                      className="pg-rowlink pg-mono"
+                      href={`https://explorer.testnet.arc.io/address/${owner}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {ownerShort}
+                    </a>
+                  ) : "—",
+                },
+              ]}
+            />
+            <KeyValue
+              label="Deployment"
+              rows={[
+                {
+                  label: "Contract",
+                  value: validAgent ? (
+                    <a
+                      className="pg-rowlink pg-mono"
+                      href={`https://explorer.testnet.arc.io/address/${agentAddr}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {agentAddr.slice(0, 10)}…{agentAddr.slice(-6)}
+                    </a>
+                  ) : "Invalid address",
+                },
+                { label: "Storage", value: "cg_agent_wallet", mono: true },
+                { label: "Network", value: "Arc Testnet" },
+              ]}
+            />
+          </>
+        )}
+      />
 
       {!isConnected && (
-        <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-faint)", fontSize: 13 }}>Connect wallet to interact</div>
+        <StatusNotice
+          tone="info"
+          title="Connect wallet to interact"
+          className="pg-section--spaced"
+          live="off"
+        />
       )}
-    </div>
+    </PanelShell>
   );
 }

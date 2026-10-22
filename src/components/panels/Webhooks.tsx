@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Send } from "lucide-react";
-import { Chip, ChipRow } from "../../ui";
+import { Button, Chip, ChipRow, Field, Input, PageHeader } from "../../ui";
+import {
+  CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, StatusNotice,
+} from "../panel/PanelUi";
 
 interface WebhookEntry {
   id: string;
@@ -14,6 +17,19 @@ const EVENT_TYPES = ["call.opened", "call.completed", "call.slashed", "call.time
 
 const STORAGE_KEY = "cg_webhooks_v2";
 
+const SAMPLE_PAYLOAD = `// POST application/json
+{
+  "event": "call.opened",
+  "callId": "0xabc…def",
+  "providerId": 1,
+  "caller": "0x1234…5678",
+  "amount": "1000000",       // 1 USDC in 6-decimal units
+  "deadline": 1717600000,   // unix timestamp
+  "payload": "ping",
+  "network": "arc-testnet",
+  "timestamp": 1717599880000
+}`;
+
 function loadWebhooks(): WebhookEntry[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
 }
@@ -21,17 +37,13 @@ function saveWebhooks(wh: WebhookEntry[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(wh));
 }
 
-const s = {
-  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "8px 14px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,var(--accent),var(--accent-dim))" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "var(--danger)" : "var(--text)", opacity: d ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: 6 }) as React.CSSProperties,
-  whCard: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 },
-};
+function statusTone(status: string): "success" | "danger" {
+  return status.startsWith("✅") ? "success" : "danger";
+}
+
+function stripStatus(status: string): string {
+  return status.replace(/^[✅❌]\s*/u, "");
+}
 
 export default function Webhooks() {
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>(loadWebhooks);
@@ -92,108 +104,161 @@ export default function Webhooks() {
   };
 
   return (
-    <div style={s.page}>
-      <h1 style={s.h1}>Webhooks</h1>
-      <p style={s.sub}>Get POST notifications when calls open, complete, timeout, or get slashed. No backend needed to get started.</p>
+    <PanelShell>
+      <PageHeader
+        title="Webhooks"
+        subtitle="Get POST notifications when calls open, complete, timeout, or get slashed. No backend needed to get started."
+      />
+      <PanelSource
+        label="Webhook registry"
+        value={STORAGE_KEY}
+        hint={`${webhooks.length} saved locally`}
+        state="idle"
+      />
 
-      {/* Info */}
-      <div style={{ background: "rgba(25,209,134,0.06)", border: "1px solid rgba(25,209,134,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
-        <strong style={{ color: "var(--accent-ink)" }}>Quick start:</strong> Use{" "}
-        <a href="https://webhook.site" target="_blank" rel="noreferrer" style={{ color: "var(--accent-ink)" }}>webhook.site</a>{" "}
-        to get a free URL and see the exact payload. Then point it to your own server.
-        Failed deliveries are retried 3 times automatically.
-      </div>
+      <PanelSplit
+        main={(
+          <>
+            <StatusNotice tone="info" title="Quick start">
+              Use{" "}
+              <a href="https://webhook.site" target="_blank" rel="noreferrer">webhook.site</a>{" "}
+              to get a free URL and see the exact payload. Then point it to your own server.
+            </StatusNotice>
 
-      {/* Add webhook */}
-      <div style={s.section}>
-        <div style={s.sectionTitle}>ADD WEBHOOK</div>
-        <label style={s.label} htmlFor="wh-url">Endpoint URL</label>
-        <input id="wh-url" style={s.input} type="url" value={urlInput} onChange={e => setUrlInput(e.target.value)} placeholder="https://your-server.com/webhook or https://webhook.site/…" />
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">Add Webhook</h2>
+              </div>
+              <div className="ui-section__body">
+                <div className="pg-form">
+                  <Field label="Endpoint URL" htmlFor="wh-url">
+                    <Input
+                      id="wh-url"
+                      type="url"
+                      value={urlInput}
+                      onChange={e => setUrlInput(e.target.value)}
+                      placeholder="https://your-server.com/webhook or https://webhook.site/…"
+                    />
+                  </Field>
+                  <div>
+                    <div className="pg-range__label" id="wh-events-label">Events to subscribe</div>
+                    <div role="group" aria-labelledby="wh-events-label" className="pg-section--spaced">
+                      <ChipRow>
+                        {EVENT_TYPES.map(ev => (
+                          <Chip key={ev} active={selectedEvents.includes(ev)} onClick={() => toggleEvent(ev)}>
+                            {ev}
+                          </Chip>
+                        ))}
+                      </ChipRow>
+                    </div>
+                  </div>
+                </div>
+                <div className="pg-form__actions pg-form__actions--spaced">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    leftIcon={<Plus size={13} />}
+                    onClick={handleAdd}
+                  >
+                    Add webhook
+                  </Button>
+                </div>
+                {addStatus && (
+                  <StatusNotice
+                    tone={statusTone(addStatus)}
+                    title={stripStatus(addStatus)}
+                    className="pg-section--spaced"
+                  />
+                )}
+              </div>
+            </section>
 
-        <div style={{ marginTop: 12, marginBottom: 12 }}>
-          <div style={s.label} id="wh-events-label">Events to subscribe</div>
-          <div role="group" aria-labelledby="wh-events-label">
-            <ChipRow>
-              {EVENT_TYPES.map(ev => (
-                <Chip key={ev} active={selectedEvents.includes(ev)} onClick={() => toggleEvent(ev)}>
-                  {ev}
-                </Chip>
+            <Ledger
+              label={`Registered Webhooks (${webhooks.length})`}
+              className="pg-section--spaced"
+              empty={<span>No webhooks yet — add one above.</span>}
+            >
+              {webhooks.length > 0 && webhooks.map(wh => (
+                <LedgerRow
+                  key={wh.id}
+                  tone={wh.lastTest?.ok ? "guard" : wh.lastTest ? "danger" : "neutral"}
+                  lead={<span className="pg-webhook-url">{wh.url}</span>}
+                  meta={(
+                    <span className="pg-row-stack pg-row-stack--start">
+                      <span className="pg-event-tags">
+                        {wh.events.map(ev => (
+                          <span key={ev} className="pg-event-tag">{ev}</span>
+                        ))}
+                      </span>
+                      {wh.lastTest && (
+                        <span className={wh.lastTest.ok ? "pg-testline is-ok" : "pg-testline is-err"}>
+                          Last: {wh.lastTest.status} · {wh.lastTest.latency}ms · {new Date(wh.lastTest.time).toLocaleTimeString("en-US", { hour12: false })}
+                        </span>
+                      )}
+                      {testResults[wh.id] && (
+                        <span
+                          className={testResults[wh.id].startsWith("✅") ? "pg-testline is-ok" : "pg-testline is-err"}
+                          aria-live="polite"
+                        >
+                          {testResults[wh.id]}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  trailing={(
+                    <span className="pg-row-actions">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<Send size={12} />}
+                        onClick={() => handleTest(wh)}
+                        disabled={testing === wh.id}
+                        loading={testing === wh.id}
+                        title="Send test event"
+                      >
+                        {testing === wh.id ? "Sending…" : "Test"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleRemove(wh.id)}
+                        title="Remove webhook"
+                        aria-label={`Remove webhook ${wh.url}`}
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    </span>
+                  )}
+                />
               ))}
-            </ChipRow>
-          </div>
-        </div>
-
-        <button style={s.btn("primary")} onClick={handleAdd}>
-          <Plus size={13} /> Add webhook
-        </button>
-
-        {addStatus && (
-          <div style={{ marginTop: 10, fontSize: 12, color: addStatus.startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>{addStatus}</div>
+            </Ledger>
+          </>
         )}
-      </div>
-
-      {/* List */}
-      <div style={s.section}>
-        <div style={s.sectionTitle}>REGISTERED WEBHOOKS ({webhooks.length})</div>
-        {webhooks.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "24px", color: "var(--text-faint)", fontSize: 12 }}>
-            No webhooks yet — add one above.
-          </div>
-        ) : webhooks.map(wh => (
-          <div key={wh.id} style={s.whCard}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wh.lastTest?.ok ? "var(--accent)" : wh.lastTest ? "var(--danger)" : "var(--text-faint)", display: "inline-block", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{wh.url}</span>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
-                  {wh.events.map(ev => (
-                    <span key={ev} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(25,209,134,0.1)", color: "var(--accent-ink)", fontWeight: 600 }}>{ev}</span>
-                  ))}
-                </div>
-                {wh.lastTest && (
-                  <div style={{ fontSize: 11, color: wh.lastTest.ok ? "var(--accent-ink)" : "var(--danger)" }}>
-                    Last: {wh.lastTest.status} · {wh.lastTest.latency}ms · {new Date(wh.lastTest.time).toLocaleTimeString("en-US", { hour12: false })}
-                  </div>
-                )}
-                {testResults[wh.id] && (
-                  <div style={{ fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", color: testResults[wh.id].startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>
-                    {testResults[wh.id]}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <button style={s.btn("default", testing === wh.id)} onClick={() => handleTest(wh)} disabled={testing === wh.id} title="Send test event">
-                  <Send size={12} /> {testing === wh.id ? "Sending…" : "Test"}
-                </button>
-                <button style={s.btn("danger")} onClick={() => handleRemove(wh.id)} title="Remove webhook">
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Sample payload */}
-      <div style={s.section}>
-        <div style={s.sectionTitle}>SAMPLE PAYLOAD</div>
-        <pre style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-dim)", background: "var(--bg-3)", borderRadius:10, padding: 12, overflow: "auto", margin: 0 }}>
-{`// POST application/json
-{
-  "event": "call.opened",
-  "callId": "0xabc…def",
-  "providerId": 1,
-  "caller": "0x1234…5678",
-  "amount": "1000000",       // 1 USDC in 6-decimal units
-  "deadline": 1717600000,   // unix timestamp
-  "payload": "ping",
-  "network": "arc-testnet",
-  "timestamp": 1717599880000
-}`}
-        </pre>
-      </div>
-    </div>
+        rail={(
+          <>
+            <KeyValue
+              label="Registry"
+              rows={[
+                { label: "Storage", value: STORAGE_KEY, mono: true },
+                { label: "Saved", value: String(webhooks.length) },
+                { label: "Events", value: String(EVENT_TYPES.length) },
+                { label: "Delivery", value: "Browser only" },
+              ]}
+            />
+            <StatusNotice tone="warn" title="Local registry only">
+              This panel stores webhooks in this browser. It has no server relay; only the Test button sends a POST.
+            </StatusNotice>
+            <CodeSurface
+              label="Sample Payload"
+              language="jsonc"
+              code={SAMPLE_PAYLOAD}
+              wrap
+            />
+          </>
+        )}
+      />
+    </PanelShell>
   );
 }

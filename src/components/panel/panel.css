@@ -403,6 +403,13 @@
   font-size: var(--fs-xs);
   overflow-wrap: anywhere;
 }
+.pg-address {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.pg-badge-gap { margin-left: var(--sp-2); }
 .pg-loading {
   margin: var(--sp-4) 0 0;
   padding: var(--sp-6) var(--sp-4);
@@ -599,6 +606,7 @@
 }
 .pg-multi-row .ui-input { flex: 1 1 auto; min-width: 0; }
 .pg-self-start { align-self: flex-start; }
+.pg-justify-start { justify-self: start; }
 .pg-textarea { width: 100%; margin-top: var(--sp-3); }
 .pg-section--spaced { margin-top: var(--sp-4); }
 .ui-section + .pg-ledger,
@@ -702,6 +710,42 @@
   align-items: flex-end;
   gap: var(--sp-1);
 }
+.pg-row-stack--start { align-items: flex-start; }
+.pg-row-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.pg-webhook-url {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+.pg-event-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.pg-event-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-ink);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+.pg-testline {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-base);
+  overflow-wrap: anywhere;
+}
+.pg-testline.is-ok { color: var(--accent-ink); }
+.pg-testline.is-err { color: var(--danger); }
 .pg-endpoint {
   color: var(--accent-ink);
   font-family: var(--font-mono);
@@ -740,6 +784,8 @@
 @media (max-width: 480px) {
   .pg-root { padding: 16px 12px 72px; }
   .pg-signals { grid-template-columns: minmax(0, 1fr); }
+  .pg-signals--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pg-signals--pair > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   .pg-rail { grid-template-columns: minmax(0, 1fr); }
   .pg-kv__row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .pg-ledger__row:not(:has(.pg-ledger__button)),

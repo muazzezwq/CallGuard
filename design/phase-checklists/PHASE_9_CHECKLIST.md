@@ -16,21 +16,21 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 9 | `subscriptions` redesigned; preview truth preserved | `src/components/panels/Subscriptions.tsx` | browser + DOM diff | preview notice rendered; exact toast confirmed; 1 indexed provider, 10-call range, 10.00 USDC total; no fake active subscriptions | PASS | protocol is not live; no real subscription write exists |
 | 10 | `jobs` redesigned; six-stage state preserved | `src/components/panels/Jobs.tsx` | browser + source diff | step 0 renders; six stage buttons, current marker, disabled future steps, create form, status lookup, and stage-lane internal scroll at 411; all six handlers and `parseUnits`/allowance order unchanged | PASS | signed step transitions 1–5 not reachable in browser with mock wallet; only source-verified |
 | 11 | `attestation` redesigned; all tabs preserved | `src/components/panels/Attestation.tsx` | browser + DOM diff | Peek/Issue/Lookup render; mocked `/api/attestation` success showed JSON; `attestProviderScore(providerId, 50)` and lookup guard retained; REST endpoint and code example visible | PASS | attestation write not executed; peek success mocked because Vite serves `/api/*` as non-JSON |
-| 12 | `agent` redesigned; storage keys and writes preserved | — | browser + source diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
+| 12 | `agent` redesigned; storage keys and writes preserved | `src/components/panels/Agent.tsx`, `src/components/panel/panel.css` | browser + source diff | Setup/Auto-Route/Settings render; invalid-address and valid-reconnect statuses; five-stat signal strip; owner, daily limit, and max-per-call reads; `cg_agent_wallet`, approve→deposit, `agentCall`, pause, limits, whitelist handlers, and auto-route scoring retained; 1280/411 dark and light clean | PASS | signed writes not executed; mock wallet cannot sign |
 | 13 | `balance` redesigned; four branches preserved | `src/components/UnifiedBalance.tsx` | browser + DOM diff | loading, error, empty, and success executed; success mock showed `123.46 USDC`, `100.500000` and `22.956789` chain precision; disconnected branch source-verified only | PARTIAL | mock wallet cannot disconnect without leaving the app; success response mocked because Vite serves `/api/unified-balance` as HTML |
-| 14 | `passkey` redesigned; state machine preserved | — | browser + DOM diff | not started | UNVERIFIED | no passkey credential harness |
+| 14 | `passkey` redesigned; state machine preserved | `src/components/PasskeyWallet.tsx`, `src/components/panel/panel.css` | browser + DOM/source diff | idle and missing-key branches render; Register stays disabled without a key; status badge, `register`/`login`/`sendGaslessCall`/`reset`, smart-account address, and UserOp surfaces retained; 1280/411 dark and light clean | PASS | no passkey credential harness; ready/error/loading and gasless paths source-diffed only |
 | 15 | `mcp` redesigned; tools/tests/config preserved | — | browser + DOM diff | not started | UNVERIFIED | EIP-3009 signing cannot be executed |
 | 16 | `apidocs` redesigned; endpoint reference preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
-| 17 | `webhooks` redesigned; local-only truth preserved | — | browser + source diff | not started | UNVERIFIED | test POST target is external |
-| 18 | `pipelinehook` redesigned; tx states preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
+| 17 | `webhooks` redesigned; local-only truth preserved | `src/components/panels/Webhooks.tsx`, `src/components/panel/panel.css` | browser + source diff | invalid URL, add, event toggle, test failure, same-origin 200 success, `lastTest`, remove, empty state, and `cg_webhooks_v2` persistence exercised; sample payload and no-server-relay notice visible; 1280/411 dark and light clean | PASS | external test POST hit CORS; success path used a same-origin stubbed 200 |
+| 18 | `pipelinehook` redesigned; tx states preserved | `src/components/panels/PipelineHook.tsx`, `src/components/panel/panel.css` | browser + source diff | reading/disabled states, invalid-address toast `Enter a valid address`, current hook, set/disable forms, pending/mining/success/error branches, regex, zero-address disable, `setPipelineHook`, refetch, interface code, and best-effort notice retained; 1280/411 dark and light clean | PASS | signed writes not executed; mock wallet cannot sign |
 | 19 | `nano` redesigned; x402/multicall preserved | `src/components/panels/Nano.tsx` | browser + source diff | balance/call error states honest; 2 x402 endpoints; Multicall3 2→3→2 add/remove cap; snippet scrolls inside its surface; no fabricated success | PASS | signed calls cannot be executed; Vite serves `/api/*` as non-JSON so live success is unavailable |
 | 20 | `privacy` redesigned; storage keys preserved | `src/components/panels/Privacy.tsx` | browser + source diff | 13 storage keys and 3 session keys unchanged; toggle persisted `cg_privacy_prefs`; clear removed test keys and showed `Cleared!` | PASS | manual DOM/keyboard checks only; no screen reader |
 | 21 | `admin` redesigned; owner/timelock paths preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
 | 22 | `settings` redesigned; preferences preserved | `src/components/panels/SettingsPanel.tsx` | browser + DOM diff | Light/Dark applied; budget saved to `cg_budget` and cleared; contract address, disconnect, and SDK surface retained | PASS | manual DOM/keyboard checks only; no screen reader |
 | 23 | Admin v4 → v7 copy correction (approved) | — | source grep | not started | UNVERIFIED | held until Admin wave |
-| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 3 diff limited to `Disputes.tsx`, `Quality.tsx`, `Jobs.tsx`, `Attestation.tsx`, `panel.css`, and this checklist | PASS | recheck after every later wave |
-| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 3 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
-| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave3/` | browser screenshots / DOM | 1280 and 411 dark for all 4; 1280 and 411 light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; Jobs stage lane scrolls internally at 411 (`385` client vs `528` scroll) without page overflow |
+| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 4 diff limited to `Agent.tsx`, `PasskeyWallet.tsx`, `Webhooks.tsx`, `PipelineHook.tsx`, `panel.css`, and this checklist | PASS | recheck after every later wave |
+| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 4 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
+| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave4/` | browser screenshots / DOM | 1280 and 411 dark for all 4; 1280 and 411 light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; passkey ready/gasless path unavailable without a credential |
 
 ## Wave 0 log
 
@@ -137,3 +137,47 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
   `bun run build` exit 0 (pre-existing chunk-size warning).
 - Still unverified: signed Disputes/Quality/Jobs/Attestation writes; Jobs steps 1–5 in the browser;
   Attestation on-chain issue success; screen-reader announcements.
+
+## Wave 4 log
+
+- Redesigned `Agent`, `Passkey`, `Webhooks`, and `PipelineHook` on the shared kit. The diff is
+  limited to those four panels, `panel.css` additions, and this checklist; no contract, API,
+  storage, or landing change.
+- Agent: Setup/Auto-Route/Settings render. Invalid address shows `Invalid address`; a valid
+  reconnect shows `Agent Wallet connected`. Reads still cover `getStats`, `paused`, `dailyLimit`,
+  `maxPerCall`, and now `owner`. `cg_agent_wallet` remains the storage key; `approve` still precedes
+  `deposit`, and `agentCall`, pause/unpause, limit setters, whitelist writes, and auto-route scoring
+  are unchanged. The five-value signal strip pairs at 411 with the last value full width so the tabs
+  stay near the fold.
+- Passkey: the missing-key branch renders `VITE_CLIENT_KEY is not set`; Register Passkey is disabled
+  without a key and Log In is disabled. The status badge, `register`, `login`, `sendGaslessCall`,
+  `reset`, smart-account address, and UserOp hash surfaces are retained. Ready, error, and loading
+  branches were source-diffed only; no credential harness exists.
+- Webhooks: invalid URL, add, event toggle, test failure, test success, `lastTest`, remove, empty
+  state, and `cg_webhooks_v2` persistence were exercised. The test POST to an external URL failed
+  on CORS; the success path used a same-origin stubbed 200. The empty-state bug was fixed:
+  `webhooks.map()` returns a truthy empty array, so the ledger now guards with
+  `webhooks.length > 0`.
+- Webhooks copy correction: removed the unbacked line
+  `Failed deliveries are retried 3 times automatically.` Added a local-only rail notice:
+  webhooks are stored in this browser, there is no server relay, and only the Test button sends a
+  POST. The sample payload and all event names are unchanged.
+- PipelineHook: reading, disabled, and active states are explicit; `Reading…` replaces the old false
+  `Disabled` while `pipelineHook` is undefined. The invalid-address toast is still
+  `Enter a valid address`. The `setPipelineHook` call, zero-address disable, regex, pending/mining/
+  success/error branches, refetch, interface code, and best-effort notice are retained.
+- Responsive: 1280×720 and 411×915, dark and light, for all four panels. At 411 the document,
+  `.main-content`, and `.pg-root` scroll widths all equal 411. Console errors: none.
+- Evidence: `/tmp/opencode/cg19-wave4/agent-dark-1280.png`,
+  `agent-light-1280.png`, `agent-dark-411.png`, `agent-light-411b.png`,
+  `agent-autoroute-dark-1280.png`, `agent-settings-dark-1280.png`,
+  `agent-settings-final-light-1280.png`, `passkey-light-1280.png`, `passkey-dark-1280.png`, `passkey-dark-411.png`,
+  `passkey-light-411.png`, `webhooks-dark-1280.png`, `webhooks-light-1280.png`,
+  `webhooks-dark-411.png`, `webhooks-light-411.png`, `webhooks-empty-fixed-dark-411.png`,
+  `webhooks-invalid-dark-1280.png`, `webhooks-added-dark-1280.png`, `webhooks-tested-local-dark-1280.png`,
+  `pipeline-light-1280b.png`, `pipeline-dark-1280.png`, `pipeline-dark-411.png`,
+  `pipeline-light-411-final.png`, `pipeline-invalid-light-1280.png`.
+- Gates after Wave 4: `bun run check` exit 0; `bun run test` 392 pass / 4 skip / 0 fail;
+  `bun run build` exit 0 (pre-existing chunk-size warning).
+- Still unverified: signed Agent/PipelineHook writes; Passkey ready/gasless execution; external
+  webhook delivery; screen-reader announcements.
