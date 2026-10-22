@@ -3,21 +3,15 @@ import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
 import { encodeFunctionData, keccak256, toBytes } from 'viem'
 // MEDIUM-09: import canonical ABIs from config
 import { CONFIG, PPC_ABI, USDC_ABI, REGISTRY_ABI } from '../../lib/config'
+import { Button, Input, PageHeader, Stat, Textarea } from '../../ui'
+import {
+  CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource,
+  PanelSplit, SignalRow, StatusNotice,
+} from '../panel/PanelUi'
 
 const MULTICALL3_ABI = [
   { name: 'aggregate3', type: 'function', stateMutability: 'payable', inputs: [{ name: 'calls', type: 'tuple[]', components: [{ name: 'target', type: 'address' }, { name: 'allowFailure', type: 'bool' }, { name: 'callData', type: 'bytes' }] }], outputs: [{ name: 'results', type: 'tuple[]', components: [{ name: 'success', type: 'bool' }, { name: 'returnData', type: 'bytes' }] }] },
 ] as const
-
-const S = {
-  wrap: { padding: '24px', maxWidth: '680px', margin: '0 auto' },
-  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
-  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', marginBottom: '16px' },
-  statCard: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px', textAlign: 'center' as const },
-  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  btnSecondary: { padding: '10px 20px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  pre: { background: 'var(--bg-0)', color: 'var(--text)', fontFamily: 'var(--font-mono)', fontSize: '11px', lineHeight: '1.7', padding: '16px', borderRadius: '10px', overflowX: 'auto' as const, border: '1px solid var(--border)', marginTop: '12px' },
-}
 
 export default function Nano() {
   const { address } = useAccount()
@@ -151,113 +145,130 @@ export default function Nano() {
 
   useEffect(() => { if (address) refreshBalance() }, [address, refreshBalance])
 
+  const sourceState = balance === '—' ? 'unavailable' : balance ? 'live' : 'idle'
+
   return (
-    <div style={S.wrap}>
-      <div style={S.h1}>Nanopayment</div>
-      <div style={S.sub}>Gasless micropayments via Circle Gateway · 0.001 USDC · no wallet prompt</div>
+    <PanelShell>
+      <PageHeader
+        title="Nanopayment"
+        subtitle="Gasless micropayments via Circle Gateway · 0.001 USDC · no wallet prompt"
+      />
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div style={S.statCard}>
-          <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Calls Made</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{callCount}</div>
-        </div>
-        <div style={S.statCard}>
-          <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Pending Batch</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>{pending || '—'}</div>
-        </div>
-        <div style={S.statCard}>
-          <div style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '4px' }}>Settled Balance</div>
-          <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent-ink)', fontFamily: 'var(--font-mono)' }}>{balance || '—'}</div>
-        </div>
-      </div>
+      <PanelSource
+        label="Circle Gateway"
+        value={balance === '—' ? 'balance unavailable' : balance ? `settled ${balance}` : 'balance not loaded'}
+        hint="x402 · batched settlement"
+        state={sourceState}
+      />
 
-      {/* How it works */}
-      <div style={{ background: 'rgba(25,209,134,0.08)', border: '1px solid rgba(25,209,134,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.6' }}>
-        <strong style={{ color: 'var(--accent-ink)' }}>How it works:</strong>
-        {' '}1. You click → 2. Facilitator signs EIP-3009 off-chain → 3. Circle Gateway verifies instantly → 4. Batch settles on-chain later.
-        No wallet prompt. No gas. Payments batch into a single on-chain tx.
-      </div>
+      <SignalRow label="Nanopayment signals">
+        <Stat label="Calls Made" value={callCount} hint="This session" />
+        <Stat label="Pending Batch" value={pending || '—'} hint="Batched settlement" />
+        <Stat label="Settled Balance" value={balance || '—'} hint="USDC" />
+      </SignalRow>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-        <button style={{ ...S.btn, opacity: loading || !address ? 0.6 : 1 }} onClick={makeNanoCall} disabled={loading || !address}>
-          {loading ? '⚡ Calling...' : '⚡ Call /nano/service (0.001 USDC)'}
-        </button>
-        <button style={S.btnSecondary} onClick={refreshBalance}>↻ Refresh balance</button>
-      </div>
+      <PanelSplit
+        main={
+          <>
+            <StatusNotice tone="info" title="How it works:">
+              1. You click → 2. Facilitator signs EIP-3009 off-chain → 3. Circle Gateway verifies instantly → 4. Batch settles on-chain later.
+              No wallet prompt. No gas. Payments batch into a single on-chain tx.
+            </StatusNotice>
 
-      {/* Output */}
-      <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-dim)', minHeight: '60px', whiteSpace: 'pre-wrap', marginBottom: '24px' }}>
-        {output}
-      </div>
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">Call console</h2>
+              </div>
+              <div className="ui-section__body">
+                <div className="pg-form__actions">
+                  <Button variant="primary" onClick={makeNanoCall} disabled={loading || !address}>
+                    {loading ? '⚡ Calling...' : '⚡ Call /nano/service (0.001 USDC)'}
+                  </Button>
+                  <Button variant="secondary" onClick={refreshBalance}>↻ Refresh balance</Button>
+                </div>
+                <div className="pg-output" aria-live="polite" aria-atomic="true">{output}</div>
+              </div>
+            </section>
 
-      {/* x402 Tester */}
-      <div style={S.card}>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>x402 Endpoints</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '16px' }}>Test HTTP 402 payment-required endpoints. Pay & try in one click.</div>
-        {[
-          { name: 'energy-data', path: '/api/energy-data', price: '0.001 USDC', desc: 'Real-time energy usage data' },
-          { name: 'premium-report', path: '/api/premium-report', price: '0.01 USDC', desc: 'Premium analytics report' },
-        ].map(ep => (
-          <div key={ep.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>{ep.name}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{ep.desc}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-ink)' }}>{ep.price}</span>
-              <button
-                style={{ padding: '6px 14px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
-                onClick={() => tryX402Endpoint(ep.path, ep.price)}
-              >Pay & Try →</button>
-            </div>
-          </div>
-        ))}
-      </div>
+            <p className="pg-copy pg-copy--tight">Test HTTP 402 payment-required endpoints. Pay &amp; try in one click.</p>
+            <Ledger label="x402 Endpoints">
+              {[
+                { name: 'energy-data', path: '/api/energy-data', price: '0.001 USDC', desc: 'Real-time energy usage data' },
+                { name: 'premium-report', path: '/api/premium-report', price: '0.01 USDC', desc: 'Premium analytics report' },
+              ].map(ep => (
+                <LedgerRow
+                  key={ep.name}
+                  lead={ep.name}
+                  meta={ep.desc}
+                  trailing={
+                    <>
+                      <span className="pg-price">{ep.price}</span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => tryX402Endpoint(ep.path, ep.price)}
+                      >Pay &amp; Try →</Button>
+                    </>
+                  }
+                />
+              ))}
+            </Ledger>
 
-      {/* Multicall3From */}
-      <div style={S.card}>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Multicall3 (1 tx)</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '16px' }}>Batch-call up to 3 providers in a single on-chain tx via Multicall3From.</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-          {multiIds.map((id, i) => (
-            <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input
-                type="text" placeholder={`Provider ID ${i + 1}`} value={id}
-                onChange={e => { const n = [...multiIds]; n[i] = e.target.value; setMultiIds(n) }}
-                style={{ flex: 1, padding: '8px 12px', background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '13px' }}
-              />
-              {multiIds.length > 1 && (
-                <button onClick={() => setMultiIds(multiIds.filter((_, j) => j !== i))}
-                  style={{ padding: '6px 10px', background: 'var(--bg-3)', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}>−</button>
-              )}
-            </div>
-          ))}
-          {multiIds.length < 3 && (
-            <button onClick={() => setMultiIds([...multiIds, ''])}
-              style={{ alignSelf: 'flex-start', padding: '6px 12px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>+ Add Provider</button>
-          )}
-        </div>
-        <textarea
-          rows={2} placeholder="Payload (will be hashed on-chain)" value={multiPayload}
-          onChange={e => setMultiPayload(e.target.value)}
-          style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box', marginBottom: '12px' }}
-        />
-        <button
-          onClick={doMultiCallNative} disabled={multiLoading || !address}
-          style={{ ...S.btn, width: '100%', opacity: multiLoading || !address ? 0.6 : 1 }}>
-          {multiLoading ? '⏳ Processing...' : '⚡ Multicall3 (1 tx)'}
-        </button>
-        {multiResult && (
-          <pre style={{ ...S.pre, marginTop: '12px', whiteSpace: 'pre-wrap' }}>{multiResult}</pre>
-        )}
-      </div>
+            <section className="ui-section pg-section--spaced">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">Multicall3 (1 tx)</h2>
+              </div>
+              <div className="ui-section__body">
+                <p className="pg-copy">Batch-call up to 3 providers in a single on-chain tx via Multicall3From.</p>
+                <div className="pg-stack">
+                  {multiIds.map((id, i) => (
+                    <div key={i} className="pg-multi-row">
+                      <Input
+                        type="text" placeholder={`Provider ID ${i + 1}`} value={id}
+                        aria-label={`Provider ID ${i + 1}`}
+                        onChange={e => { const n = [...multiIds]; n[i] = e.target.value; setMultiIds(n) }}
+                      />
+                      {multiIds.length > 1 && (
+                        <Button
+                          variant="secondary" size="sm"
+                          aria-label={`Remove provider ${i + 1}`}
+                          onClick={() => setMultiIds(multiIds.filter((_, j) => j !== i))}
+                        >−</Button>
+                      )}
+                    </div>
+                  ))}
+                  {multiIds.length < 3 && (
+                    <Button
+                      variant="secondary" size="sm"
+                      className="pg-self-start"
+                      onClick={() => setMultiIds([...multiIds, ''])}
+                    >+ Add Provider</Button>
+                  )}
+                </div>
+                <Textarea
+                  rows={2} placeholder="Payload (will be hashed on-chain)" value={multiPayload}
+                  aria-label="Payload (will be hashed on-chain)"
+                  onChange={e => setMultiPayload(e.target.value)}
+                  className="pg-textarea"
+                />
+                <Button
+                  variant="primary" block
+                  onClick={doMultiCallNative} disabled={multiLoading || !address}
+                  className="pg-section--spaced"
+                >
+                  {multiLoading ? '⏳ Processing...' : '⚡ Multicall3 (1 tx)'}
+                </Button>
+                {multiResult && (
+                  <pre className="pg-output pg-output--pre" aria-live="polite">{multiResult}</pre>
+                )}
+              </div>
+            </section>
 
-      {/* Integration snippet */}
-      <div style={S.card}>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>Integration (Node.js)</div>
-        <pre style={S.pre}>{`// Install: npm i @circle-fin/x402-batching
+            <div className="pg-section--spaced">
+              <CodeSurface
+                label="Integration (Node.js)"
+                language="node"
+                code={`// Install: npm i @circle-fin/x402-batching
 import { GatewayClient } from '@circle-fin/x402-batching'
 
 const client = new GatewayClient({ apiKey: process.env.CIRCLE_API_KEY })
@@ -270,8 +281,31 @@ const result = await client.pay({
   chain: 'ARC-TESTNET',
 })
 
-console.log('TX:', result.txHash)  // batched on-chain`}</pre>
-      </div>
-    </div>
+console.log('TX:', result.txHash)  // batched on-chain`}
+              />
+            </div>
+          </>
+        }
+        rail={
+          <>
+            <KeyValue
+              label="Source & limits"
+              rows={[
+                { label: 'Gateway', value: 'Circle Gateway' },
+                { label: 'Call price', value: '0.001 USDC', mono: true },
+                { label: 'Asset', value: 'USDC · 6 decimals', mono: true },
+                { label: 'Provider', value: `#${nanoPId} · session nano_provider`, mono: true },
+                { label: 'Multicall cap', value: '3 provider IDs', mono: true },
+                { label: 'API gate', value: 'Server-side NANO_API_KEY' },
+                { label: 'Wallet prompt', value: 'None' },
+              ]}
+            />
+            <StatusNotice tone="info" title="Gasless by design">
+              The facilitator signs EIP-3009 off-chain. Payments batch into a single on-chain transaction.
+            </StatusNotice>
+          </>
+        }
+      />
+    </PanelShell>
   )
 }

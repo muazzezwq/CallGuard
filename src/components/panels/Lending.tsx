@@ -2,6 +2,11 @@ import { useState, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { arcTestnet, CONFIG, USDC_ABI, REPUTATION_LOAN_ABI } from "../../lib/config";
+import { Badge, Button, EmptyState, Field, Input, PageHeader, Stat, Tabs } from "../../ui";
+import {
+  KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit,
+  SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
 // CRITICAL-01 fix: use v2 address from CONFIG, not hardcoded v1 address
 const RL_ADDR = CONFIG.reputationLoanAddress;
@@ -17,22 +22,6 @@ type Loan = {
   duration?: bigint | number;
   providerId?: bigint | number;
   active?: boolean;
-};
-
-const s = {
-  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
-  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "var(--on-accent)" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg, var(--accent), var(--accent-dim))" : v === "danger" ? "rgba(238,69,57,0.1)" : "var(--bg-3)", color: v === "primary" ? "#fff" : v === "danger" ? "var(--danger)" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
-  stat: { background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px", textAlign: "center" as const },
-  statVal: { fontSize: 18, fontWeight: 700, color: "var(--accent-ink)" },
-  statLbl: { fontSize: 10, textTransform: "uppercase" as const, color: "var(--text-faint)", letterSpacing: "0.06em", marginTop: 2 },
 };
 
 type Tab = "pool" | "borrow" | "loans";
@@ -121,100 +110,157 @@ export default function Lending() {
   const pool = poolBalance ? Number(formatUnits(poolBalance as bigint, 6)).toFixed(2) : "—";
   const mine = myShares ? String(myShares) : "0";
   const apr = interestRate ? (Number(interestRate) / 100).toFixed(1) : "—";
+  const statusTone = status?.startsWith("✅") ? "success" : status?.startsWith("❌") ? "danger" : "info";
+
+  const positionRail = (
+    <>
+      <KeyValue
+        label="Loan position"
+        rows={[
+          { label: "Pool assets", value: `${pool} USDC`, mono: true },
+          { label: "My shares", value: mine, mono: true },
+          { label: "Open loans", value: loanCount !== undefined ? String(loanCount) : "—", mono: true },
+          { label: "Interest rate", value: `${apr}% APR` },
+          { label: "USDC precision", value: "6 decimals", mono: true },
+        ]}
+      />
+      <KeyValue
+        label="Contract"
+        rows={[
+          { label: "Network", value: "Arc Testnet" },
+          { label: "ReputationLoan v3", value: RL_ADDR, mono: true },
+        ]}
+      />
+    </>
+  );
 
   return (
-    <div style={s.page}>
-      <h1 style={s.h1}>Reputation-Backed Lending</h1>
-      <p style={s.sub}>Providers borrow USDC against their on-chain reputation to boost stake. Lenders earn yield from interest.</p>
+    <PanelShell>
+      <PageHeader
+        title="Reputation-Backed Lending"
+        subtitle="Providers borrow USDC against their on-chain reputation to boost stake. Lenders earn yield from interest."
+      />
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
-        {[["Pool Balance", `${pool} USDC`], ["APR", `${apr}%`], ["My Shares", mine]].map(([l, v]) => (
-          <div key={l} style={s.stat}><div style={s.statVal}>{v}</div><div style={s.statLbl}>{l}</div></div>
-        ))}
-      </div>
+      <PanelSource
+        label="ReputationLoan v3"
+        value={poolBalance !== undefined ? "pool state loaded" : "reading totalAssets"}
+        hint="20 s refresh · Arc Testnet"
+        state={poolBalance !== undefined ? "live" : "idle"}
+      />
 
       {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-2)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}`, fontSize: 12, color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
-          {status}
-        </div>
+        <StatusNotice tone={statusTone} title={status} />
       )}
 
-      <div style={s.tabs}>
-        {(["pool", "borrow", "loans"] as Tab[]).map(t => (
-          <button key={t} style={s.tab(tab === t)} onClick={() => setTab(t)}>
-            {t === "pool" ? "💧 Lend" : t === "borrow" ? "💵 Borrow" : "📋 My Loans"}
-          </button>
-        ))}
+      <SignalRow label="Lending signals">
+        <Stat label="Pool Balance" value={`${pool} USDC`} hint="totalAssets read" />
+        <Stat label="APR" value={`${apr}%`} hint="interestRate not exposed by v2 ABI" />
+        <Stat label="My Shares" value={mine} hint="lpPositions for connected wallet" />
+      </SignalRow>
+
+      <div className="pg-tabbar">
+        <Tabs
+          tabs={[
+            { id: "pool", label: "💧 Lend" },
+            { id: "borrow", label: "💵 Borrow" },
+            { id: "loans", label: "📋 My Loans" },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
-      {/* Pool tab */}
       {tab === "pool" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>LEND TO POOL — EARN YIELD</div>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Deposit USDC into the reputation loan pool. Earn interest when providers borrow to increase stake.</p>
-          <label style={s.label} htmlFor="ln-deposit">Deposit amount (USDC)</label>
-          <input id="ln-deposit" style={s.input} type="number" min="1" step="1" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} />
-          <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleDeposit} disabled={loading || !isConnected}>
-            {loading ? "⏳" : "Deposit to pool"}
-          </button>
-          <div style={{ ...s.sectionTitle, marginTop: 20, marginBottom: 10 }}>WITHDRAW SHARES</div>
-          <label style={s.label} htmlFor="ln-withdraw">Shares to redeem (1 share ≈ 1 USDC + interest)</label>
-          <input id="ln-withdraw" style={s.input} type="number" min="0" value={withdrawShares} onChange={e => setWithdrawShares(e.target.value)} />
-          <button style={{ ...s.btn("default", loading || !isConnected), marginTop: 10 }} onClick={handleWithdraw} disabled={loading || !isConnected}>
-            {loading ? "⏳" : "Withdraw shares"}
-          </button>
-        </div>
-      )}
-
-      {/* Borrow tab */}
-      {tab === "borrow" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>BORROW AGAINST REPUTATION</div>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>
-            As a provider, borrow USDC to boost your stake. Collateral = your on-chain reputation score.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={s.label} htmlFor="ln-borrow-pid">Your Provider ID</label>
-              <input id="ln-borrow-pid" style={s.input} type="number" min="1" value={borrowPid} onChange={e => setBorrowPid(e.target.value)} />
-            </div>
-            <div>
-              <label style={s.label} htmlFor="ln-borrow-amt">Borrow amount (USDC)</label>
-              <input id="ln-borrow-amt" style={s.input} type="number" min="1" step="1" value={borrowAmt} onChange={e => setBorrowAmt(e.target.value)} />
-            </div>
-          </div>
-          <button style={{ ...s.btn("primary", loading || !isConnected), width: "100%" }} onClick={handleBorrow} disabled={loading || !isConnected}>
-            {loading ? "⏳" : `💵 Borrow ${borrowAmt} USDC`}
-          </button>
-          <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-faint)" }}>
-            Interest rate: {apr}% APR · Loan duration set by contract
-          </div>
-        </div>
-      )}
-
-      {/* Loans tab */}
-      {tab === "loans" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>MY ACTIVE LOANS</div>
-          {!isConnected ? (
-            <div style={{ fontSize: 12, color: "var(--text-faint)", textAlign: "center", padding: "20px 0" }}>Connect wallet to view loans</div>
-          ) : loanCount !== undefined ? (
-            Number(loanCount) === 0 ? (
-              <div style={{ textAlign: "center", padding: "24px", color: "var(--text-faint)", fontSize: 12 }}>No loans yet</div>
-            ) : (
-              <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
-                {Array.from({ length: Number(loanCount) }, (_, i) => i + 1).map(i => (
-                  <LoanRow key={i} loanId={i} addr={address!} onRepay={handleRepay} loading={loading} />
-                ))}
+        <PanelSplit
+          main={
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">LEND TO POOL — EARN YIELD</h2>
               </div>
-            )
-          ) : (
-            <div style={{ fontSize: 12, color: "var(--text-faint)" }}>Loading loans…</div>
-          )}
-        </div>
+              <div className="ui-section__body">
+                <p className="pg-copy">Deposit USDC into the reputation loan pool. Earn interest when providers borrow to increase stake.</p>
+                <div className="pg-form">
+                  <Field label="Deposit amount (USDC)" htmlFor="ln-deposit">
+                    <Input id="ln-deposit" type="number" min="1" step="1" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} />
+                  </Field>
+                  <div className="pg-form__actions">
+                    <Button variant="primary" onClick={handleDeposit} disabled={loading || !isConnected}>
+                      {loading ? "⏳" : "Deposit to pool"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pg-subhead">WITHDRAW SHARES</div>
+                <div className="pg-form">
+                  <Field label="Shares to redeem (1 share ≈ 1 USDC + interest)" htmlFor="ln-withdraw">
+                    <Input id="ln-withdraw" type="number" min="0" value={withdrawShares} onChange={e => setWithdrawShares(e.target.value)} />
+                  </Field>
+                  <div className="pg-form__actions">
+                    <Button variant="secondary" onClick={handleWithdraw} disabled={loading || !isConnected}>
+                      {loading ? "⏳" : "Withdraw shares"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          }
+          rail={positionRail}
+        />
       )}
-    </div>
+
+      {tab === "borrow" && (
+        <PanelSplit
+          main={
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">BORROW AGAINST REPUTATION</h2>
+              </div>
+              <div className="ui-section__body">
+                <p className="pg-copy">As a provider, borrow USDC to boost your stake. Collateral = your on-chain reputation score.</p>
+                <div className="pg-form pg-form--2">
+                  <Field label="Your Provider ID" htmlFor="ln-borrow-pid">
+                    <Input id="ln-borrow-pid" type="number" min="1" value={borrowPid} onChange={e => setBorrowPid(e.target.value)} />
+                  </Field>
+                  <Field label="Borrow amount (USDC)" htmlFor="ln-borrow-amt">
+                    <Input id="ln-borrow-amt" type="number" min="1" step="1" value={borrowAmt} onChange={e => setBorrowAmt(e.target.value)} />
+                  </Field>
+                </div>
+                <div className="pg-form__actions pg-form__actions--spaced">
+                  <Button variant="primary" block onClick={handleBorrow} disabled={loading || !isConnected}>
+                    {loading ? "⏳" : `💵 Borrow ${borrowAmt} USDC`}
+                  </Button>
+                </div>
+                <p className="pg-note">Interest rate: {apr}% APR · Loan duration set by contract</p>
+              </div>
+            </section>
+          }
+          rail={positionRail}
+        />
+      )}
+
+      {tab === "loans" && (
+        <PanelSplit
+          main={
+            !isConnected ? (
+              <EmptyState title="Connect wallet to view loans" />
+            ) : loanCount !== undefined ? (
+              Number(loanCount) === 0 ? (
+                <EmptyState title="No loans yet" />
+              ) : (
+                <Ledger label="MY ACTIVE LOANS">
+                  {Array.from({ length: Number(loanCount) }, (_, i) => i + 1).map(i => (
+                    <LoanRow key={i} loanId={i} addr={address!} onRepay={handleRepay} loading={loading} />
+                  ))}
+                </Ledger>
+              )
+            ) : (
+              <p className="pg-loading">Loading loans…</p>
+            )
+          }
+          rail={positionRail}
+        />
+      )}
+    </PanelShell>
   );
 }
 
@@ -225,26 +271,25 @@ function LoanRow({ loanId, addr, onRepay, loading }: { loanId: number; addr: str
   const principal = BigInt(loan.principal ?? 0);
   const deadline = loan.startTime && loan.duration ? new Date((Number(loan.startTime) + Number(loan.duration)) * 1000).toLocaleDateString() : "—";
   return (
-    <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontWeight: 600, fontSize: 13 }}>Loan #{loanId} — Provider #{String(loan.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: loan.active ? "rgba(245,158,11,0.15)" : "rgba(25,209,134,0.15)", color: loan.active ? "var(--warn)" : "var(--accent)" }}>
-          {loan.active ? "Active" : "Repaid"}
+    <LedgerRow
+      tone={loan.active ? "warn" : "guard"}
+      lead={`Loan #${loanId} — Provider #${String(loan.providerId)}`}
+      meta={<>Principal: <strong>{(Number(principal) / 1e6).toFixed(2)} USDC</strong> · Due: <strong>{deadline}</strong></>}
+      trailing={
+        <span className="pg-loan-actions">
+          <Badge tone={loan.active ? "pending" : "guard"}>{loan.active ? "Active" : "Repaid"}</Badge>
+          {loan.active && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onRepay(loanId, principal)}
+              disabled={loading}
+            >
+              💵 Repay {(Number(principal) / 1e6).toFixed(4)} USDC
+            </Button>
+          )}
         </span>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, fontSize: 12, marginBottom: loan.active ? 10 : 0 }}>
-        <div>Principal: <strong>{(Number(principal) / 1e6).toFixed(2)} USDC</strong></div>
-        <div>Due: <strong>{deadline}</strong></div>
-      </div>
-      {loan.active && (
-        <button
-          style={{ padding: "7px 14px", borderRadius:999, border: "none", background: "var(--accent)", color: "var(--on-accent)", fontSize: 12, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1 }}
-          onClick={() => onRepay(loanId, principal)}
-          disabled={loading}
-        >
-          💵 Repay {(Number(principal) / 1e6).toFixed(4)} USDC
-        </button>
-      )}
-    </div>
+      }
+    />
   );
 }

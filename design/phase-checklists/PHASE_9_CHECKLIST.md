@@ -11,9 +11,9 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 4 | `analytics` redesigned without data loss | `src/components/panels/Analytics.tsx`, `src/components/panel/panel.css` | browser + DOM diff | 12 mocked calls → 12 outcome ticks, 75% honor, 2 provider rows, 12-row hidden table; empty live state honest; canvas removed | PASS | populated state uses mocked Goldsky payload; live subgraph currently returns 0 calls |
 | 5 | `disputes` redesigned; retired gate preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
 | 6 | `quality` redesigned; retired gate preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
-| 7 | `lending` redesigned; approvals and 6-decimal rules preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
-| 8 | `futures` redesigned; all batch actions preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
-| 9 | `subscriptions` redesigned; preview truth preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
+| 7 | `lending` redesigned; approvals and 6-decimal rules preserved | `src/components/panels/Lending.tsx` | browser + DOM diff | Lend/Borrow/My Loans executed; empty-loan state honest; source rail, 6-decimal pool/shares, and approve→deposit/repay order retained | PASS | signed writes cannot be executed with mock wallet; 6-decimal args verified by source diff |
+| 8 | `futures` redesigned; all batch actions preserved | `src/components/panels/Futures.tsx` | browser + DOM diff | Browse/My Slots/Mint executed; batch empty state, mint/buy/burn/claim/cancel controls, `nextBatchId - 1` count and 10-card cap retained; mobile inline forms stack | PASS | signed writes cannot be executed with mock wallet |
+| 9 | `subscriptions` redesigned; preview truth preserved | `src/components/panels/Subscriptions.tsx` | browser + DOM diff | preview notice rendered; exact toast confirmed; 1 indexed provider, 10-call range, 10.00 USDC total; no fake active subscriptions | PASS | protocol is not live; no real subscription write exists |
 | 10 | `jobs` redesigned; six-stage state preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
 | 11 | `attestation` redesigned; all tabs preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
 | 12 | `agent` redesigned; storage keys and writes preserved | — | browser + source diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
@@ -23,14 +23,14 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 16 | `apidocs` redesigned; endpoint reference preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
 | 17 | `webhooks` redesigned; local-only truth preserved | — | browser + source diff | not started | UNVERIFIED | test POST target is external |
 | 18 | `pipelinehook` redesigned; tx states preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
-| 19 | `nano` redesigned; x402/multicall preserved | — | browser + source diff | not started | UNVERIFIED | signed writes cannot be executed |
+| 19 | `nano` redesigned; x402/multicall preserved | `src/components/panels/Nano.tsx` | browser + source diff | balance/call error states honest; 2 x402 endpoints; Multicall3 2→3→2 add/remove cap; snippet scrolls inside its surface; no fabricated success | PASS | signed calls cannot be executed; Vite serves `/api/*` as non-JSON so live success is unavailable |
 | 20 | `privacy` redesigned; storage keys preserved | `src/components/panels/Privacy.tsx` | browser + source diff | 13 storage keys and 3 session keys unchanged; toggle persisted `cg_privacy_prefs`; clear removed test keys and showed `Cleared!` | PASS | manual DOM/keyboard checks only; no screen reader |
 | 21 | `admin` redesigned; owner/timelock paths preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
 | 22 | `settings` redesigned; preferences preserved | `src/components/panels/SettingsPanel.tsx` | browser + DOM diff | Light/Dark applied; budget saved to `cg_budget` and cleared; contract address, disconnect, and SDK surface retained | PASS | manual DOM/keyboard checks only; no screen reader |
 | 23 | Admin v4 → v7 copy correction (approved) | — | source grep | not started | UNVERIFIED | held until Admin wave |
-| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 1 diff limited to 4 panels plus panel kit CSS | PASS | recheck after every later wave |
-| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 1 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
-| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave1/` | browser screenshots / DOM | 1280 dark for all 4; 1280 light settings; 411 dark/light for all 4; no page horizontal scroll; console errors none | PASS | no screen reader; mock wallet cannot sign |
+| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 2 diff limited to `Lending.tsx`, `Futures.tsx`, `Subscriptions.tsx`, `Nano.tsx`, and `panel.css` | PASS | recheck after every later wave |
+| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 2 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
+| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave2/` | browser screenshots / DOM | 1280 dark for all 4; 411 dark and light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; 411 captures use the `.main-content` surface because full-viewport capture shows a Chrome text-highlight overlay that is absent from computed styles and element captures |
 
 ## Wave 0 log
 
@@ -68,3 +68,38 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
   `bun run build` exit 0.
 - Still unverified: screen-reader announcements, signed writes (none in Wave 1), and the
   `UnifiedBalance` disconnected branch in a real browser.
+
+## Wave 2 log
+
+- Redesigned `Lending`, `Futures`, `Subscriptions`, and `Nano` on the shared kit. The diff is limited
+  to those four panels, `panel.css` additions, and this checklist; no contract, API, storage, or
+  landing change.
+- Lending: Lend/Borrow/My Loans render; the empty-loan branch is honest. Pool/shares still use
+  6-decimal formatting, `approve` still precedes `deposit`/`repay`, and the source rail names
+  `ReputationLoan v3`, `totalAssets`, and `lpPositions`.
+- Futures: Browse/My Slots/Mint render. The empty batch ledger, buy, burn, mint, claim, cancel,
+  `nextBatchId - 1` count, and 10-card cap are retained. Mobile inline forms now stack at ≤768px
+  so the field and action do not share a line.
+- Subscriptions: the preview notice is visible, the exact toast text was confirmed in the DOM, and
+  the one indexed provider shows `1 USDC/call · 0 calls completed` and `10.00 USDC total`. No active
+  subscriptions are fabricated.
+- Nano: Gateway balance is shown as unavailable when `/api/nano-balance` is not a JSON API. The
+  main call and first x402 attempt both surface the real parse error instead of a success state.
+  Multicall went 2→3→2; the add control hides at the 3-provider cap. The Node snippet scrolls
+  inside its own surface, not the page.
+- Responsive: 1280×720 dark for all four; 411×915 dark and light for all four. At 411 the document,
+  `.main-content`, and `.pg-root` scroll widths all equal 411. Console errors: none.
+- Evidence: `/tmp/opencode/cg19-wave2/lending-mobile-dark.png`,
+  `lending-borrow-mobile-dark-lower.png`, `lending-loans-mobile-light.png`,
+  `lending-mobile-light.png`, `futures-mobile-dark.png`, `futures-mobile-light.png`,
+  `futures-mint-mobile-dark-lower2.png`, `futures-claim-mobile-dark.png`,
+  `futures-cancel-mobile-dark.png`, `subscriptions-desktop-fresh.png`,
+  `subscriptions-toast-desktop-final.png`, `subscriptions-mobile-dark.png`,
+  `subscriptions-mobile-light.png`, `nano-desktop.png`, `nano-desktop-mid.png`,
+  `nano-mobile-dark.png`, `nano-mobile-light.png`, `nano-x402-mobile-dark.png`,
+  `nano-multicall-mobile-dark.png`, `nano-code-mobile-dark.png`.
+- Gates after Wave 2: `bun run check` exit 0; `bun run test` 392 pass / 4 skip / 0 fail;
+  `bun run build` exit 0 (pre-existing chunk-size warning).
+- Still unverified: signed Lending/Futures/Nano writes; Nano success and live Gateway balance;
+  screen-reader announcements. Full-viewport 411 screenshots showed a Chrome text-highlight overlay
+  that is absent from computed styles and element captures, so the content surface was captured.

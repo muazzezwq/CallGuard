@@ -3,6 +3,10 @@ import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { parseUnits } from "viem";
 import { arcTestnet, CONFIG } from "../../lib/config";
 import { Package, Flame } from "lucide-react";
+import { Badge, Button, Field, Input, PageHeader, Stat, Tabs } from "../../ui";
+import {
+  KeyValue, Ledger, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
 const FUTURES_ADDR = CONFIG.slaFuturesAddress;
 
@@ -19,19 +23,6 @@ const FUTURES_ABI = [
   { name: "providerClaimable", type: "function", stateMutability: "view", inputs: [{ name: "batchId", type: "uint256" }], outputs: [{ name: "", type: "uint256" }] },
   { name: "claimProceeds",     type: "function", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }], outputs: [] },
 ] as const;
-
-const s = {
-  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  tabs: { display: "flex", gap: 4, marginBottom: 16, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: 4 },
-  tab: (a: boolean) => ({ flex: 1, padding: "8px 4px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: a ? "var(--accent)" : "transparent", color: a ? "var(--on-accent)" : "var(--text-dim)", transition: "all .15s" }) as React.CSSProperties,
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  label: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, display: "block", marginBottom: 6 },
-  input: { width: "100%", padding: "9px 12px", borderRadius:10, border: "1px solid var(--border)", background: "var(--bg-3)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)", boxSizing: "border-box" as const },
-  btn: (v = "default", d = false) => ({ padding: "9px 16px", borderRadius:999, border: "none", cursor: d ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, background: v === "primary" ? "linear-gradient(135deg,#19D186,#0E9F6E)" : "var(--bg-3)", color: v === "primary" ? "var(--on-accent)" : "var(--text)", opacity: d ? 0.5 : 1 }) as React.CSSProperties,
-};
 
 type Tab = "browse" | "myslots" | "mint";
 
@@ -131,143 +122,219 @@ export default function Futures() {
 
   // nextBatchId is the next id to be assigned; existing batches are 1..nextBatchId-1
   const count = nextBatchId ? Math.max(0, Number(nextBatchId) - 1) : 0;
+  const statusTone = status?.startsWith("✅") ? "success" : status?.startsWith("❌") ? "danger" : "info";
+
+  const rail = (
+    <>
+      <KeyValue
+        label="Slot mechanics"
+        rows={[
+          { label: "Standard", value: "ERC-1155 capacity slots" },
+          { label: "Batch IDs", value: "1 … nextBatchId − 1", mono: true },
+          { label: "Browse cap", value: "First 10 batches", mono: true },
+          { label: "Price precision", value: "6 decimals", mono: true },
+          { label: "Settlement", value: "Provider pull via claimProceeds" },
+          { label: "Provider side", value: "Mint · Claim · Cancel" },
+        ]}
+      />
+      <KeyValue
+        label="Contract"
+        rows={[
+          { label: "Network", value: "Arc Testnet" },
+          { label: "SLAFutures v3", value: FUTURES_ADDR, mono: true },
+        ]}
+      />
+    </>
+  );
 
   return (
-    <div style={s.page}>
-      <h1 style={s.h1}>SLA Futures</h1>
-      <p style={s.sub}>Providers tokenize future capacity as ERC-1155 slots. Callers reserve priority calls. Slots trade on secondary markets.</p>
+    <PanelShell>
+      <PageHeader
+        title="SLA Futures"
+        subtitle="Providers tokenize future capacity as ERC-1155 slots. Callers reserve priority calls. Slots trade on secondary markets."
+      />
 
-      {status && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: status.startsWith("✅") ? "rgba(25,209,134,0.08)" : "rgba(238,69,57,0.08)", border: `1px solid ${status.startsWith("✅") ? "rgba(25,209,134,0.2)" : "rgba(238,69,57,0.2)"}`, fontSize: 12, fontFamily: "var(--font-mono)", color: status.startsWith("✅") ? "var(--accent-ink)" : "var(--danger)" }}>
-          {status}
-        </div>
-      )}
+      <PanelSource
+        label="SLAFutures v3"
+        value={nextBatchId !== undefined ? "batch counter loaded" : "reading nextBatchId"}
+        hint="30 s refresh · batches read on demand"
+        state={nextBatchId !== undefined ? "live" : "idle"}
+      />
 
-      <div style={s.tabs}>
-        {(["browse", "myslots", "mint"] as Tab[]).map(t => (
-          <button key={t} style={s.tab(tab === t)} onClick={() => setTab(t)}>
-            {t === "browse" ? "📦 Browse" : t === "myslots" ? "🎫 My Slots" : "⚒ Mint"}
-          </button>
-        ))}
+      {status && <StatusNotice tone={statusTone} title={status} />}
+
+      <SignalRow label="Futures signals">
+        <Stat label="Capacity Batches" value={nextBatchId !== undefined ? count : "—"} hint="Existing IDs 1 to nextBatchId − 1" />
+        <Stat label="Next Batch ID" value={nextBatchId !== undefined ? String(nextBatchId) : "—"} hint="Assigned by the contract" />
+        <Stat label="Visible Rows" value={nextBatchId !== undefined ? Math.min(count, 10) : "—"} hint="Browse cap: first 10 batches" />
+      </SignalRow>
+
+      <div className="pg-tabbar">
+        <Tabs
+          tabs={[
+            { id: "browse", label: "📦 Browse" },
+            { id: "myslots", label: "🎫 My Slots" },
+            { id: "mint", label: "⚒ Mint" },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
-      {/* Browse */}
       {tab === "browse" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>ACTIVE CAPACITY BATCHES ({count} total)</div>
-          {count === 0 ? (
-            <div style={{ textAlign: "center", padding: "24px", color: "var(--text-faint)", fontSize: 12 }}>No batches yet — providers can mint capacity batches.</div>
-          ) : (
-            Array.from({ length: Math.min(count, 10) }, (_, i) => i + 1).map(id => (
-              <BatchCard key={id} batchId={id} />
-            ))
-          )}
+        <PanelSplit
+          main={
+            <>
+              <Ledger
+                label={`ACTIVE CAPACITY BATCHES (${count} total)`}
+                empty={<div className="pg-empty"><strong>No batches yet — providers can mint capacity batches.</strong></div>}
+              >
+                {count > 0 ? Array.from({ length: Math.min(count, 10) }, (_, i) => i + 1).map(id => (
+                  <BatchCard key={id} batchId={id} />
+                )) : null}
+              </Ledger>
 
-          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-            <div style={{ ...s.sectionTitle, marginBottom: 10 }}>BUY SLOTS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div>
-                <label style={s.label} htmlFor="fut-buy-batch">Batch ID</label>
-                <input id="fut-buy-batch" style={s.input} type="number" min="1" value={buyBatchId} onChange={e => setBuyBatchId(e.target.value)} />
-              </div>
-              <div>
-                <label style={s.label} htmlFor="fut-buy-amount">Amount</label>
-                <input id="fut-buy-amount" style={s.input} type="number" min="1" value={buyAmount} onChange={e => setBuyAmount(e.target.value)} />
-              </div>
-            </div>
-            <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleBuySlots} disabled={loading || !isConnected}>
-              🛒 Buy {buyAmount} slot(s)
-            </button>
-          </div>
-        </div>
+              <section className="ui-section pg-section--spaced">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">BUY SLOTS</h2>
+                </div>
+                <div className="ui-section__body">
+                  <div className="pg-form pg-form--2">
+                    <Field label="Batch ID" htmlFor="fut-buy-batch">
+                      <Input id="fut-buy-batch" type="number" min="1" value={buyBatchId} onChange={e => setBuyBatchId(e.target.value)} />
+                    </Field>
+                    <Field label="Amount" htmlFor="fut-buy-amount">
+                      <Input id="fut-buy-amount" type="number" min="1" value={buyAmount} onChange={e => setBuyAmount(e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button variant="primary" onClick={handleBuySlots} disabled={loading || !isConnected}>
+                      🛒 Buy {buyAmount} slot(s)
+                    </Button>
+                  </div>
+                </div>
+              </section>
+            </>
+          }
+          rail={rail}
+        />
       )}
 
-      {/* My Slots */}
       {tab === "myslots" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>BURN SLOT — USE PRIORITY CALL</div>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Burn a slot to call the provider at the pre-agreed price, bypassing queue.</p>
-          <label style={s.label} htmlFor="fut-burn-batch">Batch ID</label>
-          <input id="fut-burn-batch" style={s.input} type="number" min="1" value={burnBatchId} onChange={e => setBurnBatchId(e.target.value)} />
-          <button style={{ ...s.btn("primary", loading || !isConnected), marginTop: 10 }} onClick={handleBurnSlot} disabled={loading || !isConnected}>
-            <Flame size={14} /> Burn slot & call
-          </button>
-        </div>
+        <PanelSplit
+          main={
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">BURN SLOT — USE PRIORITY CALL</h2>
+              </div>
+              <div className="ui-section__body">
+                <p className="pg-copy">Burn a slot to call the provider at the pre-agreed price, bypassing queue.</p>
+                <div className="pg-form">
+                  <Field label="Batch ID" htmlFor="fut-burn-batch">
+                    <Input id="fut-burn-batch" type="number" min="1" value={burnBatchId} onChange={e => setBurnBatchId(e.target.value)} />
+                  </Field>
+                </div>
+                <div className="pg-form__actions pg-form__actions--spaced">
+                  <Button variant="primary" onClick={handleBurnSlot} disabled={loading || !isConnected} leftIcon={<Flame size={14} />}>
+                    Burn slot &amp; call
+                  </Button>
+                </div>
+              </div>
+            </section>
+          }
+          rail={rail}
+        />
       )}
 
-      {/* Mint */}
       {tab === "mint" && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>MINT CAPACITY BATCH (providers only)</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={s.label} htmlFor="fut-mint-pid">Your Provider ID</label>
-              <input id="fut-mint-pid" style={s.input} type="number" min="1" value={mintPid} onChange={e => setMintPid(e.target.value)} />
-            </div>
-            <div>
-              <label style={s.label} htmlFor="fut-mint-price">Price per call (USDC)</label>
-              <input id="fut-mint-price" style={s.input} type="number" min="0.001" step="0.01" value={mintPrice} onChange={e => setMintPrice(e.target.value)} />
-            </div>
-            <div>
-              <label style={s.label} htmlFor="fut-mint-slots">Total slots</label>
-              <input id="fut-mint-slots" style={s.input} type="number" min="1" value={mintSlots} onChange={e => setMintSlots(e.target.value)} />
-            </div>
-            <div>
-              <label style={s.label} htmlFor="fut-mint-deadline">Deadline</label>
-              <input id="fut-mint-deadline" style={{ ...s.input, fontFamily: "var(--font-sans)" }} type="date" value={mintDeadline} onChange={e => setMintDeadline(e.target.value)} />
-            </div>
-          </div>
-          <button style={{ ...s.btn("primary", loading || !isConnected), width: "100%" }} onClick={handleMint} disabled={loading || !isConnected}>
-            <Package size={14} /> Mint capacity batch
-          </button>
+        <PanelSplit
+          main={
+            <>
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">MINT CAPACITY BATCH (providers only)</h2>
+                </div>
+                <div className="ui-section__body">
+                  <div className="pg-form pg-form--2">
+                    <Field label="Your Provider ID" htmlFor="fut-mint-pid">
+                      <Input id="fut-mint-pid" type="number" min="1" value={mintPid} onChange={e => setMintPid(e.target.value)} />
+                    </Field>
+                    <Field label="Price per call (USDC)" htmlFor="fut-mint-price">
+                      <Input id="fut-mint-price" type="number" min="0.001" step="0.01" value={mintPrice} onChange={e => setMintPrice(e.target.value)} />
+                    </Field>
+                    <Field label="Total slots" htmlFor="fut-mint-slots">
+                      <Input id="fut-mint-slots" type="number" min="1" value={mintSlots} onChange={e => setMintSlots(e.target.value)} />
+                    </Field>
+                    <Field label="Deadline" htmlFor="fut-mint-deadline">
+                      <Input id="fut-mint-deadline" type="date" value={mintDeadline} onChange={e => setMintDeadline(e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button variant="primary" block onClick={handleMint} disabled={loading || !isConnected} leftIcon={<Package size={14} />}>
+                      Mint capacity batch
+                    </Button>
+                  </div>
+                </div>
+              </section>
 
-          <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-            <div style={s.sectionTitle}>CLAIM PROCEEDS (provider)</div>
-            <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>Claim your USDC from sold slots. Funds are held in escrow until you claim.</p>
-            <label style={s.label} htmlFor="fut-claim-batch">Batch ID</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input id="fut-claim-batch" style={{ ...s.input, flex: 1 }} type="number" min="1" value={claimBatchId} onChange={e => setClaimBatchId(e.target.value)} />
-              <button style={s.btn("primary", loading || !isConnected)} onClick={handleClaimProceeds} disabled={loading || !isConnected}>Claim</button>
-            </div>
-          </div>
+              <section className="ui-section pg-section--spaced">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">CLAIM PROCEEDS (provider)</h2>
+                </div>
+                <div className="ui-section__body">
+                  <p className="pg-copy">Claim your USDC from sold slots. Funds are held in escrow until you claim.</p>
+                  <div className="pg-inline-form">
+                    <Field label="Batch ID" htmlFor="fut-claim-batch" className="pg-inline-form__field">
+                      <Input id="fut-claim-batch" type="number" min="1" value={claimBatchId} onChange={e => setClaimBatchId(e.target.value)} />
+                    </Field>
+                    <Button variant="primary" onClick={handleClaimProceeds} disabled={loading || !isConnected}>Claim</Button>
+                  </div>
+                </div>
+              </section>
 
-          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-            <div style={s.sectionTitle}>CANCEL BATCH</div>
-            <label style={s.label} htmlFor="fut-cancel-batch">Batch ID</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input id="fut-cancel-batch" style={{ ...s.input, flex: 1 }} type="number" min="1" value={cancelBatchId} onChange={e => setCancelBatchId(e.target.value)} />
-              <button style={s.btn("default", loading || !isConnected)} onClick={handleCancel} disabled={loading || !isConnected}>Cancel</button>
-            </div>
-          </div>
-        </div>
+              <section className="ui-section pg-section--spaced">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">CANCEL BATCH</h2>
+                </div>
+                <div className="ui-section__body">
+                  <div className="pg-inline-form">
+                    <Field label="Batch ID" htmlFor="fut-cancel-batch" className="pg-inline-form__field">
+                      <Input id="fut-cancel-batch" type="number" min="1" value={cancelBatchId} onChange={e => setCancelBatchId(e.target.value)} />
+                    </Field>
+                    <Button variant="secondary" onClick={handleCancel} disabled={loading || !isConnected}>Cancel</Button>
+                  </div>
+                </div>
+              </section>
+            </>
+          }
+          rail={rail}
+        />
       )}
-    </div>
+    </PanelShell>
   );
 }
 
 function BatchCard({ batchId }: { batchId: number }) {
   const { data } = useReadContract({ address: FUTURES_ADDR, abi: FUTURES_ABI, functionName: "batches", args: [BigInt(batchId)], chainId: arcTestnet.id, query: { refetchInterval: 30_000 } });
   const b = data as { pricePerCall?: bigint; deadline?: bigint; totalSlots?: bigint; soldSlots?: bigint; providerId?: bigint | number; active?: boolean } | undefined;
-  if (!b) return <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>Loading batch #{batchId}…</div>;
+  if (!b) return <li className="pg-batch is-loading"><span className="pg-batch__title">Loading batch #{batchId}…</span></li>;
   const price = (Number(b.pricePerCall) / 1e6).toFixed(4);
   const deadline = new Date(Number(b.deadline) * 1000).toLocaleDateString();
   const fill = Number(b.totalSlots ?? 0) > 0 ? Math.round((Number(b.soldSlots) / Number(b.totalSlots)) * 100) : 0;
   return (
-    <div style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontWeight: 600, fontSize: 13 }}>Batch #{batchId} · Provider #{String(b.providerId)}</span>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: b.active ? "rgba(25,209,134,0.15)" : "rgba(100,100,100,0.15)", color: b.active ? "var(--accent-ink)" : "var(--text-faint)" }}>
-          {b.active ? "Active" : "Closed"}
-        </span>
+    <li className="pg-batch">
+      <div className="pg-batch__head">
+        <span className="pg-batch__title">Batch #{batchId} · Provider #{String(b.providerId)}</span>
+        <Badge tone={b.active ? "guard" : "neutral"}>{b.active ? "Active" : "Closed"}</Badge>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, fontSize: 12, color: "var(--text-dim)" }}>
-        <div>Price: <strong style={{ color: "var(--text)" }}>{price} USDC</strong></div>
-        <div>Slots: <strong style={{ color: "var(--text)" }}>{String(b.soldSlots)}/{String(b.totalSlots)}</strong></div>
-        <div>Deadline: <strong style={{ color: "var(--text)" }}>{deadline}</strong></div>
+      <div className="pg-batch__stats">
+        <span>Price: <strong>{price} USDC</strong></span>
+        <span>Slots: <strong>{String(b.soldSlots)}/{String(b.totalSlots)}</strong></span>
+        <span>Deadline: <strong>{deadline}</strong></span>
       </div>
-      <div style={{ marginTop: 8, height: 4, background: "var(--bg-2)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${fill}%`, background: fill > 80 ? "var(--danger)" : "var(--accent)", borderRadius: 2, transition: "width .3s" }} />
+      <div className="pg-batch__track" aria-hidden="true">
+        <span className="pg-batch__fill" style={{ width: `${fill}%`, background: fill > 80 ? "var(--danger)" : "var(--accent)" }} />
       </div>
-    </div>
+    </li>
   );
 }
