@@ -2,24 +2,57 @@ import { useState } from 'react'
 import { useSubgraph } from '../../hooks/useSubgraph'
 import { useAccount, useWalletClient } from 'wagmi'
 import { parseUnits } from 'viem'
+import { Play, Zap } from 'lucide-react'
 import { CONFIG } from '../../lib/config'
+import { Button, Field, Input, PageHeader, Tabs, Textarea } from '../../ui'
+import {
+  CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, StatusNotice,
+} from '../panel/PanelUi'
 
 const QUERY = `{ providers(first:5 orderBy:completedCalls orderDirection:desc) { id pricePerCall completedCalls slashedCalls } }`
 
-const S = {
-  card: { background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:14, padding:20, marginBottom:16 },
-  label: { fontSize:11, fontWeight:600 as const, letterSpacing:'0.08em', color:'var(--text-faint)', textTransform:'uppercase' as const, marginBottom:6, display:'block' as const },
-  code: { background:'var(--bg-3)', borderRadius:10, padding:'12px 14px', fontSize:12, fontFamily:'var(--font-mono,monospace)', overflowX:'auto' as const, margin:'8px 0' },
+const INSTALL_CMD = 'npm install @callguard/mcp-server'
+const CLAUDE_CONFIG = `{
+  "mcpServers": {
+    "callguard": {
+      "command": "npx",
+      "args": ["@callguard/mcp-server"],
+      "env": {
+        "CALLGUARD_URL": "https://arcsla.vercel.app",
+        "CHAIN_ID": "5042002"
+      }
+    }
+  }
+}`
+const CLAUDE_CONFIG_COMPACT = `{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`
+const REST_BASE = 'https://arcsla.vercel.app/api'
+const SSE_ENDPOINT = 'https://arcsla.vercel.app/api/mcp-server'
+
+type Tab = 'tools'|'x402'|'test'|'config'
+type StatusTone = 'success' | 'danger' | 'info'
+
+const STATUS_PREFIXES = ['❌', '✅', 'ℹ️', '⏳']
+
+function statusTone(status: string): StatusTone {
+  if (status.startsWith('❌')) return 'danger'
+  if (status.startsWith('✅')) return 'success'
+  return 'info'
 }
 
-function copyText(text: string) {
-  navigator.clipboard.writeText(text).catch(() => {});
+function statusTitle(status: string) {
+  const first = status.split('\n')[0]
+  const prefix = STATUS_PREFIXES.find(p => first.startsWith(p))
+  return (prefix ? first.slice(prefix.length) : first).trimStart()
+}
+
+function statusBody(status: string) {
+  return status.split('\n').slice(1).join('\n')
 }
 
 export default function Mcp() {
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient()
-  const [tab, setTab]                   = useState<'tools'|'x402'|'test'|'config'>('tools')
+  const [tab, setTab]                   = useState<Tab>('tools')
   const [testResult, setTestResult]     = useState<string|null>(null)
   const [testing, setTesting]           = useState(false)
 
@@ -121,174 +154,216 @@ export default function Mcp() {
   ] as const
 
   return (
-    <div className="cg-panel">
-      <div className="panel-head">
-        <div>
-          <h2>MCP / API</h2>
-          <p className="text-dim">Model Context Protocol server for AI agents</p>
-        </div>
+    <PanelShell>
+      <PageHeader
+        title="MCP / API"
+        subtitle="Model Context Protocol server for AI agents"
+      />
+      <PanelSource
+        label="MCP server"
+        value="REST + remote SSE"
+        hint="Reference surface; requests run only from the test tabs"
+        state="idle"
+      />
+
+      <div className="pg-tabbar">
+        <Tabs tabs={TABS.map(t => ({ id: t.id, label: t.label }))} value={tab} onChange={setTab} />
       </div>
 
-      {/* Tab bar */}
-      <div style={{ display:'flex', gap:4, background:'var(--bg-2)', borderRadius:14, padding:4, marginBottom:20, width:'fit-content', flexWrap:'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding:'7px 14px', borderRadius:999, border:'none', cursor:'pointer',
-            fontSize:13, fontWeight:600,
-            background: tab===t.id ? 'var(--accent)' : 'transparent',
-            color:       tab===t.id ? '#000'           : 'var(--text-dim)',
-          }}>{t.label}</button>
-        ))}
-      </div>
+      <PanelSplit
+        main={(
+          <>
+            {/* TOOLS */}
+            {tab === 'tools' && (
+              <Ledger
+                label="Available MCP Tools"
+                action={<span className="pg-mono">{tools.length} tools</span>}
+              >
+                {tools.map(t => (
+                  <LedgerRow
+                    key={t.name}
+                    lead={<code className="pg-endpoint">{t.name}</code>}
+                    meta={(
+                      <span className="pg-row-stack pg-row-stack--start">
+                        <span>{t.desc}</span>
+                        <span className="pg-mono">params: {t.params}</span>
+                      </span>
+                    )}
+                  />
+                ))}
+              </Ledger>
+            )}
 
-      {/* TOOLS */}
-      {tab === 'tools' && (
-        <div style={S.card}>
-          <div style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>Available MCP Tools</div>
-          {tools.map(t => (
-            <div key={t.name} style={{ padding:'12px 0', borderBottom:'1px solid var(--border)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <code style={{ background:'rgba(25,209,134,0.1)', color: 'var(--accent-ink)', padding:'2px 8px', borderRadius:10, fontSize:12, fontFamily: 'var(--font-mono)' }}>{t.name}</code>
-              </div>
-              <div style={{ fontSize:13, color:'var(--text-dim)', marginBottom:4 }}>{t.desc}</div>
-              <code style={{ fontSize:11, color:'var(--text-faint)' }}>params: {t.params}</code>
-            </div>
-          ))}
-        </div>
-      )}
+            {/* X402 LIVE TESTER */}
+            {tab === 'x402' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">x402 / EIP-3009 Live Tester</h2>
+                </div>
+                <div className="ui-section__body">
+                  <p className="pg-copy">
+                    Probes an endpoint for HTTP 402, signs transferWithAuthorization, submits payment header.
+                  </p>
 
-      {/* X402 LIVE TESTER */}
-      {tab === 'x402' && (
-        <div>
-          <div style={S.card}>
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:4 }}>x402 / EIP-3009 Live Tester</div>
-            <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:16 }}>
-              Probes an endpoint for HTTP 402, signs transferWithAuthorization, submits payment header.
-            </div>
+                  <div className="pg-form">
+                    <Field label="Endpoint URL" htmlFor="mcp-x402-url">
+                      <Input
+                        id="mcp-x402-url"
+                        value={x402Url}
+                        onChange={e=>setX402Url(e.target.value)}
+                        placeholder="https://…/api/call-service"
+                      />
+                    </Field>
+                    <Field label="Request Payload (JSON)" htmlFor="mcp-x402-payload">
+                      <Textarea
+                        id="mcp-x402-payload"
+                        value={x402Payload}
+                        onChange={e=>setX402Payload(e.target.value)}
+                        rows={3}
+                        mono
+                      />
+                    </Field>
+                  </div>
 
-            <label style={S.label} htmlFor="mcp-x402-url">Endpoint URL</label>
-            <input id="mcp-x402-url" className="cg-input" value={x402Url} onChange={e=>setX402Url(e.target.value)} placeholder="https://…/api/call-service" style={{ marginBottom:10 }}/>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={runX402Test}
+                      disabled={x402Loading || !address}
+                      loading={x402Loading}
+                      leftIcon={<Zap size={13} />}
+                    >
+                      Run x402 Test
+                    </Button>
+                  </div>
+                  {!address && <p className="pg-note">Connect wallet to sign EIP-3009</p>}
 
-            <label style={S.label} htmlFor="mcp-x402-payload">Request Payload (JSON)</label>
-            <textarea
-              id="mcp-x402-payload"
-              className="cg-input"
-              value={x402Payload}
-              onChange={e=>setX402Payload(e.target.value)}
-              rows={3}
-              style={{ fontFamily:'var(--font-mono)', fontSize:12, resize:'vertical', marginBottom:10 }}
+                  {x402Status && (
+                    <StatusNotice
+                      tone={statusTone(x402Status)}
+                      title={statusTitle(x402Status)}
+                      className="pg-section--spaced"
+                    >
+                      {statusBody(x402Status) && (
+                        <pre className="pg-output pg-output--pre">{statusBody(x402Status)}</pre>
+                      )}
+                    </StatusNotice>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* LIVE TEST */}
+            {tab === 'test' && (
+              <>
+                <Ledger
+                  label="Live Providers (Goldsky)"
+                  empty={<span>{loading ? 'Loading…' : 'No providers indexed yet.'}</span>}
+                >
+                  {providers.length > 0 && providers.map(p => (
+                    <LedgerRow
+                      key={String(p.id)}
+                      lead={`Provider #${String(p.id)}`}
+                      trailing={(
+                        <span className="pg-mono">
+                          {String(p.completedCalls)} calls · {String(p.slashedCalls)} slashes
+                        </span>
+                      )}
+                    />
+                  ))}
+                </Ledger>
+
+                <section className="ui-section pg-section--spaced">
+                  <div className="ui-section__head">
+                    <h2 className="ui-section__title">Test: get_attestation (Provider #1)</h2>
+                  </div>
+                  <div className="ui-section__body">
+                    <div className="pg-form__actions">
+                      <Button
+                        variant="primary"
+                        onClick={runMcpTest}
+                        disabled={testing}
+                        loading={testing}
+                        leftIcon={<Play size={12} />}
+                      >
+                        Run Test
+                      </Button>
+                    </div>
+                    {testResult && (
+                      <pre
+                        className={`pg-output pg-output--pre${testResult.startsWith('Error') ? ' is-err' : ''}`}
+                        aria-live="polite"
+                      >
+                        {testResult}
+                      </pre>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+
+            {/* CONFIG */}
+            {tab === 'config' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">MCP Server Setup</h2>
+                </div>
+                <div className="ui-section__body">
+                  <CodeSurface label="Install" language="bash" code={INSTALL_CMD} />
+                  <CodeSurface
+                    label="Claude Desktop Config"
+                    language="json"
+                    code={CLAUDE_CONFIG}
+                    copyValue={CLAUDE_CONFIG_COMPACT}
+                    className="pg-section--spaced"
+                  />
+                  <CodeSurface label="REST Base URL" code={REST_BASE} className="pg-section--spaced" />
+                  <CodeSurface label="Remote SSE Endpoint" code={SSE_ENDPOINT} className="pg-section--spaced" />
+
+                  <StatusNotice
+                    tone="success"
+                    title="Compatible with Claude Desktop, Cursor, Cline, Continue.dev, and any MCP v1.0+ client."
+                    className="pg-section--spaced"
+                  />
+                </div>
+              </section>
+            )}
+          </>
+        )}
+        rail={(
+          <>
+            <KeyValue
+              label="Server"
+              rows={[
+                { label: 'Remote SSE', value: SSE_ENDPOINT, mono: true },
+                { label: 'REST base', value: REST_BASE, mono: true },
+                { label: 'Chain ID', value: '5042002', mono: true },
+                { label: 'Protocol', value: 'MCP v1.0+' },
+              ]}
             />
 
-            <button
-              className="btn btn-primary"
-              onClick={runX402Test}
-              disabled={x402Loading || !address}
-              style={{ marginBottom:10 }}
-            >
-              {x402Loading ? '⏳ Running…' : '⚡ Run x402 Test'}
-            </button>
-            {!address && <div style={{ fontSize:11, color:'var(--warn)' }}>Connect wallet to sign EIP-3009</div>}
-
-            {x402Status && (
-              <pre style={{
-                ...S.code,
-                color: x402Status.startsWith('❌') ? 'var(--danger)'
-                     : x402Status.startsWith('✅') ? 'var(--accent)'
-                     : 'var(--text-dim)',
-                whiteSpace:'pre-wrap', wordBreak:'break-all',
-              }}>{x402Status}</pre>
+            {tab === 'x402' && (
+              <StatusNotice tone="info" title="How it works">
+                1. POST to endpoint → expect HTTP 402 with payment terms<br/>
+                2. Sign EIP-3009 <code>transferWithAuthorization</code> with your wallet<br/>
+                3. Resubmit with <code>X-PAYMENT</code> header → service executes
+              </StatusNotice>
             )}
-          </div>
 
-          <div style={{ ...S.card, fontSize:12, color:'var(--text-dim)' }}>
-            <strong style={{ color:'var(--text)', display:'block', marginBottom:8 }}>How it works</strong>
-            1. POST to endpoint → expect HTTP 402 with payment terms<br/>
-            2. Sign EIP-3009 <code style={{ color: 'var(--accent-ink)' }}>transferWithAuthorization</code> with your wallet<br/>
-            3. Resubmit with <code style={{ color: 'var(--accent-ink)' }}>X-PAYMENT</code> header → service executes
-          </div>
-        </div>
-      )}
-
-      {/* LIVE TEST */}
-      {tab === 'test' && (
-        <div>
-          <div style={S.card}>
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>Live Providers (Goldsky)</div>
-            {providers.length === 0
-              ? <div style={{ color:'var(--text-dim)', textAlign:'center', padding:16 }}>{loading ? 'Loading…' : 'No providers indexed yet.'}</div>
-              : providers.map(p => (
-                <div key={String(p.id)} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
-                  <span>Provider #{String(p.id)}</span>
-                  <span style={{ color:'var(--text-dim)' }}>{String(p.completedCalls)} calls · {String(p.slashedCalls)} slashes</span>
-                </div>
-              ))
-            }
-          </div>
-
-          <div style={S.card}>
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>Test: get_attestation (Provider #1)</div>
-            <button
-              className="btn btn-primary"
-              style={{ marginBottom:12, opacity: testing ? 0.6 : 1 }}
-              onClick={runMcpTest}
-              disabled={testing}
-            >
-              {testing ? '⏳ Running…' : '▶ Run Test'}
-            </button>
-            {testResult && (
-              <pre style={{ ...S.code, color: testResult.startsWith('Error') ? 'var(--danger)' : 'var(--accent)', whiteSpace:'pre-wrap' }}>
-                {testResult}
-              </pre>
+            {tab === 'test' && (
+              <StatusNotice tone="info" title="Live read">
+                Providers come from the Goldsky subgraph. The test calls the public attestation endpoint.
+              </StatusNotice>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* CONFIG */}
-      {tab === 'config' && (
-        <div style={S.card}>
-          <div style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>MCP Server Setup</div>
-
-          <div style={S.label}>Install</div>
-          <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>npm install @callguard/mcp-server</pre>
-            <button onClick={() => copyText('npm install @callguard/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
-          </div>
-
-          <div style={S.label}>Claude Desktop Config</div>
-          <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color:'var(--text)' }}>{`{
-  "mcpServers": {
-    "callguard": {
-      "command": "npx",
-      "args": ["@callguard/mcp-server"],
-      "env": {
-        "CALLGUARD_URL": "https://arcsla.vercel.app",
-        "CHAIN_ID": "5042002"
-      }
-    }
-  }
-}`}</pre>
-            <button onClick={() => copyText(`{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`)} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
-          </div>
-
-          <div style={S.label}>REST Base URL</div>
-          <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>https://arcsla.vercel.app/api</pre>
-            <button onClick={() => copyText('https://arcsla.vercel.app/api')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
-          </div>
-
-          <div style={S.label}>Remote SSE Endpoint</div>
-          <div style={{ position:'relative' }}>
-            <pre style={{ ...S.code, color: 'var(--accent-ink)' }}>https://arcsla.vercel.app/api/mcp-server</pre>
-            <button onClick={() => copyText('https://arcsla.vercel.app/api/mcp-server')} style={{ position:'absolute', top:8, right:8, fontSize:10, background:'var(--bg-3)', border:'1px solid var(--border)', borderRadius:999, color:'var(--text-dim)', cursor:'pointer', padding:'2px 6px' }}>copy</button>
-          </div>
-
-          <div style={{ background:'rgba(25,209,134,0.05)', border:'1px solid rgba(25,209,134,0.2)', borderRadius:14, padding:12, fontSize:13, color:'var(--text-dim)', marginTop:8 }}>
-            Compatible with Claude Desktop, Cursor, Cline, Continue.dev, and any MCP v1.0+ client.
-          </div>
-        </div>
-      )}
-    </div>
+            {tab === 'config' && (
+              <StatusNotice tone="info" title="Copy only">
+                These code surfaces copy configuration strings. They do not run a command or send a request.
+              </StatusNotice>
+            )}
+          </>
+        )}
+      />
+    </PanelShell>
   )
 }

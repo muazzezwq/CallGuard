@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { Badge, Button, Copy, Input, PageHeader, Stat } from "../../ui";
+import {
+  Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
 const REGISTRY_ADMIN_ABI = [
   { name: "owner",        type: "function", stateMutability: "view",        inputs: [],                              outputs: [{type:"address"}] },
@@ -12,41 +16,59 @@ const REGISTRY_ADMIN_ABI = [
 type TxStatus = "idle" | "pending" | "mining" | "success" | "error";
 
 function StatusBadge({ status, error }: { status: TxStatus; error?: string }) {
-  if (status === "idle")    return null;
-  if (status === "pending") return <span className="admin-badge pending">Waiting...</span>;
-  if (status === "mining")  return <span className="admin-badge mining">Writing to chain...</span>;
-  if (status === "success") return <span className="admin-badge success">Success!</span>;
-  return <span className="admin-badge error">{error ?? "Error"}</span>;
+  if (status === "idle") return null;
+  if (status === "error") {
+    return (
+      <span className="pg-testline is-err" role="alert">
+        {error ?? "Error"}
+      </span>
+    );
+  }
+
+  const tone = status === "pending" ? "pending" : status === "mining" ? "info" : "guard";
+  const text = status === "pending"
+    ? "Waiting..."
+    : status === "mining"
+      ? "Writing to chain..."
+      : "Success!";
+
+  return (
+    <span role="status" aria-live="polite">
+      <Badge tone={tone}>{text}</Badge>
+    </span>
+  );
 }
 
-function AdminRow({
-  label, description, buttonLabel, buttonColor = "blue",
+function AdminAction({
+  label, description, buttonLabel, buttonVariant = "primary",
   onAction, status, error, children,
 }: {
   label: string;
   description: string;
   buttonLabel: string;
-  buttonColor?: "blue" | "orange" | "red" | "green";
+  buttonVariant?: "primary" | "secondary" | "outline";
   onAction: () => void;
   status: TxStatus;
   error?: string;
   children?: React.ReactNode;
 }) {
+  const busy = status === "pending" || status === "mining";
   return (
-    <div className="admin-row">
-      <div className="admin-row-info">
-        <span className="admin-row-label">{label}</span>
-        <span className="admin-row-desc">{description}</span>
+    <div className={`pg-action${children ? "" : " pg-action--tight"}`}>
+      <div className="pg-action__info">
+        <code className="pg-endpoint">{label}</code>
+        <span className="pg-action__desc">{description}</span>
       </div>
-      {children && <div className="admin-row-input">{children}</div>}
-      <div className="admin-row-actions">
-        <button
-          className={`admin-btn admin-btn-${buttonColor}`}
+      {children && <div className="pg-action__field">{children}</div>}
+      <div className="pg-action__actions">
+        <Button
+          variant={buttonVariant}
           onClick={onAction}
-          disabled={status === "pending" || status === "mining"}
+          disabled={busy}
+          loading={busy}
         >
           {buttonLabel}
-        </button>
+        </Button>
         <StatusBadge status={status} error={error} />
       </div>
     </div>
@@ -179,143 +201,172 @@ export default function AdminPanel() {
     ? new Date(changeAtNum * 1000).toLocaleString()
     : "—";
 
+  const currentCorrect = currentPPC !== undefined &&
+    (currentPPC as string).toLowerCase() === CONFIG.payPerCall.toLowerCase();
+  const sourceState = registryOwner === undefined ? "idle" : isOwner ? "live" : "unavailable";
+
   if (!isConnected) {
     return (
-      <div className="admin-panel">
-        <div className="admin-empty">Please connect your wallet.</div>
-      </div>
+      <PanelShell>
+        <PageHeader title="Admin Panel" subtitle="ServiceRegistry v7 admin operations" />
+        <StatusNotice tone="info" title="Please connect your wallet." />
+      </PanelShell>
     );
   }
 
+  const addresses: [string, string][] = [
+    ["ServiceRegistry v7", CONFIG.registry],
+    ["PayPerCall v7.1",    CONFIG.payPerCall],
+    ["DisputeQuality v2 (retired)", CONFIG.disputeQuality],
+    ["SLAFutures v3",      CONFIG.slaFutures],
+    ["ReputationLoan v3",  CONFIG.reputationLoan],
+    ["CrossChainReceiver v2", CONFIG.crossChainReceiver],
+  ];
+
   return (
-    <div className="admin-panel">
-      <div className="admin-header">
-        <h2 className="admin-title">Admin Panel</h2>
-        <span className="admin-subtitle">ServiceRegistry v4 admin operations</span>
-      </div>
+    <PanelShell>
+      <PageHeader title="Admin Panel" subtitle="ServiceRegistry v7 admin operations" />
+      <PanelSource
+        label="ServiceRegistry v7"
+        value={CONFIG.registry.slice(0,10) + "…"}
+        hint={registryOwner === undefined ? "reading owner" : isOwner ? "owner connected" : "read-only"}
+        state={sourceState}
+      />
 
       {/* Status cards */}
-      <div className="admin-status-grid">
-        <div className="admin-status-card">
-          <span className="admin-status-label">Registry</span>
-          <span className="admin-status-value mono">{CONFIG.registry.slice(0,10)}…</span>
-        </div>
-        <div className="admin-status-card">
-          <span className="admin-status-label">Current PayPerCall</span>
-          <span className={`admin-status-value mono ${currentPPC === CONFIG.payPerCall ? "text-green-400" : "text-yellow-400"}`}>
-            {currentPPC ? (currentPPC as string).slice(0,10) + "…" : "—"}
-          </span>
-          {currentPPC === CONFIG.payPerCall
-            ? <span className="admin-ok">Correct address</span>
-            : <span className="admin-warn">v4 address not set</span>}
-        </div>
-        <div className="admin-status-card">
-          <span className="admin-status-label">Owner</span>
-          <span className={`admin-status-value mono ${isOwner ? "text-green-400" : "text-red-400"}`}>
-            {registryOwner ? (registryOwner as string).slice(0,10) + "…" : "—"}
-          </span>
-          {isOwner ? <span className="admin-ok">Connected wallet is owner</span>
-                   : <span className="admin-warn">Not owner</span>}
-        </div>
-      </div>
+      <SignalRow label="ServiceRegistry state">
+        <Stat
+          label="Registry"
+          value={<span className="pg-address">{CONFIG.registry.slice(0,10)}…</span>}
+          hint="ServiceRegistry v7"
+        />
+        <Stat
+          label="Current PayPerCall"
+          value={(
+            <span className="pg-address">
+              {currentPPC ? (currentPPC as string).slice(0,10) + "…" : "—"}
+            </span>
+          )}
+          hint={currentPPC === undefined ? "Reading…" : currentCorrect ? "Correct address" : "v7 address not set"}
+          tone={currentPPC === undefined ? undefined : currentCorrect ? "guard" : "slash"}
+        />
+        <Stat
+          label="Owner"
+          value={(
+            <span className="pg-address">
+              {registryOwner ? (registryOwner as string).slice(0,10) + "…" : "—"}
+            </span>
+          )}
+          hint={registryOwner === undefined ? "Reading…" : isOwner ? "Connected wallet is owner" : "Not owner"}
+          tone={registryOwner === undefined ? undefined : isOwner ? "guard" : "slash"}
+        />
+      </SignalRow>
 
-      {!isOwner && (
-        <div className="admin-alert">
-          Connect with the ServiceRegistry owner wallet to perform these operations.
-          Owner: <span className="mono">{registryOwner as string}</span>
-        </div>
+      {registryOwner !== undefined && !isOwner && (
+        <StatusNotice tone="warn" title="Connect with the ServiceRegistry owner wallet to perform these operations.">
+          Owner: <span className="pg-mono">{registryOwner as string}</span>
+        </StatusNotice>
       )}
 
-      <div className="admin-section">
-        <h3 className="admin-section-title">Initial Setup — setPayPerCall</h3>
-        <p className="admin-section-desc">
-          Wires the PayPerCall v4 address into the newly deployed ServiceRegistry v4, one time only.
-          Use this path if it has never been called before.
-        </p>
-        <AdminRow
-          label="setPayPerCall"
-          description="Only works when payPerCall = address(0)."
-          buttonLabel="Call"
-          buttonColor="green"
-          onAction={doSetPayPerCall}
-          status={setPPCStatus}
-          error={setPPCError}
-        >
-          <input
-            className="admin-input"
-            value={setPPCInput}
-            onChange={e => setSetPPCInput(e.target.value)}
-            placeholder="0x..."
-            spellCheck={false}
-          />
-        </AdminRow>
-      </div>
+      <PanelSplit
+        main={(
+          <>
+            <section className="ui-section">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">Initial Setup — setPayPerCall</h2>
+              </div>
+              <div className="ui-section__body">
+                <p className="pg-copy pg-copy--tight">
+                  Wires the PayPerCall v7.1 address into the newly deployed ServiceRegistry v7, one time only.
+                  Use this path if it has never been called before.
+                </p>
+                <AdminAction
+                  label="setPayPerCall"
+                  description="Only works when payPerCall = address(0)."
+                  buttonLabel="Call"
+                  onAction={doSetPayPerCall}
+                  status={setPPCStatus}
+                  error={setPPCError}
+                >
+                  <Input
+                    value={setPPCInput}
+                    onChange={e => setSetPPCInput(e.target.value)}
+                    placeholder="0x..."
+                    spellCheck={false}
+                    aria-label="PayPerCall address for setPayPerCall"
+                  />
+                </AdminAction>
+              </div>
+            </section>
 
-      <div className="admin-section">
-        <h3 className="admin-section-title">Update via Timelock (2 days)</h3>
-        <p className="admin-section-desc">
-          To change the PayPerCall address, propose first, then execute after 2 days.
-        </p>
-        <AdminRow
-          label="proposePayPerCall"
-          description="Propose the new address — starts the 2-day timelock."
-          buttonLabel="Propose"
-          buttonColor="orange"
-          onAction={doPropose}
-          status={proposeStatus}
-          error={proposeError}
-        >
-          <input
-            className="admin-input"
-            value={proposeInput}
-            onChange={e => setProposeInput(e.target.value)}
-            placeholder="0x..."
-            spellCheck={false}
-          />
-        </AdminRow>
+            <section className="ui-section pg-section--spaced">
+              <div className="ui-section__head">
+                <h2 className="ui-section__title">Update via Timelock (2 days)</h2>
+              </div>
+              <div className="ui-section__body">
+                <p className="pg-copy pg-copy--tight">
+                  To change the PayPerCall address, propose first, then execute after 2 days.
+                </p>
+                <AdminAction
+                  label="proposePayPerCall"
+                  description="Propose the new address — starts the 2-day timelock."
+                  buttonLabel="Propose"
+                  buttonVariant="secondary"
+                  onAction={doPropose}
+                  status={proposeStatus}
+                  error={proposeError}
+                >
+                  <Input
+                    value={proposeInput}
+                    onChange={e => setProposeInput(e.target.value)}
+                    placeholder="0x..."
+                    spellCheck={false}
+                    aria-label="PayPerCall address for proposePayPerCall"
+                  />
+                </AdminAction>
 
-        <div className="admin-timelock-info">
-          <span>Pending address: <span className="mono">{pendingPPC ? (pendingPPC as string) : "—"}</span></span>
-          <span>Executable at: <span className="mono">{timelockStr}</span></span>
-          {timelockReady && <span className="admin-ok">Timelock elapsed — execute can be called.</span>}
-        </div>
+                <dl className="pg-meta">
+                  <div>
+                    <dt>Pending address</dt>
+                    <dd className="pg-address">{pendingPPC ? (pendingPPC as string) : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Executable at</dt>
+                    <dd className="pg-mono">{timelockStr}</dd>
+                  </div>
+                </dl>
 
-        <AdminRow
-          label="executePayPerCall"
-          description="Apply the change after the timelock period expires."
-          buttonLabel="Apply"
-          buttonColor="blue"
-          onAction={doExecute}
-          status={execStatus}
-          error={execError}
-        >
-          <></>
-        </AdminRow>
-      </div>
+                {timelockReady && (
+                  <StatusNotice tone="success" title="Timelock elapsed — execute can be called." />
+                )}
 
-      <div className="admin-section">
-        <h3 className="admin-section-title">Correct Addresses</h3>
-        <div className="admin-addr-list">
-          {[
-            ["ServiceRegistry v7", CONFIG.registry],
-            ["PayPerCall v7.1",    CONFIG.payPerCall],
-            ["DisputeQuality v2 (retired)", CONFIG.disputeQuality],
-            ["SLAFutures v3",      CONFIG.slaFutures],
-            ["ReputationLoan v3",  CONFIG.reputationLoan],
-            ["CrossChainReceiver v2", CONFIG.crossChainReceiver],
-          ].map(([name, addr]) => (
-            <div key={addr} className="admin-addr-row">
-              <span className="admin-addr-name">{name}</span>
-              <span className="admin-addr-val mono">{addr}</span>
-              <button
-                className="admin-copy-btn"
-                onClick={() => navigator.clipboard.writeText(addr)}
-                 title="Copy"
-              >⎘</button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+                <AdminAction
+                  label="executePayPerCall"
+                  description="Apply the change after the timelock period expires."
+                  buttonLabel="Apply"
+                  buttonVariant="outline"
+                  onAction={doExecute}
+                  status={execStatus}
+                  error={execError}
+                />
+              </div>
+            </section>
+          </>
+        )}
+        rail={(
+          <Ledger label="Correct Addresses">
+            {addresses.map(([name, addr]) => (
+              <LedgerRow
+                key={addr}
+                tone={name.includes("retired") ? "muted" : "neutral"}
+                lead={name}
+                meta={<span className="pg-address">{addr}</span>}
+                trailing={<Copy value={addr} label={`Copy ${name} address`} />}
+              />
+            ))}
+          </Ledger>
+        )}
+      />
+    </PanelShell>
   );
 }

@@ -19,18 +19,18 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 12 | `agent` redesigned; storage keys and writes preserved | `src/components/panels/Agent.tsx`, `src/components/panel/panel.css` | browser + source diff | Setup/Auto-Route/Settings render; invalid-address and valid-reconnect statuses; five-stat signal strip; owner, daily limit, and max-per-call reads; `cg_agent_wallet`, approve→deposit, `agentCall`, pause, limits, whitelist handlers, and auto-route scoring retained; 1280/411 dark and light clean | PASS | signed writes not executed; mock wallet cannot sign |
 | 13 | `balance` redesigned; four branches preserved | `src/components/UnifiedBalance.tsx` | browser + DOM diff | loading, error, empty, and success executed; success mock showed `123.46 USDC`, `100.500000` and `22.956789` chain precision; disconnected branch source-verified only | PARTIAL | mock wallet cannot disconnect without leaving the app; success response mocked because Vite serves `/api/unified-balance` as HTML |
 | 14 | `passkey` redesigned; state machine preserved | `src/components/PasskeyWallet.tsx`, `src/components/panel/panel.css` | browser + DOM/source diff | idle and missing-key branches render; Register stays disabled without a key; status badge, `register`/`login`/`sendGaslessCall`/`reset`, smart-account address, and UserOp surfaces retained; 1280/411 dark and light clean | PASS | no passkey credential harness; ready/error/loading and gasless paths source-diffed only |
-| 15 | `mcp` redesigned; tools/tests/config preserved | — | browser + DOM diff | not started | UNVERIFIED | EIP-3009 signing cannot be executed |
-| 16 | `apidocs` redesigned; endpoint reference preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
+| 15 | `mcp` redesigned; tools/tests/config preserved | `src/components/panels/Mcp.tsx`, `src/components/panel/panel.css` | browser + DOM diff + clipboard probe | Tools/x402/Live Test/Config render; 6 tools with exact names/params; install, Claude config, REST base, and SSE copied exactly (compact Claude JSON kept); x402 defaults and `How it works` visible; Live Providers + Test render; 1280/411 dark and light clean | PASS | EIP-3009 signing not executed (mock wallet cannot sign; x402 guard returned `Connect wallet first` because `walletClient` was unavailable); live API test not run |
+| 16 | `apidocs` redesigned; endpoint reference preserved | `src/components/panels/ApiDocs.tsx`, `src/components/panel/panel.css` | browser + DOM diff + clipboard probe | 9 endpoints with exact methods/paths/descriptions; GET/POST/Auth/x402 badges are text-visible; left contents rail anchors to `#api-mcp`; Quick Integration, Embed Widget, and MCP JSON copied exactly; no new route | PASS | Live endpoint calls not made; copy actions verified through a clipboard probe |
 | 17 | `webhooks` redesigned; local-only truth preserved | `src/components/panels/Webhooks.tsx`, `src/components/panel/panel.css` | browser + source diff | invalid URL, add, event toggle, test failure, same-origin 200 success, `lastTest`, remove, empty state, and `cg_webhooks_v2` persistence exercised; sample payload and no-server-relay notice visible; 1280/411 dark and light clean | PASS | external test POST hit CORS; success path used a same-origin stubbed 200 |
 | 18 | `pipelinehook` redesigned; tx states preserved | `src/components/panels/PipelineHook.tsx`, `src/components/panel/panel.css` | browser + source diff | reading/disabled states, invalid-address toast `Enter a valid address`, current hook, set/disable forms, pending/mining/success/error branches, regex, zero-address disable, `setPipelineHook`, refetch, interface code, and best-effort notice retained; 1280/411 dark and light clean | PASS | signed writes not executed; mock wallet cannot sign |
 | 19 | `nano` redesigned; x402/multicall preserved | `src/components/panels/Nano.tsx` | browser + source diff | balance/call error states honest; 2 x402 endpoints; Multicall3 2→3→2 add/remove cap; snippet scrolls inside its surface; no fabricated success | PASS | signed calls cannot be executed; Vite serves `/api/*` as non-JSON so live success is unavailable |
 | 20 | `privacy` redesigned; storage keys preserved | `src/components/panels/Privacy.tsx` | browser + source diff | 13 storage keys and 3 session keys unchanged; toggle persisted `cg_privacy_prefs`; clear removed test keys and showed `Cleared!` | PASS | manual DOM/keyboard checks only; no screen reader |
-| 21 | `admin` redesigned; owner/timelock paths preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
+| 21 | `admin` redesigned; owner/timelock paths preserved | `src/components/panels/AdminPanel.tsx`, `src/components/panel/panel.css` | browser + DOM diff + source diff | Owner gate and `Please connect your wallet.` branch retained; `owner`, `payPerCall`, `pendingPayPerCall`, `payPerCallChangeAt` reads; Call/Propose/Apply and Waiting.../Writing to chain.../Success!/error labels; timelock notice; 6 address rows copied exactly; `bad` input showed `Invalid address`; current PPC uses a case-insensitive match and shows `Correct address`; 1280/411 dark and light clean | PASS | Signed writes not executed; mock RPC left owner undefined, so the owner-only alert was source-verified only |
 | 22 | `settings` redesigned; preferences preserved | `src/components/panels/SettingsPanel.tsx` | browser + DOM diff | Light/Dark applied; budget saved to `cg_budget` and cleared; contract address, disconnect, and SDK surface retained | PASS | manual DOM/keyboard checks only; no screen reader |
-| 23 | Admin v4 → v7 copy correction (approved) | — | source grep | not started | UNVERIFIED | held until Admin wave |
-| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 4 diff limited to `Agent.tsx`, `PasskeyWallet.tsx`, `Webhooks.tsx`, `PipelineHook.tsx`, `panel.css`, and this checklist | PASS | recheck after every later wave |
-| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 4 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
-| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave4/` | browser screenshots / DOM | 1280 and 411 dark for all 4; 1280 and 411 light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; passkey ready/gasless path unavailable without a credential |
+| 23 | Admin v4 → v7 copy correction (approved) | `src/components/panels/AdminPanel.tsx` | source grep | v4 strings absent; copy uses `ServiceRegistry v7 admin operations`, `v7 address not set`, and `PayPerCall v7.1 … ServiceRegistry v7` | PASS | — |
+| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 5 diff limited to `Mcp.tsx`, `ApiDocs.tsx`, `AdminPanel.tsx`, `PanelUi.tsx` (optional `copyValue`/`copyLabel`), `panel.css`, and this checklist; no landing, contract, or `api/` change | PASS | recheck after every later wave |
+| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 5 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
+| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave5/` | browser screenshots / DOM | 1280 and 411 dark and light for MCP, API Docs, and Admin; 411 document/main/panel scroll widths all 411; console errors none; TOC anchor, 13 copy actions, x402 guard, and Admin invalid-address branch exercised | PASS | no screen reader; mock wallet cannot sign; owner read unavailable in the mock |
 
 ## Wave 0 log
 
@@ -181,3 +181,46 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
   `bun run build` exit 0 (pre-existing chunk-size warning).
 - Still unverified: signed Agent/PipelineHook writes; Passkey ready/gasless execution; external
   webhook delivery; screen-reader announcements.
+
+## Wave 5 log
+
+- Redesigned `MCP`, `API Docs`, and `Admin` on the shared kit. The diff is limited to
+  `Mcp.tsx`, `ApiDocs.tsx`, `AdminPanel.tsx`, the optional `CodeSurface` copy props in
+  `PanelUi.tsx`, `panel.css`, and this checklist; no landing, contract, or `api/` change.
+- MCP: Tools, x402 Tester, Live Test, and Config render. All 6 tool names, descriptions, and
+  parameter strings are visible. Install, Claude Desktop config, REST base, and remote SSE
+  copy actions returned the exact strings; the Claude config copy keeps the compact JSON while
+  the surface shows the indented form. The x402 defaults and the three-step `How it works`
+  text remain. Live Providers and `Test: get_attestation (Provider #1)` render. The EIP-3009
+  signing path is unchanged in source; it was not executed because the mock cannot sign.
+- API Docs: 9 endpoints keep their exact methods, paths, and descriptions. GET/POST/Auth/x402
+  badges remain text-visible. The contents rail sits left on desktop and after the document at
+  411; the `MCP Server` link resolved to `#api-mcp`. Quick Integration, Embed Widget, and MCP
+  JSON copy actions returned the exact examples. No new route was added.
+- Admin: the owner gate and disconnected `Please connect your wallet.` branch remain. The page
+  keeps `owner`, `payPerCall`, `pendingPayPerCall`, and `payPerCallChangeAt` reads; the
+  `setPayPerCall`/Call, `proposePayPerCall`/Propose, and `executePayPerCall`/Apply paths;
+  `Waiting...`, `Writing to chain...`, `Success!`, and error text; and the timelock notice.
+  Six address rows copy exact addresses. A `bad` address produced `Invalid address`. The
+  current PPC comparison is now case-insensitive, so the mock's checksummed address reports
+  `Correct address` instead of a false `v7 address not set`.
+- Admin copy correction: `ServiceRegistry v7 admin operations`, `v7 address not set`, and
+  `PayPerCall v7.1 … ServiceRegistry v7`. No `v4` copy remains.
+- Shared kit: `CodeSurface` accepts optional `copyValue` and `copyLabel`; existing callers and
+  defaults are unchanged.
+- Responsive: 1280×720 and 411×915, dark and light, for all three panels. At 411 the document,
+  `.main-content`, and `.pg-root` scroll widths all equal 411. Console errors: none.
+- Interaction evidence: `/tmp/opencode/cg19-wave5/interactions.json` records 4 MCP copies,
+  3 API Docs copies, 6 Admin copies, the `#api-mcp` anchor, and the Admin validation error.
+- Evidence: `/tmp/opencode/cg19-wave5/mcp-dark-1280.png`, `mcp-light-1280.png`,
+  `mcp-dark-411.png`, `mcp-light-411.png`, `mcp-x402-dark-1280.png`,
+  `mcp-test-dark-1280.png`, `mcp-config-dark-1280.png`, `apidocs-dark-1280.png`,
+  `apidocs-light-1280.png`, `apidocs-dark-411.png`, `apidocs-light-411.png`,
+  `admin-dark-1280.png`, `admin-light-1280.png`, `admin-dark-411.png`,
+  `admin-light-411.png`, `admin-invalid-dark-1280.png`.
+- Gates after Wave 5: `bun run check` exit 0; `bun run test` 392 pass / 4 skip / 0 fail;
+  `bun run build` exit 0 (pre-existing chunk-size warning).
+- Still unverified: signed Admin writes; MCP EIP-3009 signing and live API test; owner-only
+  alert with a returned owner; screen-reader announcements.
+- Phase status: Wave 5 is complete. Phase 9 remains `NOT COMPLETE` because row 13 (`balance`)
+  is still `PARTIAL`; all Wave 5 rows are `PASS`.

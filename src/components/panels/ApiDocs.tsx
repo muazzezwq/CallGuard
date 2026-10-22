@@ -1,3 +1,8 @@
+import { Badge, PageHeader } from "../../ui";
+import {
+  CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, StatusNotice,
+} from "../panel/PanelUi";
+
 const ENDPOINTS = [
   { method: "GET", path: "/api/health", auth: false, desc: "Health check — RPC, signer, contract connectivity" },
   { method: "GET", path: "/api/attestation?providerId=1&type=score", auth: false, desc: "Provider reputation score + proof" },
@@ -18,53 +23,122 @@ const PPC = new ethers.Contract(PPC_ADDRESS, PPC_ABI, signer);
 const tx = await PPC.callService(providerId, payloadHash);
 await tx.wait();`;
 
-export default function ApiDocs() {
-  return (
-    <div className="panel-body">
-      <div className="panel-head"><h2>API & Integration Docs</h2><p className="panel-sub">REST endpoints, MCP server, ERC-8004 agent identity, and SDK examples.</p></div>
-      <div style={{marginBottom:24}}>
-        <div style={{fontWeight:600,marginBottom:12}}>REST Endpoints</div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {ENDPOINTS.map(e=>(
-            <div key={e.path} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"var(--bg-2)",borderRadius:14}}>
-              <span style={{
-                padding:"2px 8px",borderRadius:999,fontSize:11,fontWeight:600,flexShrink:0,
-                background:e.method==="GET"?"rgba(25,209,134,0.15)":"rgba(31,119,239,0.15)",
-                color:e.method==="GET"? "var(--accent-ink)":"var(--info)"
-              }}>{e.method}</span>
-              <div style={{flex:1}}>
-                <code style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{e.path}</code>
-                <div style={{fontSize:12,color:"var(--text-dim)",marginTop:2}}>{e.desc}</div>
-              </div>
-              {e.auth === "x402" && <span style={{padding:"2px 8px",borderRadius:999,fontSize:10,background:"rgba(245,158,11,0.15)",color:"var(--warn)",flexShrink:0}}>x402</span>}
-              {e.auth === true && <span style={{padding:"2px 8px",borderRadius:999,fontSize:10,background:"rgba(238,69,57,0.15)",color:"var(--danger)",flexShrink:0}}>Auth</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{marginBottom:24}}>
-        <div style={{fontWeight:600,marginBottom:12}}>Quick Integration</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)",lineHeight:1.6}}>{CODE}</pre>
-      </div>
-      <div style={{marginBottom:24}}>
-        <div style={{fontWeight:600,marginBottom:12}}>Embed Widget</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)"}}>{`<script src="https://arcsla.vercel.app/api/widget.js"></script>
+const EMBED = `<script src="https://arcsla.vercel.app/api/widget.js"></script>
 <button data-callguard-provider="1" data-callguard-payload="ping">
   Pay with CallGuard
-</button>`}</pre>
-      </div>
-      <div>
-        <div style={{fontWeight:600,marginBottom:12}}>MCP Server</div>
-        <div className="info-box">Add to your AI agent config to enable autonomous USDC payments.</div>
-        <pre style={{background:"var(--bg-0)",padding:16,borderRadius:10,fontSize:11,overflow:"auto",color:"var(--text)",marginTop:8}}>{`{
+</button>`;
+
+const MCP_CONFIG = `{
   "mcpServers": {
     "callguard": {
       "url": "https://arcsla.vercel.app/api/mcp-server",
       "agentWallet": "YOUR_AGENT_WALLET_ADDRESS"
     }
   }
-}`}</pre>
-      </div>
-    </div>
+}`;
+
+const CONTENTS = [
+  { id: "api-rest", label: "REST Endpoints" },
+  { id: "api-quick", label: "Quick Integration" },
+  { id: "api-widget", label: "Embed Widget" },
+  { id: "api-mcp", label: "MCP Server" },
+];
+
+export default function ApiDocs() {
+  return (
+    <PanelShell>
+      <PageHeader
+        title="API & Integration Docs"
+        subtitle="REST endpoints, MCP server, ERC-8004 agent identity, and SDK examples."
+      />
+      <PanelSource
+        label="API base"
+        value="https://arcsla.vercel.app/api"
+        hint={`${ENDPOINTS.length} REST endpoints · MCP manifest`}
+        state="idle"
+      />
+
+      <PanelSplit
+        className="pg-docs-split"
+        main={(
+          <>
+            <section id="api-rest" className="pg-docs-section">
+              <Ledger
+                label="REST Endpoints"
+                action={<span className="pg-mono">{ENDPOINTS.length} endpoints</span>}
+              >
+                {ENDPOINTS.map(e=>(
+                  <LedgerRow
+                    key={e.path}
+                    lead={<code className="pg-endpoint">{e.path}</code>}
+                    meta={e.desc}
+                    trailing={(
+                      <span className="pg-row-actions">
+                        <Badge tone={e.method === "GET" ? "guard" : "info"}>{e.method}</Badge>
+                        {e.auth === "x402" && <Badge tone="pending">x402</Badge>}
+                        {e.auth === true && <Badge tone="slash">Auth</Badge>}
+                      </span>
+                    )}
+                  />
+                ))}
+              </Ledger>
+            </section>
+
+            <section id="api-quick" className="pg-docs-section">
+              <h2 className="pg-docs-title">Quick Integration</h2>
+              <CodeSurface label="JavaScript" code={CODE} />
+            </section>
+
+            <section id="api-widget" className="pg-docs-section">
+              <h2 className="pg-docs-title">Embed Widget</h2>
+              <CodeSurface label="HTML" code={EMBED} />
+            </section>
+
+            <section id="api-mcp" className="pg-docs-section">
+              <h2 className="pg-docs-title">MCP Server</h2>
+              <StatusNotice
+                tone="info"
+                title="Add to your AI agent config to enable autonomous USDC payments."
+              />
+              <CodeSurface label="JSON" code={MCP_CONFIG} className="pg-section--spaced" />
+            </section>
+          </>
+        )}
+        rail={(
+          <>
+            <nav className="pg-toc" aria-label="On this page">
+              <div className="pg-toc__title">Contents</div>
+              <ul className="pg-toc__list">
+                {CONTENTS.map(item => (
+                  <li key={item.id}>
+                    <a className="pg-toc__link" href={`#${item.id}`}>{item.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <KeyValue
+              label="Reference"
+              rows={[
+                { label: "REST endpoints", value: String(ENDPOINTS.length) },
+                { label: "MCP manifest", value: "/api/mcp-server", mono: true },
+                { label: "Network", value: "Arc Testnet" },
+                { label: "ERC-8004", value: "Agent identity" },
+              ]}
+            />
+
+            <KeyValue
+              label="Legend"
+              rows={[
+                { label: <Badge tone="guard">GET</Badge>, value: "Read" },
+                { label: <Badge tone="info">POST</Badge>, value: "Write" },
+                { label: <Badge tone="slash">Auth</Badge>, value: "Facilitator" },
+                { label: <Badge tone="pending">x402</Badge>, value: "Paid" },
+              ]}
+            />
+          </>
+        )}
+      />
+    </PanelShell>
   );
 }

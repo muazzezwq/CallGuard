@@ -163,13 +163,15 @@ export function KeyValue({
 }
 
 export function CodeSurface({
-  code, label, language, wrap = false, className,
+  code, label, language, wrap = false, className, copyValue, copyLabel,
 }: {
   code: string;
   label?: ReactNode;
   language?: ReactNode;
   wrap?: boolean;
   className?: string;
+  copyValue?: string;
+  copyLabel?: string;
 }) {
   return (
     <section className={clsx("pg-code", className)}>
@@ -177,7 +179,7 @@ export function CodeSurface({
         <span className="pg-code__label">{label ?? language ?? "Code"}</span>
         <div className="pg-code__actions">
           {language != null && label != null && <span className="pg-code__lang">{language}</span>}
-          <Copy value={code} label="Copy code" />
+          <Copy value={copyValue ?? code} label={copyLabel ?? "Copy code"} />
         </div>
       </div>
       <pre className={clsx("pg-code__pre", wrap && "is-wrap")}>{code}</pre>
