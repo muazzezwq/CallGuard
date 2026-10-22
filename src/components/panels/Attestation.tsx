@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient } from 'wagmi'
 import { toast } from 'sonner'
 import { CONFIG } from '../../lib/config'
+import { Button, Field, Input, PageHeader, Stat, Tabs } from '../../ui'
+import {
+  CodeSurface, KeyValue, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
+} from '../panel/PanelUi'
 
 const BRIDGE_ADDR = CONFIG.slaAttestationBridge as `0x${string}`
 
@@ -11,17 +15,12 @@ const ATTESTATION_ABI = [
   { name: 'getAttestation', type: 'function', stateMutability: 'view', inputs: [{ name: 'id', type: 'bytes32' }], outputs: [{ name: '', type: 'tuple', components: [{ name: 'attType', type: 'uint8' }, { name: 'subject', type: 'bytes32' }, { name: 'value', type: 'uint256' }, { name: 'timestamp', type: 'uint256' }, { name: 'attester', type: 'address' }] }] },
 ] as const
 
-const S = {
-  wrap: { padding: '24px', maxWidth: '720px', margin: '0 auto' },
-  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
-  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' },
-  label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
-  input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
-  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  row: { display: 'flex', gap: '12px', marginBottom: '16px' },
-  col: { flex: 1 },
-}
+const INTEGRATION_EXAMPLE = `// Any protocol can query CallGuard attestations:
+GET /api/attestation?providerId=1&type=score
+→ { ok: true, score: 92, completedCalls: 150, ... }
+
+// Or read on-chain:
+SLAAttestationBridge.getAttestation(id)`
 
 export default function Attestation() {
   const { address } = useAccount()
@@ -94,94 +93,191 @@ export default function Attestation() {
   const tabs: { id: 'peek' | 'issue' | 'lookup'; label: string }[] = [{ id: 'peek', label: 'Peek (Free)' }, { id: 'issue', label: 'Issue On-chain' }, { id: 'lookup', label: 'Lookup' }]
 
   return (
-    <div style={S.wrap}>
-      <div style={S.h1}>SLA Attestation Bridge</div>
-      <div style={S.sub}>Cross-protocol SLA oracle. Any protocol can query CallGuard for provider attestations.</div>
+    <PanelShell>
+      <PageHeader
+        title="SLA Attestation Bridge"
+        subtitle="Cross-protocol SLA oracle. Any protocol can query CallGuard for provider attestations."
+      />
+      <PanelSource
+        label="SLA Attestation Bridge"
+        value="REST + on-chain"
+        hint="reads on demand"
+        state="idle"
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        {[
-          { label: 'Type', value: 'On-chain', sub: 'Immutable records' },
-          { label: 'Cross-chain', value: 'CCIP-ready', sub: 'Chainlink broadcast' },
-          { label: 'Access', value: 'Permissionless', sub: 'No auth required' },
-        ].map(item => (
-          <div key={item.label} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-ink)', margin: '4px 0' }}>{item.value}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{item.sub}</div>
-          </div>
-        ))}
+      <SignalRow label="Attestation properties">
+        <Stat label="Type" value="On-chain" hint="Immutable records" />
+        <Stat label="Cross-chain" value="CCIP-ready" hint="Chainlink broadcast" />
+        <Stat label="Access" value="Permissionless" hint="No auth required" />
+      </SignalRow>
+
+      <div className="pg-tabbar">
+        <Tabs tabs={tabs} value={tab} onChange={setTab} />
       </div>
 
-      <div className="cg-tabs">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
-        ))}
-      </div>
+      <PanelSplit
+        main={(
+          <>
+            {tab === 'peek' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Free Query — No Wallet Needed</h2>
+                </div>
+                <div className="ui-section__body">
+                  <p className="pg-copy">Read SLA attestation data directly from the REST API.</p>
+                  <div className="pg-form__actions">
+                    <Button
+                      variant={peekType === 'score' ? 'primary' : 'secondary'}
+                      onClick={() => setPeekType('score')}
+                    >
+                      Provider Score
+                    </Button>
+                    <Button
+                      variant={peekType === 'call' ? 'primary' : 'secondary'}
+                      onClick={() => setPeekType('call')}
+                    >
+                      Call Verdict
+                    </Button>
+                  </div>
+                  <div className="pg-form pg-section--spaced">
+                    {peekType === 'score' ? (
+                      <Field label="Provider ID" htmlFor="att-provider-peek">
+                        <Input
+                          id="att-provider-peek"
+                          value={providerId}
+                          onChange={e => setProviderId(e.target.value)}
+                          placeholder="1"
+                        />
+                      </Field>
+                    ) : (
+                      <Field label="Call ID (bytes32)" htmlFor="att-call">
+                        <Input
+                          id="att-call"
+                          mono
+                          value={callId}
+                          onChange={e => setCallId(e.target.value)}
+                          placeholder="0x..."
+                        />
+                      </Field>
+                    )}
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button variant="primary" onClick={peek} disabled={peekLoading}>
+                      {peekLoading ? 'Querying...' : 'Query →'}
+                    </Button>
+                  </div>
+                  {peekResult != null && (
+                    <pre className="pg-output pg-output--pre" aria-live="polite">
+                      {JSON.stringify(peekResult, null, 2)}
+                    </pre>
+                  )}
+                  <p className="pg-note">
+                    API endpoint: <code className="pg-endpoint">GET /api/attestation?providerId=1&type=score</code>
+                  </p>
+                </div>
+              </section>
+            )}
 
-      {tab === 'peek' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Free Query — No Wallet Needed</div>
-          <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '16px' }}>Read SLA attestation data directly from the REST API.</div>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <button onClick={() => setPeekType('score')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', background: peekType === 'score' ? 'var(--accent)' : 'var(--bg-3)', color: peekType === 'score' ? '#000' : 'var(--text)', fontWeight: 600, fontSize: '13px' }}>Provider Score</button>
-            <button onClick={() => setPeekType('call')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', background: peekType === 'call' ? 'var(--accent)' : 'var(--bg-3)', color: peekType === 'call' ? '#000' : 'var(--text)', fontWeight: 600, fontSize: '13px' }}>Call Verdict</button>
-          </div>
-          {peekType === 'score' ? (
-            <div style={{ marginBottom: '16px' }}><div style={S.label}>Provider ID</div><input style={S.input} value={providerId} onChange={e => setProviderId(e.target.value)} placeholder="1" /></div>
-          ) : (
-            <div style={{ marginBottom: '16px' }}><div style={S.label}>Call ID (bytes32)</div><input style={S.input} value={callId} onChange={e => setCallId(e.target.value)} placeholder="0x..." /></div>
-          )}
-          <button style={S.btn} onClick={peek} disabled={peekLoading}>
-            {peekLoading ? 'Querying...' : 'Query →'}
-          </button>
-          {peekResult != null && (
-            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-              {JSON.stringify(peekResult, null, 2)}
-            </div>
-          )}
-          <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-faint)' }}>
-            API endpoint: <code style={{ color: 'var(--accent-ink)' }}>GET /api/attestation?providerId=1&type=score</code>
-          </div>
-        </div>
-      )}
+            {tab === 'issue' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Issue On-chain Attestation</h2>
+                </div>
+                <div className="ui-section__body">
+                  <p className="pg-copy">Write a permanent attestation to the bridge contract. Other protocols can read it.</p>
+                  <div className="pg-form">
+                    <Field label="Provider ID" htmlFor="att-provider-issue">
+                      <Input
+                        id="att-provider-issue"
+                        value={providerId}
+                        onChange={e => setProviderId(e.target.value)}
+                        placeholder="1"
+                      />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={issueAttestation}
+                      disabled={isPending || isConfirming || !address}
+                    >
+                      {isPending ? 'Confirming...' : isConfirming ? 'Writing...' : 'Issue Attestation'}
+                    </Button>
+                  </div>
+                  {isSuccess && (
+                    <div className="pg-section--spaced">
+                      <StatusNotice tone="success" title="Attestation issued on-chain" />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
-      {tab === 'issue' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Issue On-chain Attestation</div>
-          <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '16px' }}>Write a permanent attestation to the bridge contract. Other protocols can read it.</div>
-          <div style={{ marginBottom: '16px' }}><div style={S.label}>Provider ID</div><input style={S.input} value={providerId} onChange={e => setProviderId(e.target.value)} placeholder="1" /></div>
-          <button style={S.btn} onClick={issueAttestation} disabled={isPending || isConfirming || !address}>
-            {isPending ? 'Confirming...' : isConfirming ? 'Writing...' : 'Issue Attestation'}
-          </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Attestation issued on-chain</div>}
-        </div>
-      )}
-
-      {tab === 'lookup' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Lookup Attestation by ID</div>
-          <div style={{ marginBottom: '16px' }}><div style={S.label}>Attestation ID (bytes32)</div><input style={S.input} value={lookupId} onChange={e => setLookupId(e.target.value)} placeholder="0x..." /></div>
-          <button style={S.btn} onClick={lookup} disabled={lookupLoading}>
-            {lookupLoading ? 'Looking up...' : 'Lookup →'}
-          </button>
-          {lookupResult != null && (
-            <div style={{ marginTop: '16px', background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-              {JSON.stringify(lookupResult, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2)}
-            </div>
-          )}
-          <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-dim)' }}>Use the attestation ID returned after issuing an on-chain attestation to retrieve its full record.</div>
-        </div>
-      )}
-
-      <div style={{ ...S.card, marginTop: '8px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>Integration Example</div>
-        <pre style={{ fontSize: '11px', color: 'var(--text-dim)', overflow: 'auto', margin: 0 }}>{`// Any protocol can query CallGuard attestations:
-GET /api/attestation?providerId=1&type=score
-→ { ok: true, score: 92, completedCalls: 150, ... }
-
-// Or read on-chain:
-SLAAttestationBridge.getAttestation(id)`}</pre>
-      </div>
-    </div>
+            {tab === 'lookup' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Lookup Attestation by ID</h2>
+                </div>
+                <div className="ui-section__body">
+                  <div className="pg-form">
+                    <Field label="Attestation ID (bytes32)" htmlFor="att-lookup">
+                      <Input
+                        id="att-lookup"
+                        mono
+                        value={lookupId}
+                        onChange={e => setLookupId(e.target.value)}
+                        placeholder="0x..."
+                      />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button variant="primary" onClick={lookup} disabled={lookupLoading}>
+                      {lookupLoading ? 'Looking up...' : 'Lookup →'}
+                    </Button>
+                  </div>
+                  {lookupResult != null && (
+                    <pre className="pg-output pg-output--pre" aria-live="polite">
+                      {JSON.stringify(lookupResult, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2)}
+                    </pre>
+                  )}
+                  <p className="pg-note">Use the attestation ID returned after issuing an on-chain attestation to retrieve its full record.</p>
+                </div>
+              </section>
+            )}
+          </>
+        )}
+        rail={(
+          <>
+            <KeyValue
+              label="Bridge"
+              rows={[
+                { label: 'Network', value: 'Arc Testnet' },
+                {
+                  label: 'Contract',
+                  value: (
+                    <a
+                      className="pg-rowlink pg-mono"
+                      href={`https://explorer.testnet.arc.io/address/${BRIDGE_ADDR}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {BRIDGE_ADDR.slice(0, 10)}…{BRIDGE_ADDR.slice(-6)}
+                    </a>
+                  ),
+                },
+                { label: 'Read', value: 'GET /api/attestation', mono: true },
+                { label: 'Write', value: 'attestProviderScore', mono: true },
+              ]}
+            />
+            <CodeSurface
+              label="Integration Example"
+              language="http"
+              code={INTEGRATION_EXAMPLE}
+              wrap
+            />
+          </>
+        )}
+      />
+    </PanelShell>
   )
 }

@@ -9,13 +9,13 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 2 | Kit test and token discipline | `tests/panel-kit.test.ts` | `bun test tests/panel-kit.test.ts` | 4 pass / 0 fail; 20 expect() calls | PASS | — |
 | 3 | Baseline DOM inventory for all 19 panels | `/tmp/opencode/cg19-baseline.json` | `node` key/count check | 19 keys present; 28,786 bytes | PASS | visible initial tab only; source audit covers other tabs |
 | 4 | `analytics` redesigned without data loss | `src/components/panels/Analytics.tsx`, `src/components/panel/panel.css` | browser + DOM diff | 12 mocked calls → 12 outcome ticks, 75% honor, 2 provider rows, 12-row hidden table; empty live state honest; canvas removed | PASS | populated state uses mocked Goldsky payload; live subgraph currently returns 0 calls |
-| 5 | `disputes` redesigned; retired gate preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
-| 6 | `quality` redesigned; retired gate preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
+| 5 | `disputes` redesigned; retired gate preserved | `src/components/panels/Disputes.tsx` | browser + DOM diff | all four tabs render; retired notice and gated history visible; bond reads 0.50/0.10/1/12h; `openDispute(callId, providerId, now-1, evidence)`, `vote(id, 1|2)`, `withdrawPayout`, and `pendingWithdrawals` retained; 1280/411 dark and light clean | PASS | signed writes not executed; mock wallet cannot sign |
+| 6 | `quality` redesigned; retired gate preserved | `src/components/panels/Quality.tsx` | browser + DOM diff | Open/Vote/Become Arbiter render; retired notice visible; call ID guard and exact arbiter toast confirmed; stake control stays enabled while retired; `openDispute(...BigInt(1)...)` and `vote(id, 1|2)` retained | PASS | signed writes not executed; mock wallet cannot sign |
 | 7 | `lending` redesigned; approvals and 6-decimal rules preserved | `src/components/panels/Lending.tsx` | browser + DOM diff | Lend/Borrow/My Loans executed; empty-loan state honest; source rail, 6-decimal pool/shares, and approve→deposit/repay order retained | PASS | signed writes cannot be executed with mock wallet; 6-decimal args verified by source diff |
 | 8 | `futures` redesigned; all batch actions preserved | `src/components/panels/Futures.tsx` | browser + DOM diff | Browse/My Slots/Mint executed; batch empty state, mint/buy/burn/claim/cancel controls, `nextBatchId - 1` count and 10-card cap retained; mobile inline forms stack | PASS | signed writes cannot be executed with mock wallet |
 | 9 | `subscriptions` redesigned; preview truth preserved | `src/components/panels/Subscriptions.tsx` | browser + DOM diff | preview notice rendered; exact toast confirmed; 1 indexed provider, 10-call range, 10.00 USDC total; no fake active subscriptions | PASS | protocol is not live; no real subscription write exists |
-| 10 | `jobs` redesigned; six-stage state preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
-| 11 | `attestation` redesigned; all tabs preserved | — | browser + DOM diff | not started | UNVERIFIED | — |
+| 10 | `jobs` redesigned; six-stage state preserved | `src/components/panels/Jobs.tsx` | browser + source diff | step 0 renders; six stage buttons, current marker, disabled future steps, create form, status lookup, and stage-lane internal scroll at 411; all six handlers and `parseUnits`/allowance order unchanged | PASS | signed step transitions 1–5 not reachable in browser with mock wallet; only source-verified |
+| 11 | `attestation` redesigned; all tabs preserved | `src/components/panels/Attestation.tsx` | browser + DOM diff | Peek/Issue/Lookup render; mocked `/api/attestation` success showed JSON; `attestProviderScore(providerId, 50)` and lookup guard retained; REST endpoint and code example visible | PASS | attestation write not executed; peek success mocked because Vite serves `/api/*` as non-JSON |
 | 12 | `agent` redesigned; storage keys and writes preserved | — | browser + source diff | not started | UNVERIFIED | signed writes cannot be executed with mock wallet |
 | 13 | `balance` redesigned; four branches preserved | `src/components/UnifiedBalance.tsx` | browser + DOM diff | loading, error, empty, and success executed; success mock showed `123.46 USDC`, `100.500000` and `22.956789` chain precision; disconnected branch source-verified only | PARTIAL | mock wallet cannot disconnect without leaving the app; success response mocked because Vite serves `/api/unified-balance` as HTML |
 | 14 | `passkey` redesigned; state machine preserved | — | browser + DOM diff | not started | UNVERIFIED | no passkey credential harness |
@@ -28,9 +28,9 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 | 21 | `admin` redesigned; owner/timelock paths preserved | — | browser + DOM diff | not started | UNVERIFIED | signed writes cannot be executed |
 | 22 | `settings` redesigned; preferences preserved | `src/components/panels/SettingsPanel.tsx` | browser + DOM diff | Light/Dark applied; budget saved to `cg_budget` and cleared; contract address, disconnect, and SDK surface retained | PASS | manual DOM/keyboard checks only; no screen reader |
 | 23 | Admin v4 → v7 copy correction (approved) | — | source grep | not started | UNVERIFIED | held until Admin wave |
-| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 2 diff limited to `Lending.tsx`, `Futures.tsx`, `Subscriptions.tsx`, `Nano.tsx`, and `panel.css` | PASS | recheck after every later wave |
-| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 2 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
-| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave2/` | browser screenshots / DOM | 1280 dark for all 4; 411 dark and light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; 411 captures use the `.main-content` surface because full-viewport capture shows a Chrome text-highlight overlay that is absent from computed styles and element captures |
+| 24 | No landing/marketing or contract/API changes | — | `git diff --name-only` | Wave 3 diff limited to `Disputes.tsx`, `Quality.tsx`, `Jobs.tsx`, `Attestation.tsx`, `panel.css`, and this checklist | PASS | recheck after every later wave |
+| 25 | `bun run check`, `bun run test`, `bun run build` after Wave 3 | — | commands | check exit 0; test 392 pass / 4 skip / 0 fail; build exit 0 | PASS | build retains pre-existing chunk-size warning |
+| 26 | 1280 / 411 dark and light browser checks | `/tmp/opencode/cg19-wave3/` | browser screenshots / DOM | 1280 and 411 dark for all 4; 1280 and 411 light for all 4; 411 document/main/panel scroll widths all 411; console errors none | PASS | no screen reader; mock wallet cannot sign; Jobs stage lane scrolls internally at 411 (`385` client vs `528` scroll) without page overflow |
 
 ## Wave 0 log
 
@@ -103,3 +103,37 @@ Filled: 2026-10-22 · Overall: NOT COMPLETE (see rows)
 - Still unverified: signed Lending/Futures/Nano writes; Nano success and live Gateway balance;
   screen-reader announcements. Full-viewport 411 screenshots showed a Chrome text-highlight overlay
   that is absent from computed styles and element captures, so the content surface was captured.
+
+## Wave 3 log
+
+- Redesigned `Disputes`, `Quality`, `Jobs`, and `Attestation` on the shared kit. The diff is limited
+  to those four panels, `panel.css` additions, and this checklist; no contract, API, storage, or
+  landing change.
+- Disputes: all four tabs render. The retired notice is visible and history queries stay gated.
+  Bond reads show `0.50`, `0.10`, `1`, and `12h`. My Disputes and History show honest empty states.
+  `openDispute(callId, providerId, now-1, evidence)`, `vote(id, 1|2)`, `withdrawPayout`, and
+  `pendingWithdrawals` are unchanged.
+- Quality: Open/Vote/Become Arbiter render. The retired notice is visible. Source retains the invalid
+  call ID guard, the stake control stays enabled, and the exact informational toast was confirmed.
+  `openDispute(...BigInt(1)...)` and `vote(id, 1|2)` are unchanged.
+- Jobs: the six stages render as native buttons; the current stage has `aria-current="step"` and
+  future stages are disabled. Step 0 renders the create form, and Check Job Status renders. At 411
+  the stage lane scrolls inside its own surface (`385` client vs `528` scroll) with no page overflow.
+  All six handlers, `parseUnits` budget parsing, and the allowance→approve→fund order are unchanged.
+  Steps 1–5 cannot be reached without a real signed transaction.
+- Attestation: Peek/Issue/Lookup render. A mocked `/api/attestation` response showed the JSON output.
+  The REST endpoint, integration example, `attestProviderScore(providerId, 50)`, and lookup guard are
+  retained. The on-chain write was not executed.
+- Responsive: 1280×720 and 411×915, dark and light, for all four panels. At 411 the document,
+  `.main-content`, and `.pg-root` scroll widths all equal 411. Console errors: none.
+- Evidence: `/tmp/opencode/cg19-wave3/disputes-1280-dark.png`,
+  `disputes-vote-1280-dark.png`, `disputes-411-dark.png`, `disputes-1280-light.png`,
+  `disputes-411-light.png`, `quality-1280-dark.png`, `quality-411-dark.png`,
+  `quality-1280-light.png`, `quality-411-light.png`, `jobs-1280-dark.png`, `jobs-411-dark.png`,
+  `jobs-1280-light.png`, `jobs-411-light.png`, `attestation-peek-1280-dark.png`,
+  `attestation-peek-411-dark.png`, `attestation-peek-1280-light.png`,
+  `attestation-peek-411-light.png`.
+- Gates after Wave 3: `bun run check` exit 0; `bun run test` 392 pass / 4 skip / 0 fail;
+  `bun run build` exit 0 (pre-existing chunk-size warning).
+- Still unverified: signed Disputes/Quality/Jobs/Attestation writes; Jobs steps 1–5 in the browser;
+  Attestation on-chain issue success; screen-reader announcements.

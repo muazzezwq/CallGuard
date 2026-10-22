@@ -1,25 +1,14 @@
 import { useState } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { toast } from 'sonner'
+import { Check, X } from 'lucide-react'
 import { CONFIG, DISPUTE_QUALITY_ABI } from '../../lib/config'
+import { Button, Field, Input, PageHeader, Stat, Tabs, Textarea } from '../../ui'
+import { KeyValue, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice } from '../panel/PanelUi'
 
 const ADDR = CONFIG.disputeQualityAddress as `0x${string}`
 // DisputeQuality v2 is retired (bound to the old Registry); block live transactions.
 const ENABLED = CONFIG.disputeQualityEnabled
-
-const S = {
-  wrap: { padding: '24px', maxWidth: '720px', margin: '0 auto' },
-  h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
-  sub: { fontSize: '13px', color: 'var(--text-dim)', marginBottom: '24px' },
-  card: { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', marginBottom: '16px' },
-  label: { fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase' as const, marginBottom: '6px' },
-  input: { width: '100%', padding: '10px 12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' as const },
-  btn: { padding: '10px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  btnDanger: { padding: '10px 20px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '999px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' },
-  badge: (c: string) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: c === 'OPEN' ? 'var(--accent-bg)' : c === 'RESOLVED' ? 'var(--info-bg)' : 'var(--bg-3)', color: c === 'OPEN' ? 'var(--accent)' : c === 'RESOLVED' ? 'var(--info)' : 'var(--text-dim)' }),
-  row: { display: 'flex', gap: '12px', marginBottom: '16px' },
-  col: { flex: 1 },
-}
 
 export default function Quality() {
   const { address } = useAccount()
@@ -77,104 +66,195 @@ export default function Quality() {
   const tabs: { id: 'open' | 'vote' | 'stake'; label: string }[] = [{ id: 'open', label: 'Open Dispute' }, { id: 'vote', label: 'Vote' }, { id: 'stake', label: 'Become Arbiter' }]
 
   return (
-    <div style={S.wrap}>
-      <div style={S.h1}>Quality Disputes</div>
-      <div style={S.sub}>Challenge provider response quality. Community arbiters vote stake-weighted.</div>
+    <PanelShell>
+      <PageHeader
+        title="Quality Disputes"
+        subtitle="Challenge provider response quality. Community arbiters vote stake-weighted."
+      />
+      <PanelSource
+        label="DisputeQuality v2"
+        value={ENABLED ? 'enabled' : 'retired'}
+        hint={ENABLED ? 'live contract writes' : 'on-chain actions disabled'}
+        state={ENABLED ? 'live' : 'unavailable'}
+      />
 
       {!ENABLED && (
-        <div style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bg)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: 'var(--warn)' }}>
-          <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was retired and has no active replacement, so on-chain actions are turned off.
-        </div>
+        <StatusNotice tone="retired" title="Quality Disputes are temporarily disabled">
+          The DisputeQuality contract was retired and has no active replacement, so on-chain actions
+          are turned off.
+        </StatusNotice>
       )}
 
-      <div className="cg-tabs">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`cg-tab${tab === t.id ? ' active' : ''}`}>{t.label}</button>
-        ))}
+      <SignalRow label="Arbiter terms">
+        <Stat label="Earn" value="Dispute fees" hint="per resolved case" />
+        <Stat label="Require" value=">10 USDC" hint="minimum stake" />
+        <Stat label="Voting power" value="Stake-weighted" hint="Bayesian majority" />
+      </SignalRow>
+
+      <div className="pg-tabbar">
+        <Tabs tabs={tabs} value={tab} onChange={setTab} />
       </div>
 
-      {tab === 'open' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Open a Quality Dispute</div>
-          <div style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bg)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--warn)' }}>
-            Disputes are for quality issues — wrong, incomplete, or off-topic responses. Timeout disputes use Claim Timeout in Call Builder.
-          </div>
-          <div style={S.row}>
-            <div style={S.col}>
-              <div style={S.label}>Call ID</div>
-              <input style={S.input} value={callId} onChange={e => setCallId(e.target.value)} placeholder="e.g. 42" />
-            </div>
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={S.label}>Evidence (IPFS hash or description)</div>
-            <textarea style={{ ...S.input, minHeight: '80px', resize: 'vertical' }} value={evidence} onChange={e => setEvidence(e.target.value)} placeholder="Describe the quality issue or provide IPFS hash of evidence..." />
-          </div>
-          <button style={S.btnDanger} onClick={openDispute} disabled={!ENABLED || isPending || isConfirming || !address}>
-            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Open Dispute'}
-          </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Dispute opened successfully</div>}
-        </div>
-      )}
+      <PanelSplit
+        main={(
+          <>
+            {tab === 'open' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Open a Quality Dispute</h2>
+                </div>
+                <div className="ui-section__body">
+                  <StatusNotice
+                    tone="warn"
+                    title="Disputes are for quality issues — wrong, incomplete, or off-topic responses. Timeout disputes use Claim Timeout in Call Builder."
+                  />
+                  <div className="pg-form">
+                    <Field label="Call ID" htmlFor="quality-call-id">
+                      <Input
+                        id="quality-call-id"
+                        value={callId}
+                        onChange={e => setCallId(e.target.value)}
+                        placeholder="e.g. 42"
+                      />
+                    </Field>
+                    <Field label="Evidence (IPFS hash or description)" htmlFor="quality-evidence">
+                      <Textarea
+                        id="quality-evidence"
+                        rows={4}
+                        value={evidence}
+                        onChange={e => setEvidence(e.target.value)}
+                        placeholder="Describe the quality issue or provide IPFS hash of evidence..."
+                      />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="danger"
+                      onClick={openDispute}
+                      disabled={!ENABLED || isPending || isConfirming || !address}
+                    >
+                      {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Open Dispute'}
+                    </Button>
+                  </div>
+                  {isSuccess && (
+                    <div className="pg-section--spaced">
+                      <StatusNotice tone="success" title="Dispute opened successfully" />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
-      {tab === 'vote' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Vote on a Dispute</div>
-          <div style={{ background: 'var(--info-bg)', border: '1px solid color-mix(in srgb, var(--info) 25%, transparent)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--info)' }}>
-            Your voting power = your staked USDC. Majority stake wins. Losing side's stake is redistributed.
-          </div>
-          <div style={{ ...S.row, marginBottom: '16px' }}>
-            <div style={S.col}>
-              <div style={S.label}>Dispute ID</div>
-              <input style={S.input} value={disputeId} onChange={e => setDisputeId(e.target.value)} placeholder="e.g. 1" />
-            </div>
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={S.label}>Your Vote</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setVoteSupport(true)} style={{ ...S.btn, background: voteSupport ? 'var(--accent)' : 'var(--bg-3)', color: voteSupport ? '#000' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
-                ✓ Support Caller
-              </button>
-              <button onClick={() => setVoteSupport(false)} style={{ ...S.btn, background: !voteSupport ? 'var(--danger)' : 'var(--bg-3)', color: !voteSupport ? '#fff' : 'var(--text)', border: '1px solid var(--border)', flex: 1 }}>
-                ✗ Support Provider
-              </button>
-            </div>
-          </div>
-          <button style={S.btn} onClick={voteOnDispute} disabled={!ENABLED || isPending || isConfirming || !address || !disputeId}>
-            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : `Vote: ${voteSupport ? 'Support Caller' : 'Support Provider'}`}
-          </button>
-          {isSuccess && <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--accent-ink)' }}>✓ Vote cast successfully</div>}
-        </div>
-      )}
+            {tab === 'vote' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Vote on a Dispute</h2>
+                </div>
+                <div className="ui-section__body">
+                  <StatusNotice
+                    tone="info"
+                    title="Your voting power = your staked USDC. Majority stake wins. Losing side's stake is redistributed."
+                  />
+                  <div className="pg-form">
+                    <Field label="Dispute ID" htmlFor="quality-dispute-id">
+                      <Input
+                        id="quality-dispute-id"
+                        value={disputeId}
+                        onChange={e => setDisputeId(e.target.value)}
+                        placeholder="e.g. 1"
+                      />
+                    </Field>
+                    <Field label="Your Vote">
+                      <div className="pg-vote-actions">
+                        <Button
+                          variant={voteSupport ? 'primary' : 'secondary'}
+                          leftIcon={<Check size={15} />}
+                          onClick={() => setVoteSupport(true)}
+                        >
+                          Support Caller
+                        </Button>
+                        <Button
+                          variant={!voteSupport ? 'danger' : 'secondary'}
+                          leftIcon={<X size={15} />}
+                          onClick={() => setVoteSupport(false)}
+                        >
+                          Support Provider
+                        </Button>
+                      </div>
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={voteOnDispute}
+                      disabled={!ENABLED || isPending || isConfirming || !address || !disputeId}
+                    >
+                      {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : `Vote: ${voteSupport ? 'Support Caller' : 'Support Provider'}`}
+                    </Button>
+                  </div>
+                  {isSuccess && (
+                    <div className="pg-section--spaced">
+                      <StatusNotice tone="success" title="Vote cast successfully" />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
-      {tab === 'stake' && (
-        <div style={S.card}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Become a Community Arbiter</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-            {[{ label: 'Earn', value: 'Dispute fees', sub: 'per resolved case' }, { label: 'Require', value: '>10 USDC', sub: 'minimum stake' }, { label: 'Voting power', value: 'Stake-weighted', sub: 'Bayesian majority' }].map(item => (
-              <div key={item.label} style={{ background: 'var(--bg-3)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-ink)', margin: '4px 0' }}>{item.value}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{item.sub}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={S.label}>Stake Amount (USDC)</div>
-            <input style={S.input} type="number" value={stakeAmount} onChange={e => setStakeAmount(e.target.value)} min="10" step="1" />
-          </div>
-          <button style={S.btn} onClick={stakeAsArbiter} disabled={isPending || isConfirming || !address}>
-            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Stake & Become Arbiter'}
-          </button>
-        </div>
-      )}
-
-      <div style={{ ...S.card, marginTop: '24px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Contract Info</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-dim)' }}>
-          <span>DisputeQuality (retired)</span>
-          <a href={`https://explorer.testnet.arc.io/address/${ADDR}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-ink)', fontFamily: 'var(--font-mono)' }}>{ADDR.slice(0, 10)}...{ADDR.slice(-6)}</a>
-        </div>
-      </div>
-    </div>
+            {tab === 'stake' && (
+              <section className="ui-section">
+                <div className="ui-section__head">
+                  <h2 className="ui-section__title">Become a Community Arbiter</h2>
+                </div>
+                <div className="ui-section__body">
+                  <div className="pg-form">
+                    <Field label="Stake Amount (USDC)" htmlFor="quality-stake">
+                      <Input
+                        id="quality-stake"
+                        type="number"
+                        value={stakeAmount}
+                        onChange={e => setStakeAmount(e.target.value)}
+                        min="10"
+                        step="1"
+                      />
+                    </Field>
+                  </div>
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={stakeAsArbiter}
+                      disabled={isPending || isConfirming || !address}
+                    >
+                      {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Stake & Become Arbiter'}
+                    </Button>
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
+        )}
+        rail={(
+          <KeyValue
+            label="Contract Info"
+            rows={[
+              { label: 'Contract', value: 'DisputeQuality (retired)' },
+              {
+                label: 'Address',
+                value: (
+                  <a
+                    className="pg-rowlink pg-mono"
+                    href={`https://explorer.testnet.arc.io/address/${ADDR}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {ADDR.slice(0, 10)}…{ADDR.slice(-6)}
+                  </a>
+                ),
+              },
+            ]}
+          />
+        )}
+      />
+    </PanelShell>
   )
 }

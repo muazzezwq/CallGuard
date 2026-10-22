@@ -1,8 +1,15 @@
 import { useState, useCallback } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useReadContracts, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
+import { Check, X } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { CONFIG, DISPUTE_QUALITY_ABI } from "../../lib/config";
+import {
+  Badge, Button, Field, Input, PageHeader, Skeleton, Stat, Tabs, Textarea,
+} from "../../ui";
+import {
+  KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
 // CRITICAL-04 fix: use centralized DISPUTE_QUALITY_ABI from config (synced with DisputeQuality.sol)
 // Vote enum: 1 = ForCaller, 2 = ForProvider
@@ -19,6 +26,15 @@ interface SubgraphDispute {
   openedAt: string;
   resolvedAt?: string;
   outcome?: string;
+}
+
+function NoticeLine({ value }: { value: string }) {
+  const tone = value.startsWith("✅") ? "success" : value.startsWith("❌") ? "danger" : "info";
+  return <StatusNotice tone={tone} title={value.replace(/^[✅❌⏳]\s*/u, "")} />;
+}
+
+function statusTone(status: string): "guard" | "pending" | "neutral" {
+  return status === "RESOLVED" ? "guard" : status === "OPEN" ? "pending" : "neutral";
 }
 
 export default function Disputes() {
@@ -180,326 +196,346 @@ export default function Disputes() {
   }, [dqEnabled, voteDisputeId, isConnected, writeContractAsync, fetchDisputeInfo]);
 
   const disputes = historyData?.disputeRecords ?? [];
+  const mine = myDisputesData?.disputeRecords ?? [];
 
   return (
-    <div className="cg-panel">
-      <div className="panel-head">
-        <div>
-          <h2>Quality Disputes</h2>
-          <p className="text-dim">Community-voted response quality verification</p>
-        </div>
-        <button className="btn btn-sm" onClick={refetchHistory}>↻</button>
-      </div>
+    <PanelShell>
+      <PageHeader
+        title="Quality Disputes"
+        subtitle="Community-voted response quality verification"
+        actions={(
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={refetchHistory}
+            aria-label="Refresh dispute history"
+            title="Refresh dispute history"
+          >
+            ↻
+          </Button>
+        )}
+      />
+      <PanelSource
+        label="DisputeQuality v2"
+        value={dqEnabled ? "enabled" : "retired"}
+        hint={dqEnabled ? "live contract reads" : "actions and history queries disabled"}
+        state={dqEnabled ? "live" : "unavailable"}
+      />
 
       {!dqEnabled && (
-        <div style={{
-          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
-          borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "var(--warn)",
-        }}>
-          <strong>Quality Disputes are temporarily disabled.</strong> The DisputeQuality contract was
-          retired and has no active replacement — actions and on-chain reads are turned off to
-          avoid wasting gas. History remains visible below.
-        </div>
+        <StatusNotice tone="retired" title="Quality Disputes are temporarily disabled">
+          The DisputeQuality contract was retired and has no active replacement — actions and
+          on-chain reads are turned off to avoid wasting gas. History remains visible below.
+        </StatusNotice>
       )}
 
       {/* HIGH-04: withdrawPayout banner */}
       {hasPayout && (
-        <div className="cg-card mb-4" style={{border:"1px solid rgba(25,209,134,0.3)",background:"rgba(25,209,134,0.05)"}}>
-          <div className="card-title mb-2" style={{color: "var(--accent-ink)"}}>⬇ Dispute Payout Ready</div>
-          <p className="text-dim text-xs mb-3">You have <strong style={{color: "var(--accent-ink)"}}>{payoutAmt} USDC</strong> from resolved disputes ready to claim.</p>
-          <button className="btn btn-primary" onClick={handleWithdrawPayout}>Claim {payoutAmt} USDC →</button>
-        </div>
+        <StatusNotice
+          tone="success"
+          title="Dispute Payout Ready"
+          action={<Button variant="primary" size="sm" onClick={handleWithdrawPayout}>Claim {payoutAmt} USDC →</Button>}
+        >
+          You have <strong>{payoutAmt} USDC</strong> from resolved disputes ready to claim.
+        </StatusNotice>
       )}
 
       {/* Dispute protocol info */}
-      <div style={{
-        background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
-        padding: "14px 16px", marginBottom: 20, display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12,
-      }}>
-        {[
-          { label: "Caller Bond", value: `${callerBondUSDC} USDC` },
-          { label: "Voter Bond", value: `${voterBondUSDC} USDC` },
-          { label: "Min Voter Stake", value: "1 USDC" },
-          { label: "Voting Window", value: votingWindowH },
-        ].map(item => (
-          <div key={item.label} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>{item.value}</div>
-          </div>
-        ))}
+      <SignalRow label="Dispute bonds">
+        <Stat label="Caller Bond" value={`${callerBondUSDC} USDC`} />
+        <Stat label="Voter Bond" value={`${voterBondUSDC} USDC`} />
+        <Stat label="Min Voter Stake" value="1 USDC" />
+        <Stat label="Voting Window" value={votingWindowH} />
+      </SignalRow>
+
+      <div className="pg-tabbar">
+        <Tabs
+          tabs={[
+            { id: "open", label: "Open Dispute" },
+            { id: "vote", label: "Vote" },
+            { id: "mine", label: <>My Disputes {mine.length > 0 && <Badge tone="guard">{mine.length}</Badge>}</> },
+            { id: "history", label: <>History {disputes.length > 0 && <Badge tone="guard">{disputes.length}</Badge>}</> },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="cg-tabs mb-4">
-        {(["open", "vote", "mine", "history"] as const).map(t => (
-          <button key={t} className={`cg-tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-            {t === "open" ? "Open Dispute" : t === "vote" ? "Vote" : t === "mine" ? "My Disputes" : "History"}
-            {t === "mine" && (myDisputesData?.disputeRecords?.length ?? 0) > 0 && (
-              <span style={{ marginLeft: 4, background: "var(--accent)", color: "#000", borderRadius: 99, fontSize: 10, padding: "1px 5px", fontWeight: 700 }}>
-                {myDisputesData!.disputeRecords.length}
-              </span>
-            )}
-            {t === "history" && disputes.length > 0 && (
-              <span style={{ marginLeft: 4, background: "var(--accent)", color: "#000", borderRadius: 99, fontSize: 10, padding: "1px 5px", fontWeight: 700 }}>
-                {disputes.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* OPEN DISPUTE TAB */}
-      {tab === "open" && (
-        <div className="cg-card">
-          <div style={{ background: "var(--bg-3)", borderLeft: "3px solid var(--accent)", borderRadius: 6, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "var(--text-dim)" }}>
-            <strong style={{ color: "var(--text)" }}>How it works:</strong> Submit the call ID and evidence. Community arbiters vote (stake-weighted majority). Bond: <strong>{callerBondUSDC} USDC</strong> from your wallet.
-          </div>
-          <div className="form-group mb-3">
-            <label className="form-label" htmlFor="dp-callid">Call ID (0x bytes32)</label>
-            <input
-              id="dp-callid"
-              className="cg-input mono"
-              placeholder="0xabc123... (32-byte hex)"
-              value={callIdInput}
-              onChange={e => setCallIdInput(e.target.value)}
-            />
-          </div>
-          <div className="form-group mb-3">
-            <label className="form-label" htmlFor="dp-provider">Provider ID</label>
-            <input
-              id="dp-provider"
-              className="cg-input mono"
-              placeholder="e.g. 1"
-              type="number" min="1"
-              value={providerIdInput}
-              onChange={e => setProviderIdInput(e.target.value)}
-            />
-          </div>
-          <div className="form-group mb-3">
-            <label className="form-label" htmlFor="dp-evidence">Evidence (description or IPFS URI)</label>
-            <textarea
-              id="dp-evidence"
-              className="cg-input"
-              rows={3}
-              placeholder="Describe why the response was inadequate, or paste an IPFS hash with evidence..."
-              value={evidence}
-              onChange={e => setEvidence(e.target.value)}
-            />
-            <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
-              Evidence is hashed on-chain (keccak256). Original text stays off-chain.
-            </div>
-          </div>
-          {status && (
-            <div style={{
-              padding: "8px 12px", borderRadius: 6, marginBottom: 12, fontSize: 12,
-              background: "var(--bg-3)",
-              color: status.startsWith("✅") ? "var(--accent-ink)" : status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
-            }}>
-              {status}
-            </div>
-          )}
-          <button
-            className="btn btn-primary"
-            onClick={handleOpenDispute}
-            disabled={!dqEnabled || !callIdInput || !evidence || !isConnected}
-          >
-            Open Quality Dispute — {callerBondUSDC} USDC bond
-          </button>
-          {!isConnected && (
-            <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>Connect wallet to open a dispute.</p>
-          )}
-        </div>
-      )}
-
-      {/* VOTE TAB */}
-      {tab === "vote" && (
-        <div className="cg-card">
-          <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>
-            Look up a dispute by ID and cast your vote. You must hold staked USDC to be eligible.
-          </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input
-              className="cg-input mono"
-              placeholder="Dispute ID (e.g. 1)"
-              value={voteDisputeId}
-              onChange={e => setVoteDisputeId(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button className="btn btn-sm" onClick={fetchDisputeInfo}>Look up</button>
-          </div>
-
-          {disputeInfo && (
-            <div style={{ background: "var(--bg-3)", borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
-              {(disputeInfo as { error?: string }).error ? (
-                <div style={{ color: "var(--danger)", fontSize: 12 }}>{(disputeInfo as { error: string }).error}</div>
-              ) : (
-                Object.entries(disputeInfo).map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
-                    <span style={{ color: "var(--text-faint)", textTransform: "capitalize" }}>{k}</span>
-                    <span style={{ color: "var(--text)" }}>{v as string}</span>
+      <PanelSplit
+        main={(
+          <>
+            {/* OPEN DISPUTE TAB */}
+            {tab === "open" && (
+              <section className="ui-section">
+                <div className="ui-section__body">
+                  <StatusNotice tone="info" title="How it works:">
+                    Submit the call ID and evidence. Community arbiters vote (stake-weighted majority).
+                    Bond: <strong>{callerBondUSDC} USDC</strong> from your wallet.
+                  </StatusNotice>
+                  <div className="pg-form">
+                    <Field label="Call ID (0x bytes32)" htmlFor="dp-callid">
+                      <Input
+                        id="dp-callid"
+                        mono
+                        placeholder="0xabc123... (32-byte hex)"
+                        value={callIdInput}
+                        onChange={e => setCallIdInput(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Provider ID" htmlFor="dp-provider">
+                      <Input
+                        id="dp-provider"
+                        mono
+                        placeholder="e.g. 1"
+                        type="number"
+                        min="1"
+                        value={providerIdInput}
+                        onChange={e => setProviderIdInput(e.target.value)}
+                      />
+                    </Field>
+                    <Field
+                      label="Evidence (description or IPFS URI)"
+                      htmlFor="dp-evidence"
+                      hint="Evidence is hashed on-chain (keccak256). Original text stays off-chain."
+                    >
+                      <Textarea
+                        id="dp-evidence"
+                        rows={3}
+                        placeholder="Describe why the response was inadequate, or paste an IPFS hash with evidence..."
+                        value={evidence}
+                        onChange={e => setEvidence(e.target.value)}
+                      />
+                    </Field>
                   </div>
-                ))
-              )}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => { setVoteChoice(true); handleVote(true); }}
-              disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
-              style={{ flex: 1, opacity: dqEnabled ? 1 : 0.5 }}
-            >
-              ✅ Vote Yes — Provider Honored
-            </button>
-            <button
-              onClick={() => { setVoteChoice(false); handleVote(false); }}
-              disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
-              style={{
-                flex: 1, padding: "10px 18px", background: "var(--bg-3)", color: "var(--danger)",
-                border: "1px solid var(--danger)", borderRadius:999, fontWeight: 600, cursor: "pointer", fontSize: 13,
-                opacity: dqEnabled ? 1 : 0.5,
-              }}
-            >
-              ❌ Vote No — Provider Slashed
-            </button>
-          </div>
-
-          {voteStatus && (
-            <div style={{
-              padding: "8px 12px", borderRadius: 6, fontSize: 12, background: "var(--bg-3)",
-              color: voteStatus.startsWith("✅") ? "var(--accent-ink)" : voteStatus.startsWith("❌") ? "var(--danger)" : "var(--text-dim)",
-            }}>
-              {voteStatus}
-            </div>
-          )}
-
-          {voteChoice !== null && (
-            <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-faint)" }}>
-              Selected: {voteChoice ? "Yes (provider honored)" : "No (provider slashed)"}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MY DISPUTES TAB — MEDIUM-13 */}
-      {tab === "mine" && (
-        <div>
-          {!address && (
-            <div className="empty-state">Connect your wallet to see your disputes.</div>
-          )}
-          {address && myDisputesLoading && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} style={{ height: 56, borderRadius: 8, background: "var(--bg-2)", animation: "shimmer 1.4s infinite" }} />
-              ))}
-            </div>
-          )}
-          {address && !myDisputesLoading && (myDisputesData?.disputeRecords?.length ?? 0) === 0 && (
-            <div className="empty-state">
-              <p>You have not opened any disputes yet.</p>
-              <p className="text-dim text-sm mt-1">Disputes you file as a caller will appear here.</p>
-            </div>
-          )}
-          {(myDisputesData?.disputeRecords ?? []).map(d => (
-            <div key={d.id} style={{
-              background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
-              padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
-            }}>
-              <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>
-                  Dispute #{d.id} · Call {d.callId ? d.callId.slice(0, 10) + "…" : "—"}
+                  {status && <div className="pg-section--spaced"><NoticeLine value={status} /></div>}
+                  <div className="pg-form__actions pg-form__actions--spaced">
+                    <Button
+                      variant="primary"
+                      onClick={handleOpenDispute}
+                      disabled={!dqEnabled || !callIdInput || !evidence || !isConnected}
+                    >
+                      Open Quality Dispute — {callerBondUSDC} USDC bond
+                    </Button>
+                  </div>
+                  {!isConnected && (
+                    <p className="pg-note">Connect wallet to open a dispute.</p>
+                  )}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                  Opened {d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}
+              </section>
+            )}
+
+            {/* VOTE TAB */}
+            {tab === "vote" && (
+              <section className="ui-section">
+                <div className="ui-section__body">
+                  <p className="pg-copy">
+                    Look up a dispute by ID and cast your vote. You must hold staked USDC to be eligible.
+                  </p>
+                  <div className="pg-inline-form">
+                    <Field className="pg-inline-form__field" label="Dispute ID" htmlFor="dp-vote-id">
+                      <Input
+                        id="dp-vote-id"
+                        mono
+                        placeholder="Dispute ID (e.g. 1)"
+                        value={voteDisputeId}
+                        onChange={e => setVoteDisputeId(e.target.value)}
+                      />
+                    </Field>
+                    <Button variant="secondary" size="sm" onClick={fetchDisputeInfo}>Look up</Button>
+                  </div>
+
+                  {disputeInfo && (
+                    (disputeInfo as { error?: string }).error ? (
+                      <div className="pg-section--spaced">
+                        <StatusNotice tone="danger" title="Lookup failed">
+                          {(disputeInfo as { error: string }).error}
+                        </StatusNotice>
+                      </div>
+                    ) : (
+                      <div className="pg-section--spaced">
+                        <KeyValue
+                          rows={Object.entries(disputeInfo).map(([k, v]) => ({
+                            label: k.charAt(0).toUpperCase() + k.slice(1),
+                            value: v as string,
+                            mono: k === "callId" || k === "opener",
+                          }))}
+                        />
+                      </div>
+                    )
+                  )}
+
+                  <div className="pg-vote-actions pg-section--spaced">
+                    <Button
+                      variant="primary"
+                      leftIcon={<Check size={15} />}
+                      onClick={() => { setVoteChoice(true); handleVote(true); }}
+                      disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
+                    >
+                      Vote Yes — Provider Honored
+                    </Button>
+                    <Button
+                      variant="danger"
+                      leftIcon={<X size={15} />}
+                      onClick={() => { setVoteChoice(false); handleVote(false); }}
+                      disabled={!dqEnabled || votePending || !isConnected || !voteDisputeId}
+                    >
+                      Vote No — Provider Slashed
+                    </Button>
+                  </div>
+
+                  {voteStatus && <div className="pg-section--spaced"><NoticeLine value={voteStatus} /></div>}
+
+                  {voteChoice !== null && (
+                    <p className="pg-note">
+                      Selected: {voteChoice ? "Yes (provider honored)" : "No (provider slashed)"}
+                    </p>
+                  )}
                 </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const,
-                  color: d.status === "RESOLVED" ? "var(--accent-ink)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
-                }}>
-                  {d.status}
-                </span>
-                {d.outcome && (
-                  <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>Outcome: {d.outcome}</div>
+              </section>
+            )}
+
+            {/* MY DISPUTES TAB — MEDIUM-13 */}
+            {tab === "mine" && (
+              <>
+                {!address && (
+                  <StatusNotice tone="info" title="Connect your wallet to see your disputes." />
                 )}
-              </div>
-              {d.status === "OPEN" && (
-                <button className="btn btn-sm" onClick={() => { setTab("vote"); setVoteDisputeId(d.id); }} style={{ fontSize: 11 }}>
-                  Vote →
-                </button>
-              )}
-            </div>
-          ))}
-          {address && !myDisputesLoading && (
-            <button className="btn btn-sm" onClick={refetchMine} style={{ marginTop: 8 }}>↻ Refresh</button>
-          )}
-        </div>
-      )}
-
-      {/* HISTORY TAB */}
-      {tab === "history" && (
-        <div>
-          {historyLoading && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[...Array(4)].map((_, i) => (
-                <div key={i} style={{ height: 56, borderRadius: 8, background: "var(--bg-2)", animation: "shimmer 1.4s infinite" }} />
-              ))}
-            </div>
-          )}
-
-          {!historyLoading && disputes.length === 0 && (
-            <div className="empty-state">
-              <p>No disputes yet on-chain.</p>
-              <p className="text-dim text-sm mt-1">Quality disputes appear here once opened by callers.</p>
-            </div>
-          )}
-
-          {disputes.map(d => (
-            <div key={d.id} style={{
-              background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
-              padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
-            }}>
-              <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>
-                  Dispute #{d.id} · Call #{d.callId}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                  Opened by {d.caller ? `${d.caller.slice(0, 8)}…` : "—"} · {d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-                  color: d.status === "RESOLVED" ? "var(--accent-ink)" : d.status === "OPEN" ? "var(--warn)" : "var(--text-dim)",
-                }}>
-                  {d.status}
-                </span>
-                {d.outcome && (
-                  <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                    Outcome: {d.outcome}
+                {address && myDisputesLoading && (
+                  <div className="pg-stack">
+                    {[0, 1, 2].map(i => <Skeleton key={i} height={56} radius={8} />)}
                   </div>
                 )}
-              </div>
-              {d.status === "OPEN" && isConnected && (
-                <button
-                  className="btn btn-sm"
-                  onClick={() => { setTab("vote"); setVoteDisputeId(d.id); }}
-                  style={{ fontSize: 11 }}
-                >
-                  Vote →
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                {address && !myDisputesLoading && mine.length === 0 && (
+                  <Ledger
+                    empty={(
+                      <div className="pg-empty">
+                        <strong>You have not opened any disputes yet.</strong>
+                        <span>Disputes you file as a caller will appear here.</span>
+                      </div>
+                    )}
+                  />
+                )}
+                {mine.length > 0 && (
+                  <Ledger>
+                    {mine.map(d => (
+                      <LedgerRow
+                        key={d.id}
+                        tone={d.status === "RESOLVED" ? "guard" : d.status === "OPEN" ? "warn" : "muted"}
+                        lead={`Dispute #${d.id} · Call ${d.callId ? d.callId.slice(0, 10) + "…" : "—"}`}
+                        meta={`Opened ${d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}`}
+                        trailing={(
+                          <span className="pg-row-stack">
+                            <Badge tone={statusTone(d.status)}>{d.status}</Badge>
+                            {d.outcome && <span className="pg-mono">Outcome: {d.outcome}</span>}
+                            {d.status === "OPEN" && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => { setTab("vote"); setVoteDisputeId(d.id); }}
+                              >
+                                Vote →
+                              </Button>
+                            )}
+                          </span>
+                        )}
+                      />
+                    ))}
+                  </Ledger>
+                )}
+                {address && !myDisputesLoading && (
+                  <div className="pg-form__actions pg-section--spaced">
+                    <Button variant="secondary" size="sm" onClick={refetchMine}>↻ Refresh</Button>
+                  </div>
+                )}
+              </>
+            )}
 
-      <style>{`
-        @keyframes shimmer { 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
-      `}</style>
-    </div>
+            {/* HISTORY TAB */}
+            {tab === "history" && (
+              <>
+                {historyLoading && (
+                  <div className="pg-stack">
+                    {[0, 1, 2, 3].map(i => <Skeleton key={i} height={56} radius={8} />)}
+                  </div>
+                )}
+
+                {!historyLoading && disputes.length === 0 && (
+                  <Ledger
+                    empty={(
+                      <div className="pg-empty">
+                        <strong>No disputes yet on-chain.</strong>
+                        <span>Quality disputes appear here once opened by callers.</span>
+                      </div>
+                    )}
+                  />
+                )}
+
+                {disputes.length > 0 && (
+                  <Ledger>
+                    {disputes.map(d => (
+                      <LedgerRow
+                        key={d.id}
+                        tone={d.status === "RESOLVED" ? "guard" : d.status === "OPEN" ? "warn" : "muted"}
+                        lead={`Dispute #${d.id} · Call #${d.callId}`}
+                        meta={`Opened by ${d.caller ? `${d.caller.slice(0, 8)}…` : "—"} · ${d.openedAt ? new Date(Number(d.openedAt) * 1000).toLocaleString() : "—"}`}
+                        trailing={(
+                          <span className="pg-row-stack">
+                            <Badge tone={statusTone(d.status)}>{d.status}</Badge>
+                            {d.outcome && <span className="pg-mono">Outcome: {d.outcome}</span>}
+                            {d.status === "OPEN" && isConnected && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => { setTab("vote"); setVoteDisputeId(d.id); }}
+                              >
+                                Vote →
+                              </Button>
+                            )}
+                          </span>
+                        )}
+                      />
+                    ))}
+                  </Ledger>
+                )}
+              </>
+            )}
+          </>
+        )}
+        rail={(
+          <>
+            <KeyValue
+              label="Protocol"
+              rows={[
+                { label: "Contract", value: "DisputeQuality v2" },
+                {
+                  label: "Address",
+                  value: (
+                    <a
+                      className="pg-rowlink pg-mono"
+                      href={`https://explorer.testnet.arc.io/address/${dqAddr}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {dqAddr.slice(0, 10)}…{dqAddr.slice(-6)}
+                    </a>
+                  ),
+                },
+                {
+                  label: "State",
+                  value: <Badge tone={dqEnabled ? "guard" : "neutral"}>{dqEnabled ? "Enabled" : "Retired"}</Badge>,
+                },
+                { label: "Caller bond", value: `${callerBondUSDC} USDC`, mono: true },
+                { label: "Voter bond", value: `${voterBondUSDC} USDC`, mono: true },
+                { label: "Voting window", value: votingWindowH, mono: true },
+              ]}
+            />
+            <StatusNotice tone="retired" title="Retired protocol">
+              The contract address and bond parameters remain visible for reference. Live actions stay
+              disabled until an active replacement exists.
+            </StatusNotice>
+          </>
+        )}
+      />
+    </PanelShell>
   );
 }
