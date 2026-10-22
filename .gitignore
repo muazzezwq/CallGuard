@@ -27,3 +27,8 @@ dist/
 # audit screenshots are evidence, not source: only the latest set is tracked.
 docs/screenshots/*.png
 docs/screenshots/panels/*.png
+
+# agent tooling — local only, never shipped
+.agents/
+docs/superpowers/
+skills-lock.json
