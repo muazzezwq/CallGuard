@@ -1,25 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { useRef } from "react";
 import { RefreshCw, TrendingUp, Users } from "lucide-react";
 
-import { ErrorState } from "../../ui";
+import { Button, ErrorState, PageHeader, Stat } from "../../ui";
 import { CONFIG } from "../../lib/config";
-const SUBGRAPH_URL = CONFIG.subgraphUrl;
+import {
+  KeyValue, Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit,
+  SignalRow, StatusNotice,
+} from "../panel/PanelUi";
 
-const s = {
-  page: { padding: "24px 20px", maxWidth: 1100, margin: "0 auto", paddingBottom: 80 },
-  h1: { fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 4px", fontFamily: "var(--font-display)" },
-  sub: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" },
-  grid4: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 } as React.CSSProperties,
-  card: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px" },
-  cardLabel: { fontSize: 10, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 4 },
-  cardVal: { fontSize: 22, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-display)" },
-  cardSub: { fontSize: 11, color: "var(--text-dim)", marginTop: 2 },
-  section: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius:14, padding: "14px 16px", marginBottom: 12 },
-  sectionTitle: { fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "var(--text-faint)", fontWeight: 600, marginBottom: 12 },
-  btn: { padding: "8px 14px", borderRadius:999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: "var(--bg-3)", color: "var(--text)", display: "inline-flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  row: { display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--border)", fontSize: 11 } as React.CSSProperties,
-};
+const SUBGRAPH_URL = CONFIG.subgraphUrl;
 
 interface AnalyticsData {
   totalCalls: number;
@@ -34,42 +23,14 @@ interface AnalyticsData {
   updatedAt: string;
 }
 
-/* Canvas can't parse CSS custom properties — resolve var(--x) to a real hex. */
-function resolveColor(color: string): string {
-  if (!color.startsWith("var(")) return color;
-  const name = color.slice(4, color.lastIndexOf(")")).trim();
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+function statusTone(st: string): "guard" | "danger" | "warn" {
+  const s = String(st).toUpperCase();
+  return s === "COMPLETED" ? "guard" : s === "SLASHED" ? "danger" : "warn";
 }
 
-/* ── Mini sparkline canvas ───────────────────────────── */
-function MiniChart({ values, color = "var(--accent)", height = 48 }: { values: number[]; color?: string; height?: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current; if (!c) return;
-    const ctx = c.getContext("2d"); if (!ctx) return;
-    const W = c.offsetWidth; const H = height;
-    c.width = W * window.devicePixelRatio; c.height = H * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    if (!values.length) return;
-    const mn = Math.min(...values); const mx = Math.max(...values) || 1;
-    const pad = 4;
-    const pts = values.map((v, i) => ({
-      x: pad + (i / (values.length - 1 || 1)) * (W - pad * 2),
-      y: H - pad - ((v - mn) / (mx - mn || 1)) * (H - pad * 2),
-    }));
-    const stroke = resolveColor(color);
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, stroke + "40"); grad.addColorStop(1, stroke + "00");
-    ctx.beginPath();
-    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.lineTo(pts[pts.length - 1].x, H); ctx.lineTo(pts[0].x, H); ctx.closePath();
-    ctx.fillStyle = grad; ctx.fill();
-    ctx.beginPath();
-    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
-  }, [values, color, height]);
-  return <canvas ref={ref} style={{ width: "100%", height, display: "block" }} />;
+function statusColor(st: string) {
+  const s = String(st).toUpperCase();
+  return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "var(--danger)" : "var(--warn)";
 }
 
 export default function Analytics() {
@@ -146,23 +107,72 @@ export default function Analytics() {
     if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
     return `${Math.round(diff / 3600)}h ago`;
   }
-  function statusColor(st: string) {
-    const s = String(st).toUpperCase();
-    return s === "COMPLETED" ? "var(--accent)" : s === "SLASHED" ? "var(--danger)" : "var(--warn)";
-  }
+
+  const sourceState = error ? "unavailable" : loading && data ? "cached" : data ? "live" : "idle";
+
+  const providerRows = data?.topProviders.length ? data.topProviders.map(p => {
+    const maxTotal = data.topProviders[0]?.total || 1;
+    const pct = Math.round((p.total / maxTotal) * 100);
+    const honor = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 100;
+    const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
+    return (
+      <LedgerRow
+        key={p.id}
+        lead={
+          <span className="pg-bar">
+            <span className="pg-bar__id">#{p.id}</span>
+            <span className="pg-bar__track" aria-hidden="true">
+              <span className="pg-bar__fill" style={{ width: `${pct}%`, background: barColor }} />
+            </span>
+            <span className="pg-bar__total">{p.total} calls</span>
+          </span>
+        }
+        trailing={<span style={{ color: barColor, fontWeight: 600 }}>{honor}%</span>}
+      />
+    );
+  }) : null;
+
+  const recentRows = data?.recentCalls.length ? data.recentCalls.map(c => (
+    <LedgerRow
+      key={c.id}
+      tone={statusTone(c.status)}
+      lead={
+        <span className="pg-callrow">
+          <span className="pg-dot" style={{ background: statusColor(c.status) }} aria-hidden="true" />
+          <span className="pg-mono">#{c.providerId}</span>
+          <span style={{ color: statusColor(c.status) }}>{String(c.status).toLowerCase()}</span>
+        </span>
+      }
+      meta={<span className="pg-mono">{(Number(c.amount || 0) / 1e6).toFixed(3)} USDC</span>}
+      trailing={ago(c.createdAt)}
+    />
+  )) : null;
 
   return (
-    <div style={s.page}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <h1 style={s.h1}>Network Analytics</h1>
-          <p style={s.sub}>Live on-chain metrics via Goldsky subgraph{data ? ` · updated ${data.updatedAt}` : ""}</p>
-        </div>
-        <button style={s.btn} onClick={loadAnalytics} disabled={loading}>
-          <RefreshCw size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-          Refresh
-        </button>
-      </div>
+    <PanelShell>
+      <PageHeader
+        title="Network Analytics"
+        subtitle={`Live on-chain metrics via Goldsky subgraph${data ? ` · updated ${data.updatedAt}` : ""}`}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadAnalytics}
+            disabled={loading}
+            loading={loading}
+            leftIcon={<RefreshCw size={14} />}
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      <PanelSource
+        label="Goldsky subgraph"
+        value={data ? `updated ${data.updatedAt}` : "waiting for first response"}
+        hint="30 s refresh · 1,000-row caps"
+        state={sourceState}
+      />
 
       {error && (
         <ErrorState
@@ -170,105 +180,118 @@ export default function Analytics() {
           title="Couldn't load analytics"
           description={`${error} — showing cached data if available`}
           action={
-            <button style={s.btn} onClick={loadAnalytics} disabled={loading}>
-              <RefreshCw size={13} /> Retry
-            </button>
+            <Button variant="secondary" size="sm" onClick={loadAnalytics} disabled={loading} leftIcon={<RefreshCw size={14} />}>
+              Retry
+            </Button>
           }
         />
       )}
 
-      {/* Stats grid */}
-      <div style={s.grid4}>
-        <div style={s.card}>
-          <div style={s.cardLabel}><TrendingUp size={10} style={{ marginRight: 4 }} />Total Calls</div>
-          <div style={s.cardVal}>{loading && !data ? "…" : (data?.totalCalls ?? "—")}{(data?.totalCalls ?? 0) >= 1000 ? "+" : ""}</div>
-          <div style={s.cardSub}>{data ? `${data.completedCalls} completed · ${data.slashedCalls} slashed` : "loading…"}</div>
-        </div>
-        <div style={s.card}>
-          <div style={s.cardLabel}>Honor Rate</div>
-          <div style={{ ...s.cardVal, color: honorColor }}>{data?.honorRate != null ? `${data.honorRate}%` : "—"}</div>
-          <div style={s.cardSub}>{data ? `${data.completedCalls} honored / ${data.completedCalls + data.slashedCalls} closed` : "loading…"}</div>
-        </div>
-        <div style={s.card}>
-          <div style={s.cardLabel}><Users size={10} style={{ marginRight: 4 }} />Providers</div>
-          <div style={s.cardVal}>{data?.activeProviders ?? "—"}</div>
-          <div style={s.cardSub}>{data ? `${data.totalProviders} total registered` : "loading…"}</div>
-        </div>
-        <div style={s.card}>
-          <div style={s.cardLabel}>Avg Price / Call</div>
-          <div style={s.cardVal}>{data?.avgPrice ? `$${data.avgPrice.toFixed(3)}` : "—"}</div>
-          <div style={s.cardSub}>USDC across all providers</div>
-        </div>
-      </div>
+      <SignalRow label="Network signals">
+        <Stat
+          label={<span className="pg-stat-label"><TrendingUp size={11} aria-hidden="true" />Total Calls</span>}
+          value={<>{loading && !data ? "…" : (data?.totalCalls ?? "—")}{(data?.totalCalls ?? 0) >= 1000 ? "+" : ""}</>}
+          hint={data ? `${data.completedCalls} completed · ${data.slashedCalls} slashed` : "loading…"}
+        />
+        <Stat
+          label="Honor Rate"
+          value={<span style={{ color: honorColor }}>{data?.honorRate != null ? `${data.honorRate}%` : "—"}</span>}
+          hint={data ? `${data.completedCalls} honored / ${data.completedCalls + data.slashedCalls} closed` : "loading…"}
+        />
+        <Stat
+          label={<span className="pg-stat-label"><Users size={11} aria-hidden="true" />Providers</span>}
+          value={<>{data?.activeProviders ?? "—"}</>}
+          hint={data ? `${data.totalProviders} total registered` : "loading…"}
+        />
+        <Stat
+          label="Avg Price / Call"
+          value={<>{data?.avgPrice ? `$${data.avgPrice.toFixed(3)}` : "—"}</>}
+          hint="USDC across all providers"
+        />
+      </SignalRow>
 
-      {/* Provider performance bars */}
-      {/* Call trend sparkline */}
-      {data && data.recentCalls.length > 0 && (
-        <div style={s.section}>
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
-            <div style={s.sectionTitle}>Call Activity (last {data.recentCalls.length})</div>
-            <div style={{ display:"flex",gap:12,fontSize:11 }}>
-              <span style={{ color: "var(--accent-ink)" }}>● Completed</span>
-              <span style={{ color:"var(--danger)" }}>● Slashed</span>
-            </div>
-          </div>
-          <MiniChart
-            values={data.recentCalls.map(c => c.status === "COMPLETED" ? 1 : 0)}
-            color="var(--accent)"
-            height={56}
-          />
-        </div>
-      )}
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>Provider Performance (calls)</div>
-        {loading && !data ? (
-          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>Loading…</div>
-        ) : data?.topProviders.length ? (() => {
-          const maxTotal = data.topProviders[0]?.total || 1;
-          return data.topProviders.map(p => {
-            const pct = Math.round((p.total / maxTotal) * 100);
-            const honor = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 100;
-            const barColor = honor >= 80 ? "var(--accent)" : honor >= 50 ? "var(--warn)" : "var(--danger)";
-            return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12 }}>
-                <span style={{ width: 44, color: "var(--text-faint)", flexShrink: 0 }}>#{p.id}</span>
-                <div style={{ flex: 1, background: "var(--bg-3)", borderRadius: 4, height: 20, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 4, transition: "width .3s" }} />
+      <PanelSplit
+        main={
+          <>
+            {data && data.recentCalls.length > 0 && (
+              <section className="pg-figure" aria-labelledby="analytics-activity-title">
+                <div className="pg-figure__head">
+                  <h2 className="pg-figure__title" id="analytics-activity-title">
+                    Call Activity (last {data.recentCalls.length})
+                  </h2>
+                  <div className="pg-legend" aria-hidden="true">
+                    <span className="pg-legend__item"><span className="pg-legend__dot is-guard" />Completed</span>
+                    <span className="pg-legend__item"><span className="pg-legend__dot is-warn" />Pending</span>
+                    <span className="pg-legend__item"><span className="pg-legend__dot is-danger" />Slashed</span>
+                  </div>
                 </div>
-                <span style={{ width: 60, color: "var(--text-dim)", fontSize: 11 }}>{p.total} calls</span>
-                <span style={{ width: 40, color: barColor, fontWeight: 600 }}>{honor}%</span>
-              </div>
-            );
-          });
-        })() : (
-          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>No call data yet</div>
-        )}
-      </div>
+                <div className="pg-ticks" aria-hidden="true">
+                  {data.recentCalls.map(c => (
+                    <span
+                      key={c.id}
+                      className={`pg-tick is-${statusTone(c.status)}`}
+                      title={`#${c.providerId} · ${String(c.status).toLowerCase()}`}
+                    />
+                  ))}
+                </div>
+                <p className="pg-figure__note">Most recent calls, newest first.</p>
+                <table className="pg-visually-hidden">
+                  <caption>Recent call outcomes</caption>
+                  <thead>
+                    <tr><th scope="col">Provider</th><th scope="col">Status</th><th scope="col">Amount</th><th scope="col">When</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.recentCalls.map(c => (
+                      <tr key={c.id}>
+                        <td>#{c.providerId}</td>
+                        <td>{String(c.status).toLowerCase()}</td>
+                        <td>{(Number(c.amount || 0) / 1e6).toFixed(3)} USDC</td>
+                        <td>{ago(c.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
 
-      {/* Recent calls */}
-      <div style={s.section}>
-        <div style={s.sectionTitle}>Recent Calls</div>
-        {loading && !data ? (
-          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>Loading…</div>
-        ) : data?.recentCalls.length ? data.recentCalls.map(c => (
-          <div key={c.id} style={s.row}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor(c.status), flexShrink: 0, display: "inline-block" }} />
-            <span style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>#{c.providerId}</span>
-            <span style={{ color: statusColor(c.status), flexShrink: 0 }}>{String(c.status).toLowerCase()}</span>
-            <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{(Number(c.amount || 0) / 1e6).toFixed(3)} USDC</span>
-            <span style={{ marginLeft: "auto", color: "var(--text-faint)", whiteSpace: "nowrap" }}>{ago(c.createdAt)}</span>
-          </div>
-        )) : (
-          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>No recent calls</div>
-        )}
-      </div>
+            <Ledger
+              label="Provider Performance (calls)"
+              empty={loading && !data ? "Loading…" : "No call data yet"}
+            >
+              {providerRows}
+            </Ledger>
 
-      {loading && !data && (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-faint)", fontSize: 13 }}>
-          Loading analytics from Goldsky…
-        </div>
-      )}
-    </div>
+            <Ledger
+              label="Recent Calls"
+              empty={loading && !data ? "Loading…" : "No recent calls"}
+            >
+              {recentRows}
+            </Ledger>
+
+            {loading && !data && (
+              <p className="pg-loading">Loading analytics from Goldsky…</p>
+            )}
+          </>
+        }
+        rail={
+          <>
+            <KeyValue
+              label="Source & limits"
+              rows={[
+                { label: "Indexer", value: "Goldsky subgraph" },
+                { label: "Call cap", value: "1,000 latest calls", mono: true },
+                { label: "Provider cap", value: "1,000 providers", mono: true },
+                { label: "Auto-refresh", value: "Every 30 seconds" },
+                { label: "Recent rows", value: "12" },
+                { label: "Provider rows", value: "Top 8 by calls" },
+              ]}
+            />
+            <StatusNotice tone="info" title="Read-only view" live="off">
+              This panel reads the public subgraph and never sends a transaction.
+            </StatusNotice>
+          </>
+        }
+      />
+    </PanelShell>
   );
 }

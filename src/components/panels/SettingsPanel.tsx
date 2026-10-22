@@ -1,7 +1,20 @@
-import { useAppStore } from "../../store/useAppStore";
-import { useAccount, useDisconnect } from "wagmi";
 import { useState } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { Button, Input, PageHeader } from "../../ui";
 import { CONFIG } from "../../lib/config";
+import { useAppStore } from "../../store/useAppStore";
+import {
+  CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource,
+  PanelSplit, StatusNotice,
+} from "../panel/PanelUi";
+
+const SDK_SNIPPET = `// npm install ethers
+import { ethers } from "ethers";
+const PPC = "${CONFIG.ppcAddress}";
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const ppc = new ethers.Contract(PPC, ABI, signer);
+const tx = await ppc.callService(1, requestHash);`;
 
 export default function SettingsPanel() {
   const { theme, setTheme, mode, setMode } = useAppStore();
@@ -14,91 +27,163 @@ export default function SettingsPanel() {
     if (budget) localStorage.setItem("cg_budget", budget);
     else localStorage.removeItem("cg_budget");
     setSaved(true);
-    setTimeout(()=>setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <div className="cg-panel">
-      <div className="panel-head"><div><h2>Settings</h2><p className="text-dim">Appearance and session preferences</p></div></div>
+    <PanelShell>
+      <PageHeader
+        title="Settings"
+        subtitle="Appearance and session preferences"
+      />
 
-      <div className="settings-section mb-6">
-        <div className="section-title">APPEARANCE</div>
-        <div className="setting-row">
-          <div>
-            <div className="setting-name">Theme</div>
-            <div className="text-dim text-xs">Dark or light mode</div>
-          </div>
-          <div className="toggle-row">
-            <button className={`btn btn-sm${theme==="dark"?" btn-primary":""}`} onClick={()=>setTheme("dark")}>Dark</button>
-            <button className={`btn btn-sm${theme==="light"?" btn-primary":""}`} onClick={()=>setTheme("light")}>Light</button>
-          </div>
-        </div>
-        <div className="setting-row">
-          <div>
-            <div className="setting-name">Mode</div>
-            <div className="text-dim text-xs">Simple shows core features, Pro shows all</div>
-          </div>
-          <div className="toggle-row">
-            <button className={`btn btn-sm${mode==="simple"?" btn-primary":""}`} onClick={()=>setMode("simple")}>Simple</button>
-            <button className={`btn btn-sm${mode==="pro"?" btn-primary":""}`} onClick={()=>setMode("pro")}>Pro</button>
-          </div>
-        </div>
-      </div>
+      <PanelSource
+        label="Local settings"
+        value="this browser"
+        hint="Theme and mode apply immediately"
+        state="idle"
+      />
 
-      <div className="settings-section mb-6">
-        <div className="section-title">SESSION BUDGET</div>
-        <div className="setting-row">
-          <div>
-            <div className="setting-name">Max USDC per session</div>
-            <div className="text-dim text-xs">Calls above this limit are blocked</div>
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <input className="cg-input" style={{width:100}} type="number" placeholder="e.g. 5" value={budget} onChange={e=>setBudget(e.target.value)}/>
-            <button className="btn btn-sm btn-primary" onClick={saveBudget}>{saved?"Saved!":"Set"}</button>
-            {budget && <button className="btn btn-sm" onClick={()=>{setBudget("");localStorage.removeItem("cg_budget");}}>Clear</button>}
-          </div>
-        </div>
-      </div>
+      <PanelSplit
+        main={
+          <>
+            <Ledger label="Appearance">
+              <LedgerRow
+                lead="Theme"
+                meta="Dark or light mode"
+                trailing={
+                  <div className="pg-choice" role="group" aria-label="Theme">
+                    <Button
+                      size="sm"
+                      variant={theme === "dark" ? "primary" : "secondary"}
+                      aria-pressed={theme === "dark"}
+                      onClick={() => setTheme("dark")}
+                    >
+                      Dark
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={theme === "light" ? "primary" : "secondary"}
+                      aria-pressed={theme === "light"}
+                      onClick={() => setTheme("light")}
+                    >
+                      Light
+                    </Button>
+                  </div>
+                }
+              />
+              <LedgerRow
+                lead="Mode"
+                meta="Simple shows core features, Pro shows all"
+                trailing={
+                  <div className="pg-choice" role="group" aria-label="Mode">
+                    <Button
+                      size="sm"
+                      variant={mode === "simple" ? "primary" : "secondary"}
+                      aria-pressed={mode === "simple"}
+                      onClick={() => setMode("simple")}
+                    >
+                      Simple
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={mode === "pro" ? "primary" : "secondary"}
+                      aria-pressed={mode === "pro"}
+                      onClick={() => setMode("pro")}
+                    >
+                      Pro
+                    </Button>
+                  </div>
+                }
+              />
+            </Ledger>
 
-      <div className="settings-section mb-6">
-        <div className="section-title">NETWORK</div>
-        <div className="setting-row">
-          <div>
-            <div className="setting-name">PayPerCall Contract</div>
-            <div className="mono text-dim text-xs">{CONFIG.ppcAddress}</div>
-          </div>
-          <a href={`https://explorer.testnet.arc.io/address/${CONFIG.ppcAddress}`} target="_blank" rel="noreferrer" className="btn btn-sm">ArcScan ↗</a>
-        </div>
-        <div className="setting-row">
-          <div>
-            <div className="setting-name">Connected Wallet</div>
-            <div className="mono text-dim text-xs">{address}</div>
-          </div>
-          <button className="btn btn-sm" style={{color:"var(--danger)"}} onClick={()=>disconnect()}>Disconnect</button>
-        </div>
-      </div>
+            <Ledger label="Session Budget">
+              <LedgerRow
+                lead="Max USDC per session"
+                meta="Calls above this limit are blocked"
+                trailing={
+                  <div className="pg-inline-form">
+                    <Input
+                      className="pg-budget-input"
+                      type="number"
+                      placeholder="e.g. 5"
+                      aria-label="Max USDC per session"
+                      value={budget}
+                      onChange={e => setBudget(e.target.value)}
+                    />
+                    <Button size="sm" variant="primary" onClick={saveBudget}>
+                      {saved ? "Saved!" : "Set"}
+                    </Button>
+                    {budget && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => { setBudget(""); localStorage.removeItem("cg_budget"); }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                }
+              />
+            </Ledger>
 
-      <div className="settings-section">
-        <div className="section-title">SDK — QUICK INTEGRATION</div>
-        <div className="info-box">
-          <pre className="text-xs mono" style={{overflow:"auto",lineHeight:1.6}}>{`// npm install ethers
-import { ethers } from "ethers";
-const PPC = "${CONFIG.ppcAddress}";
-const provider = new ethers.BrowserProvider(window.ethereum);
-const signer = await provider.getSigner();
-const ppc = new ethers.Contract(PPC, ABI, signer);
-const tx = await ppc.callService(1, requestHash);`}</pre>
-        </div>
-      </div>
+            <Ledger label="Network">
+              <LedgerRow
+                lead="PayPerCall Contract"
+                meta={<span className="pg-mono">{CONFIG.ppcAddress}</span>}
+                trailing={
+                  <a
+                    href={`https://explorer.testnet.arc.io/address/${CONFIG.ppcAddress}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="pg-rowlink"
+                  >
+                    ArcScan ↗
+                  </a>
+                }
+              />
+              <LedgerRow
+                lead="Connected Wallet"
+                meta={<span className="pg-mono">{address}</span>}
+                trailing={
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    style={{ color: "var(--danger)" }}
+                    onClick={() => disconnect()}
+                  >
+                    Disconnect
+                  </Button>
+                }
+              />
+            </Ledger>
+          </>
+        }
+        rail={
+          <>
+            <KeyValue
+              label="Current session"
+              rows={[
+                { label: "Theme", value: theme },
+                { label: "Mode", value: mode },
+                { label: "Budget", value: budget ? `${budget} USDC` : "Not set", mono: Boolean(budget) },
+                { label: "Network", value: "Arc Testnet" },
+              ]}
+            />
+            <StatusNotice tone="info" title="Local preferences" live="off">
+              Theme and mode are stored in this browser. Disconnecting only ends the wallet session.
+            </StatusNotice>
+          </>
+        }
+      />
 
-      <style>{`
-        .settings-section{display:flex;flex-direction:column;gap:16px;}
-        .section-title{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;padding:0 0 4px;}
-        .setting-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px;background:var(--bg-2);border-radius:var(--radius);border:1px solid var(--border);flex-wrap:wrap;}
-        .setting-name{font-weight:600;font-size:14px;}
-        .toggle-row{display:flex;gap:6px;}
-        .info-box{background:var(--bg-3);border-radius:var(--radius);padding:16px;border:1px solid var(--border);}
-      `}</style>
-    </div>
+      <CodeSurface
+        label="SDK — QUICK INTEGRATION"
+        language="ethers"
+        code={SDK_SNIPPET}
+      />
+    </PanelShell>
   );
 }
