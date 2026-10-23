@@ -55,7 +55,10 @@ export const CONFIG = {
   // ERC-8183 Jobs contract
   agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
   agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
-  subgraphUrl: "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn",
+  // v7 stays the default until the v8 pair is activated. Set VITE_SUBGRAPH_URL
+  // to the v8 Studio endpoint when activating the v8 pair.
+  subgraphUrl: (import.meta.env.VITE_SUBGRAPH_URL as string | undefined)
+    || "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn",
   explorerBase: "https://explorer.testnet.arc.io",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
@@ -65,6 +68,30 @@ export const CONFIG = {
   usdcDecimals: 6,
   facilitatorUrl: typeof window !== "undefined" ? window.location.origin : "https://callguard.vercel.app",
 };
+
+// ─── v8 availability core (optional until the deployment is wired) ──────────
+// Keep v7 as the default so an env-less build still reads the live legacy pair.
+// Set both VITE_SERVICE_REGISTRY_V8 and VITE_PAY_PER_CALL_V8 to enable v8.
+const V8_REGISTRY_ENV = (import.meta.env.VITE_SERVICE_REGISTRY_V8 as string | undefined) ?? "";
+const V8_PAY_PER_CALL_ENV = (import.meta.env.VITE_PAY_PER_CALL_V8 as string | undefined) ?? "";
+
+export const V8_ENABLED = Boolean(V8_REGISTRY_ENV && V8_PAY_PER_CALL_ENV);
+
+export const V8_CONFIG = {
+  registry: V8_REGISTRY_ENV,
+  registryAddress: V8_REGISTRY_ENV as `0x${string}`,
+  payPerCall: V8_PAY_PER_CALL_ENV,
+  ppcAddress: V8_PAY_PER_CALL_ENV as `0x${string}`,
+  keeper: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as string,
+  keeperAddress: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as `0x${string}`,
+  dispute: ((import.meta.env.VITE_DISPUTE_V2 as string | undefined) ?? "") as string,
+  disputeAddress: ((import.meta.env.VITE_DISPUTE_V2 as string | undefined) ?? "") as `0x${string}`,
+};
+
+/// Address/ABI pair used by the call builder and receipt flow. When v8 is not
+/// configured, the legacy v7 pair stays active and the UI labels it as such.
+export const ACTIVE_PPC_ADDRESS = (V8_ENABLED ? V8_CONFIG.payPerCall : CONFIG.payPerCall) as `0x${string}`;
+export const ACTIVE_REGISTRY_ADDRESS = (V8_ENABLED ? V8_CONFIG.registry : CONFIG.registry) as `0x${string}`;
 
 export const USDC_ABI = [
   { name: "balanceOf", type: "function", stateMutability: "view", inputs: [{name:"account",type:"address"}], outputs: [{type:"uint256"}] },
@@ -131,9 +158,72 @@ export const PPC_ABI = [
   { name: "claim", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
 ] as const;
 
+/// v8 call/receipt surface. The receipt domain is ArcSLA/2 and every receipt
+/// carries the call's termsVersion.
+export const PPC_ABI_V8 = [
+  { name: "callService", type: "function", stateMutability: "nonpayable", inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"}], outputs: [{name:"callId",type:"bytes32"}] },
+  { name: "callServiceFor", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"requestHash",type:"bytes32"},{name:"beneficiary",type:"address"}],
+    outputs: [{name:"callId",type:"bytes32"}] },
+  { name: "submitReceipt", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"callId",type:"bytes32"},{name:"responseHash",type:"bytes32"},{name:"respondedAt",type:"uint64"},{name:"termsVersion",type:"uint32"},{name:"signature",type:"bytes"}],
+    outputs: [] },
+  { name: "claimTimeout", type: "function", stateMutability: "nonpayable", inputs: [{name:"callId",type:"bytes32"}],
+    outputs: [{name:"refunded",type:"uint256"},{name:"slashed",type:"uint256"},{name:"bounty",type:"uint256"}] },
+  { name: "claim", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "claimable", type: "function", stateMutability: "view", inputs: [{name:"account",type:"address"}], outputs: [{type:"uint256"}] },
+  { name: "getCall", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}],
+    outputs: [
+      {name:"providerId",type:"uint256"},
+      {name:"caller",type:"address"},
+      {name:"amount",type:"uint256"},
+      {name:"startedAt",type:"uint32"},
+      {name:"deadline",type:"uint32"},
+      {name:"completedAt",type:"uint32"},
+      {name:"termsVersion",type:"uint32"},
+      {name:"termsHash",type:"bytes32"},
+      {name:"requestHash",type:"bytes32"},
+      {name:"responseHash",type:"bytes32"},
+      {name:"status",type:"uint8"},
+    ] },
+  { name: "hashReceipt", type: "function", stateMutability: "view",
+    inputs: [{name:"receipt",type:"tuple",components:[
+      {name:"callId",type:"bytes32"},{name:"responseHash",type:"bytes32"},
+      {name:"respondedAt",type:"uint64"},{name:"termsVersion",type:"uint32"},
+    ]}], outputs: [{type:"bytes32"}] },
+  { name: "SUBMIT_GRACE", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "keeperBountyBps", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+  { name: "MAX_KEEPER_BOUNTY", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "CallStarted", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"providerId",type:"uint256",indexed:true},
+      {name:"caller",type:"address",indexed:true},
+      {name:"amount",type:"uint256",indexed:false},
+      {name:"termsVersion",type:"uint32",indexed:false},
+      {name:"termsHash",type:"bytes32",indexed:false},
+      {name:"requestHash",type:"bytes32",indexed:false},
+      {name:"deadline",type:"uint32",indexed:false},
+    ] },
+  { name: "ReceiptSubmitted", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"responseHash",type:"bytes32",indexed:false},
+      {name:"respondedAt",type:"uint64",indexed:false},
+      {name:"termsVersion",type:"uint32",indexed:false},
+    ] },
+  { name: "CallSlashed", type: "event",
+    inputs: [
+      {name:"callId",type:"bytes32",indexed:true},
+      {name:"refunded",type:"uint256",indexed:false},
+      {name:"slashed",type:"uint256",indexed:false},
+      {name:"keeperBounty",type:"uint256",indexed:false},
+    ] },
+] as const;
 
+export const PPC_ABI_V8_ACTIVE = V8_ENABLED ? PPC_ABI_V8 : PPC_ABI;
 
-// CRITICAL-04 fix: synced with DisputeQuality.sol actual signatures
 export const DISPUTE_QUALITY_ABI = [
   // openDispute(bytes32 callId, uint256 providerId, uint64 settledAt, string evidenceUri)
   { name: "openDispute", type: "function", stateMutability: "nonpayable",
@@ -310,6 +400,71 @@ export const REGISTRY_ABI = [
   { name: "payPerCallChangeAt", type: "function", stateMutability: "view",
     inputs: [], outputs: [{type:"uint256"}] },
 ] as const;
+
+/// v8 registry surface. Terms are read separately from the provider view,
+/// because maxResponseTime/slashBps live in the versioned terms record.
+export const REGISTRY_ABI_V8 = [
+  { name: "register", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"signer",type:"address"},{name:"stakeAmount",type:"uint256"},
+             {name:"pricePerCall",type:"uint256"},{name:"maxResponseTime",type:"uint32"},
+             {name:"slashBps",type:"uint16"},{name:"availabilityTargetBps",type:"uint16"},
+             {name:"maxConcurrentCalls",type:"uint32"},{name:"endpoint",type:"string"},
+             {name:"termsHash",type:"bytes32"},{name:"termsUri",type:"string"}],
+    outputs: [{type:"uint256"}] },
+  { name: "addStake", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"amount",type:"uint256"}], outputs: [] },
+  { name: "getProvider", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}],
+    outputs: [{name:"", type:"tuple", components: [
+      {name:"owner",type:"address"}, {name:"signer",type:"address"},
+      {name:"stake",type:"uint256"}, {name:"pricePerCall",type:"uint256"},
+      {name:"latestTermsVersion",type:"uint32"}, {name:"active",type:"bool"},
+      {name:"pendingCalls",type:"uint32"}, {name:"completedCalls",type:"uint64"},
+      {name:"slashedCalls",type:"uint64"}, {name:"maxConcurrentCalls",type:"uint32"},
+      {name:"zkTier",type:"uint8"},
+    ]}] },
+  { name: "getTerms", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"},{name:"version",type:"uint32"}],
+    outputs: [{name:"", type:"tuple", components: [
+      {name:"version",type:"uint32"}, {name:"maxResponseTime",type:"uint32"},
+      {name:"slashBps",type:"uint16"}, {name:"availabilityTargetBps",type:"uint16"},
+      {name:"termsHash",type:"bytes32"}, {name:"termsUri",type:"string"},
+      {name:"effectiveAt",type:"uint64"}, {name:"active",type:"bool"},
+    ]}] },
+  { name: "latestTermsVersion", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint32"}] },
+  { name: "getPendingTerms", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}],
+    outputs: [
+      {name:"input",type:"tuple",components:[
+        {name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint16"},
+        {name:"availabilityTargetBps",type:"uint16"},{name:"termsHash",type:"bytes32"},
+        {name:"termsUri",type:"string"},
+      ]},
+      {name:"proposedVersion",type:"uint32"},
+      {name:"executeAt",type:"uint64"},
+    ] },
+  { name: "proposeTermsUpdate", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"},{name:"input",type:"tuple",components:[
+      {name:"maxResponseTime",type:"uint32"},{name:"slashBps",type:"uint16"},
+      {name:"availabilityTargetBps",type:"uint16"},{name:"termsHash",type:"bytes32"},
+      {name:"termsUri",type:"string"},
+    ]}], outputs: [{name:"proposedVersion",type:"uint32"}] },
+  { name: "executeTermsUpdate", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{name:"version",type:"uint32"}] },
+  { name: "cancelTermsUpdate", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
+  { name: "nextProviderId", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "providerIdOf", type: "function", stateMutability: "view",
+    inputs: [{name:"owner",type:"address"}], outputs: [{type:"uint256"}] },
+  { name: "getEndpoint", type: "function", stateMutability: "view",
+    inputs: [{name:"id",type:"uint256"}], outputs: [{type:"string"}] },
+  { name: "minStake", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "MIN_RESPONSE_TIME", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "MAX_SLASH_BPS", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+] as const;
+
+export const REGISTRY_ABI_V8_ACTIVE = V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI;
 
 export const wagmiConfig = createConfig(
   getDefaultConfig({

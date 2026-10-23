@@ -3,7 +3,7 @@
 // with the call details so they can respond and submit a receipt automatically.
 
 import { ethers } from "ethers";
-import { V7 } from "./_contracts.js";
+import { ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { timingSafeEqual, createHash } from "node:crypto";
 import { getRpcUrl } from "./_rpc.js";
 import { errorSummary, logError } from "./_redact.js";
@@ -19,8 +19,8 @@ function secretEquals(a, b) {
 // One resolver for every documented public RPC alias and the optional proxy.
 const RPC_URL = getRpcUrl();
 
-const SERVICE_REGISTRY = V7.SERVICE_REGISTRY;
-const PAY_PER_CALL = V7.PAY_PER_CALL;
+const SERVICE_REGISTRY = ACTIVE.SERVICE_REGISTRY;
+const PAY_PER_CALL = ACTIVE.PAY_PER_CALL;
 
 const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
@@ -36,13 +36,22 @@ function normalizeProviderId(value) {
 
 // FIXED: ABI must match the actual ServiceRegistry.ProviderView (9 fields)
 // including maxConcurrentCalls and zkTier, and PayPerCall.Call struct.
-const registryAbi = [
-  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))",
-];
+const registryAbi = V8_ACTIVE
+  ? [
+      "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 latestTermsVersion,bool active,uint32 pendingCalls,uint64 completedCalls,uint64 slashedCalls,uint32 maxConcurrentCalls,uint8 zkTier))",
+      "function getTerms(uint256 providerId, uint32 version) view returns (tuple(uint32 version,uint32 maxResponseTime,uint16 slashBps,uint16 availabilityTargetBps,bytes32 termsHash,string termsUri,uint64 effectiveAt,bool active))",
+    ]
+  : [
+      "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))",
+    ];
 
-const payPerCallAbi = [
-  "function getCall(bytes32 callId) view returns (tuple(uint256 providerId,address caller,uint256 amount,uint32 startedAt,uint32 deadline,bytes32 requestHash,bytes32 responseHash,uint8 status))",
-];
+const payPerCallAbi = V8_ACTIVE
+  ? [
+      "function getCall(bytes32 callId) view returns (tuple(uint256 providerId,address caller,uint256 amount,uint32 startedAt,uint32 deadline,uint32 completedAt,uint32 termsVersion,bytes32 termsHash,bytes32 requestHash,bytes32 responseHash,uint8 status))",
+    ]
+  : [
+      "function getCall(bytes32 callId) view returns (tuple(uint256 providerId,address caller,uint256 amount,uint32 startedAt,uint32 deadline,bytes32 requestHash,bytes32 responseHash,uint8 status))",
+    ];
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -98,12 +107,23 @@ export default async function handler(req, res) {
     }
 
     // Fetch call details
-    let callDeadline = Math.floor(Date.now() / 1000) + Number(providerInfo.maxResponseTime);
+    let responseWindow = 0;
+    if (V8_ACTIVE) {
+      try {
+        const terms = await registry.getTerms(providerId, providerInfo.latestTermsVersion);
+        responseWindow = Number(terms.maxResponseTime);
+      } catch { /* fall back to the call deadline below */ }
+    } else {
+      responseWindow = Number(providerInfo.maxResponseTime);
+    }
+    let callDeadline = Math.floor(Date.now() / 1000) + responseWindow;
     let callCaller = caller || "";
+    let termsVersion = V8_ACTIVE ? Number(providerInfo.latestTermsVersion) : 0;
     try {
       const callInfo = await payPerCall.getCall(callId);
       callDeadline = Number(callInfo.deadline);
       callCaller = callInfo.caller || caller || "";
+      if (V8_ACTIVE) termsVersion = Number(callInfo.termsVersion);
     } catch (_) {
       // Call may not be indexed yet — use estimated deadline
     }
@@ -157,7 +177,8 @@ export default async function handler(req, res) {
       caller: callCaller,
       deadline: callDeadline,
       pricePerCall: providerInfo.pricePerCall?.toString() || "",
-      maxResponseTime: providerInfo.maxResponseTime?.toString() || "",
+      maxResponseTime: String(responseWindow || ""),
+      ...(V8_ACTIVE ? { termsVersion } : {}),
       contractAddress: PAY_PER_CALL,
       network: "arc-testnet",
       chainId: "5042002",

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useAccount, useReadContracts } from "wagmi";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { CONFIG, ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8 } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import {
@@ -11,7 +11,7 @@ import {
 } from "./providerMetrics";
 import { ProviderCompareModal } from "./ProviderCompare";
 
-const REGISTRY = CONFIG.registryAddress as `0x${string}`;
+const REGISTRY = ACTIVE_REGISTRY_ADDRESS;
 
 /* One dataset for all three rankings. The score is computed from the counters,
    so the subgraph cannot order by it; ranking client-side over one bounded
@@ -81,32 +81,64 @@ export default function Leaderboard() {
   const { data: chainData } = useReadContracts({
     contracts: compareIds.map(id => ({
       address: REGISTRY,
-      abi: REGISTRY_ABI,
+      abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
       functionName: "getProvider" as const,
       args: [BigInt(id)] as const,
     })),
     query: { enabled: compareIds.length > 0, staleTime: 15_000 },
   });
 
+  const { data: termsData } = useReadContracts({
+    contracts: compareIds.map((id, i) => {
+      const entry = (chainData as unknown as { status?: string; result?: unknown }[] | undefined)?.[i];
+      const result = entry?.status === "success" ? entry.result : null;
+      const version = Array.isArray(result)
+        ? Number(result[4] ?? 0)
+        : Number((result as Record<string, unknown> | null)?.latestTermsVersion ?? 0);
+      return {
+        address: REGISTRY,
+        abi: REGISTRY_ABI_V8,
+        functionName: "getTerms" as const,
+        args: [BigInt(id), version] as const,
+      };
+    }),
+    query: { enabled: V8_ENABLED && compareIds.length > 0, staleTime: 15_000 },
+  });
+
   const compareProviders: ProviderRow[] = useMemo(() => {
     const entries = (chainData as unknown as { status?: string; result?: unknown }[] | undefined) ?? [];
+    const termsEntries = (termsData as unknown as { status?: string; result?: unknown }[] | undefined) ?? [];
     return compareIds
       .map((id, i): ProviderRow | null => {
         const base = providers.find(p => p.id === id);
         if (!base) return null;
-        const entry = entries[i];
         let maxResponseTime: number | null = null;
         let slashBps: number | null = null;
-        if (entry?.status === "success" && Array.isArray(entry.result)) {
-          const resp = Number(entry.result[4]);
-          const slash = Number(entry.result[5]);
-          maxResponseTime = Number.isFinite(resp) ? resp : null;
-          slashBps = Number.isFinite(slash) ? slash : null;
+        if (V8_ENABLED) {
+          const t = termsEntries[i];
+          if (t?.status === "success" && t.result != null) {
+            const resp = Array.isArray(t.result)
+              ? Number(t.result[1])
+              : Number((t.result as Record<string, unknown>).maxResponseTime);
+            const slash = Array.isArray(t.result)
+              ? Number(t.result[2])
+              : Number((t.result as Record<string, unknown>).slashBps);
+            maxResponseTime = Number.isFinite(resp) ? resp : null;
+            slashBps = Number.isFinite(slash) ? slash : null;
+          }
+        } else {
+          const entry = entries[i];
+          if (entry?.status === "success" && Array.isArray(entry.result)) {
+            const resp = Number(entry.result[4]);
+            const slash = Number(entry.result[5]);
+            maxResponseTime = Number.isFinite(resp) ? resp : null;
+            slashBps = Number.isFinite(slash) ? slash : null;
+          }
         }
         return { ...base, maxResponseTime, slashBps };
       })
       .filter((p): p is ProviderRow => p !== null);
-  }, [compareIds, providers, chainData]);
+  }, [compareIds, providers, chainData, termsData]);
 
   const toggleCompare = useCallback((id: string) => {
     setCompareIds(prev =>

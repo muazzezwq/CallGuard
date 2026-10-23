@@ -1,0 +1,63 @@
+type Provider @entity {
+  id: ID!
+  owner: Bytes!
+  signer: Bytes!
+  stake: BigInt!
+  pricePerCall: BigInt!
+  latestTermsVersion: Int!
+  termsHash: Bytes!
+  endpoint: String!
+  active: Boolean!
+  deactivatedAt: BigInt
+  completedCalls: Int!
+  slashedCalls: Int!
+  maxConcurrentCalls: Int!
+  nftTokenId: BigInt
+  nftBound: Boolean!
+  totalSlashed: BigInt!
+  totalUnstaked: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  calls: [Call!]! @derivedFrom(field: "provider")
+}
+
+type Call @entity {
+  id: ID!
+  provider: Provider!
+  providerId: BigInt!
+  caller: Bytes!
+  amount: BigInt!
+  requestHash: Bytes!
+  responseHash: Bytes
+  status: CallStatus!
+  refunded: BigInt!
+  slashed: BigInt!
+  keeperBounty: BigInt!
+  termsVersion: Int!
+  termsHash: Bytes!
+  deadline: BigInt!
+  createdAt: BigInt!
+  completedAt: BigInt
+}
+
+enum CallStatus {
+  STARTED
+  COMPLETED
+  SLASHED
+  REFUNDED
+}
+
+type DisputeRecord @entity {
+  id: ID!
+  disputeId: BigInt!
+  callId: Bytes!
+  caller: Bytes!
+  providerId: BigInt!
+  status: String!
+  slashAmount: BigInt!
+  openedAt: BigInt!
+  resolvedAt: BigInt
+  appealAt: BigInt
+  evidenceUri: String
+  txHash: Bytes!
+}

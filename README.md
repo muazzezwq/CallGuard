@@ -294,7 +294,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 | Chain | wagmi v2 + viem |
 | Wallet | ConnectKit (MetaMask, Coinbase, Rainbow, injected) |
 | State | Zustand (persist) |
-| Subgraph | Goldsky GraphQL (`callguard-v7/1.1.0`) |
+| Subgraph | The Graph Studio (`onur/1.0.0`); v7 Goldsky is legacy |
 | Styling | Custom CSS (light/dark theme via `[data-theme]`) |
 | Deploy | Vercel (SPA rewrites) |
 
@@ -312,7 +312,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 
 ### Before connecting a wallet
 
-- **Live network stats** — registered providers, calls on-chain, slashes enforced (Goldsky subgraph)
+- **Live network stats** — registered providers, calls on-chain, slashes enforced (v8 Studio subgraph)
 - **Animated ticker bar** — scrolling strip: PROVIDERS / CALLS / HONOR RATE / SLASHES / NETWORK / CONTRACT / TIME
 - **Interactive canvas** — animated particle network in hero; mouse-repel effect; green SLA flow packets
 - **Scroll-reveal sections** — each landing section animates in with IntersectionObserver
@@ -359,7 +359,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 
 ### Settlement and history
 
-- **Transaction History** — full call/receipt/slash/timeout history from Goldsky subgraph
+- **Transaction History** — full call/receipt/slash/timeout history from the v8 Studio subgraph
 - **Receipt verification** — verify on-chain without a wallet; `?verify=0x...` deep link from Receipts panel
 - **Disputes panel** — open and resolved disputes with slash history
 - **My Calls / Receipts / Payments** — per-wallet history panels
@@ -597,7 +597,7 @@ CallGuard/
 │   ├── call-service.js               # x402 facilitator (full accepts array)
 │   ├── nano-call.js                  # Gateway nanopayments (dual-rail)
 │   └── auto-receipt.js               # auto-receipt + Circle Refund Protocol relay
-├── subgraph/                         # Goldsky subgraph (callguard-v7/1.1.0)
+├── subgraph/                         # v8 Studio indexer (onur/1.0.0); v7 Goldsky legacy
 ├── x402-facilitator/                 # x402 + Gateway facilitator server
 ├── AGENTS.md                         # deployed contract addresses (canonical source)
 ├── SPEC.md
@@ -611,7 +611,7 @@ CallGuard/
 ## Known limitations
 
 - **CCTP attestation takes 1–4 minutes.** Sepolia requires ~12–19 block confirmations before Circle Iris issues an attestation. The demo polls for up to 5 minutes.
-- **Subgraph covers first:1000 calls.** Very old calls beyond 1000 may not appear in some panels. Goldsky subgraph covers the full history.
+- **Subgraph panels query up to 1000 rows.** The v8 Studio subgraph covers the full indexed history; some panels cap their query at `first:1000`.
 - **Testnet only.** All contracts are deployed on Arc Testnet. Mainnet deployment planned after independent audit.
 - **ERC-8004 ReputationRegistry is best-effort.** If the registry reverts (e.g. permissions not granted), the main `submitReceipt` / `claimTimeout` still succeeds. Check `ReputationRecorded(success=false)` events.
 - **ERC-8183 hook is best-effort.** If `onCallCompleted()` reverts, `agentCall()` still succeeds. Check `PipelineHookCalled(success=false)` events.
@@ -680,7 +680,8 @@ CallGuard/
 
 - [Arc Testnet Faucet](https://faucet.testnet.arc.io) — free testnet USDC (also covers gas)
 - [ArcScan Testnet](https://explorer.testnet.arc.io/) — block explorer
-- [Goldsky Subgraph](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn) — live GraphQL endpoint
+- [v8 Subgraph](https://api.studio.thegraph.com/query/1763627/onur/1.0.0) — live GraphQL endpoint (The Graph Studio)
+- [Goldsky Subgraph (v7 legacy)](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn) — read-only legacy endpoint
 - [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer
 
 ### Project documents

@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useId, useMemo, useState } from "react";
 import { useReadContracts } from "wagmi";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { CONFIG, ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8 } from "../../lib/config";
 import { useProviders } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import type { Provider } from "../../lib/subgraph";
@@ -16,7 +16,7 @@ import {
 } from "./providerMetrics";
 import { ProviderCompareModal } from "./ProviderCompare";
 
-const REGISTRY = CONFIG.registryAddress as `0x${string}`;
+const REGISTRY = ACTIVE_REGISTRY_ADDRESS;
 
 /* Sort labels and the direction each key starts in. "Lowest price" must start
    ascending; the old panel forced descending for every key, which is why the
@@ -57,6 +57,39 @@ function chainFields(entry: ChainEntry | undefined): { maxResponseTime: number |
     };
   }
   return empty;
+}
+
+/* v8 moved maxResponseTime/slashBps into getTerms. The provider view only
+   carries the latest version, so the batched read needs a second pass. */
+function chainTermsVersion(entry: ChainEntry | undefined): number {
+  if (!entry || entry.status !== "success" || entry.result == null) return 0;
+  const t = entry.result;
+  if (Array.isArray(t)) return Number(t[4] ?? 0);
+  if (typeof t === "object") return Number((t as Record<string, unknown>).latestTermsVersion ?? 0);
+  return 0;
+}
+
+function termsFields(entry: ChainEntry | undefined): { maxResponseTime: number | null; slashBps: number | null } {
+  if (!entry || entry.status !== "success" || entry.result == null) return { maxResponseTime: null, slashBps: null };
+  const t = entry.result;
+  if (Array.isArray(t)) {
+    const resp = Number(t[1]);
+    const slash = Number(t[2]);
+    return {
+      maxResponseTime: Number.isFinite(resp) ? resp : null,
+      slashBps: Number.isFinite(slash) ? slash : null,
+    };
+  }
+  if (typeof t === "object") {
+    const o = t as Record<string, unknown>;
+    const resp = Number(o.maxResponseTime);
+    const slash = Number(o.slashBps);
+    return {
+      maxResponseTime: Number.isFinite(resp) ? resp : null,
+      slashBps: Number.isFinite(slash) ? slash : null,
+    };
+  }
+  return { maxResponseTime: null, slashBps: null };
 }
 
 /* ── call-outcome bar ────────────────────────────────────────────────────
@@ -202,17 +235,30 @@ export default function Marketplace() {
   const { data: chainData, isError: chainError } = useReadContracts({
     contracts: providers.map(p => ({
       address: REGISTRY,
-      abi: REGISTRY_ABI,
+      abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
       functionName: "getProvider" as const,
       args: [BigInt(p.id)] as const,
     })),
     query: { enabled: providers.length > 0, staleTime: 15_000 },
   });
 
+  const { data: termsData } = useReadContracts({
+    contracts: providers.map((p, i) => ({
+      address: REGISTRY,
+      abi: REGISTRY_ABI_V8,
+      functionName: "getTerms" as const,
+      args: [BigInt(p.id), chainTermsVersion((chainData as unknown as ChainEntry[] | undefined)?.[i])] as const,
+    })),
+    query: { enabled: V8_ENABLED && providers.length > 0, staleTime: 15_000 },
+  });
+
   const rows: ProviderRow[] = useMemo(() => providers.map((p: Provider, i: number) => {
     const entry = (chainData as unknown as ChainEntry[] | undefined)?.[i];
-    return { ...p, ...chainFields(entry) };
-  }), [providers, chainData]);
+    const fields = V8_ENABLED
+      ? termsFields((termsData as unknown as ChainEntry[] | undefined)?.[i])
+      : chainFields(entry);
+    return { ...p, ...fields };
+  }), [providers, chainData, termsData]);
 
   const readableResponse = rows.filter(p => typeof p.maxResponseTime === "number").length;
   const responseReady = providers.length === 0 || readableResponse > 0;

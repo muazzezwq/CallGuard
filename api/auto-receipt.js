@@ -3,7 +3,7 @@
 // Set PROVIDER_1_WEBHOOK=https://arcsla.vercel.app/api/auto-receipt in Vercel env
 
 import { ethers } from "ethers";
-import { V7 } from "./_contracts.js";
+import { ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { timingSafeEqual, createHash } from "node:crypto";
 import { getRpcUrl } from "./_rpc.js";
 import { errorSummary, logError, safeLogValue } from "./_redact.js";
@@ -18,9 +18,9 @@ function secretEquals(a, b) {
 
 // One resolver for every documented public RPC alias and the optional proxy.
 const RPC_URL = getRpcUrl();
-const PAY_PER_CALL_ADDR = V7.PAY_PER_CALL;
-const SERVICE_REGISTRY = V7.SERVICE_REGISTRY;
-const CHAIN_ID = V7.CHAIN_ID;
+const PAY_PER_CALL_ADDR = ACTIVE.PAY_PER_CALL;
+const SERVICE_REGISTRY = ACTIVE.SERVICE_REGISTRY;
+const CHAIN_ID = ACTIVE.CHAIN_ID;
 
 const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
@@ -53,25 +53,41 @@ function getProviderKey(providerId) {
 if (!RPC_URL) console.warn("[auto-receipt] ARC_RPC_URL not set");
 if (!PAY_PER_CALL_ADDR) console.warn("[auto-receipt] canonical PayPerCall address missing");
 
-const ABI = [
-  "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
-];
+const ABI = V8_ACTIVE
+  ? [
+      "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, uint32 termsVersion, bytes sig) external",
+      "function getCall(bytes32 callId) view returns (uint256 providerId, address caller, uint256 amount, uint32 startedAt, uint32 deadline, uint32 completedAt, uint32 termsVersion, bytes32 termsHash, bytes32 requestHash, bytes32 responseHash, uint8 status)",
+    ]
+  : [
+      "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
+    ];
 
-const REGISTRY_ABI = [
-  "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
-];
+const REGISTRY_ABI = V8_ACTIVE
+  ? [
+      "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 latestTermsVersion, bool active, uint32 pendingCalls, uint64 completedCalls, uint64 slashedCalls, uint32 maxConcurrentCalls, uint8 zkTier)",
+    ]
+  : [
+      "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
+    ];
 
-// MEDIUM-07: domain name/version must match PayPerCall constructor EIP712("ArcSLA","1")
+// v7: EIP712("ArcSLA","1"); v8: EIP712("ArcSLA","2") with termsVersion.
 function receiptDomain(chainId, verifyingContract) {
-  return { name: "ArcSLA", version: "1", chainId, verifyingContract };
+  return { name: "ArcSLA", version: V8_ACTIVE ? "2" : "1", chainId, verifyingContract };
 }
 
 const RECEIPT_TYPES = {
-  Receipt: [
-    { name: "callId", type: "bytes32" },
-    { name: "responseHash", type: "bytes32" },
-    { name: "respondedAt", type: "uint64" },
-  ],
+  Receipt: V8_ACTIVE
+    ? [
+        { name: "callId", type: "bytes32" },
+        { name: "responseHash", type: "bytes32" },
+        { name: "respondedAt", type: "uint64" },
+        { name: "termsVersion", type: "uint32" },
+      ]
+    : [
+        { name: "callId", type: "bytes32" },
+        { name: "responseHash", type: "bytes32" },
+        { name: "respondedAt", type: "uint64" },
+      ],
 };
 
 // Vercel max function duration: 25s (Hobby) / 60s (Pro)
@@ -122,16 +138,26 @@ async function autoSubmitReceipt({ callId, payload, providerId }, attempt = 1) {
   const responseHash = ethers.keccak256(ethers.toUtf8Bytes(response));
   const respondedAt = BigInt(Math.floor(Date.now() / 1000));
 
+  let termsVersion = 1;
+  if (V8_ACTIVE) {
+    const call = await contract.getCall(callId);
+    termsVersion = Number(call.termsVersion);
+  }
+
   const sig = await wallet.signTypedData(
     receiptDomain(CHAIN_ID, PAY_PER_CALL_ADDR),
     RECEIPT_TYPES,
-    { callId, responseHash, respondedAt }
+    V8_ACTIVE
+      ? { callId, responseHash, respondedAt, termsVersion }
+      : { callId, responseHash, respondedAt }
   );
 
   console.log(`[auto-receipt] attempt ${attempt} submitting for callId=${safeLogValue(callId, 80)}`);
 
   try {
-    const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig, { gasLimit: 200000 });
+    const tx = V8_ACTIVE
+      ? await contract.submitReceipt(callId, responseHash, respondedAt, termsVersion, sig, { gasLimit: 250000 })
+      : await contract.submitReceipt(callId, responseHash, respondedAt, sig, { gasLimit: 200000 });
     // Wait with timeout — prevents Vercel from killing before confirmation
     const receipt = await waitWithTimeout(tx.wait(), TX_WAIT_TIMEOUT_MS);
     console.log(`[auto-receipt] confirmed tx=${tx.hash} block=${receipt?.blockNumber}`);

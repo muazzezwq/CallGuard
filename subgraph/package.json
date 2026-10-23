@@ -4,7 +4,11 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "goldsky subgraph deploy callguard-v7/1.1.0 --path build"
+    "deploy": "goldsky subgraph deploy callguard-v7/1.1.0 --path build",
+    "codegen:v8": "graph codegen v8/subgraph.yaml -o v8/generated",
+    "build:v8": "graph build v8/subgraph.yaml -o v8/build",
+    "deploy:v8": "goldsky subgraph deploy callguard-v8/1.0.0 --path v8/build",
+    "deploy:studio:v8": "cd v8 && ../node_modules/.bin/graph deploy onur subgraph.yaml --studio --version-label 1.0.0"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.68.0",

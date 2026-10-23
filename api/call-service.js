@@ -9,7 +9,7 @@
  */
 
 import { ethers } from "ethers";
-import { V7 } from "./_contracts.js";
+import { ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
 import {
@@ -55,21 +55,30 @@ const {
   SERVICE_REGISTRY: REGISTRY,
   CHAIN_ID,
   NETWORK: ARC_TESTNET_CHAIN_ID,
-} = V7;
+} = ACTIVE;
 
-const PAY_ABI = [
-  "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) external returns (bytes32)",
-  "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
-];
+const PAY_ABI = V8_ACTIVE
+  ? [
+      "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) external returns (bytes32)",
+      "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, uint32 termsVersion, bytes32 termsHash, bytes32 requestHash, uint32 deadline)",
+    ]
+  : [
+      "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) external returns (bytes32)",
+      "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
+    ];
 
 const USDC_ABI = [
   "function authorizationState(address authorizer, bytes32 nonce) external view returns (bool)",
   "function balanceOf(address) view returns (uint256)",
 ];
 
-const REGISTRY_ABI = [
-  "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
-];
+const REGISTRY_ABI = V8_ACTIVE
+  ? [
+      "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 latestTermsVersion, bool active, uint32 pendingCalls, uint64 completedCalls, uint64 slashedCalls, uint32 maxConcurrentCalls, uint8 zkTier)",
+    ]
+  : [
+      "function getProvider(uint256 providerId) view returns (address owner, address signer, uint256 stake, uint256 pricePerCall, uint32 maxResponseTime, uint32 slashBps, bool active, uint32 maxConcurrentCalls, uint8 zkTier)",
+    ];
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;

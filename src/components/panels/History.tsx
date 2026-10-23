@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useAccount, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { ArrowLeft } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
-import { CONFIG, REGISTRY_ABI, arcTestnet } from "../../lib/config";
+import { ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8, arcTestnet } from "../../lib/config";
 import {
   callStatusLabel,
   clampPage,
@@ -170,8 +170,8 @@ export default function History() {
      with no owner means "not registered", not "loading". */
   const providerIdNum = Number((selected as Call | null)?.providerId ?? 0) || 0;
   const providerQuery = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
-    abi: REGISTRY_ABI,
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
     functionName: "getProvider",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
@@ -179,6 +179,7 @@ export default function History() {
   });
   const pRaw = providerQuery.data as Record<string | number, unknown> | undefined;
   const pOwner = (pRaw?.owner ?? pRaw?.[0]) as string | undefined;
+  const pTermsVersion = V8_ENABLED ? Number(pRaw?.latestTermsVersion ?? pRaw?.[4] ?? 0) : 0;
   /* Three distinct facts, not one: the read failed (no answer to judge), the id
      is not on the registry (settled read, no owner), or the terms are in hand. */
   const providerReadFailed = providerIdNum > 0 && providerQuery.isError;
@@ -186,12 +187,25 @@ export default function History() {
     providerQuery.isFetched && !providerQuery.isLoading &&
     (!pOwner || pOwner === "0x0000000000000000000000000000000000000000");
   const providerReady = providerIdNum > 0 && !providerReadFailed && !providerMissing && providerQuery.isFetched;
+  const { data: pTermsData } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_V8,
+    functionName: "getTerms",
+    args: [BigInt(providerIdNum || 1), pTermsVersion],
+    chainId: arcTestnet.id,
+    query: { enabled: V8_ENABLED && providerReady && pTermsVersion > 0 },
+  });
+  const pTermsRaw = pTermsData as Record<string | number, unknown> | undefined;
   const pStake = usdc(pRaw?.stake ?? pRaw?.[2]);
   const pPrice = usdc(pRaw?.pricePerCall ?? pRaw?.[3]);
-  const pWindow = Number(pRaw?.maxResponseTime ?? pRaw?.[4] ?? 0);
-  const pSlashBps = Number(pRaw?.slashBps ?? pRaw?.[5] ?? 0);
-  const pActive = Boolean(pRaw?.active ?? pRaw?.[6] ?? false);
-  const pConcurrent = Number(pRaw?.maxConcurrentCalls ?? pRaw?.[7] ?? 0);
+  const pWindow = V8_ENABLED
+    ? Number(pTermsRaw?.maxResponseTime ?? pTermsRaw?.[1] ?? 0)
+    : Number(pRaw?.maxResponseTime ?? pRaw?.[4] ?? 0);
+  const pSlashBps = V8_ENABLED
+    ? Number(pTermsRaw?.slashBps ?? pTermsRaw?.[2] ?? 0)
+    : Number(pRaw?.slashBps ?? pRaw?.[5] ?? 0);
+  const pActive = Boolean(pRaw?.active ?? pRaw?.[V8_ENABLED ? 5 : 6] ?? false);
+  const pConcurrent = Number(pRaw?.maxConcurrentCalls ?? pRaw?.[V8_ENABLED ? 9 : 7] ?? 0);
 
   /* The seven steps the brief asks the board to communicate, each one from a
      real field. Anything the indexer does not carry says so instead of guessing:

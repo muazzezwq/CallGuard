@@ -11,14 +11,14 @@
  *   https://developers.circle.com/agent-stack/agent-marketplace/discovery-api
  */
 
-import { V7 } from "./_contracts.js";
+import { ACTIVE } from "./_contracts.js";
 
 const {
   PAY_PER_CALL,
   SERVICE_REGISTRY: SERVICE_REG,
   USDC: USDC_ARC,
   NETWORK: ARC_TESTNET_CHAIN_ID,
-} = V7;
+} = ACTIVE;
 
 // Resolve the public base URL for this deployment.
 function baseUrl(req) {

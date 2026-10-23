@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useReadContract } from "wagmi";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { CONFIG, ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8 } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import {
   AddressPill, Badge, Button, Copy, EmptyState, ErrorState, Field, Input,
@@ -9,7 +9,7 @@ import {
 import { usdcCompact, usdcExact } from "./providerMetrics";
 import { endpointHref, endpointState } from "./endpointUrl";
 
-const REGISTRY = CONFIG.registryAddress as `0x${string}`;
+const REGISTRY = ACTIVE_REGISTRY_ADDRESS;
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 /* PayPerCall.DEFAULT_MAX_CONCURRENT: a provider that registers 0 gets this cap. */
@@ -151,13 +151,13 @@ export default function Providers() {
 
   const { data, isLoading, isError, error, refetch, isFetching, isFetched, dataUpdatedAt } = useReadContract({
     address: REGISTRY,
-    abi: REGISTRY_ABI,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
     functionName: "getProvider",
     args: [BigInt(idValid ? idNum : 1)],
     query: { enabled: idValid, staleTime: 15_000 },
   });
 
-  const record = useMemo(() => {
+  const baseRecord = useMemo(() => {
     const t = data as Record<string | number, unknown> | undefined;
     if (!t) return null;
     const read = (name: string, idx: number) => t[name] ?? t[idx];
@@ -168,19 +168,38 @@ export default function Providers() {
       signer: read("signer", 1) as string,
       stake: read("stake", 2) as bigint,
       pricePerCall: read("pricePerCall", 3) as bigint,
-      maxResponseTime: Number(read("maxResponseTime", 4) ?? 0),
-      slashBps: Number(read("slashBps", 5) ?? 0),
-      active: Boolean(read("active", 6)),
-      maxConcurrentCalls: Number(read("maxConcurrentCalls", 7) ?? 0),
-      zkTier: Number(read("zkTier", 8) ?? 0),
+      latestTermsVersion: V8_ENABLED ? Number(read("latestTermsVersion", 4) ?? 0) : 1,
+      maxResponseTime: V8_ENABLED ? 0 : Number(read("maxResponseTime", 4) ?? 0),
+      slashBps: V8_ENABLED ? 0 : Number(read("slashBps", 5) ?? 0),
+      active: Boolean(read("active", V8_ENABLED ? 5 : 6)),
+      maxConcurrentCalls: Number(read("maxConcurrentCalls", V8_ENABLED ? 9 : 7) ?? 0),
+      zkTier: Number(read("zkTier", V8_ENABLED ? 10 : 8) ?? 0),
     };
   }, [data]);
+
+  const termsQuery = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI_V8,
+    functionName: "getTerms",
+    args: [BigInt(idValid ? idNum : 1), baseRecord?.latestTermsVersion ?? 0],
+    query: { enabled: V8_ENABLED && !!baseRecord && (baseRecord?.latestTermsVersion ?? 0) > 0, staleTime: 15_000 },
+  });
+  const terms = termsQuery.data as Record<string | number, unknown> | undefined;
+
+  const record = useMemo(() => {
+    if (!baseRecord) return null;
+    return {
+      ...baseRecord,
+      maxResponseTime: V8_ENABLED ? Number(terms?.maxResponseTime ?? terms?.[1] ?? 0) : baseRecord.maxResponseTime,
+      slashBps: V8_ENABLED ? Number(terms?.slashBps ?? terms?.[2] ?? 0) : baseRecord.slashBps,
+    };
+  }, [baseRecord, terms]);
 
   /* getProvider does not include the endpoint, so it is a separate read. It is
      only requested once a record exists, to avoid reading unset ids. */
   const endpointQuery = useReadContract({
     address: REGISTRY,
-    abi: REGISTRY_ABI,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
     functionName: "getEndpoint",
     args: [BigInt(idValid ? idNum : 1)],
     query: { enabled: idValid && record !== null, staleTime: 15_000 },

@@ -1,7 +1,7 @@
 import { useReadContract, useBalance } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 // MEDIUM-09: use canonical ABIs from config — no local duplicates
-import { CONFIG, REGISTRY_ABI } from "../lib/config";
+import { CONFIG, ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8 } from "../lib/config";
 
 // callCount/slashCount/receiptCount do NOT exist on PayPerCall.sol —
 // use fetchNetworkStats() from subgraph.ts for aggregate counts instead.
@@ -11,15 +11,23 @@ export function useSlashCount() { return { data: undefined as bigint | undefined
 export function useReceiptCount() { return { data: undefined as bigint | undefined }; }
 
 export function useProviderCount() {
-  return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "nextProviderId" });
+  return useReadContract({ address: ACTIVE_REGISTRY_ADDRESS, abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI, functionName: "nextProviderId" });
 }
 
 export function useProvider(id: number) {
-  return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "getProvider", args: [BigInt(id)] });
+  return useReadContract({ address: ACTIVE_REGISTRY_ADDRESS, abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI, functionName: "getProvider", args: [BigInt(id)] });
 }
 
+// v8 does not expose a stored reputation score; the caller UI derives its
+// record from completed/slashed counters instead.
 export function useProviderScore(id: number) {
-  return useReadContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: "getReputationScore", args: [BigInt(id)] });
+  return useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI,
+    functionName: "getReputationScore",
+    args: [BigInt(id)],
+    query: { enabled: !V8_ENABLED },
+  });
 }
 
 export function useUsdcBalance(address?: `0x${string}`) {

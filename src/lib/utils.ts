@@ -1,6 +1,6 @@
 import { createWalletClient, createPublicClient, http, keccak256, toHex, toBytes } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CONFIG, PPC_ABI } from "./config";
+import { CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8 } from "./config";
 import { arcTestnet } from "./config";
 import {
   readPending,
@@ -126,26 +126,52 @@ export async function tryClientAutoReceipt(
     const wc = createWalletClient({ account, chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
     const pc = createPublicClient({ chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
     const responseHash = keccak256(toHex(toBytes(autoPayload)));
-    // CRITICAL-02 fix: domain name "ArcSLA", version "1"; Receipt type includes respondedAt (uint64)
+    let termsVersion = 1;
+    if (V8_ENABLED) {
+      const call = await pc.readContract({
+        address: ACTIVE_PPC_ADDRESS,
+        abi: PPC_ABI_V8,
+        functionName: "getCall",
+        args: [callId],
+      });
+      termsVersion = Number((call as readonly unknown[])[6] ?? 1);
+    }
     const respondedAt = BigInt(Math.floor(Date.now() / 1000));
-    const sig = await wc.signTypedData({
-      account,
-      domain: { name: "ArcSLA", version: "1", chainId: CONFIG.chainId, verifyingContract: CONFIG.payPerCall as `0x${string}` },
-      types: { Receipt: [
-        { name: "callId",       type: "bytes32" },
-        { name: "responseHash", type: "bytes32" },
-        { name: "respondedAt",  type: "uint64"  },
-      ]},
-      primaryType: "Receipt",
-      message: { callId, responseHash, respondedAt },
-    });
     toastFn({ kind: "info", title: "⚡ Auto-submitting receipt…" });
-    const hash = await wc.writeContract({
-      address: CONFIG.payPerCall as `0x${string}`,
-      abi: PPC_ABI,
-      functionName: "submitReceipt",
-      args: [callId as `0x${string}`, responseHash as `0x${string}`, respondedAt, sig as `0x${string}`],
-    });
+    const hash = V8_ENABLED
+      ? await wc.writeContract({
+          address: ACTIVE_PPC_ADDRESS,
+          abi: PPC_ABI_V8,
+          functionName: "submitReceipt",
+          args: [callId, responseHash as `0x${string}`, respondedAt, termsVersion, await wc.signTypedData({
+            account,
+            domain: { name: "ArcSLA", version: "2", chainId: CONFIG.chainId, verifyingContract: ACTIVE_PPC_ADDRESS },
+            types: { Receipt: [
+              { name: "callId",       type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+              { name: "respondedAt",  type: "uint64"  },
+              { name: "termsVersion", type: "uint32"  },
+            ]},
+            primaryType: "Receipt",
+            message: { callId, responseHash, respondedAt, termsVersion },
+          })],
+        })
+      : await wc.writeContract({
+          address: ACTIVE_PPC_ADDRESS,
+          abi: PPC_ABI,
+          functionName: "submitReceipt",
+          args: [callId, responseHash as `0x${string}`, respondedAt, await wc.signTypedData({
+            account,
+            domain: { name: "ArcSLA", version: "1", chainId: CONFIG.chainId, verifyingContract: ACTIVE_PPC_ADDRESS },
+            types: { Receipt: [
+              { name: "callId",       type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+              { name: "respondedAt",  type: "uint64"  },
+            ]},
+            primaryType: "Receipt",
+            message: { callId, responseHash, respondedAt },
+          })],
+        });
     await pc.waitForTransactionReceipt({ hash });
     toastFn({ kind: "ok", title: "⚡ Receipt auto-submitted", detail: `call ${callId.slice(0, 10)}… · escrow released` });
   } catch (e) {

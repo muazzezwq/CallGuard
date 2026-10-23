@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
-import { formatUnits, maxUint256 } from "viem";
-import { CONFIG, USDC_ABI, REGISTRY_ABI } from "../../lib/config";
+import { formatUnits, maxUint256, keccak256, toBytes } from "viem";
+import {
+  CONFIG, USDC_ABI, V8_ENABLED, ACTIVE_REGISTRY_ADDRESS, REGISTRY_ABI, REGISTRY_ABI_V8,
+} from "../../lib/config";
 import { friendlyError, formatUsdc } from "../../lib/utils";
 import { collectErrors, parseUsdc6, validateField } from "./registerRules";
 import type { FieldKey, Limits } from "./registerRules";
@@ -164,18 +166,18 @@ export default function Register() {
 
   // On-chain limits — read, never hardcoded.
   const { data: minStakeRaw } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_LIMITS_ABI,
     functionName: "minStake",
     query: { refetchInterval: 60_000 },
   });
   const { data: minRespRaw } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_LIMITS_ABI,
     functionName: "MIN_RESPONSE_TIME",
   });
   const { data: maxSlashRaw } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_LIMITS_ABI,
     functionName: "MAX_SLASH_BPS",
   });
@@ -188,7 +190,7 @@ export default function Register() {
 
   // Check if already registered
   const { data: providerId } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_UNSTAKE_ABI,
     functionName: "providerIdOf",
     args: address ? [address] : undefined,
@@ -199,22 +201,40 @@ export default function Register() {
 
   // Get provider data if registered
   const { data: providerData, refetch: refetchProvider } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
-    abi: REGISTRY_UNSTAKE_ABI,
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_UNSTAKE_ABI,
     functionName: "getProvider",
     args: alreadyRegistered ? [(providerId as bigint)] : undefined,
     query: { enabled: alreadyRegistered },
   });
 
-  const provInfo = providerData as { stake?: bigint | number; pricePerCall?: bigint | number; maxResponseTime?: bigint | number } | undefined;
+  const provInfo = providerData as {
+    stake?: bigint | number;
+    pricePerCall?: bigint | number;
+    maxResponseTime?: bigint | number;
+    latestTermsVersion?: bigint | number;
+  } | undefined;
   const currentStake = provInfo?.stake ? formatUnits(provInfo.stake as bigint, 6) : "0";
+  const registeredTermsVersion = provInfo?.latestTermsVersion != null ? Number(provInfo.latestTermsVersion) : null;
+
+  const { data: providerTermsData } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_V8,
+    functionName: "getTerms",
+    args: [providerId as bigint, registeredTermsVersion ?? 0],
+    query: { enabled: V8_ENABLED && alreadyRegistered && (registeredTermsVersion ?? 0) > 0 },
+  });
+  const providerTerms = providerTermsData as Record<string | number, unknown> | undefined;
+  const registeredSlaWindow = V8_ENABLED
+    ? Number(providerTerms?.maxResponseTime ?? providerTerms?.[1] ?? 0)
+    : Number(provInfo?.maxResponseTime ?? 0);
 
   // Allowance
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: CONFIG.usdcAddress as `0x${string}`,
     abi: USDC_ABI,
     functionName: "allowance",
-    args: address ? [address, CONFIG.registryAddress as `0x${string}`] : undefined,
+    args: address ? [address, ACTIVE_REGISTRY_ADDRESS] : undefined,
     query: { enabled: !!address },
   });
 
@@ -227,7 +247,7 @@ export default function Register() {
     setUnstakeStatus("⏳ Submitting...");
     // HIGH-01 fix: unstake requires providerId
     writeContract({
-      address: CONFIG.registryAddress as `0x${string}`,
+      address: ACTIVE_REGISTRY_ADDRESS,
       abi: REGISTRY_UNSTAKE_ABI,
       functionName: "unstake",
       args: [(providerId as bigint)],
@@ -286,10 +306,15 @@ export default function Register() {
     });
   }
 
-  type Params = { signer: `0x${string}`; stakeAmount: bigint; priceAmount: bigint; maxResponseTime: number; slashBps: number; maxConcurrentCalls: number; endpoint: string };
+  type Params = {
+    signer: `0x${string}`; stakeAmount: bigint; priceAmount: bigint;
+    maxResponseTime: number; slashBps: number; maxConcurrentCalls: number;
+    endpoint: string; availabilityTargetBps: number; termsHash: `0x${string}`; termsUri: string;
+  };
   function collectParams(): Params | null {
     const es = collectErrors(values, limits);
     if (Object.keys(es).length > 0) { setErrors(es); setPhase("edit"); return null; }
+    const trimmedEndpoint = endpoint.trim();
     return {
       signer: signerAddr as `0x${string}`,
       stakeAmount: parseUsdc6(stake) ?? 0n,
@@ -297,7 +322,12 @@ export default function Register() {
       maxResponseTime: Number(slaWindow.trim()),
       slashBps: Math.round(Number(slashPct.trim()) * 100),
       maxConcurrentCalls: Number(maxConcurrent.trim()),
-      endpoint: endpoint.trim(),
+      endpoint: trimmedEndpoint,
+      // P0 defaults: 99.5% availability target, and the endpoint doubles as the
+      // human-readable terms URI until the provider publishes a separate doc.
+      availabilityTargetBps: 9_950,
+      termsHash: keccak256(toBytes(trimmedEndpoint)),
+      termsUri: trimmedEndpoint,
     };
   }
 
@@ -328,7 +358,7 @@ export default function Register() {
           address: CONFIG.usdcAddress as `0x${string}`,
           abi: USDC_ABI,
           functionName: "approve",
-          args: [CONFIG.registryAddress as `0x${string}`, p.stakeAmount],
+          args: [ACTIVE_REGISTRY_ADDRESS, p.stakeAmount],
         });
         setTxState({ kind: "approve-pending", hash: approveHash });
         const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
@@ -339,12 +369,22 @@ export default function Register() {
         refetchAllowance();
       }
       setTxState({ kind: "register-signing" });
-      const regHash = await writeContractAsync({
-        address: CONFIG.registryAddress as `0x${string}`,
-        abi: REGISTRY_ABI,
-        functionName: "register",
-        args: [p.signer, p.stakeAmount, p.priceAmount, p.maxResponseTime, p.slashBps, p.maxConcurrentCalls, p.endpoint],
-      });
+      const regHash = V8_ENABLED
+        ? await writeContractAsync({
+            address: ACTIVE_REGISTRY_ADDRESS,
+            abi: REGISTRY_ABI_V8,
+            functionName: "register",
+            args: [
+              p.signer, p.stakeAmount, p.priceAmount, p.maxResponseTime, p.slashBps,
+              p.availabilityTargetBps, p.maxConcurrentCalls, p.endpoint, p.termsHash, p.termsUri,
+            ],
+          })
+        : await writeContractAsync({
+            address: ACTIVE_REGISTRY_ADDRESS,
+            abi: REGISTRY_ABI,
+            functionName: "register",
+            args: [p.signer, p.stakeAmount, p.priceAmount, p.maxResponseTime, p.slashBps, p.maxConcurrentCalls, p.endpoint],
+          });
       setTxState({ kind: "register-pending", hash: regHash });
       // Success is claimed only after the receipt confirms — never from a hash alone.
       const regReceipt = await publicClient.waitForTransactionReceipt({ hash: regHash });
@@ -365,6 +405,10 @@ export default function Register() {
 
   const handleRegisterV2 = async () => {
     if (v2BusyRef.current || inFlightRef.current) return;
+    if (V8_ENABLED) {
+      setV2Status("v8 uses the standard versioned-terms register flow; ERC-8004 binding is not part of P0.");
+      return;
+    }
     if (!walletClient || !publicClient || !address) { setV2Status("❌ Connect wallet first"); return; }
     if (alreadyRegistered) { setV2Status(`❌ Already registered as provider #${String(providerId)}`); return; }
     /* Parsed once, before any wallet prompt: a second parse after the NFT mint
@@ -402,7 +446,7 @@ export default function Register() {
       setNftId(tokenId.toString());
       setV2Step("approving");
       setV2Status(`✅ NFT minted #${tokenId} — Step 2/3 Approving USDC…`);
-      const approveHash = await walletClient.writeContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "approve", args: [CONFIG.registryAddress as `0x${string}`, maxUint256] });
+      const approveHash = await walletClient.writeContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "approve", args: [ACTIVE_REGISTRY_ADDRESS, maxUint256] });
       setV2Status(`⏳ Step 2/3 — approval submitted (${shortHash(approveHash)}). Waiting for confirmation…`);
       const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 });
       if (approveReceipt.status !== "success") { setV2Status("❌ The USDC approval reverted on-chain."); setV2Step("idle"); return; }
@@ -411,7 +455,7 @@ export default function Register() {
       setV2Status("✅ USDC approved — Step 3/3 Registering provider with NFT…");
       const p = params;
       const regHash = await walletClient.writeContract({
-        address: CONFIG.registryAddress as `0x${string}`,
+        address: ACTIVE_REGISTRY_ADDRESS,
         abi: REGISTRY_V2_ABI,
         functionName: "registerV2",
         args: [tokenId, p.signer, p.stakeAmount, p.priceAmount, p.maxResponseTime, p.slashBps, p.maxConcurrentCalls, p.endpoint],
@@ -468,7 +512,8 @@ export default function Register() {
             <div style={{ marginTop:4, fontSize:11, color:"var(--text-dim)" }}>
               Stake: {currentStake} USDC ·
               Price: {provInfo?.pricePerCall ? formatUnits(provInfo.pricePerCall as bigint, 6) : "—"} USDC/call ·
-              SLA: {provInfo?.maxResponseTime != null ? String(provInfo.maxResponseTime) : "—"}s
+              SLA: {registeredSlaWindow > 0 ? `${registeredSlaWindow}s` : "—"} ·
+              Terms: {registeredTermsVersion != null ? `v${registeredTermsVersion}` : "v7"}
             </div>
             <div style={{ marginTop:10, display:"flex", gap:8 }}>
               <button
@@ -706,14 +751,20 @@ export default function Register() {
             address={CONFIG.usdcAddress as `0x${string}`}
             abi={USDC_ABI}
             functionName="approve"
-            args={[CONFIG.registryAddress as `0x${string}`, stakeAmount ?? 0n]}
+            args={[ACTIVE_REGISTRY_ADDRESS, stakeAmount ?? 0n]}
             enabled={needsApproval && !busy}
           />
           <ArcFeeNotice
-            address={CONFIG.registryAddress as `0x${string}`}
-            abi={REGISTRY_ABI}
+            address={ACTIVE_REGISTRY_ADDRESS}
+            abi={V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI}
             functionName="register"
-            args={[signerAddr as `0x${string}`, stakeAmount ?? 0n, priceAmount ?? 0n, Number(slaWindow) || 0, slashBps, Number(maxConcurrent) || 0, endpoint]}
+            args={V8_ENABLED
+              ? [
+                  signerAddr as `0x${string}`, stakeAmount ?? 0n, priceAmount ?? 0n,
+                  Number(slaWindow) || 0, slashBps, 9_950, Number(maxConcurrent) || 0,
+                  endpoint, keccak256(toBytes(endpoint)), endpoint,
+                ]
+              : [signerAddr as `0x${string}`, stakeAmount ?? 0n, priceAmount ?? 0n, Number(slaWindow) || 0, slashBps, Number(maxConcurrent) || 0, endpoint]}
             enabled={!busy}
           />
 

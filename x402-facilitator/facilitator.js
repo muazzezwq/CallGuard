@@ -11,6 +11,11 @@ const PAY_ABI = [
   "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, bytes32 requestHash, uint32 deadline)",
 ];
 
+const PAY_ABI_V8 = [
+  "function callServiceWithAuthorization(uint256 providerId, bytes32 requestHash, address from, uint256 validAfter, uint256 validBefore, bytes32 authNonce, uint8 v, bytes32 r, bytes32 s) returns (bytes32)",
+  "event CallStarted(bytes32 indexed callId, uint256 indexed providerId, address indexed caller, uint256 amount, uint32 termsVersion, bytes32 termsHash, bytes32 requestHash, uint32 deadline)",
+];
+
 // Aggressive polling — checks the tx receipt every 100ms
 async function waitFast(provider, txHash, timeoutMs = 10000) {
   const start = Date.now();
@@ -95,13 +100,14 @@ export function makeFacilitator(env) {
 
   // ---- /callService: facilitator calls callServiceWithAuthorization from its own wallet ----
   async function callService({ providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s }) {
-    const payPerCall = new ethers.Contract(env.PAY_PER_CALL, PAY_ABI, wallet);
+    const activeAbi = env.CALLGUARD_V8 ? PAY_ABI_V8 : PAY_ABI;
+    const payPerCall = new ethers.Contract(env.PAY_PER_CALL, activeAbi, wallet);
     const tx = await payPerCall.callServiceWithAuthorization(
       providerId, requestHash, from, validAfter, validBefore, authNonce, v, r, s
     );
     const rc = await waitFast(provider, tx.hash);
     // parse CallStarted event
-    const iface = new ethers.Interface(PAY_ABI);
+    const iface = new ethers.Interface(activeAbi);
     let callId = null;
     for (const log of rc.logs) {
       try {

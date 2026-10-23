@@ -114,7 +114,16 @@ async function isPublicHost(hostnameRaw) {
   }
 }
 
-const fac = makeFacilitator(env);
+// Select the active pair before the facilitator is constructed: its
+// callService path reads env.PAY_PER_CALL at call time.
+const V8_PAY_PER_CALL = env.PAY_PER_CALL_V8 || process.env.PAY_PER_CALL_V8 || "";
+const V8_SERVICE_REGISTRY = env.SERVICE_REGISTRY_V8 || process.env.SERVICE_REGISTRY_V8 || "";
+const V8_ACTIVE = Boolean(V8_PAY_PER_CALL && V8_SERVICE_REGISTRY);
+
+const ACTIVE_ENV = V8_ACTIVE
+  ? { ...env, PAY_PER_CALL: V8_PAY_PER_CALL, SERVICE_REGISTRY: V8_SERVICE_REGISTRY, CALLGUARD_V8: "1" }
+  : env;
+const fac = makeFacilitator(ACTIVE_ENV);
 console.log("Facilitator wallet:", fac.facilitatorAddress);
 
 // Facilitator wallet for Memo transactions
@@ -122,10 +131,16 @@ import { ethers } from "ethers";
 const _rpcProvider = new ethers.JsonRpcProvider(env.RPC_URL || "https://rpc.testnet.arc.io");
 const facilitatorWallet = new ethers.Wallet(env.FACILITATOR_PRIVATE_KEY, _rpcProvider);
 
-const SERVICE_REGISTRY = process.env.VITE_SERVICE_REGISTRY; // arc-studio-allow-onchain-literal
-const registryAbi = [
-  "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))"
-];
+const SERVICE_REGISTRY = V8_ACTIVE
+  ? V8_SERVICE_REGISTRY
+  : (env.SERVICE_REGISTRY || process.env.VITE_SERVICE_REGISTRY); // arc-studio-allow-onchain-literal
+const registryAbi = V8_ACTIVE
+  ? [
+      "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 latestTermsVersion,bool active,uint32 pendingCalls,uint64 completedCalls,uint64 slashedCalls,uint32 maxConcurrentCalls,uint8 zkTier))"
+    ]
+  : [
+      "function getProvider(uint256 providerId) view returns (tuple(address owner,address signer,uint256 stake,uint256 pricePerCall,uint32 maxResponseTime,uint32 slashBps,bool active,uint32 maxConcurrentCalls,uint8 zkTier))"
+    ];
 const registryContract = new ethers.Contract(SERVICE_REGISTRY, registryAbi, _rpcProvider);
 
 // Post-quantum SLH-DSA-SHA2-128s — EXPERIMENTAL, NOT a trust anchor.
@@ -502,10 +517,17 @@ app.get("/ping", async (req, res) => {
 // ---- Auto-Receipt Provider Hook ----
 // When CallGuard notifies this facilitator of a call, automatically
 // process the request and submit a signed receipt on-chain.
-const PAY_PER_CALL_ADDR = env.VITE_PAY_PER_CALL || env.PAY_PER_CALL;
-const AUTO_RECEIPT_ABI = [
-  "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
-];
+const PAY_PER_CALL_ADDR = V8_ACTIVE
+  ? V8_PAY_PER_CALL
+  : (env.PAY_PER_CALL || env.VITE_PAY_PER_CALL);
+const AUTO_RECEIPT_ABI = V8_ACTIVE
+  ? [
+      "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, uint32 termsVersion, bytes sig) external",
+      "function getCall(bytes32 callId) view returns (uint256 providerId, address caller, uint256 amount, uint32 startedAt, uint32 deadline, uint32 completedAt, uint32 termsVersion, bytes32 termsHash, bytes32 requestHash, bytes32 responseHash, uint8 status)",
+    ]
+  : [
+      "function submitReceipt(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes sig) external",
+    ];
 
 async function autoSubmitReceipt({ callId, requestHash, payload, providerId }) {
   if (!env.SELLER_PRIVATE_KEY || !PAY_PER_CALL_ADDR) return;
@@ -518,18 +540,39 @@ async function autoSubmitReceipt({ callId, requestHash, payload, providerId }) {
     const responseHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(responseData)));
     const respondedAt = BigInt(Math.floor(Date.now() / 1000));
 
-    // EIP-712 sign — domain MUST match PayPerCall constructor EIP712("ArcSLA","1")
+    let termsVersion = 1;
+    if (V8_ACTIVE) {
+      const call = await contract.getCall(callId);
+      termsVersion = Number(call.termsVersion);
+    }
+
+    // EIP-712 sign — v7 domain ArcSLA/1; v8 domain ArcSLA/2 with termsVersion.
     const chainId = env.VITE_CHAIN_ID ? parseInt(env.VITE_CHAIN_ID) : 5042002;
-    const domain = { name: "ArcSLA", version: "1", chainId, verifyingContract: PAY_PER_CALL_ADDR };
+    const domain = { name: "ArcSLA", version: V8_ACTIVE ? "2" : "1", chainId, verifyingContract: PAY_PER_CALL_ADDR };
     const types = {
-      Receipt: [
-        { name: "callId", type: "bytes32" },
-        { name: "responseHash", type: "bytes32" },
-        { name: "respondedAt", type: "uint64" },
-      ],
+      Receipt: V8_ACTIVE
+        ? [
+            { name: "callId", type: "bytes32" },
+            { name: "responseHash", type: "bytes32" },
+            { name: "respondedAt", type: "uint64" },
+            { name: "termsVersion", type: "uint32" },
+          ]
+        : [
+            { name: "callId", type: "bytes32" },
+            { name: "responseHash", type: "bytes32" },
+            { name: "respondedAt", type: "uint64" },
+          ],
     };
-    const sig = await signerWallet.signTypedData(domain, types, { callId, responseHash, respondedAt });
-    const tx = await contract.submitReceipt(callId, responseHash, respondedAt, sig);
+    const sig = await signerWallet.signTypedData(
+      domain,
+      types,
+      V8_ACTIVE
+        ? { callId, responseHash, respondedAt, termsVersion }
+        : { callId, responseHash, respondedAt }
+    );
+    const tx = V8_ACTIVE
+      ? await contract.submitReceipt(callId, responseHash, respondedAt, termsVersion, sig)
+      : await contract.submitReceipt(callId, responseHash, respondedAt, sig);
     console.log(`[auto-receipt] callId=${callId} tx=${tx.hash}`);
     await tx.wait();
     console.log(`[auto-receipt] confirmed tx=${tx.hash}`);

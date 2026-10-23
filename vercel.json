@@ -24,6 +24,7 @@
     { "source": "/sitemap.xml",       "destination": "/api/provider-page?sitemap=1" },
     { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
     { "source": "/api/marketplace/health", "destination": "/api/marketplace?health=1" },
+    { "source": "/api/auto-receipt/health", "destination": "/api/auto-receipt" },
     { "source": "/(.*)",              "destination": "/index.html" }
   ],
   "headers": [
@@ -32,7 +33,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin",  "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,X-Payment,X-Machine-Id,Authorization" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,X-Payment,X-Machine-Id,Authorization,x-webhook-secret,Payment-Signature" }
       ]
     },
     {

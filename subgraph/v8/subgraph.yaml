@@ -1,0 +1,97 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ServiceRegistryV8
+    network: arc-testnet
+    source:
+      address: "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3"
+      abi: ServiceRegistryV8
+      startBlock: 68651068
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Provider
+      abis:
+        - name: ServiceRegistryV8
+          file: ./abis/ServiceRegistryV8.json
+      eventHandlers:
+        - event: ProviderRegistered(indexed uint256,indexed address,address,uint256,uint256,indexed uint32,bytes32,string)
+          handler: handleProviderRegistered
+        - event: StakeAdded(indexed uint256,uint256,uint256)
+          handler: handleStakeAdded
+        - event: ProviderDeactivated(indexed uint256,uint32)
+          handler: handleProviderDeactivated
+        - event: ProviderUnstaked(indexed uint256,uint256)
+          handler: handleProviderUnstaked
+        - event: ProviderSlashed(indexed uint256,uint256,address)
+          handler: handleProviderSlashed
+        - event: ReputationUpdated(indexed uint256,uint64,uint64)
+          handler: handleReputationUpdated
+        - event: PriceUpdated(indexed uint256,uint256)
+          handler: handlePriceUpdated
+        - event: SignerUpdated(indexed uint256,address)
+          handler: handleSignerUpdated
+        - event: MaxConcurrentCallsUpdated(indexed uint256,uint32)
+          handler: handleMaxConcurrentCallsUpdated
+        - event: TermsUpdated(indexed uint256,indexed uint32,bytes32,uint64)
+          handler: handleTermsUpdated
+      file: ./src/registry.ts
+
+  - kind: ethereum
+    name: PayPerCallV8
+    network: arc-testnet
+    source:
+      address: "0xedce61eF5be31DC22cEfE342692622A26919a7EF"
+      abi: PayPerCallV8
+      startBlock: 68651068
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Provider
+        - Call
+      abis:
+        - name: PayPerCallV8
+          file: ./abis/PayPerCallV8.json
+      eventHandlers:
+        - event: CallStarted(indexed bytes32,indexed uint256,indexed address,uint256,uint32,bytes32,bytes32,uint32)
+          handler: handleCallStarted
+        - event: ReceiptSubmitted(indexed bytes32,bytes32,uint64,uint32)
+          handler: handleReceiptSubmitted
+        - event: CallSlashed(indexed bytes32,uint256,uint256,uint256)
+          handler: handleCallSlashed
+      file: ./src/payPerCall.ts
+
+  - kind: ethereum
+    name: DisputeV2
+    network: arc-testnet
+    source:
+      address: "0xe5D993E0B328B506B874505B23b4bE876d7c0900"
+      abi: DisputeV2
+      startBlock: 68651068
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - DisputeRecord
+      abis:
+        - name: DisputeV2
+          file: ./abis/DisputeV2.json
+      eventHandlers:
+        - event: DisputeOpened(indexed uint256,indexed bytes32,indexed address,uint256)
+          handler: handleDisputeOpened
+        - event: DisputeResolved(indexed uint256,uint8,uint256)
+          handler: handleDisputeResolved
+        - event: DisputeAppealed(indexed uint256,string)
+          handler: handleDisputeAppealed
+        - event: AppealResolved(indexed uint256,uint8,uint256)
+          handler: handleAppealResolved
+        - event: DisputeFinalized(indexed uint256,uint8,uint256)
+          handler: handleDisputeFinalized
+      file: ./src/dispute.ts

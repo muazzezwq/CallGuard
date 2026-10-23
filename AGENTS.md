@@ -2,7 +2,7 @@
 
 Pay-per-call SLA marketplace: providers stake USDC, callers pay per request, missed
 deadlines auto-slash stake. Solidity contracts + React frontend + Vercel functions +
-Goldsky subgraph + x402 facilitator, all on Arc Testnet.
+subgraph indexer (v7 Goldsky, v8 The Graph Studio) + x402 facilitator, all on Arc Testnet.
 
 ## Repo shape (not a workspace monorepo)
 
@@ -14,7 +14,9 @@ separate deployable with its own `package.json` and `node_modules`:
   Feature screens are lazy `React.lazy` panels in `src/components/panels/`.
 - `contracts/` / `test/` / `script/` — Solidity, Foundry tests, deploy scripts.
 - `api/` — Vercel serverless functions (ESM Node, shipped as-is; no Vite build).
-- `subgraph/` — Goldsky subgraph (`graph codegen` / `build` / `goldsky` deploy).
+- `subgraph/` — v7 Goldsky subgraph (`graph codegen` / `build` / `goldsky` deploy).
+  `subgraph/v8/` is the v8 indexer source (`npm run codegen:v8` / `build:v8`); it is
+  deployed to The Graph Studio as `onur/1.0.0` and starts at block `68651068`.
 - `x402-facilitator/` — standalone Node/Express server.
 - `src/lib/config.ts` — **frontend source of truth** for contract addresses and the
   inline ABIs (they encode fix history for tuple/field shape). AGENTS.md mirrors it.
@@ -52,6 +54,7 @@ Subgraph / facilitator (use npm there, not bun):
 cd subgraph && npm run codegen && npm run build && npm run deploy
 cd x402-facilitator && npm run dev     # node --watch server.js
 # e2e happy/timeout lifecycle: bun scripts/e2e-lifecycle.js (needs ARC_RPC_URL, CALLER_PK, PROVIDER_PK)
+# 7-day v8 keeper soak: ARC_RPC_URL=... KEEPER_PK=... bun scripts/keeper-soak.js
 ```
 
 ## Toolchain gotchas
@@ -59,7 +62,8 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 - **`bun run lint` is a real gate** — `eslint src --max-warnings=0`, so any ESLint error
   *or* warning fails it. Run it with `typecheck` (both are wrapped by `bun run check`).
 - Solidity `0.8.37`, `via_ir = true`, optimizer 200, `evm_version = "cancun"` (OZ v5.6
-  needs mcopy). **Arc deployment requires an `--evm-version paris` override.**
+  needs mcopy). Arc’s baseline is Osaka, so it accepts Cancun bytecode: **do not pass
+  `--evm-version paris`** — OZ v5.6 `Bytes.sol` fails to compile for Paris.
 - `lib/` are git submodules (openzeppelin-contracts v5.6.1, forge-std v1.16.1). Run
   `git submodule update --init` after clone.
 - Both `bun.lock` and `package-lock.json` are committed. Frontend/Vercel build with **bun**;
@@ -112,10 +116,33 @@ Dependent: `FACILITATOR_ADDRESS` `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`,
 `0x5a2f5455…`; (7 Oct) `PayPerCall` v3 `0x51bbd776…`, `ServiceRegistry` v3 `0xea00f898…`.
 Also superseded: AgentWallet `0xf73f2Fc5…` (1 Oct).
 
+## SLA P0 v8 — DEPLOYED, NOT ACTIVE (Arc Testnet, 23 Oct 2026)
+
+| Contract | Address |
+|---|---|
+| `ServiceRegistryV8` | `0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3` |
+| `PayPerCallV8` | `0xedce61eF5be31DC22cEfE342692622A26919a7EF` |
+| `SLAKeeper` | `0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7` |
+| `DisputeV2` | `0xe5D993E0B328B506B874505B23b4bE876d7c0900` |
+
+Registry admin, arbiter, appeal arbiter, and treasury are all the owner wallet
+`0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`. On-chain wiring is verified:
+`registry.payPerCall()` is `PayPerCallV8`, `registry.authorizedSlashers(DisputeV2)` is true,
+and `SLAKeeper.payPerCall()` is `PayPerCallV8`.
+
+The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
+`ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
+on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. Provider
+migration is **not** run yet: `nextProviderId` is 1 and `providerIdOf(owner)` is 0, so the
+v8 marketplace is empty until the owner registers. Goldsky v8 was abandoned after
+Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation order:
+`docs/V8_DEPLOYMENT.md` §7.
+
 ## Key parameters
 
 - Chain ID `5042002`; RPC `https://rpc.testnet.arc.io`; explorer `https://explorer.testnet.arc.io`.
-- Subgraph (canonical): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn`.
+- Subgraph (v8, live app, The Graph Studio): `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`.
+- Subgraph (v7 legacy): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn`.
 - `SUBMIT_GRACE = 5` seconds. EIP-712 receipt domain ArcSLA/1 with `respondedAt`.
 - Erc-8004 `ReputationRegistry` `0x8004B663…` and ERC-8183 `AgenticCommerce` `0x0747EEf0…`
   integrations are **best-effort**: a revert there does not fail `submitReceipt`/`agentCall`.

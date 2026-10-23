@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { arcTestnet, CONFIG, PPC_ABI } from "../../lib/config";
+import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8 } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
@@ -10,8 +10,7 @@ import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation,
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 
-// Alias for readability — same as PPC_ABI
-const SUBMIT_RECEIPT_ABI = PPC_ABI;
+
 
 /** Accessing `sessionStorage` itself can throw in restricted browser modes. */
 function browserStorage(): Storage | null {
@@ -103,40 +102,71 @@ export default function Verify() {
       setRcpStatus("⏳ Signing EIP-712 receipt...");
       const responseHash = keccak256(toBytes(rcpPayload)) as `0x${string}`;
 
-      // EIP-712 structured signature — matches PayPerCall EIP712("ArcSLA","1")
-      const respondedAt = BigInt(Math.floor(Date.now() / 1000));
-      const domain = {
-        name: "ArcSLA",
-        version: "1",
-        chainId: arcTestnet.id,
-        verifyingContract: CONFIG.payPerCall as `0x${string}`,
-      } as const;
-      const types = {
-        Receipt: [
-          { name: "callId",       type: "bytes32" },
-          { name: "responseHash", type: "bytes32" },
-          { name: "respondedAt",  type: "uint64"  },
-        ],
-      } as const;
-      const value = { callId: callId as `0x${string}`, responseHash, respondedAt } as const;
-
-      const signature = await walletClient.signTypedData({ domain, types, primaryType: "Receipt", message: value });
-
       if (!publicClient) {
         setRcpStatus("❌ Arc RPC is unavailable. Nothing was submitted.");
         return;
       }
+      // v8 receipts are bound to the call's terms version and use domain
+      // ArcSLA/2. v7 keeps ArcSLA/1 and the 4-argument submit.
+      let termsVersion = 1;
+      if (V8_ENABLED) {
+        const call = await publicClient.readContract({
+          address: ACTIVE_PPC_ADDRESS,
+          abi: PPC_ABI_V8,
+          functionName: "getCall",
+          args: [callId as `0x${string}`],
+        });
+        termsVersion = Number((call as readonly unknown[])[6] ?? 1);
+      }
+
+      const respondedAt = BigInt(Math.floor(Date.now() / 1000));
+      let signature: `0x${string}`;
+      if (V8_ENABLED) {
+        signature = await walletClient.signTypedData({
+          domain: { name: "ArcSLA", version: "2", chainId: arcTestnet.id, verifyingContract: ACTIVE_PPC_ADDRESS },
+          types: { Receipt: [
+            { name: "callId",       type: "bytes32" },
+            { name: "responseHash", type: "bytes32" },
+            { name: "respondedAt",  type: "uint64"  },
+            { name: "termsVersion", type: "uint32"  },
+          ] },
+          primaryType: "Receipt",
+          message: { callId: callId as `0x${string}`, responseHash, respondedAt, termsVersion },
+        });
+      } else {
+        signature = await walletClient.signTypedData({
+          domain: { name: "ArcSLA", version: "1", chainId: arcTestnet.id, verifyingContract: ACTIVE_PPC_ADDRESS },
+          types: { Receipt: [
+            { name: "callId",       type: "bytes32" },
+            { name: "responseHash", type: "bytes32" },
+            { name: "respondedAt",  type: "uint64"  },
+          ] },
+          primaryType: "Receipt",
+          message: { callId: callId as `0x${string}`, responseHash, respondedAt },
+        });
+      }
+
       // Preflight the exact write. A successful simulation is not proof the
       // transaction will succeed, nor that the receipt will be verified.
       setRcpStatus("⏳ Checking whether the receipt can be submitted...");
       try {
-        await publicClient.simulateContract({
-          address: CONFIG.payPerCall as `0x${string}`,
-          abi: SUBMIT_RECEIPT_ABI,
-          functionName: "submitReceipt",
-          args: [callId as `0x${string}`, responseHash, respondedAt, signature],
-          account: address as `0x${string}`,
-        });
+        if (V8_ENABLED) {
+          await publicClient.simulateContract({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI_V8,
+            functionName: "submitReceipt",
+            args: [callId as `0x${string}`, responseHash, respondedAt, termsVersion, signature],
+            account: address as `0x${string}`,
+          });
+        } else {
+          await publicClient.simulateContract({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI,
+            functionName: "submitReceipt",
+            args: [callId as `0x${string}`, responseHash, respondedAt, signature],
+            account: address as `0x${string}`,
+          });
+        }
       } catch (error) {
         setRcpStatus(`❌ The receipt would revert, so nothing was submitted and no gas was spent: ${friendlyError(error)}`);
         return;
@@ -154,13 +184,22 @@ export default function Verify() {
 
       setRcpStatus("⏳ Submitting receipt on-chain...");
 
-      writeReceipt({
-        address: CONFIG.payPerCall as `0x${string}`,
-        abi: SUBMIT_RECEIPT_ABI,
-        functionName: "submitReceipt",
-        args: [callId as `0x${string}`, responseHash, respondedAt, signature],
-        chainId: arcTestnet.id,
-      }, {
+      const receiptRequest = V8_ENABLED
+        ? {
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI_V8,
+            functionName: "submitReceipt" as const,
+            args: [callId as `0x${string}`, responseHash, respondedAt, termsVersion, signature] as const,
+            chainId: arcTestnet.id,
+          }
+        : {
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI,
+            functionName: "submitReceipt" as const,
+            args: [callId as `0x${string}`, responseHash, respondedAt, signature] as const,
+            chainId: arcTestnet.id,
+          };
+      writeReceipt(receiptRequest as Parameters<typeof writeReceipt>[0], {
         onSuccess: (h) => {
           const persisted = recordSubmittedTx(h, browserStorage()).persisted;
           setRcpTxHash(h);

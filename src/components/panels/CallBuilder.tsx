@@ -6,7 +6,10 @@ import {
 } from "wagmi";
 import { keccak256, stringToBytes, maxUint256, pad, decodeEventLog, createPublicClient, http } from "viem";
 // MEDIUM-09: import canonical ABIs from config — eliminates local duplicates
-import { arcTestnet, CONFIG, REGISTRY_ABI, PPC_ABI } from "../../lib/config";
+import {
+  arcTestnet, CONFIG, V8_ENABLED, ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS,
+  PPC_ABI, PPC_ABI_V8, REGISTRY_ABI, REGISTRY_ABI_V8,
+} from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import { CCTP_CONFIG, switchToChain, waitForAttestation, TOKEN_MESSENGER_ABI, MESSAGE_TRANSMITTER_ABI, USDC_APPROVE_ABI } from "../../lib/cctp";
 import { useBudgetCap } from "../../hooks/useBudgetCap";
@@ -31,9 +34,9 @@ import {
 } from "../../lib/cctpOperation";
 import { endpointHref, endpointState } from "./endpointUrl";
 
-// Aliases for local readability — both reference the same canonical PPC_ABI from config
-const SUBMIT_RECEIPT_ABI = PPC_ABI;  // contains submitReceipt with correct respondedAt uint64
-const CALL_STARTED_ABI   = PPC_ABI;  // contains CallStarted event definition
+// Aliases for local readability. The v8 event carries termsVersion/termsHash,
+// so its topic0 differs from v7 and cannot be decoded with the v7 ABI.
+const CALL_STARTED_ABI = V8_ENABLED ? PPC_ABI_V8 : PPC_ABI;
 
 /** Accessing `sessionStorage` itself can throw in restricted browser modes. */
 function browserSessionStorage(): GuardStorage | null {
@@ -144,6 +147,7 @@ export default function CallBuilder() {
   const [callIdInput, setCallIdInput] = useState("");
   const [responsePayload, setResponsePayload] = useState("pong");
   const [lastCallId, setLastCallId] = useState<string | null>(null);
+  const [lastCallMeta, setLastCallMeta] = useState<{ termsVersion: number; deadline: number; termsHash?: `0x${string}` } | null>(null);
   const [phase, setPhase] = useState<TxPhase>({ kind: "idle" });
   const [note, setNote] = useState<string | null>(null);
   const [initialPending] = useState(() => readPending());
@@ -175,26 +179,43 @@ export default function CallBuilder() {
     : null;
 
   const { data: providerData, isError: providerError, isFetched: providerFetched, isLoading: providerLoading } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
-    abi: REGISTRY_ABI,
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
     functionName: "getProvider",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
     query: { enabled: providerIdNum > 0, refetchInterval: 30_000 },
   });
 
-  // getProvider returns a named 9-field ProviderView tuple. viem decodes named tuples to an
-  // object, so read by name and fall back to positional indexes for older shapes.
-  // [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
+  // v7 getProvider carries maxResponseTime/slashBps inline. v8 moved them into
+  // the versioned terms record, so read the terms version first and then the
+  // exact terms snapshot the next call would use.
+  // v7: [owner, signer, stake, pricePerCall, maxResponseTime, slashBps, active, maxConcurrentCalls, zkTier]
+  // v8: [owner, signer, stake, pricePerCall, latestTermsVersion, active, pendingCalls, completedCalls, slashedCalls, maxConcurrentCalls, zkTier]
   const raw = providerData as Record<string | number, unknown> | undefined;
   const owner     = (raw?.owner ?? raw?.[0]) as string | undefined;
   const price     = raw ? ((raw?.pricePerCall ?? raw?.[3] ?? null) as bigint | null) : null;
-  const slaWindow = raw ? Number(raw?.maxResponseTime ?? raw?.[4] ?? 0) : 0;
-  const slashBps  = raw ? Number(raw?.slashBps ?? raw?.[5] ?? 0) : null;
-  const active    = Boolean(raw?.active ?? raw?.[6] ?? false);
+  const latestTermsVersion = V8_ENABLED ? Number(raw?.latestTermsVersion ?? raw?.[4] ?? 0) : 0;
+  const legacySlaWindow = raw ? Number(raw?.maxResponseTime ?? raw?.[4] ?? 0) : 0;
+  const legacySlashBps  = raw ? Number(raw?.slashBps ?? raw?.[5] ?? 0) : null;
+  const active    = Boolean(raw?.active ?? raw?.[V8_ENABLED ? 5 : 6] ?? false);
   const stake     = raw ? ((raw?.stake ?? raw?.[2] ?? null) as bigint | null) : null;
-  const maxConcurrent = raw ? Number(raw?.maxConcurrentCalls ?? raw?.[7] ?? 0) : null;
-  const zkTier    = raw ? Number(raw?.zkTier ?? raw?.[8] ?? 0) : 0;
+  const maxConcurrent = raw ? Number(raw?.maxConcurrentCalls ?? raw?.[V8_ENABLED ? 9 : 7] ?? 0) : null;
+  const zkTier    = raw ? Number(raw?.zkTier ?? raw?.[V8_ENABLED ? 10 : 8] ?? 0) : 0;
+
+  const { data: termsData } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_V8,
+    functionName: "getTerms",
+    args: [BigInt(providerIdNum || 1), latestTermsVersion],
+    chainId: arcTestnet.id,
+    query: { enabled: V8_ENABLED && providerIdNum > 0 && latestTermsVersion > 0, refetchInterval: 30_000 },
+  });
+  const termsRaw = termsData as Record<string | number, unknown> | undefined;
+  const slaWindow = V8_ENABLED ? Number(termsRaw?.maxResponseTime ?? termsRaw?.[1] ?? 0) : legacySlaWindow;
+  const slashBps  = V8_ENABLED ? Number(termsRaw?.slashBps ?? termsRaw?.[2] ?? 0) : legacySlashBps;
+  const termsHash = V8_ENABLED ? ((termsRaw?.termsHash ?? termsRaw?.[4]) as `0x${string}` | undefined) : undefined;
+  const termsVersion = V8_ENABLED ? latestTermsVersion : 1;
 
   // getProvider reverts for unknown ids, so a settled query with no usable owner means
   // the id doesn't exist on the live registry — surface that instead of loading forever.
@@ -204,30 +225,35 @@ export default function CallBuilder() {
   );
   const providerLoadError = providerIdNum > 0 && providerError;
 
-  // HIGH-03 fix: completedCalls/slashedCalls are separate reads (not in getProvider tuple)
+  // v7 exposes completed/slashed counters as separate reads. v8 puts them in
+  // the provider view, so the separate calls stay disabled there.
   const { data: completedCallsRaw } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_ABI,
     functionName: "completedCalls",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
+    query: { enabled: !V8_ENABLED && providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
   });
   const { data: slashedCallsRaw } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
+    address: ACTIVE_REGISTRY_ADDRESS,
     abi: REGISTRY_ABI,
     functionName: "slashedCalls",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
+    query: { enabled: !V8_ENABLED && providerIdNum > 0 && !!providerData, refetchInterval: 60_000 },
   });
-  const completedN = completedCallsRaw ? Number(completedCallsRaw) : 0;
-  const slashedN   = slashedCallsRaw   ? Number(slashedCallsRaw)   : 0;
+  const completedN = V8_ENABLED
+    ? Number(raw?.completedCalls ?? raw?.[7] ?? 0)
+    : completedCallsRaw ? Number(completedCallsRaw) : 0;
+  const slashedN = V8_ENABLED
+    ? Number(raw?.slashedCalls ?? raw?.[8] ?? 0)
+    : slashedCallsRaw ? Number(slashedCallsRaw) : 0;
 
   /* Endpoint support is part of the registry record; show it only when the record loaded. */
   const { data: endpointRaw, isLoading: endpointLoading, isError: endpointError } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
-    abi: REGISTRY_ABI,
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
     functionName: "getEndpoint",
     args: [BigInt(providerIdNum || 1)],
     chainId: arcTestnet.id,
@@ -249,12 +275,12 @@ export default function CallBuilder() {
     address: CONFIG.usdcAddress as `0x${string}`,
     abi: USDC_ALLOWANCE_ABI,
     functionName: "allowance",
-    args: [address ?? ZERO_ADDRESS, CONFIG.payPerCall as `0x${string}`],
+    args: [address ?? ZERO_ADDRESS, ACTIVE_PPC_ADDRESS],
     chainId: arcTestnet.id,
     query: { enabled: !!address, refetchInterval: 20_000 },
   });
   const { data: openCallsRaw, refetch: refetchOpenCalls } = useReadContract({
-    address: CONFIG.payPerCall as `0x${string}`,
+    address: ACTIVE_PPC_ADDRESS,
     abi: OPEN_CALLS_ABI,
     functionName: "openCallsPerCaller",
     args: [BigInt(providerIdNum || 1), address ?? ZERO_ADDRESS],
@@ -273,8 +299,8 @@ export default function CallBuilder() {
     const timer = setTimeout(() => {
       const reqH = keccak256(stringToBytes(payload)) as `0x${string}`;
       publicClient.estimateContractGas({
-        address: CONFIG.payPerCall as `0x${string}`,
-        abi: PPC_ABI,
+        address: ACTIVE_PPC_ADDRESS,
+        abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI,
         functionName: "callService",
         args: [BigInt(providerIdNum), reqH],
         account: address as `0x${string}`,
@@ -421,6 +447,7 @@ export default function CallBuilder() {
   const changeProvider = useCallback((next: string) => {
     setProviderId(next);
     setLastCallId(null);
+    setLastCallMeta(null);
     setSettlement(null);
     setNote(null);
     setPhase({ kind: "idle" });
@@ -536,7 +563,7 @@ export default function CallBuilder() {
       address: CONFIG.usdcAddress as `0x${string}`,
       abi: USDC_ALLOWANCE_ABI,
       functionName: "allowance",
-      args: [address as `0x${string}`, CONFIG.payPerCall as `0x${string}`],
+      args: [address as `0x${string}`, ACTIVE_PPC_ADDRESS],
     }).catch(() => null);
     if (allowed == null) {
       setPhase({ kind: "failed", message: "Could not read the USDC allowance from Arc. Nothing was submitted." });
@@ -551,7 +578,7 @@ export default function CallBuilder() {
         address: CONFIG.usdcAddress as `0x${string}`,
         abi: USDC_APPROVE_ABI_ONE,
         functionName: "approve",
-        args: [CONFIG.payPerCall as `0x${string}`, maxUint256],
+        args: [ACTIVE_PPC_ADDRESS, maxUint256],
         chainId: arcTestnet.id,
       });
     } catch (error) {
@@ -595,8 +622,8 @@ export default function CallBuilder() {
     let hash: `0x${string}`;
     try {
       hash = await writeContractAsync({
-        address: CONFIG.payPerCall as `0x${string}`,
-        abi: PPC_ABI,
+        address: ACTIVE_PPC_ADDRESS,
+        abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI,
         functionName: "callService",
         args: [BigInt(providerIdNum), reqHash],
         chainId: arcTestnet.id,
@@ -629,7 +656,17 @@ export default function CallBuilder() {
       try {
         const decoded = decodeEventLog({ abi: CALL_STARTED_ABI, data: log.data, topics: log.topics });
         if (decoded.eventName === "CallStarted") {
-          realCallId = (decoded.args as { callId?: `0x${string}` }).callId ?? null;
+          const args = decoded.args as {
+            callId?: `0x${string}`; termsVersion?: number; termsHash?: `0x${string}`; deadline?: number;
+          };
+          realCallId = args.callId ?? null;
+          if (args.deadline != null) {
+            setLastCallMeta({
+              termsVersion: Number(args.termsVersion ?? 1),
+              deadline: Number(args.deadline),
+              termsHash: args.termsHash,
+            });
+          }
           break;
         }
       } catch { /* not a CallStarted log */ }
@@ -666,6 +703,7 @@ export default function CallBuilder() {
     submittingRef.current = true;
     setNote(null);
     setSettlement(null);
+    setLastCallMeta(null);
     try {
       await runCall(payload, "Call", "call");
     } finally {
@@ -946,8 +984,8 @@ export default function CallBuilder() {
       setPhase({ kind: "preparing", label: "Checking whether this call can be claimed" });
       try {
         await publicClient.simulateContract({
-          address: CONFIG.payPerCall as `0x${string}`,
-          abi: PPC_ABI,
+          address: ACTIVE_PPC_ADDRESS,
+          abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI,
           functionName: "claimTimeout",
           args: [id as `0x${string}`],
           account: address as `0x${string}`,
@@ -960,8 +998,8 @@ export default function CallBuilder() {
       let hash: `0x${string}`;
       try {
         hash = await writeContractAsync({
-          address: CONFIG.payPerCall as `0x${string}`,
-          abi: PPC_ABI,
+          address: ACTIVE_PPC_ADDRESS,
+          abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI,
           functionName: "claimTimeout",
           args: [id as `0x${string}`],
           chainId: arcTestnet.id,
@@ -988,7 +1026,7 @@ export default function CallBuilder() {
       let decodedSlashed = false;
       for (const log of result.receipt.logs) {
         try {
-          const decoded = decodeEventLog({ abi: PPC_ABI, data: log.data, topics: log.topics });
+          const decoded = decodeEventLog({ abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI, data: log.data, topics: log.topics });
           if (decoded.eventName === "CallSlashed") {
             const args = decoded.args as { refunded?: bigint; slashed?: bigint };
             if (args.refunded != null && args.slashed != null) {
@@ -1023,37 +1061,75 @@ export default function CallBuilder() {
     setNote(null);
     try {
       if (!(await ensureArc())) return;
+      if (!publicClient) { setPhase({ kind: "failed", message: "Arc RPC is unavailable. Nothing was submitted." }); return; }
       setPhase({ kind: "awaiting-signature", label: "Sign the EIP-712 receipt" });
       const responseHash = keccak256(stringToBytes(responsePayload)) as `0x${string}`;
       const respondedAt = BigInt(Math.floor(Date.now() / 1000));
-      const domain = { name: "ArcSLA", version: "1", chainId: arcTestnet.id, verifyingContract: CONFIG.payPerCall as `0x${string}` } as const;
-      const types = { Receipt: [
-        { name: "callId",       type: "bytes32" },
-        { name: "responseHash", type: "bytes32" },
-        { name: "respondedAt",  type: "uint64"  },
-      ] } as const;
+
+      // v8 signs the call's own terms version, not the provider's latest one:
+      // a call that started under v1 must still be closed under v1.
+      let termsVersion = 1;
+      if (V8_ENABLED) {
+        const call = await publicClient.readContract({
+          address: ACTIVE_PPC_ADDRESS,
+          abi: PPC_ABI_V8,
+          functionName: "getCall",
+          args: [id as `0x${string}`],
+        });
+        termsVersion = Number((call as readonly unknown[])[6] ?? 1);
+      }
+
       let sig: `0x${string}`;
       try {
-        sig = await walletClient.signTypedData({
-          domain, types, primaryType: "Receipt",
-          message: { callId: id as `0x${string}`, responseHash, respondedAt },
-        });
+        if (V8_ENABLED) {
+          sig = await walletClient.signTypedData({
+            domain: { name: "ArcSLA", version: "2", chainId: arcTestnet.id, verifyingContract: ACTIVE_PPC_ADDRESS },
+            types: { Receipt: [
+              { name: "callId",       type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+              { name: "respondedAt",  type: "uint64"  },
+              { name: "termsVersion", type: "uint32"  },
+            ] },
+            primaryType: "Receipt",
+            message: { callId: id as `0x${string}`, responseHash, respondedAt, termsVersion },
+          });
+        } else {
+          sig = await walletClient.signTypedData({
+            domain: { name: "ArcSLA", version: "1", chainId: arcTestnet.id, verifyingContract: ACTIVE_PPC_ADDRESS },
+            types: { Receipt: [
+              { name: "callId",       type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+              { name: "respondedAt",  type: "uint64"  },
+            ] },
+            primaryType: "Receipt",
+            message: { callId: id as `0x${string}`, responseHash, respondedAt },
+          });
+        }
       } catch (error) {
         const classified = classifyWalletError(error);
         setPhase(classified.kind === "rejected" ? { kind: "rejected" } : { kind: "failed", message: classified.message });
         return;
       }
 
-      if (!publicClient) { setPhase({ kind: "failed", message: "Arc RPC is unavailable. Nothing was submitted." }); return; }
       setPhase({ kind: "preparing", label: "Checking whether the receipt can be submitted" });
       try {
-        await publicClient.simulateContract({
-          address: CONFIG.payPerCall as `0x${string}`,
-          abi: SUBMIT_RECEIPT_ABI,
-          functionName: "submitReceipt",
-          args: [id as `0x${string}`, responseHash, respondedAt, sig],
-          account: address as `0x${string}`,
-        });
+        if (V8_ENABLED) {
+          await publicClient.simulateContract({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI_V8,
+            functionName: "submitReceipt",
+            args: [id as `0x${string}`, responseHash, respondedAt, termsVersion, sig],
+            account: address as `0x${string}`,
+          });
+        } else {
+          await publicClient.simulateContract({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI,
+            functionName: "submitReceipt",
+            args: [id as `0x${string}`, responseHash, respondedAt, sig],
+            account: address as `0x${string}`,
+          });
+        }
       } catch (error) {
         setPhase({ kind: "failed", message: `The receipt would revert, so nothing was submitted and no gas was spent: ${friendlyError(error)}` });
         return;
@@ -1062,13 +1138,23 @@ export default function CallBuilder() {
       setPhase({ kind: "awaiting-signature", label: "Submit the receipt" });
       let hash: `0x${string}`;
       try {
-        hash = await writeContractAsync({
-          address: CONFIG.payPerCall as `0x${string}`,
-          abi: SUBMIT_RECEIPT_ABI,
-          functionName: "submitReceipt",
-          args: [id as `0x${string}`, responseHash, respondedAt, sig],
-          chainId: arcTestnet.id,
-        });
+        if (V8_ENABLED) {
+          hash = await writeContractAsync({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI_V8,
+            functionName: "submitReceipt",
+            args: [id as `0x${string}`, responseHash, respondedAt, termsVersion, sig],
+            chainId: arcTestnet.id,
+          });
+        } else {
+          hash = await writeContractAsync({
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI,
+            functionName: "submitReceipt",
+            args: [id as `0x${string}`, responseHash, respondedAt, sig],
+            chainId: arcTestnet.id,
+          });
+        }
       } catch (error) {
         const classified = classifyWalletError(error);
         setPhase(classified.kind === "rejected" ? { kind: "rejected" } : { kind: "failed", message: classified.message });
@@ -1091,7 +1177,7 @@ export default function CallBuilder() {
       let decodedEvent = false;
       for (const log of result.receipt.logs) {
         try {
-          const decoded = decodeEventLog({ abi: PPC_ABI, data: log.data, topics: log.topics });
+          const decoded = decodeEventLog({ abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI, data: log.data, topics: log.topics });
           if (decoded.eventName === "ReceiptSubmitted") { decodedEvent = true; break; }
         } catch { /* not a ReceiptSubmitted log */ }
       }
@@ -1155,7 +1241,7 @@ export default function CallBuilder() {
             { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
           ]},
           primaryType: "TransferWithAuthorization",
-          message: { from: address, to: CONFIG.payPerCall as `0x${string}`, value: price, validAfter, validBefore, nonce: authNonce },
+          message: { from: address, to: ACTIVE_PPC_ADDRESS, value: price, validAfter, validBefore, nonce: authNonce },
         });
       } catch (error) {
         const classified = classifyWalletError(error);
@@ -1190,7 +1276,7 @@ export default function CallBuilder() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 providerId: providerIdNum.toString(), requestHash,
-                authorization: { from: address, to: CONFIG.payPerCall, value: price.toString(), validAfter: "0", validBefore: validBefore.toString(), nonce: authNonce },
+                authorization: { from: address, to: ACTIVE_PPC_ADDRESS, value: price.toString(), validAfter: "0", validBefore: validBefore.toString(), nonce: authNonce },
                 signature: eip3009Sig,
               }),
             });
@@ -1336,8 +1422,8 @@ export default function CallBuilder() {
         let hash: `0x${string}`;
         try {
           hash = await writeContractAsync({
-            address: CONFIG.payPerCall as `0x${string}`,
-            abi: PPC_ABI,
+            address: ACTIVE_PPC_ADDRESS,
+            abi: V8_ENABLED ? PPC_ABI_V8 : PPC_ABI,
             functionName: "callService",
             args: [BigInt(providerIdNum), keccak256(stringToBytes(`${payload}-${i}-${Date.now()}`))],
             chainId: arcTestnet.id,
@@ -1457,9 +1543,10 @@ export default function CallBuilder() {
           </div>
 
           {/* SLA terms read from the registry */}
-          <div className="cb-terms" style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16 }}>
+          <div className="cb-terms" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16 }}>
             {[
               { label:"Price (USDC)",    value: price != null ? formatUsdc(price) : "—" },
+              { label:"Terms",           value: V8_ENABLED ? (termsVersion > 0 ? `v${termsVersion}` : "—") : "v7 legacy" },
               { label:"Max response",    value: slaWindow ? `${slaWindow}s` : "—" },
               { label:"Slash",           value: slashBps != null ? `${slashBps / 100}%` : "—" },
             ].map(f => (
@@ -1469,6 +1556,11 @@ export default function CallBuilder() {
               </div>
             ))}
           </div>
+          {V8_ENABLED && termsHash && (
+            <p style={{ fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",margin:"-8px 0 16px",overflowWrap:"anywhere" as const }}>
+              Terms hash {termsHash}
+            </p>
+          )}
 
           {/* Endpoint from the registry record */}
           <div style={{ marginBottom:16 }}>
@@ -1857,6 +1949,16 @@ export default function CallBuilder() {
               <div style={{ marginTop:12,paddingTop:12,borderTop:"1px solid var(--border)" }}>
                 <div style={{ fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.07em",color:"var(--text)",fontWeight:600,marginBottom:4 }}>Last Call ID</div>
                 <div style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-dim)",wordBreak:"break-all" as const }}>{lastCallId}</div>
+                {lastCallMeta && (
+                  <div style={{ fontSize:11,color:"var(--text-dim)",marginTop:6 }}>
+                    Terms v{lastCallMeta.termsVersion} · deadline {new Date(lastCallMeta.deadline * 1000).toLocaleString()}
+                    {lastCallMeta.termsHash && (
+                      <div style={{ fontFamily:"var(--font-mono)",fontSize:10,marginTop:2,overflowWrap:"anywhere" as const }}>
+                        {lastCallMeta.termsHash}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div style={{ fontSize:11,color:"var(--text)",marginTop:4 }}>A created call is not a completed call. Provider execution, receipt and settlement are reported by their own evidence.</div>
               </div>
             )}

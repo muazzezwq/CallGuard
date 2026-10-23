@@ -222,3 +222,62 @@ Conservative choices made without stopping. Format: decision + reason.
   transformed plates, and the existing `role="status"` line names the selected stage. Reason:
   keeping the absolute captions would require a label narrower than the word "Settlement" or a
   board wider than the detail column.
+- **SLA P0 — the availability core is a new v8 pair, not a patch to v7.** `ServiceRegistryV8` and
+  `PayPerCallV8` add versioned terms, per-call terms snapshots, stake top-up, receipt hardening, and
+  `Call.completedAt`; `SLAKeeper` automates timeouts and `DisputeV2` reads `completedAt` instead of
+  a caller-supplied `settledAt`. Reason: v7's `PayPerCall` and registry wiring are not upgradeable,
+  and keeping the old pair as a read-only legacy deployment avoids trapping pending v7 calls during
+  migration. Design: `docs/SLA_P0_DESIGN.md`; interfaces: `contracts/interfaces/*V8.sol`,
+  `contracts/interfaces/IDisputeV2.sol`, `contracts/interfaces/ISLAKeeper.sol`.
+- **SLA P0 — v7 must not be switched to v8 while v7 has pending calls.** `ServiceRegistry` allows
+  only its current `payPerCall` to call `markCallFinished`, so switching the pointer would leave v7
+  calls unable to close and their escrow trapped. v7 stays deployed and read-only; providers migrate
+  manually on testnet, and production needs a dedicated migration path. Reason: this is a
+  fund-safety constraint, not a deployment preference.
+- **SLA P0 — a first-instance upheld slash is held in `DisputeV2` until the appeal window closes.**
+  `resolve` returns the caller bond immediately but keeps the slash in the dispute contract.
+  `finalize` releases it when no appeal is filed; a successful provider appeal returns it. Reason:
+  a direct slash transfer cannot be reversed if the provider wins the one allowed appeal.
+- **SLA P0 — the appeal bond follows the appellant.** A winning appellant gets the bond back; a
+  losing appellant forfeits it to the treasury. Reason: prevents a free appeal while keeping the
+  first-instance caller bond and the appeal bond separately accounted.
+- **SLA P0 — v8 is selected by env, not by a source edit.** The frontend needs both
+  `VITE_SERVICE_REGISTRY_V8` and `VITE_PAY_PER_CALL_V8`; server routes need both
+  `SERVICE_REGISTRY_V8` and `PAY_PER_CALL_V8`. Without them the live v7 pair stays active, so an
+  env-less build never calls a v8 ABI against a v7 address. Reason: deployment is a separate,
+  reversible configuration step and v7 must stay usable during migration.
+- **SLA P0 — the v8 subgraph is deployed on The Graph Studio.** The v7 subgraph cannot index the
+  v8 event signatures (`CallStarted` gained `termsVersion`/`termsHash`, `CallSlashed` gained the
+  keeper bounty), so `subgraph/v8` is a separate manifest. It is deployed as Studio slug
+  `onur`, version `1.0.0`, starting at block `68651068`, and its `_meta.hasIndexingErrors` is
+  false. The v7 Goldsky deployment remains untouched. Goldsky v8 was abandoned after the account
+  hit Starter-plan credit exhaustion. Reason: Studio supports Arc Testnet and unblocked the
+  indexer without changing the v7 deployment.
+- **SLA P0 — do not compile Arc deployments for Paris.** Arc documents Osaka as its
+  baseline, so it accepts the project’s Cancun bytecode. OZ v5.6 `Bytes.sol` uses `mcopy`,
+  which the Paris compiler target rejects. The old `--evm-version paris` note was stale and
+  blocked every v8 dry-run. Reason: the chain is newer than Cancun; the override only
+  downgraded the compiler target.
+- **SLA P0 — keeper bounty is 5% of the slash, capped at 5 USDC, and zero when the slash is zero.**
+  `SLAKeeper` collects the bounty through `PayPerCallV8.claimable` and then accounts it in its own
+  `bountyClaimable` ledger, so it never custodies caller refunds. Reason: bounded incentive without
+  making the keeper a fund custodian.
+- **SLA P0 — registry admin can be handed to a separate address after wiring.** `transferAdmin`
+  is `onlyAdmin`, rejects zero, and emits `AdminTransferred`. `DeployV8` keeps the broadcaster as
+  admin while it calls `setPayPerCall` and `authorizeSlasher`, then transfers admin to
+  `ADMIN_ADDRESS` last. Reason: a hot deployer can pay gas without becoming the permanent admin,
+  and the owner key never has to enter the deploy shell. Test: `test_transferAdmin_onlyAdmin`,
+  `test_transferAdmin_zeroAddress_reverts`.
+- **SLA P0 — v8 production activation happened before provider migration.** The v8 contract
+  env vars and `VITE_SUBGRAPH_URL` are set in Vercel production, and
+  `dpl_7SLyCpKPpRQ5ELKda6KxLfAvG8fu` is live at `https://arcsla.vercel.app`. The v8 marketplace
+  is intentionally empty until the owner registers `ServiceRegistryV8`; `nextProviderId` is 1
+  and `providerIdOf(owner)` is 0. The v7 provider stays active and read-only during that gap.
+  After registration, deactivate/unstake v7 after the 1-hour cooldown, then run the 7-day keeper
+  soak. Reason: the frontend, API, and indexer had to move as one unit; leaving v7 rows in a v8
+  read path would resolve the wrong provider IDs.
+- **SLA P0 — the deployment used a disposable deployer, not an existing hot wallet.** A fresh
+  EOA paid gas, the script handed registry admin to the owner, and the key was shredded after the
+  broadcast; the unspent balance was returned. Reason: Vercel marks private-key env vars as
+  sensitive and the CLI returns `[SENSITIVE]`, so reusing a service key would have required
+  exporting a secret that cannot be read back.
