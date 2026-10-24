@@ -254,3 +254,67 @@ One deploy gap surfaced during step 1: `Register.tsx` never switched the wallet 
 before writing, so a wallet on another chain failed `approve` with
 `Requested resource not available`. It now calls `switchChainAsync`, matching `Verify.tsx` and
 `Requests.tsx`.
+
+## 8. DisputeV3 (quality-slash escrow) — ready to deploy
+
+`DisputeV2` computed the quality slash at `resolve` time, so a provider could
+`deactivate`, wait the 1 hour `UNSTAKE_COOLDOWN`, `unstake`, and leave nothing to
+slash. `DisputeV3` slashes the stake inside `openDispute` and escrows the money in
+the dispute contract, so the provider cannot withdraw it before the decision.
+Evidence: `test/DisputeV3.t.sol` (`test_unstakeBeforeResolve_stillPaysCaller` for
+the fix, `test_gap_unstakeBeforeResolveSkipsQualitySlash` pinning the old
+behaviour), and `docs/SLA_COVERAGE.md` C8.
+
+Only `DisputeV2` is replaced. The registry, `PayPerCallV8`, the keeper, the
+provider registration, and the v8 subgraph stay as they are.
+
+### 8.1 Deploy
+
+The broadcaster needs gas only; the registry admin is the owner wallet.
+
+```bash
+export USDC_ADDRESS=0x3600000000000000000000000000000000000000
+export SERVICE_REGISTRY_V8=0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3
+export PAY_PER_CALL_V8=0xedce61eF5be31DC22cEfE342692622A26919a7EF
+export ARBITER_ADDRESS=0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da
+export APPEAL_ARBITER_ADDRESS=0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da
+export TREASURY_ADDRESS=0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da
+# defaults already match the live V2 configuration
+forge script script/DeployDisputeV3.s.sol:DeployDisputeV3 \
+  --account deployer --rpc-url arc_testnet --broadcast
+```
+
+If the broadcaster is not the registry admin, the `authorizeSlasher` call inside
+the script reverts. In that case deploy with the script's constructor only and
+authorise from the owner wallet:
+
+```bash
+cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
+  'authorizeSlasher(address)' <DISPUTE_V3> \
+  --account <owner-account> --rpc-url arc_testnet
+```
+
+Without that authorisation `openDispute` reverts, because the registry only lets
+authorised slashers move stake.
+
+### 8.2 Wire the frontend
+
+1. Set `VITE_DISPUTE_V3=<DISPUTE_V3>` (and `DISPUTE_V3` for server code) in Vercel
+   production. `VITE_DISPUTE_V2` can stay for the fallback; the app prefers V3.
+2. Redeploy. The panel then calls `previewSlash` and shows the exact USDC amount
+   that `openDispute` will escrow before the click.
+3. Revoke the old slasher once no dispute is pending on V2:
+   `registry.revokeSlasher(0xe5D993E0B328B506B874505B23b4bE876d7c0900)`.
+   `finalize` on an existing V2 dispute still works, because the money is already
+   held inside that contract.
+
+### 8.3 After deploy
+
+- Open one dispute on a fresh Completed call and confirm `heldSlash(id)` is
+  non-zero **before** `resolve`.
+- `logs`/`getDispute`: the record carries the same fields as V2, so the panel
+  needs no shape change.
+- The v8 subgraph still points its `DisputeV2` data source at the old address, so
+  the dispute entity stops updating for new disputes. The panel reads disputes
+  from the contract, so this only affects indexer consumers. A Studio key is
+  needed to redeploy the subgraph.

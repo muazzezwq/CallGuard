@@ -18,6 +18,7 @@ import {
 import {
   CONFIG,
   DISPUTE_V2_ABI,
+  DISPUTE_V3_ENABLED,
   PPC_ABI_V8,
   REGISTRY_ABI_V8,
   USDC_ABI,
@@ -508,6 +509,22 @@ export default function DisputesV8() {
     query: { enabled: LIVE && !!address, refetchInterval: 30_000 },
   });
 
+  // DisputeV3 escrows the slash at open. Show the amount before the click so the
+  // provider's stake is not cut by a number the caller never saw.
+  const previewProviderId = (() => {
+    const text = providerInput.trim();
+    if (!/^\d+$/.test(text) || text === "0" || text.length > 20) return undefined;
+    return BigInt(text);
+  })();
+  const { data: slashPreviewRaw } = useReadContract({
+    address: DISPUTE_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "previewSlash",
+    args: previewProviderId !== undefined ? [previewProviderId] : undefined,
+    query: { enabled: LIVE && DISPUTE_V3_ENABLED, refetchInterval: 30_000 },
+  });
+  const slashPreview = typeof slashPreviewRaw === "bigint" ? slashPreviewRaw : null;
+
   const params: Params = {
     bond: (bondRaw as bigint | undefined) ?? 0n,
     appealBond: (appealBondRaw as bigint | undefined) ?? 0n,
@@ -816,6 +833,12 @@ export default function DisputesV8() {
                 )}
                 {balanceShort && (
                   <StatusNotice tone="danger" title={`Wallet balance is below the ${bondLabel} bond`} />
+                )}
+                {providerValid && slashPreview !== null && slashPreview > 0n && (
+                  <StatusNotice tone="info" title={`Opening this dispute escrows ${formatUsdc(slashPreview)} USDC of the provider's stake`}>
+                    The slash is taken from the stake when the dispute opens, so the provider cannot
+                    withdraw it before the decision. A rejected claim returns it at finalize.
+                  </StatusNotice>
                 )}
 
                 <Button

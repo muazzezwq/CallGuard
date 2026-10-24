@@ -84,9 +84,17 @@ export const V8_CONFIG = {
   ppcAddress: V8_PAY_PER_CALL_ENV as `0x${string}`,
   keeper: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as string,
   keeperAddress: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as `0x${string}`,
-  dispute: ((import.meta.env.VITE_DISPUTE_V2 as string | undefined) ?? "") as string,
-  disputeAddress: ((import.meta.env.VITE_DISPUTE_V2 as string | undefined) ?? "") as `0x${string}`,
+  // V3 escrows the quality slash at openDispute; V2 only at resolve, which let a
+  // provider unstake before the decision. Prefer V3 and keep V2 as a fallback so
+  // a deployment that has not set the new variable keeps working.
+  dispute: ((import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined) ?? "",
+  disputeAddress: (((import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined) ?? "") as `0x${string}`,
 };
+
+/// True when the dispute contract is DisputeV3 (slash escrowed at open). The
+/// panel only calls `previewSlash` in that case; on V2 the function does not
+/// exist and the call would revert.
+export const DISPUTE_V3_ENABLED = Boolean(import.meta.env.VITE_DISPUTE_V3);
 
 /// Address/ABI pair used by the call builder and receipt flow. When v8 is not
 /// configured, the legacy v7 pair stays active and the UI labels it as such.
@@ -520,6 +528,11 @@ export const DISPUTE_V2_ABI = [
     inputs: [{name:"disputeId",type:"uint256"}], outputs: [{type:"bool"}] },
   { name: "disputeIdByCallId", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"uint256"}] },
+  // DisputeV3: the slash is escrowed at openDispute, so the panel can show the
+  // amount before the click. DisputeV2 has no such function, so a v2 address
+  // simply returns no data and the notice stays hidden.
+  { name: "previewSlash", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint256"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(

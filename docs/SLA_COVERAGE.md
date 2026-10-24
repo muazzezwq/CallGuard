@@ -53,7 +53,7 @@ Status vocabulary:
 | C5 | Payouts are pull-based (`claim`, `withdrawBounty`) so one blocked recipient cannot stop the flow | `PayPerCallV8.claim`, `SLAKeeper.withdrawBounty` | tests + prod claims | PASS |
 | C6 | Only the registry's authorised slashers and the configured PayPerCall can move money or counters | `onlySlasher`, `onlyPayPerCall`, `onlyArbiter`, `onlyAppealArbiter` | `test_transferAdmin_onlyAdmin`, `test_resolve_onlyArbiter`, `test_resolveAppeal_onlyAppealArbiter` | PASS |
 | C7 | A rejected dispute sends the bond to the treasury, so spamming disputes costs money | `resolve(false)` | `test_resolve_rejected_sendsBondToTreasury` | PASS |
-| C8 | A provider cannot escape a **quality** slash by unstaking between the receipt and the dispute resolution | `unstake` only checks `pendingCalls` (open calls), not open disputes; `UNSTAKE_COOLDOWN = 1 h` is shorter than `disputeWindow = 7 d` | `test_gap_unstakeBeforeResolveSkipsQualitySlash` reproduces the escape: stake `100e6 → 0`, `heldSlash = 0` | **GAP** |
+| C8 | A provider cannot escape a **quality** slash by unstaking between the receipt and the dispute resolution | fixed in `DisputeV3`: `openDispute` calls `registry.slash` immediately and escrows the money until `finalize` / `reclaimExpiredBond` | `test_unstakeBeforeResolve_stillPaysCaller` (V3) passes: stake `90e6 → 0`, caller still receives `10e6`; the old escape is pinned by `test_gap_unstakeBeforeResolveSkipsQualitySlash` on V2 | **GAP on the deployed V2 — fixed in V3, not deployed yet** |
 
 ### C2 / C4 note — the slash base is the current stake
 
@@ -67,17 +67,35 @@ This is arguably the safer direction (a stake can never be slashed below zero,
 and `registry.slash` reverts on `InsufficientStake`), but the published terms do
 not say it, so a caller reading "10 % slash" expects the number at call time.
 
-## C8 detail — the escape
+## C8 detail — the escape (closed in `DisputeV3`)
 
 1. Provider serves a call, submits a receipt, call becomes `Completed`.
 2. Provider calls `deactivate`, waits `1 h`, calls `unstake` — allowed, because
    `pendingCalls` only counts calls with status `Pending`.
 3. Caller opens a dispute inside the 7-day `disputeWindow`.
-4. Arbiter resolves `Upheld`: `_currentDisputeSlash` reads `stake = 0` and returns
-   `0`, so no slash happens and `heldSlash` stays `0`. The caller's bond is
-   returned, but the quality claim pays nothing.
+4. Arbiter resolves `Upheld`: `DisputeV2` read `stake = 0` at that moment, so no
+   slash happened and `heldSlash` stayed `0`. The caller's bond was returned, but
+   the quality claim paid nothing.
 
-Timeout risk is covered (`PendingCalls` blocks the unstake), quality risk is not.
+Timeout risk is covered (`PendingCalls` blocks the unstake), quality risk was not.
+
+**Fix (`DisputeV3`, not deployed yet):** `openDispute` slashes the stake and
+escrows the money in the dispute contract immediately, so step 2 can no longer
+remove it. Outcomes:
+
+- `resolve(true)` → `Upheld`, bond back to the caller, escrow stays held.
+- `resolve(false)` → `Rejected`, bond to treasury, escrow stays held through the
+  appeal window.
+- `finalize` → escrow to the caller (`Upheld`) or back to the provider
+  (`Rejected`).
+- `reclaimExpiredBond` → bond to the caller and escrow back to the provider, so
+  arbiter silence costs neither party.
+- `resolveAppeal` → escrow follows the appeal verdict; the same escrow moves, no
+  second slash is attempted.
+
+Cost of the design: while a dispute is open the provider's stake is `10 %`
+smaller and that money is locked in the dispute contract. A spam dispute costs
+the caller the `2 USDC` bond when rejected.
 
 ## Score
 
@@ -95,9 +113,9 @@ the two real holes are A8 (published uptime target is decorative) and C8
 
 ## Next work, highest value first
 
-1. **C8** — make `unstake` refuse while the provider has a live dispute, or hold
-   a reserve equal to `disputeSlashBps` of the stake for `disputeWindow`. Without
-   it every quality claim is optional for the provider.
+1. **Deploy `DisputeV3`** — the contract, tests, and deploy script are ready; the
+   remaining steps need the owner wallet (see `V8_DEPLOYMENT.md` §8). Until the
+   new address is live, C8 stays open on the deployed V2.
 2. **A8** — give `availabilityTargetBps` teeth: a rolling window of
    `Slashed / (Completed + Slashed)` per provider, claimable by anyone, with the
    same bounty pattern as `SLAKeeper`.
