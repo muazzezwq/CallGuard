@@ -518,6 +518,8 @@ export const DISPUTE_V2_ABI = [
     inputs: [{name:"disputeId",type:"uint256"}], outputs: [{type:"uint256"}] },
   { name: "settled", type: "function", stateMutability: "view",
     inputs: [{name:"disputeId",type:"uint256"}], outputs: [{type:"bool"}] },
+  { name: "disputeIdByCallId", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"uint256"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(

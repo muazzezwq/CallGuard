@@ -26,6 +26,7 @@ import {
   arcTestnet,
 } from "../../lib/config";
 import { formatUsdc, friendlyError, shortAddr } from "../../lib/utils";
+import { useSubgraph } from "../../hooks/useSubgraph";
 import { Badge, Button, Field, Input, Stat, Tabs, Textarea } from "../../ui";
 import {
   KeyValue,
@@ -173,6 +174,61 @@ function statusTone(status: number) {
   if (status === UPHELD || status === APPEAL_UPHELD) return "guard" as const;
   if (status === REJECTED || status === APPEAL_REJECTED) return "slash" as const;
   return "neutral" as const;
+}
+
+type SubgraphCall = {
+  id: string;
+  providerId: string;
+  amount: string;
+  status: string;
+  completedAt: string;
+  createdAt: string;
+};
+
+// Nobody knows their own call id by heart, so the panel lists the calls this
+// wallet can actually dispute and fills the whole form from one click. The
+// window is evaluated against the same `disputeWindow` the contract enforces,
+// and `disputeIdByCallId` hides calls that already have a dispute.
+function DisputeableRow({
+  call, params, now, onPick,
+}: {
+  call: SubgraphCall;
+  params: Params;
+  now: number;
+  onPick: (call: SubgraphCall) => void;
+}) {
+  const { data: disputeId } = useReadContract({
+    address: DISPUTE_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "disputeIdByCallId",
+    args: [call.id as `0x${string}`],
+    query: { enabled: LIVE },
+  });
+  const completedAt = Number(call.completedAt || 0);
+  const deadline = completedAt + params.disputeWindow;
+  const disputed = typeof disputeId === "bigint" && disputeId > 0n;
+
+  return (
+    <LedgerRow
+      tone={disputed ? "muted" : "neutral"}
+      lead={shortAddr(call.id, 10)}
+      meta={(
+        <>
+          provider {call.providerId} · {formatUsdc(asBigInt(call.amount))} USDC · completed {stamp(completedAt)}
+        </>
+      )}
+      trailing={(
+        <span style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <Badge tone={disputed ? "slash" : "guard"} dot>
+            {disputed ? "already disputed" : remaining(deadline, now)}
+          </Badge>
+          <Button size="sm" variant="secondary" disabled={disputed} onClick={() => onPick(call)}>
+            Use this call
+          </Button>
+        </span>
+      )}
+    />
+  );
 }
 
 function DisputeEntry({
@@ -406,6 +462,15 @@ export default function DisputesV8() {
   });
 
   const callReady = isCallId(callIdInput);
+  const myCallsQuery = address ? `{
+    calls(first: 25, orderBy: createdAt, orderDirection: desc,
+      where: { caller: "${address.toLowerCase()}", status: "COMPLETED" }) {
+      id providerId amount status completedAt createdAt
+    }
+  }` : "";
+  const { data: myCallsData, refetch: refetchMyCalls } = useSubgraph<{ calls: SubgraphCall[] }>(
+    myCallsQuery, { enabled: LIVE && !!address, pollInterval: 60_000 },
+  );
   const { data: call, refetch: refetchCall } = useReadContract({
     address: V8_CONFIG.ppcAddress,
     abi: PPC_ABI_V8,
@@ -456,6 +521,17 @@ export default function DisputesV8() {
     return out;
   }, [disputeCount]);
 
+  // Newest Completed calls that are still inside the dispute window. Anything
+  // older than `disputeWindow` is excluded here because the contract would
+  // reject it, so the list only offers rows that can actually be submitted.
+  const disputeable = useMemo(() => {
+    const rows = (myCallsData?.calls ?? []).filter((row) => {
+      const completedAt = Number(row.completedAt || 0);
+      return completedAt > 0 && now <= completedAt + params.disputeWindow;
+    });
+    return rows.slice(0, 5);
+  }, [myCallsData, now, params.disputeWindow]);
+
   const callRecord = normalizeCall(call);
 
   const disputeDeadline = callRecord ? Number(callRecord.completedAt) + params.disputeWindow : 0;
@@ -484,12 +560,27 @@ export default function DisputesV8() {
       }
       setStatus(`✅ ${label} confirmed.`);
       setEpoch((n) => n + 1);
-      void Promise.all([refetchCount(), refetchCall(), refetchExisting(), refetchAllowance(), refetchBond(), refetchProviderId()]);
+      void Promise.all([refetchCount(), refetchCall(), refetchExisting(), refetchAllowance(), refetchBond(), refetchProviderId(), refetchMyCalls()]);
     } catch (e) {
       setStatus(`❌ ${friendlyError(e)}`);
     } finally {
       setBusy(null);
     }
+  }
+
+  /// One click fills the three fields a user cannot know by heart: the call id,
+  /// the provider it belongs to, and a self-contained evidence pointer. The
+  /// data URI keeps the claim with the call id without needing any hosting, and
+  /// it stays short enough for the on-chain string.
+  function pickCall(row: SubgraphCall) {
+    setCallIdInput(row.id);
+    setProviderInput(row.providerId || "1");
+    if (evidence.trim().length === 0) {
+      setEvidence(
+        `data:application/json,{"callId":"${row.id}","claim":"response did not match the SLA"}`,
+      );
+    }
+    setStatus("Loaded the call. Check the facts above, edit the evidence if you want, then open the dispute.");
   }
 
   function openDispute() {
@@ -585,9 +676,24 @@ export default function DisputesV8() {
 
             {tab === "open" && (
               <>
+                <Ledger
+                  label="Your disputeable calls"
+                  empty="No Completed call from this wallet is inside the dispute window yet. Open a call in Call Builder, submit its receipt in Verify Receipt, then come back."
+                >
+                  {disputeable.map((row) => (
+                    <DisputeableRow
+                      key={row.id}
+                      call={row}
+                      params={params}
+                      now={now}
+                      onPick={pickCall}
+                    />
+                  ))}
+                </Ledger>
+
                 <Field
                   label="Call id"
-                  hint="32-byte call id returned by PayPerCallV8.callService. Only a Completed call can be disputed."
+                  hint="32-byte call id returned by PayPerCallV8.callService. Pick a call above, or paste an id you already have."
                   htmlFor="dispute-call-id"
                 >
                   <Input
