@@ -172,8 +172,8 @@ bounded number of timeout drills.
 
 ## 6. Not included
 
-- v8 dispute panel (contracts are live and tested; UI uses the legacy quality
-  panel until the P1 UI pass).
+- Quality-dispute UI for the retired DisputeQuality contract (replaced by `DisputesV8`, which
+  drives `DisputeV2`; the old panel is no longer routed).
 - Production migration contract (testnet uses the manual flow above).
 
 ## 7. Deployment record — Arc Testnet, 23 Oct 2026
