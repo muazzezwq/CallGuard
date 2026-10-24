@@ -215,14 +215,16 @@ Goldsky v8 deployment was abandoned because the account hit Starter-plan credit 
 the existing v7 Goldsky deployment is unchanged.
 
 Provider migration ran on 23 Oct 2026. `ServiceRegistryV8.nextProviderId()` is `2` and
-`providerIdOf(0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da)` is `1`. Provider `1` holds `10 USDC`
-stake, price `1 USDC`, terms v1 (`maxResponseTime 120`, `slashBps 2000`,
+`providerIdOf(0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da)` is `1`. Provider `1` holds
+`8 USDC` stake after one timeout drill slashed `2 USDC` from the original `10`, price `1 USDC`,
+terms v1 (`maxResponseTime 120`, `slashBps 2000`,
 `availabilityTargetBps 9950`, `termsHash 0xbe8c8cd7…`), endpoint
 `https://arcsla.vercel.app/api/auto-receipt`, cap `10`, and is `active`. The Studio subgraph
-indexes it. The v7 provider `1` is still `active` with `pendingCalls == 0` and cleanup is the
-remaining migration step.
+indexes it. The v7 provider `1` was deactivated at 15:22:45 UTC and unstaked at 16:23:01 UTC on
+24 Oct 2026; its stake is `0`, so migration is complete and v8 is the only marketplace with
+locked stake.
 
-Migration order, with the first two steps done:
+Migration order, all steps done:
 
 1. ✅ Connect the owner wallet on `https://arcsla.vercel.app` and register on v8 (defaults match
    the v7 terms). Endpoint value: `https://arcsla.vercel.app/api/auto-receipt`. This is the
@@ -233,8 +235,10 @@ Migration order, with the first two steps done:
    later needs `proposeTermsUpdate` plus the 2-day `TERMS_TIMELOCK`.
 2. ✅ Verify `ServiceRegistryV8.nextProviderId()` advanced to `2` and the Studio subgraph indexes
    the `ProviderRegistered` event.
-3. Deactivate the v7 provider, wait `UNSTAKE_COOLDOWN = 1 hour`, then unstake.
-4. Start the keeper soak and keep it running for 7 days.
+3. ✅ Deactivate the v7 provider (tx `0x2b730469…`, 15:22:45 UTC), wait `UNSTAKE_COOLDOWN = 1
+   hour`, then unstake (tx `0x5db0fb6f…`, 16:23:01 UTC). v7 stake is `0`.
+4. ✅ Start the keeper soak and keep it running for 7 days (started 24 Oct 15:33 UTC, ends
+   31 Oct 15:33 UTC).
 
 One deploy gap surfaced during step 1: `Register.tsx` never switched the wallet to Arc Testnet
 before writing, so a wallet on another chain failed `approve` with
