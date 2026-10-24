@@ -491,6 +491,32 @@ contract DisputeV2Test is Test {
     }
 
     // ---------------------------------------------------------------------
+    // Known gap
+    // ---------------------------------------------------------------------
+
+    /// The quality slash reads the stake at settlement time, and `unstake` only
+    /// checks open calls. A provider can take the whole stake out between the
+    /// receipt and the resolution, after which an upheld dispute holds nothing.
+    /// This test pins the current behaviour so a fix has to change it.
+    function test_gap_unstakeBeforeResolveSkipsQualitySlash() public {
+        bytes32 callId = _completedCall();
+        uint256 id = _openDispute(callId);
+
+        vm.prank(provider);
+        registry.deactivate(providerId);
+        skip(registry.UNSTAKE_COOLDOWN() + 1);
+        vm.prank(provider);
+        registry.unstake(providerId);
+        assertEq(registry.getProvider(providerId).stake, 0);
+
+        vm.prank(arbiter);
+        dispute.resolve(id, true);
+
+        assertEq(dispute.heldSlash(id), 0);
+        assertEq(usdc.balanceOf(address(dispute)), 0);
+    }
+
+    // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
 
