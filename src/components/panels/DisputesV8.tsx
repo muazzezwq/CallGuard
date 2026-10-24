@@ -6,7 +6,7 @@
 // until the appeal window closes. The panel therefore shows the real windows
 // (dispute, resolution, appeal) and gates every action on the same conditions
 // the contract checks, so a click cannot waste gas on a guaranteed revert.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAccount,
   useChainId,
@@ -27,6 +27,7 @@ import {
 } from "../../lib/config";
 import { formatUsdc, friendlyError, shortAddr } from "../../lib/utils";
 import { useSubgraph } from "../../hooks/useSubgraph";
+import { useAppStore } from "../../store/useAppStore";
 import { Badge, Button, Field, Input, Stat, Tabs, Textarea } from "../../ui";
 import {
   KeyValue,
@@ -432,11 +433,15 @@ export default function DisputesV8() {
   const [tab, setTab] = useState<"open" | "list">("open");
   const [callIdInput, setCallIdInput] = useState("");
   const [providerInput, setProviderInput] = useState("1");
+  const [providerTouched, setProviderTouched] = useState(false);
   const [evidence, setEvidence] = useState("");
   const [appealEvidence, setAppealEvidence] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [epoch, setEpoch] = useState(0);
+
+  const pendingDispute = useAppStore((s) => s.pendingDispute);
+  const clearPendingDispute = useAppStore((s) => s.clearPendingDispute);
 
   const now = Math.floor(Date.now() / 1000);
   const readQuery = { enabled: LIVE, refetchInterval: 20_000 } as const;
@@ -533,6 +538,32 @@ export default function DisputesV8() {
   }, [myCallsData, now, params.disputeWindow]);
 
   const callRecord = normalizeCall(call);
+
+  // Handoff from Verify Receipt and History: those panels already know the call
+  // id, so landing here with an empty form was the step where users gave up.
+  // Fill the form once, then drop the pending value so a later remount does not
+  // overwrite edits the user has made since.
+  useEffect(() => {
+    if (!pendingDispute) return;
+    setTab("open");
+    setCallIdInput(pendingDispute.callId);
+    if (pendingDispute.providerId) {
+      setProviderInput(pendingDispute.providerId);
+      setProviderTouched(true);
+    }
+    setEvidence((prev) => (prev.trim().length > 0 ? prev : (
+      `data:application/json,{"callId":"${pendingDispute.callId}","claim":"response did not match the SLA"}`
+    )));
+    setStatus("Loaded the call from the previous panel. Check the facts, edit the evidence if you want, then open the dispute.");
+    clearPendingDispute();
+  }, [pendingDispute, clearPendingDispute]);
+
+  // `openDispute` reverts with ProviderMismatch on a wrong provider id, so mirror
+  // the provider the call actually belongs to until the user types their own.
+  useEffect(() => {
+    if (providerTouched || !callRecord) return;
+    setProviderInput(String(callRecord.providerId));
+  }, [callRecord, providerTouched]);
 
   const disputeDeadline = callRecord ? Number(callRecord.completedAt) + params.disputeWindow : 0;
   const callCompleted = callRecord?.status === 2 && Number(callRecord.completedAt) > 0;
@@ -754,7 +785,7 @@ export default function DisputesV8() {
                     id="dispute-provider"
                     mono
                     value={providerInput}
-                    onChange={(e) => setProviderInput(e.target.value)}
+                    onChange={(e) => { setProviderTouched(true); setProviderInput(e.target.value); }}
                     inputMode="numeric"
                   />
                 </Field>

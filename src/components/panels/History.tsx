@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useAccount, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { ArrowLeft } from "lucide-react";
 import { useSubgraph } from "../../hooks/useSubgraph";
+import { useAppStore } from "../../store/useAppStore";
 import { ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8, arcTestnet } from "../../lib/config";
 import {
   callStatusLabel,
@@ -162,6 +163,7 @@ export default function History() {
   const open = all.filter(c => c.status === "STARTED").length;
 
   const selected = all.find(c => String(c.id) === selectedId) ?? null;
+  const openDispute = useAppStore(s => s.openDispute);
 
   /* Provider terms for the selected call come from the registry itself, so the
      canvas can name the configuration and the stake behind the call instead of
@@ -510,6 +512,24 @@ export default function History() {
                     <div className="tx-flags">
                       {positiveUsdc(selected.refunded) && <Badge tone="info" dot>Refunded to caller</Badge>}
                       {positiveUsdc(selected.slashed) && <Badge tone="slash" dot>Stake slashed</Badge>}
+                    </div>
+                  )}
+                  {/* Only a Completed call can be disputed, and the panel is
+                      where the call id, provider and bond are explained. Hand
+                      the id over instead of asking the user to copy it. */}
+                  {String(selected.status) === "COMPLETED" && (
+                    <div className="tx-flags" style={{ alignItems: "center", gap: 8 }}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => openDispute(String(selected.id), String(selected.providerId ?? ""))}
+                      >
+                        Open dispute →
+                      </Button>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                        Opens Disputes with this call. A dispute needs a 2 USDC bond and must start
+                        inside the 7-day window after the receipt.
+                      </span>
                     </div>
                   )}
                 </SectionCard>

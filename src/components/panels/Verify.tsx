@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8 } from "../../lib/config";
+import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
@@ -70,6 +70,7 @@ export default function Verify() {
   // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
   const pendingVerify = useAppStore(s => s.pendingVerify);
   const clearPendingVerify = useAppStore(s => s.clearPendingVerify);
+  const openDispute = useAppStore(s => s.openDispute);
 
   // EIP-712 Receipt Submit (Provider side)
   const [rcpCallId, setRcpCallId] = useState("");
@@ -316,15 +317,18 @@ export default function Verify() {
       if (publicClient && val.startsWith("0x") && val.length === 66) {
         try {
           const data = await publicClient.readContract({
-            address: CONFIG.ppcAddress as `0x${string}`,
-            abi: PPC_ABI,
+            address: ACTIVE_PPC_ADDRESS,
+            abi: PPC_ABI_V8_ACTIVE,
             functionName: "getCall",
             args: [val as `0x${string}`],
           }) as unknown as Record<string | number, unknown>;
           if (seq !== verifySeq.current) return;
           const provId = data?.providerId ?? data?.[0];
           const amt    = data?.amount     ?? data?.[2];
-          const st     = data?.status     ?? data?.[7];
+          // v8 appends completedAt/termsVersion/termsHash before status, so the
+          // positional index moved from 7 to 10. Reading 7 returned a terms hash
+          // and the call looked UNKNOWN.
+          const st     = data?.status     ?? data?.[V8_ENABLED ? 10 : 7];
 
           if (provId !== undefined && Number(provId) > 0) {
             // getCall() returns [providerId, caller, amount, startedAt, deadline, requestHash, responseHash, status]
@@ -464,6 +468,25 @@ export default function Verify() {
                     <ExternalLink size={12} />
                   </a>
                 )}
+              </div>
+            )}
+
+            {/* A verified receipt is the moment a caller learns whether the
+                provider actually answered. If the answer is wrong, the next
+                step is a dispute, so offer it here instead of making the user
+                find the call id again in another panel. */}
+            {result.ok && result.kind === "call" && result.callId && (
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  style={s.btnSecondary}
+                  onClick={() => openDispute(result.callId!, result.providerId ? String(result.providerId) : undefined)}
+                >
+                  Response wrong? Open a dispute →
+                </button>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  Disputes need a Completed call and a 2 USDC bond, refunded if the arbiter upholds the claim.
+                </span>
               </div>
             )}
           </div>

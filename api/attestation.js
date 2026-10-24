@@ -7,7 +7,7 @@
  * POST /api/attestation  body:{callId}|{providerId,type}  → issue on-chain attestation
  */
 
-import { V7 } from "./_contracts.js";
+import { V7, ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
 
@@ -124,7 +124,10 @@ export default async function handler(req, res) {
   // LOW-02: prefer unprefixed env vars server-side
   const BRIDGE   = process.env.SLA_ATTESTATION_BRIDGE || process.env.VITE_SLA_ATTESTATION_BRIDGE;
   const REGISTRY = V7.SERVICE_REGISTRY;
-  const PPC      = V7.PAY_PER_CALL;
+  // Call verdicts must read the PayPerCall that actually holds the call. The v7
+  // contract still answers, but every call after the migration lives on v8, so
+  // reading v7 returned providerId 0 / UNKNOWN for a valid Completed call.
+  const PPC      = ACTIVE.PAY_PER_CALL;
 
   try {
     if (req.method === "GET") {
@@ -155,10 +158,16 @@ export default async function handler(req, res) {
         // getCall selector: keccak256("getCall(bytes32)") first 4 bytes
         const data = "0x0af301e8" + arg; // getCall(bytes32)
         const hex  = await ethCall(rpcUrl, PPC, data);
-        // Decode tuple: (providerId, caller, amount, startedAt, deadline, requestHash, responseHash, status)
+        // Decode the tuple. v8 inserts completedAt/termsVersion/termsHash and
+        // appends status last (11 words); v7 has 8 words with status at 7.
+        // Detecting by length keeps one route serving both deployments.
         const words = hex.replace(/^0x/, "").match(/.{64}/g) || [];
-        const statusMap = { 0: "UNKNOWN", 1: "PENDING", 2: "HONORED", 3: "VIOLATED" };
-        const status = parseInt(words[7] || "0", 16);
+        const isV8 = words.length >= 11;
+        const statusIndex = isV8 ? 10 : 7;
+        const statusMap = isV8
+          ? { 0: "UNKNOWN", 1: "PENDING", 2: "COMPLETED", 3: "SLASHED" }
+          : { 0: "UNKNOWN", 1: "PENDING", 2: "HONORED", 3: "VIOLATED" };
+        const status = parseInt(words[statusIndex] || "0", 16);
         return res.status(200).json({
           ok: true,
           source: "direct-payperpcall",

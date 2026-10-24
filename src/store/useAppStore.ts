@@ -30,6 +30,7 @@ interface AppState {
   hintsSeen: string[];
   progressSteps: { id: string; done: boolean }[];
   pendingVerify: string | null;           // callId to auto-verify when Verify panel opens
+  pendingDispute: { callId: string; providerId: string } | null; // call to pre-fill in the dispute panel
   setPanel: (panel: PanelId) => void;
   setMode: (mode: AppMode) => void;
   setTheme: (theme: "dark" | "light") => void;
@@ -41,6 +42,8 @@ interface AppState {
   markStep: (id: string) => void;
   openVerify: (callId: string) => void;   // navigate to verify panel with pre-filled callId
   clearPendingVerify: () => void;
+  openDispute: (callId: string, providerId?: string) => void; // navigate to disputes with pre-filled call
+  clearPendingDispute: () => void;
 }
 
 const INIT_STEPS = [
@@ -63,6 +66,7 @@ export const useAppStore = create<AppState>()(
       hintsSeen: [],
       progressSteps: INIT_STEPS,
       pendingVerify: null,
+      pendingDispute: null,
       setPanel: (panel) => set({ activePanel: normalizePanel(panel) }),
       setMode: (mode) => set({ mode, advancedOpen: mode === "pro" }),
       setTheme: (theme) => set({ theme }),
@@ -81,6 +85,12 @@ export const useAppStore = create<AppState>()(
       }),
       openVerify: (callId) => set({ pendingVerify: callId, activePanel: "verify" }),
       clearPendingVerify: () => set({ pendingVerify: null }),
+      openDispute: (callId, providerId) =>
+        set({
+          pendingDispute: { callId, providerId: providerId ?? "" },
+          activePanel: "disputes",
+        }),
+      clearPendingDispute: () => set({ pendingDispute: null }),
     }),
     {
       name: "cg-app-state-v2",
