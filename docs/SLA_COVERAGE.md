@@ -53,7 +53,7 @@ Status vocabulary:
 | C5 | Payouts are pull-based (`claim`, `withdrawBounty`) so one blocked recipient cannot stop the flow | `PayPerCallV8.claim`, `SLAKeeper.withdrawBounty` | tests + prod claims | PASS |
 | C6 | Only the registry's authorised slashers and the configured PayPerCall can move money or counters | `onlySlasher`, `onlyPayPerCall`, `onlyArbiter`, `onlyAppealArbiter` | `test_transferAdmin_onlyAdmin`, `test_resolve_onlyArbiter`, `test_resolveAppeal_onlyAppealArbiter` | PASS |
 | C7 | A rejected dispute sends the bond to the treasury, so spamming disputes costs money | `resolve(false)` | `test_resolve_rejected_sendsBondToTreasury` | PASS |
-| C8 | A provider cannot escape a **quality** slash by unstaking between the receipt and the dispute resolution | fixed in `DisputeV3`: `openDispute` calls `registry.slash` immediately and escrows the money until `finalize` / `reclaimExpiredBond` | `test_unstakeBeforeResolve_stillPaysCaller` (V3) passes: stake `90e6 → 0`, caller still receives `10e6`; the old escape is pinned by `test_gap_unstakeBeforeResolveSkipsQualitySlash` on V2 | **PARTIAL — fixed in `DisputeV3` `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` (deployed 24 Oct 2026); on-chain proof pending the first live V3 dispute** |
+| C8 | A provider cannot escape a **quality** slash by unstaking between the receipt and the dispute resolution | fixed in `DisputeV3`: `openDispute` calls `registry.slash` immediately and escrows the money until `finalize` / `reclaimExpiredBond` | `test_unstakeBeforeResolve_stillPaysCaller` (V3) passes: stake `90e6 → 0`, caller still receives `10e6`; the old escape is pinned by `test_gap_unstakeBeforeResolveSkipsQualitySlash` on V2 | **PASS** — `DisputeV3` `0xEf9f…6Fec` escrows at open. Dispute #1 (tx `0x87864ca…5387ff`, block `68915026`): `heldSlash(1) = 576000` **before** `resolve`, provider stake `5.76 → 5.184`, dispute contract holds `2.576 USDC` (2.00 bond + 0.576 escrow), `SlashHeld(1, 576000)` emitted |
 
 ### C2 / C4 note — the slash base is the current stake
 
@@ -108,15 +108,15 @@ the caller the `2 USDC` bond when rejected.
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
-the two real holes are A8 (published uptime target is decorative) and C8
-(stake can leave before a quality dispute resolves).
+the one real hole left is A8 (published uptime target is decorative); C8 is closed
+and proven on chain by dispute #1 on `DisputeV3`.
 
 ## Next work, highest value first
 
-1. **Prove `DisputeV3` on chain** — `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` is
-   deployed and wired (see `V8_DEPLOYMENT.md` §8.4). Open one dispute on a fresh
-   Completed call and confirm `heldSlash(id) > 0` before `resolve`; that moves C8
-   from PARTIAL to PASS. Then `revokeSlasher(V2)` once dispute #1 finalizes.
+1. **Retire `DisputeV2`** — dispute #1 on V3 is `Pending`; after the arbiter
+   resolves it, run `finalize` once the appeal window closes. Then finalize the old
+   V2 dispute (26 Oct 18:58 UTC) and `revokeSlasher(0xe5D993E0…0900)` so no stale
+   slasher keeps authority over the registry.
 2. **A8** — give `availabilityTargetBps` teeth: a rolling window of
    `Slashed / (Completed + Slashed)` per provider, claimable by anyone, with the
    same bounty pattern as `SLAKeeper`.

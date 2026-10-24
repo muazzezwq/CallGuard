@@ -313,8 +313,11 @@ authorised slashers move stake.
 
 ### 8.3 After deploy
 
-- Open one dispute on a fresh Completed call and confirm `heldSlash(id)` is
-  non-zero **before** `resolve`.
+- ✅ Opened dispute #1 on call `0x8cfa1821…dfb265` (tx
+  `0x87864cae2dff2efdd14269ab94f135f0f8dcc11f8355eb490b656860585387ff`, block
+  `68915026`): `heldSlash(1) = 576000` **before** `resolve`, `SlashHeld(1, 576000)`
+  emitted, provider stake `5.76 → 5.184 USDC`, and the dispute contract holds
+  `2.576 USDC` (2.00 bond + 0.576 escrow).
 - `logs`/`getDispute`: the record carries the same fields as V2, so the panel
   needs no shape change.
 - The v8 subgraph still points its `DisputeV2` data source at the old address, so
