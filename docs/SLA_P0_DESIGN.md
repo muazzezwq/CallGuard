@@ -358,7 +358,7 @@ P0 migration plan (step 1 is complete; steps 2–6 remain):
 | P0-3 | Receipt hardening | PASS | zero hash, late `respondedAt`, late tx, wrong version, wrong signer, replay tests |
 | P0-4 | Stake top-up | PASS | `test_addStake_increasesStakeAndPullsUSDC`, `test_p0_stakeTopUpRestoresSlashCapacity` |
 | P0-5 | Timelocked terms update | PASS | `test_executeTerms_beforeTimelock_reverts`, `test_cancelTerms_clearsPending` |
-| P0-6 | Keeper auto-claim | PARTIAL | `SLAKeeper` unit + batch tests pass and the contract is deployed at `0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7`; soak harness `scripts/keeper-soak.js` is written and dry-run (12 cycles, subgraph discovery + on-chain `isClaimable` + `claimBatch` ABI verified); 7-day testnet run not started |
+| P0-6 | Keeper auto-claim | PARTIAL | `SLAKeeper` unit + batch tests pass and the contract is deployed at `0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7`. `scripts/e2e-timeout-v8.js` ran a real timeout on 24 Oct 2026: call `0xc4e2245e…`, refund `1.0`, slashed `1.9`, bounty `0.1`, provider stake `10.0` → `8.0`, caller claimed `2.9`. `scripts/keeper-soak.js` dry-run passed (12 cycles). The 7-day soak itself is not started. |
 | P0-7 | Dispute uses `completedAt` | PASS | `openDispute` has no `settledAt` input; `test_openDispute_*` window and status tests |
 | P0-8 | Appeal path | PASS | `test_appeal_upheldThenReversedByProvider`, `test_p0_disputeUsesCompletedAtAndAppealReverses` |
 | P0-9 | Migration does not trap v7 calls | UNVERIFIED | v7 is still deployed with no migration run; v7 pending calls have not been verified drained; procedure documented in §8 |

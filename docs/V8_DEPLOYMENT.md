@@ -138,6 +138,22 @@ unaffected: `ServiceRegistryV8.getProvider` returns the real value (provider 1 r
 `10`). Closing the gap needs either a cap field on the event in a future deployment or a
 contract read on the provider detail view.
 
+Timeout lifecycle verified end to end on 24 Oct 2026 with `scripts/e2e-timeout-v8.js`:
+
+- Call `0xc4e2245e33de0849d87772795d9b27797eedb998c7f2d8a82311459e87da12f5`, terms v1.
+- `callService` escrowed `1.0 USDC`; the claim was refused while `deadline + SUBMIT_GRACE`
+  was still open.
+- `SLAKeeper.claim` after the grace window: refund `1.0`, slashed `1.9`, bounty `0.1`.
+- Penalty is `stake * slashBps / 10_000` (`PayPerCallV8.sol:268`), so one missed call costs
+  `2.0 USDC` out of a `10 USDC` stake regardless of the call price. Provider stake went
+  `10.0` → `8.0`, `slashedCalls` `0` → `1`.
+- The caller pulled the `2.9 USDC` refund+slash with `PayPerCallV8.claim()`; the keeper withdrew
+  its `0.1 USDC` bounty. Subgraph recorded `SLASHED`, `totalSlashed 2000000`.
+
+Consequence for the soak: every deliberate timeout burns `2 USDC` of stake. With `8 USDC` left,
+four more timeouts exhaust the bond, so the 7-day run should mostly monitor and use only a
+bounded number of timeout drills.
+
 ## 6. Not included
 
 - v8 dispute panel (contracts are live and tested; UI uses the legacy quality
