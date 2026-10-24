@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { ChangeEvent } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient, useChainId, useSwitchChain } from "wagmi";
 import { formatUnits, maxUint256, keccak256, toBytes } from "viem";
 import {
-  CONFIG, USDC_ABI, V8_ENABLED, ACTIVE_REGISTRY_ADDRESS, REGISTRY_ABI, REGISTRY_ABI_V8,
+  CONFIG, USDC_ABI, V8_ENABLED, ACTIVE_REGISTRY_ADDRESS, REGISTRY_ABI, REGISTRY_ABI_V8, arcTestnet,
 } from "../../lib/config";
 import { friendlyError, formatUsdc } from "../../lib/utils";
 import { collectErrors, parseUsdc6, validateField } from "./registerRules";
@@ -11,6 +11,7 @@ import type { FieldKey, Limits } from "./registerRules";
 import { Field, Input } from "../../ui";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 import ArcFeeNotice from "../ArcFeeNotice";
+import V7CleanupCard from "./V7Cleanup";
 
 const IDENTITY_REGISTRY_ABI = [
   { name: "register", type: "function", stateMutability: "nonpayable",
@@ -141,6 +142,8 @@ const busyKinds: TxState["kind"][] = ["approve-signing","approve-pending","regis
 export default function Register() {
   const { address } = useAccount();
   const identityAddr = CONFIG.identityRegistryAddress as `0x${string}` | undefined;
+  const walletChainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
   const [signerAddr, setSignerAddr] = useState("");
   const [stake, setStake] = useState("10");
   const [price, setPrice] = useState("1");
@@ -351,6 +354,12 @@ export default function Register() {
     if (!publicClient) { setTxState({ kind: "error", message: "No RPC client available. Reconnect your wallet and retry." }); return; }
     inFlightRef.current = true;
     try {
+      // Writes must land on Arc Testnet. Other panels switch before writing; the
+      // register flow did not, so a wallet on another chain failed the approve
+      // request with "Requested resource not available" instead of prompting.
+      if (walletChainId !== arcTestnet.id) {
+        await switchChainAsync({ chainId: arcTestnet.id });
+      }
       const mustApprove = !allowanceKnown || (allowance as bigint) < p.stakeAmount;
       if (mustApprove) {
         setTxState({ kind: "approve-signing" });
@@ -493,6 +502,7 @@ export default function Register() {
         )}
         <button style={{ ...s.btn(),marginTop:20,maxWidth:220 }} onClick={() => { setPhase("edit"); setTxState({ kind:"idle" }); setErrors({}); }}>Register another</button>
       </div>
+      <V7CleanupCard />
     </div>
   );
 
@@ -821,6 +831,8 @@ export default function Register() {
           </button>
         </div>
       )}
+
+      <V7CleanupCard />
     </div>
   );
 }

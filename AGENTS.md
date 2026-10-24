@@ -133,10 +133,13 @@ and `SLAKeeper.payPerCall()` is `PayPerCallV8`.
 The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
 `ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
 on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. Provider
-migration is **not** run yet: `nextProviderId` is 1 and `providerIdOf(owner)` is 0, so the
-v8 marketplace is empty until the owner registers. Goldsky v8 was abandoned after
-Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation order:
-`docs/V8_DEPLOYMENT.md` §7.
+migration ran on 23 Oct: v8 provider `1` is the owner wallet with `10 USDC` stake, `1 USDC`
+price, terms v1 (window `120`, slash `2000`, availability `9950`), and endpoint
+`https://arcsla.vercel.app/api/auto-receipt`. The v7 provider `1` is still `active` with
+`pendingCalls == 0`; cleanup runs through `src/components/panels/V7Cleanup.tsx` (deactivate, then
+unstake after the 1-hour cooldown) because v7 is unverified on Blockscout. Goldsky v8 was
+abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
+order: `docs/V8_DEPLOYMENT.md` §7.
 
 ## Key parameters
 

@@ -100,6 +100,14 @@ Do **not** point v7 `ServiceRegistry.payPerCall` at v8. On v7:
 The v8 registration creates terms v1 and snapshots it on every call. Terms
 changes go through `proposeTermsUpdate` and a 2-day timelock.
 
+v7 cleanup has no explorer path: v7 `ServiceRegistry` and `PayPerCall` are not verified on
+Blockscout, and the app's unstake control now targets v8. `src/components/panels/V7Cleanup.tsx`
+is rendered at the bottom of the Register panel and appears only when the connected wallet has a
+non-zero v7 `providerIdOf`. It calls `deactivate(providerId)`, then `unstake(providerId)` after
+`UNSTAKE_COOLDOWN` (`3600` s) once `pendingCalls == 0`. The view surface does not expose
+`deactivatedAt`, so the cooldown clock starts from the deactivate receipt in that session; after
+a reload an early `unstake` simply reverts with `CooldownActive`.
+
 ## 5. Keeper
 
 Run `SLAKeeper.claim(callId)` or `claimBatch(callIds)` after
@@ -122,6 +130,13 @@ The soak runs for 7 days because `DisputeV2.disputeWindow` and
 has passed. A shorter soak cannot reach the dispute-resolution branch at all. Seven days is
 also the coverage needed for `TERMS_TIMELOCK` (2 days) plus the `appealWindow` (2 days) in a
 single run.
+
+Known indexing gap: `Provider.maxConcurrentCalls` reads `0` in the subgraph because the
+`ProviderRegistered` event does not carry the cap. `subgraph/v8/src/registry.ts:29` writes `0`
+and only `MaxConcurrentCallsUpdated` (`registry.ts:111`) updates it. On-chain enforcement is
+unaffected: `ServiceRegistryV8.getProvider` returns the real value (provider 1 registered with
+`10`). Closing the gap needs either a cap field on the event in a future deployment or a
+contract read on the provider detail view.
 
 ## 6. Not included
 
@@ -167,23 +182,29 @@ The v8 indexer is deployed to The Graph Studio as slug `onur`, version `1.0.0`:
 Goldsky v8 deployment was abandoned because the account hit Starter-plan credit exhaustion;
 the existing v7 Goldsky deployment is unchanged.
 
-Provider migration is still pending. `ServiceRegistryV8.nextProviderId()` is `1` and
-`providerIdOf(0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da)` is `0`, so the v8 marketplace is
-empty until the owner registers. The v7 provider remains active with `10 USDC` stake, `1 USDC`
-price, `120s` response window, `20%` slash, and `10` concurrent calls. After v8 registration,
-the v7 provider can be deactivated and unstaked after the `1 hour` cooldown, then the 7-day
-keeper soak can start.
+Provider migration ran on 23 Oct 2026. `ServiceRegistryV8.nextProviderId()` is `2` and
+`providerIdOf(0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da)` is `1`. Provider `1` holds `10 USDC`
+stake, price `1 USDC`, terms v1 (`maxResponseTime 120`, `slashBps 2000`,
+`availabilityTargetBps 9950`, `termsHash 0xbe8c8cd7…`), endpoint
+`https://arcsla.vercel.app/api/auto-receipt`, cap `10`, and is `active`. The Studio subgraph
+indexes it. The v7 provider `1` is still `active` with `pendingCalls == 0` and cleanup is the
+remaining migration step.
 
-Current activation order:
+Migration order, with the first two steps done:
 
-1. Connect the owner wallet on `https://arcsla.vercel.app` and register on v8 (defaults match
+1. ✅ Connect the owner wallet on `https://arcsla.vercel.app` and register on v8 (defaults match
    the v7 terms). Endpoint value: `https://arcsla.vercel.app/api/auto-receipt`. This is the
    repo's live provider backend: `GET` returns health JSON, `POST` submits the EIP-712 receipt
    and requires `x-webhook-secret`. `vercel.json` rewrites `/api/auto-receipt/health` to that
    function, so the marketplace health probe (`${endpoint}/health`) hits real JSON instead of
    the SPA fallback. The endpoint is frozen into terms and `keccak256(endpoint)`; changing it
    later needs `proposeTermsUpdate` plus the 2-day `TERMS_TIMELOCK`.
-2. Verify `ServiceRegistryV8.nextProviderId()` advanced to `2` and the Studio subgraph indexes
+2. ✅ Verify `ServiceRegistryV8.nextProviderId()` advanced to `2` and the Studio subgraph indexes
    the `ProviderRegistered` event.
 3. Deactivate the v7 provider, wait `UNSTAKE_COOLDOWN = 1 hour`, then unstake.
 4. Start the keeper soak and keep it running for 7 days.
+
+One deploy gap surfaced during step 1: `Register.tsx` never switched the wallet to Arc Testnet
+before writing, so a wallet on another chain failed `approve` with
+`Requested resource not available`. It now calls `switchChainAsync`, matching `Verify.tsx` and
+`Requests.tsx`.
