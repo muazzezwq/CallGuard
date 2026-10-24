@@ -86,6 +86,11 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   (not `providerCount`). `src/lib/config.ts` ABIs already reflect these fixes — trust it.
 - Receipts are **EIP-712** (domain name `"ArcSLA"`, version `"1"`, includes `respondedAt`).
   `ARCHITECTURE.md` §4 still describes the old EIP-191 `personal_sign` scheme — **stale**.
+- `getCall` has **two layouts**: v7 returns 8 words with `status` at index `7`; v8 returns
+  11 words with `status` at index `10` (after `completedAt`, `termsVersion`, `termsHash`).
+  `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
+  "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
+  `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
 - README says "229 tests"; actual is **300** (9 test files in `test/`, 11 suites).
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and

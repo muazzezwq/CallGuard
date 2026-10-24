@@ -176,6 +176,16 @@ bounded number of timeout drills.
   drives `DisputeV2`; the old panel is no longer routed).
 - Production migration contract (testnet uses the manual flow above).
 
+### Post-migration follow-ups (24 Oct 2026)
+
+- `/api/attestation` and the `Verify Receipt` on-chain fallback still read the v7 `PayPerCall`
+  with the v7 tuple layout, so every v8 call verified as "No verified receipt was found"
+  (the API answered `providerId 0` / `UNKNOWN`). Both now read the active `PayPerCall` and
+  decode the status from word `10` when the tuple has 11 words.
+- `DisputesV8` lists the wallet's disputeable calls and accepts a call id handed over from
+  `Verify Receipt` and `History`, so the flow no longer starts by asking for an id the user
+  cannot know.
+
 ## 7. Deployment record — Arc Testnet, 23 Oct 2026
 
 | Contract | Address |
