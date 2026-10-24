@@ -16,7 +16,9 @@ const AppShell       = lazy(() => import("./components/layout/AppShell"));
 function AppGate() {
   const { isConnected } = useAccount();
   const loc = useLocation();
-  if (!isConnected) return <Navigate to="/" replace state={{ from: loc.pathname + loc.search }} />;
+  // TEMP DEBUG: allows rendering the shell without a wallet in dev only.
+  const bypass = import.meta.env.DEV && new URLSearchParams(loc.search).has("nogate");
+  if (!isConnected && !bypass) return <Navigate to="/" replace state={{ from: loc.pathname + loc.search }} />;
   return <AppShell />;
 }
 

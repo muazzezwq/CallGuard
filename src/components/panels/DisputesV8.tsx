@@ -89,6 +89,62 @@ type Params = {
   appealArbiter: string;
 };
 
+// viem hands back the struct as a positional tuple for these ABIs instead of a
+// named record, so a field is read by name and falls back to its index. Reading
+// only `record.providerId` yields `undefined` and the panel used to die on
+// `.toString()` the moment a call id was entered.
+function field(source: unknown, name: string, index: number): unknown {
+  if (source == null) return undefined;
+  const record = source as Record<string, unknown> & readonly unknown[];
+  return record[name] ?? record[index];
+}
+
+function asBigInt(value: unknown, fallback = 0n): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return BigInt(Math.trunc(value));
+  if (typeof value === "string" && /^\d+$/.test(value)) return BigInt(value);
+  return fallback;
+}
+
+/// PayPerCallV8.Call order: providerId, caller, amount, startedAt, deadline,
+/// completedAt, termsVersion, termsHash, requestHash, responseHash, status.
+function normalizeCall(raw: unknown) {
+  if (raw == null) return undefined;
+  const caller = field(raw, "caller", 1);
+  if (typeof caller !== "string") return undefined;
+  return {
+    providerId: asBigInt(field(raw, "providerId", 0)),
+    caller: caller as `0x${string}`,
+    amount: asBigInt(field(raw, "amount", 2)),
+    startedAt: Number(asBigInt(field(raw, "startedAt", 3))),
+    deadline: Number(asBigInt(field(raw, "deadline", 4))),
+    completedAt: Number(asBigInt(field(raw, "completedAt", 5))),
+    termsVersion: Number(asBigInt(field(raw, "termsVersion", 6))),
+    status: Number(asBigInt(field(raw, "status", 10))),
+  };
+}
+
+/// IDisputeV2.DisputeRecord order: callId, caller, providerId, openedAt,
+/// resolvedAt, appealAt, bond, appealBond, status, evidenceUri, appealUri.
+function normalizeDispute(raw: unknown): DisputeRecord | undefined {
+  if (raw == null) return undefined;
+  const caller = field(raw, "caller", 1);
+  if (typeof caller !== "string") return undefined;
+  return {
+    callId: (field(raw, "callId", 0) ?? "0x") as `0x${string}`,
+    caller: caller as `0x${string}`,
+    providerId: asBigInt(field(raw, "providerId", 2)),
+    openedAt: asBigInt(field(raw, "openedAt", 3)),
+    resolvedAt: asBigInt(field(raw, "resolvedAt", 4)),
+    appealAt: asBigInt(field(raw, "appealAt", 5)),
+    bond: asBigInt(field(raw, "bond", 6)),
+    appealBond: asBigInt(field(raw, "appealBond", 7)),
+    status: Number(asBigInt(field(raw, "status", 8))),
+    evidenceUri: typeof field(raw, "evidenceUri", 9) === "string" ? String(field(raw, "evidenceUri", 9)) : "",
+    appealUri: typeof field(raw, "appealUri", 10) === "string" ? String(field(raw, "appealUri", 10)) : "",
+  };
+}
+
 function same(a?: string, b?: string) {
   return Boolean(a && b) && a!.toLowerCase() === b!.toLowerCase();
 }
@@ -161,7 +217,7 @@ function DisputeEntry({
     query: { enabled: LIVE, refetchInterval: 20_000 },
   });
 
-  const d = record as DisputeRecord | undefined;
+  const d = normalizeDispute(record);
   if (!d || d.openedAt === 0n) return null;
 
   const isSettled = Boolean(settled);
@@ -400,13 +456,7 @@ export default function DisputesV8() {
     return out;
   }, [disputeCount]);
 
-  const callRecord = call as {
-    providerId: bigint;
-    caller: string;
-    amount: bigint;
-    completedAt: number;
-    status: number;
-  } | undefined;
+  const callRecord = normalizeCall(call);
 
   const disputeDeadline = callRecord ? Number(callRecord.completedAt) + params.disputeWindow : 0;
   const callCompleted = callRecord?.status === 2 && Number(callRecord.completedAt) > 0;
