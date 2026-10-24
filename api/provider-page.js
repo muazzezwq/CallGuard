@@ -1,19 +1,85 @@
 // /api/provider-page.js — SSR provider profile + sitemap for SEO
-import { V7 } from './_contracts.js';
+import { ACTIVE, V8_ACTIVE } from './_contracts.js';
 import { getRpcUrl } from './_rpc.js';
 
-const SG_URL = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn';
+// getProvider(uint256) keeps the same selector on the v7 and v8 registries.
+const SELECTOR_GET_PROVIDER = '0x5c42d079';
+// nextProviderId() exists on v8 only.
+const SELECTOR_NEXT_PROVIDER_ID = '0x51a8dbcf';
+const SITEMAP_LIMIT = 50;
+const ZERO_WORD = '0'.repeat(64);
 
-async function handleSitemap(req, res) {
+function encodeUintArg(value) {
+  return Number(value).toString(16).padStart(64, '0');
+}
+
+async function rpcCall(rpcUrl, method, params) {
+  const r = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+  });
+  if (!r.ok) throw new Error(`rpc http ${r.status}`);
+  return (await r.json()).result;
+}
+
+function wordAt(raw, index) {
+  return raw.slice(2 + index * 64, 2 + (index + 1) * 64);
+}
+
+function isActiveWord(raw) {
+  // v8 ProviderView puts active at 5, v7 at 6; both are a single bool word.
+  return wordAt(raw, V8_ACTIVE ? 5 : 6) !== ZERO_WORD;
+}
+
+// The sitemap used to be built from the retired Goldsky v7 subgraph, so it
+// listed the wrong marketplace. v8 exposes nextProviderId(), so the list comes
+// straight from the registry that enforces the SLA, with no indexer dependency.
+async function listActiveProviderIds(rpcUrl, limit) {
+  async function readActive(id) {
+    const raw = await rpcCall(rpcUrl, 'eth_call', [
+      { to: ACTIVE.SERVICE_REGISTRY, data: SELECTOR_GET_PROVIDER + encodeUintArg(id) },
+      'latest'
+    ]);
+    return raw && raw !== '0x' ? isActiveWord(raw) : false;
+  }
+
+  const ids = [];
+  if (V8_ACTIVE) {
+    const raw = await rpcCall(rpcUrl, 'eth_call', [
+      { to: ACTIVE.SERVICE_REGISTRY, data: SELECTOR_NEXT_PROVIDER_ID },
+      'latest'
+    ]);
+    const next = Number(BigInt(raw));
+    // Chunked so a long registry does not serialize into one huge round trip.
+    for (let start = 1; start < next; start += 10) {
+      const chunk = [];
+      for (let id = start; id < Math.min(start + 10, next); id += 1) chunk.push(id);
+      const flags = await Promise.all(chunk.map((id) => readActive(id).catch(() => false)));
+      chunk.forEach((id, i) => { if (flags[i]) ids.push(String(id)); });
+      if (ids.length >= limit) break;
+    }
+    return ids.slice(0, limit);
+  }
+  // v7 has no enumerator: ids are dense from 1, so probe up to the limit.
+  for (let id = 1; id <= limit; id += 1) {
+    try {
+      if (await readActive(id)) ids.push(String(id));
+    } catch { /* keep probing */ }
+  }
+  return ids;
+}
+
+async function handleSitemap(req, res, rpcUrl) {
   const base = 'https://arcsla.vercel.app';
   let providerIds = [];
-  try {
-    const r = await fetch(SG_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:'{ providers(first:50,where:{active:true}){id} }'}) });
-    const d = await r.json();
-    providerIds = (d?.data?.providers||[])
-      .map(p=>String(p.id).replace(/\D/g, ''))
-      .filter(Boolean);
-  } catch(e) { providerIds = ['1','2','3','4','5','6','7','8']; }
+  if (rpcUrl) {
+    try {
+      providerIds = await listActiveProviderIds(rpcUrl, SITEMAP_LIMIT);
+    } catch (e) {
+      providerIds = [];
+    }
+  }
   const today = new Date().toISOString().split('T')[0];
   const urls = [
     `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${today}</lastmod></url>`,
@@ -26,14 +92,12 @@ async function handleSitemap(req, res) {
 }
 
 export default async function handler(req, res) {
-  if (req.url?.includes('sitemap') || req.query?.sitemap) return handleSitemap(req, res);
-  const id = (req.query.id || '1').toString().replace(/\D/g, '') || '1';
-
   // One resolver for every documented public RPC alias and the optional proxy.
   const rpcUrl = getRpcUrl();
+  if (req.url?.includes('sitemap') || req.query?.sitemap) return handleSitemap(req, res, rpcUrl);
+  const id = (req.query.id || '1').toString().replace(/\D/g, '') || '1';
 
-  const registryAddr = V7.SERVICE_REGISTRY;
-  const sgUrl = 'https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn';
+  const registryAddr = ACTIVE.SERVICE_REGISTRY;
 
   if (!rpcUrl) {
     res.status(503).json({ error: 'RPC URL not configured' });
@@ -44,66 +108,36 @@ export default async function handler(req, res) {
     return;
   }
 
-  async function rpcCall(method, params) {
-    const r = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-    });
-    if (!r.ok) throw new Error(`rpc http ${r.status}`);
-    return (await r.json()).result;
-  }
-
-  // keccak selectors: getProvider(uint256)=0x5c42d079, getReputationScore(uint256)=0xbd5bcb0a
-  function encodeGetProvider(id) {
-    const hex = Number(id).toString(16).padStart(64, '0');
-    return '0x5c42d079' + hex;
-  }
-
-  function encodeGetScore(id) {
-    const hex = Number(id).toString(16).padStart(64, '0');
-    return '0xbd5bcb0a' + hex;
-  }
-
-  let provider = { stake: '0', price: '1.00', active: true, score: 50 };
+  let provider = { stake: '0', price: '1.00', active: true, termsVersion: 0 };
+  let completedCalls = 0, slashedCalls = 0;
 
   try {
-    const [raw, scoreRaw] = await Promise.all([
-      rpcCall('eth_call', [{ to: registryAddr, data: encodeGetProvider(id) }, 'latest']),
-      rpcCall('eth_call', [{ to: registryAddr, data: encodeGetScore(id) }, 'latest'])
+    const raw = await rpcCall(rpcUrl, 'eth_call', [
+      { to: registryAddr, data: SELECTOR_GET_PROVIDER + encodeUintArg(id) },
+      'latest'
     ]);
     if (raw && raw !== '0x') {
-      // ProviderView words: 0 owner, 1 signer, 2 stake, 3 pricePerCall,
-      // 4 maxResponseTime, 5 slashBps, 6 active, 7 maxConcurrentCalls, 8 zkTier.
-      const word = (i) => raw.slice(2 + i * 64, 2 + (i + 1) * 64);
-      const stake = BigInt('0x' + word(2));
-      const price = BigInt('0x' + word(3));
-      const active = word(6) !== '0'.repeat(64);
+      const stake = BigInt('0x' + wordAt(raw, 2));
+      const price = BigInt('0x' + wordAt(raw, 3));
       provider.stake = (Number(stake) / 1e6).toFixed(2);
       provider.price = (Number(price) / 1e6).toFixed(2);
-      provider.active = active;
-    }
-    if (scoreRaw && scoreRaw !== '0x') {
-      provider.score = Number(BigInt(scoreRaw));
+      provider.active = isActiveWord(raw);
+      if (V8_ACTIVE) {
+        // v8 ProviderView: 0 owner, 1 signer, 2 stake, 3 pricePerCall,
+        // 4 latestTermsVersion, 5 active, 6 pendingCalls, 7 completedCalls,
+        // 8 slashedCalls, 9 maxConcurrentCalls, 10 zkTier. Counters live on the
+        // registry now, so the page no longer depends on an indexer.
+        provider.termsVersion = Number(BigInt('0x' + wordAt(raw, 4)));
+        completedCalls = Number(BigInt('0x' + wordAt(raw, 7)));
+        slashedCalls = Number(BigInt('0x' + wordAt(raw, 8)));
+      }
     }
   } catch (e) { /* fallback */ }
-
-  let completedCalls = 0, slashedCalls = 0;
-  try {
-    const sg = await fetch(sgUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: `{ providers(where:{id:"${id}"}) { completedCalls slashedCalls } }` })
-    });
-    const sgData = await sg.json();
-    const p = sgData?.data?.providers?.[0];
-    if (p) { completedCalls = Number(p.completedCalls); slashedCalls = Number(p.slashedCalls); }
-  } catch (e) { /* ignore */ }
 
   const total = completedCalls + slashedCalls;
   const honorRate = total > 0 ? Math.round(completedCalls / total * 100) : 50;
   const statusLabel = provider.active ? 'Active' : 'Inactive';
-  const scoreColor = provider.score >= 70 ? '#10b981' : provider.score >= 40 ? '#f59e0b' : '#ef4444';
+  const scoreColor = honorRate >= 70 ? '#10b981' : honorRate >= 40 ? '#f59e0b' : '#ef4444';
   const arcScanBase = process.env.VITE_ARCSCAN_URL || 'https://explorer.testnet.arc.io';
   const arcScanUrl = `${arcScanBase}/address/${registryAddr}`;
   const appUrl = `https://arcsla.vercel.app/?provider=${id}`;
@@ -192,9 +226,9 @@ export default async function handler(req, res) {
       <div class="stat-sub">USDC locked</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Reputation</div>
-      <div class="stat-value" style="color:${scoreColor}">${provider.score}</div>
-      <div class="stat-sub">/ 100 Bayesian</div>
+      <div class="stat-label">Terms</div>
+      <div class="stat-value">${provider.termsVersion > 0 ? `v${provider.termsVersion}` : "—"}</div>
+      <div class="stat-sub">versioned SLA</div>
     </div>
   </div>
   <div class="section">

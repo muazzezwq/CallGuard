@@ -55,10 +55,10 @@ export const CONFIG = {
   // ERC-8183 Jobs contract
   agenticCommerce: "0x0747EEf0706327138c69792bF28Cd525089e4583",
   agenticCommerceAddress: "0x0747EEf0706327138c69792bF28Cd525089e4583" as `0x${string}`,
-  // v7 stays the default until the v8 pair is activated. Set VITE_SUBGRAPH_URL
-  // to the v8 Studio endpoint when activating the v8 pair.
+  // v8 Studio subgraph. The v7 Goldsky endpoint is retired, so it is no longer
+  // a fallback: an unset VITE_SUBGRAPH_URL must not point the app at v7 data.
   subgraphUrl: (import.meta.env.VITE_SUBGRAPH_URL as string | undefined)
-    || "https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn",
+    || "https://api.studio.thegraph.com/query/1763627/onur/1.0.0",
   explorerBase: "https://explorer.testnet.arc.io",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
