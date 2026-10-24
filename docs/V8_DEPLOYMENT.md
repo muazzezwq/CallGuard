@@ -143,6 +143,17 @@ unaffected: `ServiceRegistryV8.getProvider` returns the real value (provider 1 r
 `10`). Closing the gap needs either a cap field on the event in a future deployment or a
 contract read on the provider detail view.
 
+The SSR provider page (`api/provider-page.js`) used to read the retired v7 registry and the
+Goldsky v7 subgraph, so `/providers/1` advertised `10.00 USDC` stake and a default `50%` honor
+rate on 24 Oct 2026 while v8 held `8.00 USDC` and one slashed call. It now reads
+`ACTIVE.SERVICE_REGISTRY` with the v8 layout (active at word 5, `completedCalls` 7,
+`slashedCalls` 8), shows the terms version, and builds `/sitemap.xml` from `nextProviderId()`
+instead of an indexer. `src/lib/config.ts` no longer falls back to the retired Goldsky v7 URL.
+
+The Graph Studio deploy key and the old Goldsky token were revoked on 24 Oct 2026. A redeploy of
+`subgraph/v8` therefore needs a fresh Studio deploy key first; the live query endpoint keeps
+serving without one.
+
 Timeout lifecycle verified end to end on 24 Oct 2026 with `scripts/e2e-timeout-v8.js`:
 
 - Call `0xc4e2245e33de0849d87772795d9b27797eedb998c7f2d8a82311459e87da12f5`, terms v1.

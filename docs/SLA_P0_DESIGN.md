@@ -362,7 +362,7 @@ P0 migration plan (step 1 is complete; steps 2–6 remain):
 | P0-7 | Dispute uses `completedAt` | PASS | `openDispute` has no `settledAt` input; `test_openDispute_*` window and status tests |
 | P0-8 | Appeal path | PASS | `test_appeal_upheldThenReversedByProvider`, `test_p0_disputeUsesCompletedAtAndAppealReverses` |
 | P0-9 | Migration does not trap v7 calls | PARTIAL | v7 provider `1` deactivated on 24 Oct 2026 15:22:45 UTC (tx `0x2b730469…`); `getProvider(1).active` is `false` and `pendingCalls(1)` is `0`, so no v7 call is trapped. The `10 USDC` stake is still locked and `unstake` opens at 16:22:45 UTC after `UNSTAKE_COOLDOWN`; the withdrawal itself is not done. Procedure in §8. |
-| P0-10 | Frontend shows terms version and deadline | PARTIAL | Call Builder shows `vN`, terms hash, max response; Register/Providers/Marketplace/Leaderboard/History and `api/` read v8. Contracts, the Studio v8 subgraph, and production env are active and the owner is registered on v8 (provider `1`); the v8 dispute panel is still missing. |
+| P0-10 | Frontend shows terms version and deadline | PARTIAL | Call Builder shows `vN`, terms hash, max response; Register/Providers/Marketplace/Leaderboard/History and `api/` read v8. Contracts, the Studio v8 subgraph, and production env are active and the owner is registered on v8 (provider `1`). The SSR provider page reads `ServiceRegistryV8` directly and `/sitemap.xml` enumerates `nextProviderId()`, both verified live on 24 Oct 2026 (`8.00 USDC` stake, `0%` honor). The v8 dispute panel is still missing. |
 
 ## 11. Open questions
 
