@@ -318,3 +318,20 @@ authorised slashers move stake.
   the dispute entity stops updating for new disputes. The panel reads disputes
   from the contract, so this only affects indexer consumers. A Studio key is
   needed to redeploy the subgraph.
+
+### 8.4 Deployment record — 24 Oct 2026
+
+| Contract | Address |
+|---|---|
+| `DisputeV3` | `0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec` |
+
+Verified on chain after the deploy: bytecode present; `arbiter`, `appealArbiter` and
+`treasury` are the owner wallet; `disputeBond 2.00`, `appealBond 3.00`,
+`disputeWindow/appealWindow/resolutionWindow = 604800/172800/604800`,
+`disputeSlashBps 1000`; `registry()` and `payPerCall()` point at the live v8 pair;
+`registry.authorizedSlashers(0xEf9f…6Fec)` is `true`; `disputeCount()` is `0`;
+`previewSlash(1)` returned `0.576 USDC` (`10 %` of the `5.76 USDC` stake).
+
+Vercel production received `VITE_DISPUTE_V3` and `DISPUTE_V3`. `DisputeV2`
+(`0xe5D993E0…0900`) stays deployed: dispute #1 is resolved `Upheld` and its
+`finalize` on 26 Oct 2026 18:58:38 UTC still pays out from that contract.
