@@ -75,20 +75,33 @@ export const CONFIG = {
 const V8_REGISTRY_ENV = (import.meta.env.VITE_SERVICE_REGISTRY_V8 as string | undefined) ?? "";
 const V8_PAY_PER_CALL_ENV = (import.meta.env.VITE_PAY_PER_CALL_V8 as string | undefined) ?? "";
 
-export const V8_ENABLED = Boolean(V8_REGISTRY_ENV && V8_PAY_PER_CALL_ENV);
+/// Env values are hand-typed, so a mixed-case address can arrive with a broken
+/// EIP-55 checksum (`0x…E4F4846…` instead of `0x…E4f4846…`). viem rejects those
+/// with "Address is invalid", which silently turns every read into an error and
+/// leaves the panels showing zeros. Lower-casing is always a valid address, so
+/// the env addresses are normalised once here.
+const envAddress = (value: string | undefined): string => (value ?? "").trim().toLowerCase();
+const V8_REGISTRY_ADDRESS = envAddress(V8_REGISTRY_ENV);
+const V8_PAY_PER_CALL_ADDRESS = envAddress(V8_PAY_PER_CALL_ENV);
+const V8_KEEPER_ADDRESS = envAddress(import.meta.env.VITE_SLA_KEEPER as string | undefined);
+// V3 escrows the quality slash at openDispute; V2 only at resolve, which let a
+// provider unstake before the decision. Prefer V3 and keep V2 as a fallback so
+// a deployment that has not set the new variable keeps working.
+const DISPUTE_ADDRESS_ENV = envAddress(
+  (import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined,
+);
+
+export const V8_ENABLED = Boolean(V8_REGISTRY_ADDRESS && V8_PAY_PER_CALL_ADDRESS);
 
 export const V8_CONFIG = {
-  registry: V8_REGISTRY_ENV,
-  registryAddress: V8_REGISTRY_ENV as `0x${string}`,
-  payPerCall: V8_PAY_PER_CALL_ENV,
-  ppcAddress: V8_PAY_PER_CALL_ENV as `0x${string}`,
-  keeper: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as string,
-  keeperAddress: ((import.meta.env.VITE_SLA_KEEPER as string | undefined) ?? "") as `0x${string}`,
-  // V3 escrows the quality slash at openDispute; V2 only at resolve, which let a
-  // provider unstake before the decision. Prefer V3 and keep V2 as a fallback so
-  // a deployment that has not set the new variable keeps working.
-  dispute: ((import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined) ?? "",
-  disputeAddress: (((import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined) ?? "") as `0x${string}`,
+  registry: V8_REGISTRY_ADDRESS,
+  registryAddress: V8_REGISTRY_ADDRESS as `0x${string}`,
+  payPerCall: V8_PAY_PER_CALL_ADDRESS,
+  ppcAddress: V8_PAY_PER_CALL_ADDRESS as `0x${string}`,
+  keeper: V8_KEEPER_ADDRESS,
+  keeperAddress: V8_KEEPER_ADDRESS as `0x${string}`,
+  dispute: DISPUTE_ADDRESS_ENV,
+  disputeAddress: DISPUTE_ADDRESS_ENV as `0x${string}`,
 };
 
 /// True when the dispute contract is DisputeV3 (slash escrowed at open). The

@@ -693,7 +693,7 @@ export default function DisputesV8() {
   return (
     <PanelShell>
       <PanelSource
-        label="DisputeV2"
+        label={DISPUTE_V3_ENABLED ? "DisputeV3" : "DisputeV2"}
         value={shortAddr(DISPUTE_ADDRESS)}
         hint="call-bound arbitration on ServiceRegistryV8 + PayPerCallV8"
         state="live"

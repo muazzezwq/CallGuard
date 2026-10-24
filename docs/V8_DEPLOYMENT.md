@@ -302,7 +302,10 @@ authorised slashers move stake.
 1. Set `VITE_DISPUTE_V3=<DISPUTE_V3>` (and `DISPUTE_V3` for server code) in Vercel
    production. `VITE_DISPUTE_V2` can stay for the fallback; the app prefers V3.
 2. Redeploy. The panel then calls `previewSlash` and shows the exact USDC amount
-   that `openDispute` will escrow before the click.
+   that `openDispute` will escrow before the click. The env string may be typed in
+   any case: `src/lib/config.ts` lower-cases every env address (`envAddress`),
+   because a hand-typed mixed-case value with a broken EIP-55 checksum makes viem
+   reject all reads and the panel silently renders zeros.
 3. Revoke the old slasher once no dispute is pending on V2:
    `registry.revokeSlasher(0xe5D993E0B328B506B874505B23b4bE876d7c0900)`.
    `finalize` on an existing V2 dispute still works, because the money is already
@@ -323,7 +326,7 @@ authorised slashers move stake.
 
 | Contract | Address |
 |---|---|
-| `DisputeV3` | `0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec` |
+| `DisputeV3` | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` |
 
 Verified on chain after the deploy: bytecode present; `arbiter`, `appealArbiter` and
 `treasury` are the owner wallet; `disputeBond 2.00`, `appealBond 3.00`,
