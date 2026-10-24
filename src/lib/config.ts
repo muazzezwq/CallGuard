@@ -466,6 +466,60 @@ export const REGISTRY_ABI_V8 = [
 
 export const REGISTRY_ABI_V8_ACTIVE = V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI;
 
+/// DisputeV2 surface. `getDispute` returns the whole record, so the tuple
+/// components must stay in IDisputeV2 order; a flat decode fails with
+/// "could not decode result data". Status is an enum: 0 None, 1 Pending,
+/// 2 Upheld, 3 Rejected, 4 Appealed, 5 AppealUpheld, 6 AppealRejected.
+export const DISPUTE_V2_ABI = [
+  { name: "openDispute", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"callId",type:"bytes32"},{name:"providerId",type:"uint256"},{name:"evidenceUri",type:"string"}],
+    outputs: [{name:"disputeId",type:"uint256"}] },
+  { name: "appeal", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"},{name:"evidenceUri",type:"string"}], outputs: [] },
+  { name: "reclaimExpiredBond", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"}], outputs: [] },
+  { name: "finalize", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"}], outputs: [] },
+  { name: "resolve", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"},{name:"upheld",type:"bool"}], outputs: [] },
+  { name: "resolveAppeal", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"disputeId",type:"uint256"},{name:"upheld",type:"bool"}], outputs: [] },
+  { name: "getDispute", type: "function", stateMutability: "view",
+    inputs: [{name:"disputeId",type:"uint256"}],
+    outputs: [{name:"", type:"tuple", components: [
+      {name:"callId",type:"bytes32"}, {name:"caller",type:"address"},
+      {name:"providerId",type:"uint256"}, {name:"openedAt",type:"uint64"},
+      {name:"resolvedAt",type:"uint64"}, {name:"appealAt",type:"uint64"},
+      {name:"bond",type:"uint256"}, {name:"appealBond",type:"uint256"},
+      {name:"status",type:"uint8"}, {name:"evidenceUri",type:"string"},
+      {name:"appealUri",type:"string"},
+    ]}] },
+  { name: "getDisputeByCallId", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}],
+    outputs: [{name:"", type:"tuple", components: [
+      {name:"callId",type:"bytes32"}, {name:"caller",type:"address"},
+      {name:"providerId",type:"uint256"}, {name:"openedAt",type:"uint64"},
+      {name:"resolvedAt",type:"uint64"}, {name:"appealAt",type:"uint64"},
+      {name:"bond",type:"uint256"}, {name:"appealBond",type:"uint256"},
+      {name:"status",type:"uint8"}, {name:"evidenceUri",type:"string"},
+      {name:"appealUri",type:"string"},
+    ]}] },
+  { name: "disputeCount", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "disputeBond", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "appealBond", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
+  { name: "disputeWindow", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "appealWindow", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "resolutionWindow", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "disputeSlashBps", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+  { name: "arbiter", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "appealArbiter", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "treasury", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "heldSlash", type: "function", stateMutability: "view",
+    inputs: [{name:"disputeId",type:"uint256"}], outputs: [{type:"uint256"}] },
+  { name: "settled", type: "function", stateMutability: "view",
+    inputs: [{name:"disputeId",type:"uint256"}], outputs: [{type:"bool"}] },
+] as const;
+
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     chains: [arcTestnet],

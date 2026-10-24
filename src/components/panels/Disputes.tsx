@@ -1,3 +1,6 @@
+// RETIRED ROUTE — the `disputes` tab now renders DisputesV8, which talks to the
+// live DisputeV2 contract. This panel is the DisputeQuality v2 surface, gated off
+// by `disputeQualityEnabled: false`; it is kept only as the record of that flow.
 import { useState, useCallback } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useReadContracts, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
