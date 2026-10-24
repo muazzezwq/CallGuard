@@ -12,6 +12,7 @@ import { Field, Input } from "../../ui";
 import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 import ArcFeeNotice from "../ArcFeeNotice";
 import V7CleanupCard from "./V7Cleanup";
+import StakeTopUpCard from "./StakeTopUp";
 
 const IDENTITY_REGISTRY_ABI = [
   { name: "register", type: "function", stateMutability: "nonpayable",
@@ -502,6 +503,7 @@ export default function Register() {
         )}
         <button style={{ ...s.btn(),marginTop:20,maxWidth:220 }} onClick={() => { setPhase("edit"); setTxState({ kind:"idle" }); setErrors({}); }}>Register another</button>
       </div>
+      <StakeTopUpCard />
       <V7CleanupCard />
     </div>
   );
@@ -832,6 +834,7 @@ export default function Register() {
         </div>
       )}
 
+      <StakeTopUpCard />
       <V7CleanupCard />
     </div>
   );

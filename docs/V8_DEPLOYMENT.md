@@ -108,6 +108,11 @@ non-zero v7 `providerIdOf`. It calls `deactivate(providerId)`, then `unstake(pro
 `deactivatedAt`, so the cooldown clock starts from the deactivate receipt in that session; after
 a reload an early `unstake` simply reverts with `CooldownActive`.
 
+Stake recovery after a slash has the same kind of gap: `PayPerCallV8.claimTimeout` charges
+`stake * slashBps / 10_000`, so a missed call shrinks the bond regardless of the call price.
+`src/components/panels/StakeTopUp.tsx` (rendered above the v7 card) restores it with
+`ServiceRegistryV8.addStake(providerId, amount)` behind an approve when the allowance is short.
+
 ## 5. Keeper
 
 Run `SLAKeeper.claim(callId)` or `claimBatch(callIds)` after
