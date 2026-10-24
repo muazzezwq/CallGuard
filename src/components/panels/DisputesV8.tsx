@@ -540,6 +540,17 @@ export default function DisputesV8() {
   const allowanceShort = params.bond > 0n && ((allowance as bigint | undefined) ?? 0n) < params.bond;
   const balanceShort = params.bond > 0n && ((balance as bigint | undefined) ?? 0n) < params.bond;
 
+  const blockers = [
+    !callReady && "Paste the 32-byte call id of a Completed call.",
+    callReady && !callRecord && "No call exists for that id on PayPerCallV8.",
+    callRecord && !callCompleted && "That call is not Completed yet, so it cannot be disputed.",
+    callRecord && callCompleted && now > disputeDeadline && "The dispute window has closed for that call.",
+    callRecord && address && !same(address, callRecord.caller) && "The connected wallet is not the call's caller.",
+    alreadyDisputed && "That call already has a dispute.",
+    !providerValid && "Set the provider id to a nonzero number.",
+    evidenceMissing && "Add an Evidence URI (IPFS CID or HTTPS URL).",
+  ].filter(Boolean) as string[];
+
   return (
     <PanelShell>
       <PanelSource
@@ -683,6 +694,15 @@ export default function DisputesV8() {
                     The button unlocks once the call is Completed, the connected wallet sent the call,
                     the dispute window is still open and no dispute exists for it.
                   </p>
+                )}
+                {/* A disabled button is silent, so name every unmet requirement
+                    instead of leaving the click dead with no explanation. */}
+                {blockers.length > 0 && busy === null && (
+                  <StatusNotice tone="warn" title="Open dispute is not available yet">
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {blockers.map((reason) => <li key={reason}>{reason}</li>)}
+                    </ul>
+                  </StatusNotice>
                 )}
               </>
             )}
