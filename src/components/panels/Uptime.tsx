@@ -112,7 +112,7 @@ export default function Uptime() {
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
 
-  const [manualId, setManualId] = useState("1");
+  const [manualId, setManualId] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -239,7 +239,7 @@ export default function Uptime() {
                 mono
                 value={manualId}
                 onChange={(e) => setManualId(e.target.value)}
-                placeholder="1"
+                placeholder="e.g. 7"
                 inputMode="numeric"
               />
             </Field>
