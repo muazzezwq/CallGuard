@@ -45,7 +45,7 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 466 tests, 18 test suites
+forge test -vv       # 472 tests, 18 test suites
 forge build
 forge script script/Deploy.s.sol:Deploy --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -91,7 +91,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
-- README says "229 tests"; actual is **466** (18 test suites). AGENTS.md used to say 300/407 — stale.
+- README says "229 tests"; actual is **472** (18 test suites). AGENTS.md used to say 300/407 — stale.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
   the `callguard-v7/1.0.0` deploy were stale — they indexed the retired v3 registry.)

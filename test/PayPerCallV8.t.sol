@@ -349,4 +349,142 @@ contract PayPerCallV8Test is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
     }
+
+    // ------------------------------------------------------------------
+    // A5 — concurrent call cap (per caller, per provider)
+    // ------------------------------------------------------------------
+
+    /// @dev `maxConcurrentCalls == 0` falls back to DEFAULT_MAX_CONCURRENT.
+    function test_concurrency_defaultCap_reverts() public {
+        uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
+
+        for (uint256 i; i < cap; i++) {
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encode("req-default", i)));
+        }
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), cap);
+        assertEq(registry.getProvider(providerId).pendingCalls, cap);
+
+        vm.expectRevert(PayPerCallV8.TooManyConcurrentCalls.selector);
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("req-default-over"));
+    }
+
+    /// @dev A provider-declared cap replaces the default.
+    function test_concurrency_customCap_reverts() public {
+        uint256 id = _registerSecondProvider(3);
+
+        for (uint256 i; i < 3; i++) {
+            vm.prank(caller);
+            payPerCall.callService(id, keccak256(abi.encode("req-custom", i)));
+        }
+
+        vm.expectRevert(PayPerCallV8.TooManyConcurrentCalls.selector);
+        vm.prank(caller);
+        payPerCall.callService(id, keccak256("req-custom-over"));
+    }
+
+    /// @dev The cap is per caller: one caller hitting the limit does not block another.
+    function test_concurrency_isPerCaller() public {
+        uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
+        address other = address(0xC0FFEE2);
+        usdc.mint(other, 100e6);
+        vm.prank(other);
+        usdc.approve(address(payPerCall), type(uint256).max);
+
+        for (uint256 i; i < cap; i++) {
+            vm.prank(caller);
+            payPerCall.callService(providerId, keccak256(abi.encode("req-caller-a", i)));
+        }
+
+        vm.prank(other);
+        bytes32 callId = payPerCall.callService(providerId, keccak256("req-caller-b"));
+
+        assertEq(payPerCall.openCallsPerCaller(providerId, other), 1);
+        assertTrue(callId != bytes32(0));
+    }
+
+    /// @dev `callServiceFor` spends the beneficiary's budget, not the payer's.
+    function test_concurrency_countsAgainstBeneficiary() public {
+        uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
+
+        for (uint256 i; i < cap; i++) {
+            vm.prank(caller);
+            payPerCall.callServiceFor(providerId, keccak256(abi.encode("req-beneficiary", i)), beneficiary);
+        }
+
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 0);
+        assertEq(payPerCall.openCallsPerCaller(providerId, beneficiary), cap);
+
+        vm.expectRevert(PayPerCallV8.TooManyConcurrentCalls.selector);
+        vm.prank(caller);
+        payPerCall.callServiceFor(providerId, keccak256("req-beneficiary-over"), beneficiary);
+    }
+
+    /// @dev A completed call frees its slot immediately.
+    function test_concurrency_slotFreedAfterReceipt() public {
+        uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
+
+        bytes32 firstCallId;
+        for (uint256 i; i < cap; i++) {
+            vm.prank(caller);
+            bytes32 callId = payPerCall.callService(providerId, keccak256(abi.encode("req-slot", i)));
+            if (i == 0) firstCallId = callId;
+        }
+
+        vm.expectRevert(PayPerCallV8.TooManyConcurrentCalls.selector);
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("req-slot-over"));
+
+        bytes32 responseHash = keccak256("resp-slot");
+        bytes memory sig = _sign(signerPk, firstCallId, responseHash, uint64(block.timestamp), 1);
+        payPerCall.submitReceipt(firstCallId, responseHash, uint64(block.timestamp), 1, sig);
+
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), cap - 1);
+
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("req-slot-after-receipt"));
+    }
+
+    /// @dev A timed-out call also frees its slot.
+    function test_concurrency_slotFreedAfterTimeout() public {
+        uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
+
+        bytes32 firstCallId;
+        for (uint256 i; i < cap; i++) {
+            vm.prank(caller);
+            bytes32 callId = payPerCall.callService(providerId, keccak256(abi.encode("req-timeout", i)));
+            if (i == 0) firstCallId = callId;
+        }
+
+        vm.warp(block.timestamp + MAX_RESP + payPerCall.SUBMIT_GRACE() + 1);
+        payPerCall.claimTimeout(firstCallId);
+
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), cap - 1);
+
+        vm.prank(caller);
+        payPerCall.callService(providerId, keccak256("req-timeout-after-claim"));
+    }
+
+    /// @dev Second provider, used by the custom-cap test. The registry allows one
+    ///      provider per owner, so it needs its own owner and signer.
+    function _registerSecondProvider(uint32 maxConcurrentCalls) internal returns (uint256 id) {
+        address owner = address(0xB0B2);
+        usdc.mint(owner, STAKE);
+        vm.startPrank(owner);
+        usdc.approve(address(registry), STAKE);
+        id = registry.register(
+            address(0x516E2),
+            STAKE,
+            PRICE,
+            MAX_RESP,
+            SLASH_BPS,
+            AVAILABILITY_BPS,
+            maxConcurrentCalls,
+            "https://api2.example",
+            TERMS_HASH,
+            TERMS_URI
+        );
+        vm.stopPrank();
+    }
 }

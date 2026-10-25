@@ -24,7 +24,7 @@ Status vocabulary:
 | A2 | A receipt is rejected when the provider claims a `respondedAt` past the deadline, or submits after `deadline + SUBMIT_GRACE (5 s)` | `submitReceipt`, `test_submitReceipt_respondedAfterDeadline_reverts`, `test_submitReceipt_afterGrace_reverts` | prod: timeout drill `0xc4e2245e…` | PASS |
 | A3 | A missed deadline refunds the caller and slashes the stake; keeper earns a bounty | `claimTimeout`, `test_claimTimeout_refundsSlashesAndPaysBounty` | prod: call `0xc4e2245e…` → refund `1.0`, slashed `1.9`, bounty `0.1` | PASS |
 | A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | 7-day soak running since 24 Oct 15:33 UTC, ends 31 Oct 15:33 UTC | PARTIAL |
-| A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` | tests exist only in the **v7** suite (`test/PayPerCall.t.sol:585`); no v8 test | PARTIAL |
+| A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` — cap keyed on `openCallsPerCaller[providerId][beneficiary]`, so `callServiceFor` spends the beneficiary's budget, not the payer's | `test/PayPerCallV8.t.sol` — 6 tests: default cap `10`, provider-declared cap, per-caller isolation, beneficiary accounting, slot freed on receipt, slot freed on timeout. Note: `ServiceRegistryV8` pins `zkTier` to `0`, so the 2× multiplier is unreachable in v8; it stays covered by the v7 suite | PASS |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
 | A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime` `0x6916997DEFe98819176F66867fD5B356C284e89f` — live on Arc Testnet, authorised as a registry slasher. `claimAvailability` reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests covering the window reset, `TargetMet`, `NotEnoughSamples`, `Cooldown`, the stake cap, the bounty split, and admin bounds. On chain, tx `0xd7429d93cca53a9cdb5c12933c4023eb8da03c5e504dceea8aa352f8d6160539` (block `69063379`): `AvailabilitySlashed(1, 0xfbac…06Da, 5714, 9950, 7, 5373248, 1074649)`, stake `53.732480 → 48.359232 USDC`, claimer `+1.074649`, treasury `+4.298599`, window reset to `0` samples | **PASS** |
@@ -141,19 +141,18 @@ slashes, so the incentive still points at serving.
 
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
-| A — Availability | 6 | 2 | 0 |
+| A — Availability | 7 | 1 | 0 |
 | B — Quality | 4 | 3 | 1 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **18** | **5** | **1** |
+| **Total** | **19** | **4** | **1** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
 C8 and A8 are both proven on chain: dispute #1 escrowed its slash at open on
 `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from provider 1
 for missing its published 99.5 % target. The remaining gaps are proof gaps, not
-mechanism gaps: A4 (keeper soak still running this week), A5 (v8 concurrency cap
-is tested only in the v7 suite), and B6–B8 (appeal, finalize, and
-`reclaimExpiredBond` never driven end to end from the UI).
+mechanism gaps: A4 (keeper soak still running this week) and B6–B8 (appeal,
+finalize, and `reclaimExpiredBond` never driven end to end from the UI).
 
 ## Next work, highest value first
 
@@ -161,8 +160,8 @@ is tested only in the v7 suite), and B6–B8 (appeal, finalize, and
    resolves it, run `finalize` once the appeal window closes. Then finalize the old
    V2 dispute (26 Oct 18:58 UTC) and `revokeSlasher(0xe5D993E0…0900)` so no stale
    slasher keeps authority over the registry.
-2. **Prove A5 in v8** — the concurrency cap is the last A row without v8 evidence;
-   porting the v7 test (`test/PayPerCall.t.sol:585`) to `PayPerCallV8` closes it.
-   A4 only needs the keeper soak to finish (31 Oct 15:33 UTC).
-3. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
-   `DisputesV8` so all three are proven end to end instead of test-only.
+2. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
+   `DisputesV8` so all three are proven end to end instead of test-only. A4 only
+   needs the keeper soak to finish (31 Oct 15:33 UTC).
+3. **A4** — record the keeper soak result when it ends (31 Oct 15:33 UTC) and
+   flip the last A row.
