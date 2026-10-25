@@ -569,7 +569,9 @@ export default function DisputesV8() {
       setProviderTouched(true);
     }
     setEvidence((prev) => (prev.trim().length > 0 ? prev : (
-      `data:application/json,{"callId":"${pendingDispute.callId}","claim":"response did not match the SLA"}`
+      pendingDispute.evidence?.trim()
+        ? pendingDispute.evidence
+        : `data:application/json,{"callId":"${pendingDispute.callId}","claim":"response did not match the SLA"}`
     )));
     setStatus("Loaded the call from the previous panel. Check the facts, edit the evidence if you want, then open the dispute.");
     clearPendingDispute();

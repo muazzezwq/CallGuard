@@ -6,6 +6,7 @@ import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
+import { buildPayloadEvidence, checkPayloadAgainstCommitment, type PayloadCheck } from "../../lib/responseProof";
 import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation } from "../../lib/paymentGate";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
@@ -66,6 +67,35 @@ export default function Verify() {
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [shareLink, setShareLink] = useState("");
   const verifySeq = useRef(0);
+
+  // B3a — response binding. The receipt commits to `responseHash`, but nothing
+  // checked that the body the caller received hashes to it. The caller can now
+  // do that locally, and a mismatch becomes objective dispute evidence.
+  const [payloadInput, setPayloadInput] = useState("");
+  const [payloadCheck, setPayloadCheck] = useState<PayloadCheck | null>(null);
+  const [committedHash, setCommittedHash] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPayloadCheck(null);
+    setCommittedHash(result?.responseHash ?? null);
+    if (!result || result.kind !== "call" || !result.callId || result.responseHash || !publicClient) return;
+    let alive = true;
+    (async () => {
+      try {
+        const data = await publicClient.readContract({
+          address: ACTIVE_PPC_ADDRESS,
+          abi: PPC_ABI_V8_ACTIVE,
+          functionName: "getCall",
+          args: [result.callId as `0x${string}`],
+        }) as unknown as Record<string | number, unknown>;
+        // v8 keeps responseHash at index 9 (after completedAt/termsVersion/termsHash);
+        // the v7 layout keeps it at 6.
+        const hash = data?.responseHash ?? data?.[V8_ENABLED ? 9 : 6];
+        if (alive && typeof hash === "string") setCommittedHash(hash);
+      } catch { /* leave the commitment unknown; the card says so */ }
+    })();
+    return () => { alive = false; };
+  }, [result, publicClient]);
 
   // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
   const pendingVerify = useAppStore(s => s.pendingVerify);
@@ -381,6 +411,10 @@ export default function Verify() {
     }
   }
 
+  const checkDeliveredPayload = useCallback(() => {
+    setPayloadCheck(checkPayloadAgainstCommitment(payloadInput, committedHash));
+  }, [payloadInput, committedHash]);
+
   function copyShareLink() {
     if (shareLink) navigator.clipboard?.writeText(shareLink).catch(() => {});
   }
@@ -492,6 +526,102 @@ export default function Verify() {
           </div>
         )}
       </div>
+
+      {/* B3a — is the body the caller received the body the provider committed
+          to? keccak256 over the exact bytes answers that; a mismatch is evidence
+          an arbiter can check without trusting either party. */}
+      {result?.kind === "call" && result.callId && (
+        <div style={s.card}>
+          <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text)", fontWeight: 600, marginBottom: 8 }}>
+            Response binding — does the payload match the commitment?
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text)", marginBottom: 12 }}>
+            Paste the body the provider returned. It is hashed locally and compared with the
+            on-chain <code>responseHash</code>. Nothing leaves this tab.
+          </div>
+          <div style={{ ...s.row, borderBottom: "none", paddingTop: 0 }}>
+            <span style={s.rowLabel}>Committed hash</span>
+            <span style={{ ...s.rowVal, fontSize: 11 }}>
+              {committedHash && /^0x[0-9a-fA-F]{64}$/.test(committedHash) && !/^0x0{64}$/i.test(committedHash)
+                ? `${committedHash.slice(0, 12)}…${committedHash.slice(-8)}`
+                : "not committed yet"}
+            </span>
+          </div>
+          <label style={s.label} htmlFor="vf-payload">Delivered payload</label>
+          <textarea
+            id="vf-payload"
+            rows={4}
+            style={{ ...s.input, marginBottom: 10, resize: "vertical" as const }}
+            placeholder='{"tempC":21.4,"city":"Istanbul"}'
+            value={payloadInput}
+            onChange={e => { setPayloadInput(e.target.value); setPayloadCheck(null); }}
+          />
+          <button
+            type="button"
+            style={{ ...s.btn, width: "100%", justifyContent: "center", opacity: !payloadInput.trim() || !committedHash ? 0.6 : 1 }}
+            onClick={checkDeliveredPayload}
+            disabled={!payloadInput.trim() || !committedHash}
+          >
+            Check payload →
+          </button>
+
+          {payloadCheck && (
+            <div
+              role="status"
+              style={{
+                marginTop: 12,
+                padding: 12,
+                borderRadius: 10,
+                fontSize: 12,
+                background: payloadCheck.status === "match" ? "rgba(25,209,134,.08)" : "rgba(238,69,57,.08)",
+                border: `1px solid ${payloadCheck.status === "match" ? "rgba(25,209,134,.25)" : "rgba(238,69,57,.25)"}`,
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                {payloadCheck.status === "match" && "MATCH — the payload is what the provider committed to"}
+                {payloadCheck.status === "mismatch" && "MISMATCH — the delivered body is not the committed response"}
+                {payloadCheck.status === "uncommitted" && "NOT COMMITTED — this call has no response hash yet"}
+                {payloadCheck.status === "invalid" && "INVALID — the stored response hash is not a 32-byte value"}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, wordBreak: "break-all" as const }}>
+                computed&nbsp;&nbsp;{payloadCheck.computed}
+              </div>
+              {payloadCheck.committed && (
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, wordBreak: "break-all" as const, marginTop: 4 }}>
+                  committed&nbsp;{payloadCheck.committed}
+                </div>
+              )}
+              {payloadCheck.status === "mismatch" && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    style={s.btnSecondary}
+                    onClick={() => openDispute(
+                      result.callId!,
+                      result.providerId ? String(result.providerId) : undefined,
+                      buildPayloadEvidence({
+                        callId: result.callId!,
+                        committed: payloadCheck.committed ?? "",
+                        payload: payloadInput,
+                      }),
+                    )}
+                  >
+                    Open a dispute with this payload →
+                  </button>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+                    The evidence URI carries the payload and the committed hash, so the arbiter
+                    can recompute the hash instead of trusting either side.
+                  </p>
+                </div>
+              )}
+              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+                A match proves the body was not swapped after delivery. It does not prove the
+                body is a correct answer — that needs attested execution, which CallGuard does not claim.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* EIP-712 Provider Receipt Submit */}
       <div style={s.card}>

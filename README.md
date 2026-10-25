@@ -143,7 +143,7 @@ Three promises, three mechanisms. Full table with per-row evidence: [`docs/SLA_C
 
 **A — Availability.** Each call snapshots `maxResponseTime`, `slashBps` and `availabilityTargetBps`, so terms cannot move under a live call. Past `deadline + SUBMIT_GRACE` (5 s), `PayPerCallV8.claimTimeout` is permissionless: 20 % of stake is slashed at claim time, the caller's escrow is refunded, the keeper takes `keeperBountyBps` (5 %) capped at 5 USDC. The aggregate promise — `availabilityTargetBps`, e.g. 9950 = 99.5 % — is scored by `SLAUptime` over `completedCalls / (completedCalls + slashedCalls)` since the provider's last check, gated by `minSamples` (5 on testnet, 20 intended for mainnet) and a 24 h cooldown, slashing 10 % with 20 % of it to the claimant.
 
-**B — Quality.** A receipt is an EIP-712 signature over `(callId, responseHash, respondedAt, termsVersion)` in the `ArcSLA/1` domain, so replay, wrong signer, wrong terms version and back-dated `respondedAt` all fail. Only the call's caller can open a dispute, only inside the 7-day `disputeWindow`, only on a `Completed` call, and only once.
+**B — Quality.** A receipt is an EIP-712 signature over `(callId, responseHash, respondedAt, termsVersion)` in the `ArcSLA/1` domain, so replay, wrong signer, wrong terms version and back-dated `respondedAt` all fail. The delivered body is then checked against the committed `responseHash` locally in `Verify Receipt` (`src/lib/responseProof.ts`): a match proves the payload was not swapped after delivery, and a mismatch becomes dispute evidence an arbiter can recompute. Only the call's caller can open a dispute, only inside the 7-day `disputeWindow`, only on a `Completed` call, and only once.
 
 **C — Money.** `DisputeV3` slashes and **escrows at `openDispute`** — the old "serve, unstake, dodge the slash" escape is closed. Outcomes: `resolve(true)` → bond back to the caller, escrow held; `resolve(false)` → bond to the treasury; `finalize` after the 48 h appeal window pays the escrow to the winner; and if the arbiter never answers, `reclaimExpiredBond` after 7 days returns the bond to the caller and the escrow to the provider, so silence costs neither party.
 
@@ -155,7 +155,7 @@ Live claim (run `40221690767`, tx `0x87fc2941…2d9a`): `requested 2 / claimed 2
 
 ### Coverage, stated honestly
 
-24 SLA behaviours are tracked as PASS / PARTIAL / GAP: **21 PASS** (enforced on chain, covered by a test, demonstrated on the deployed contracts), **2 PARTIAL** waiting only on their time windows (`finalize`, `reclaimExpiredBond`), **1 GAP** — the receipt proves who signed it and when, not that the payload matched the promised content.
+25 SLA behaviours are tracked as PASS / PARTIAL / GAP: **22 PASS** (enforced, covered by a test, demonstrated on the deployed contracts), **2 PARTIAL** waiting only on their time windows (`finalize`, `reclaimExpiredBond`), **1 GAP** — `B3b`: the payload is proven to be the committed one, not proven to be a correct answer. That needs attested execution (TEE or zk-proof) and CallGuard does not claim it.
 
 
 
@@ -386,7 +386,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 ### Settlement and history
 
 - **Transaction History** — full call/receipt/slash/timeout history from the v8 Studio subgraph
-- **Receipt verification** — verify on-chain without a wallet; `?verify=0x...` deep link from Receipts panel
+- **Receipt verification** — verify on-chain without a wallet; `?verify=0x...` deep link from Receipts panel; the panel also hashes a pasted payload and compares it with the committed `responseHash`, with one click to hand a mismatch to the dispute form
 - **Disputes panel** (`DisputesV8`) — live `DisputeV3` state: bond, appeal bond, slash preview, disputeable calls with their remaining window, and what each escrow does next
 - **Availability panel** (`Uptime`) — published target vs observed rate, sample count, cooldown countdown, slash/bounty preview before an `SLAUptime` claim
 - **My Calls / Receipts / Payments** — per-wallet history panels

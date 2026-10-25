@@ -35,7 +35,8 @@ Status vocabulary:
 |---|---|---|---|---|
 | B1 | A receipt is an EIP-712 signature over `callId`, `responseHash`, `respondedAt`, `termsVersion` | `hashReceipt` / `submitReceipt` | `test_submitReceipt_completesAndCreditsProvider` | PASS |
 | B2 | Wrong signer, wrong terms version, zero hash, and replay are rejected | `submitReceipt` guards | 4 v8 tests (`wrongSigner`, `wrongTermsVersion`, `zeroResponseHash`, `replay`) | PASS |
-| B3 | The receipt is checked against the *content* of the response | not on-chain: `responseHash` is whatever the provider signed | — | **GAP** (by design; B4 is the backstop) |
+| B3a | The delivered payload is the payload the provider committed to (`responseHash`) | `src/lib/responseProof.ts`, `Verify Receipt` panel, 11 tests | `checkPayloadAgainstCommitment` hashes the body locally and compares it with `getCall().responseHash`; a mismatch is offered as dispute evidence (`buildPayloadEvidence`) and the `DisputesV8` form fills itself from it. Verified in the dev server on call `0x8cfa1821…` (committed `0x188fcd5c…`): payload `pong` → `MATCH`, payload `pongg` → `MISMATCH` with the dispute handoff prefilled | PASS — off-chain, no contract change |
+| B3b | The payload is a *correct* answer to the request, not merely the committed one | not on-chain, and a hash cannot express it | — | **GAP** (needs attested execution — TEE or zk-proof; CallGuard does not claim it) |
 | B4 | Only the call's caller, only a `Completed` call, only inside `disputeWindow`, only once, and only with the right `providerId` can open a dispute | `DisputeV2.openDispute`, `test/DisputeV2.t.sol` (7 rejection tests) | prod: dispute #1 on `0x8828799a…c9ddfe` | PASS |
 | B5 | The arbiter resolves `Upheld` (stake held, bond returned) or `Rejected` (bond to treasury) | `resolve`, `test_resolve_upheld_returnsBondAndHoldsSlash`, `test_resolve_rejected_sendsBondToTreasury` | prod: `resolve(1, true)` → `heldSlash 0.64`, bond returned | PASS |
 | B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
@@ -142,9 +143,9 @@ slashes, so the incentive still points at serving.
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
 | A — Availability | 8 | 0 | 0 |
-| B — Quality | 5 | 2 | 1 |
+| B — Quality | 6 | 2 | 1 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **21** | **2** | **1** |
+| **Total** | **22** | **2** | **1** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
@@ -152,9 +153,10 @@ C8 and A8 are both proven on chain: disputes #1 and #2 escrowed their slashes at
 open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
 gaps, not mechanism gaps: B7/B8 (finalize and `reclaimExpiredBond` are waiting on
-their windows, not on code) and B3 (the receipt proves who signed it, not that the
-payload was the promised content — the only real design gap left). A no longer has
-an open row: the keeper runs on GitHub Actions and claimed two timeouts unattended.
+their windows, not on code). B3 split in two: `B3a` (the delivered body matches the
+committed hash) is now PASS through `src/lib/responseProof.ts` and the Verify panel,
+while `B3b` (the body is a correct answer, not just the committed one) stays a GAP
+because a hash cannot express correctness.
 
 ## Next work, highest value first
 
