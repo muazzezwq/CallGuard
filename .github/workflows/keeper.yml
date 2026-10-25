@@ -1,0 +1,58 @@
+name: Keeper
+
+# Scheduled timeout keeper for PayPerCallV8 / SLAKeeper on Arc Testnet.
+#
+# One process per scheduled run: `ONCE=1` makes scripts/keeper-soak.js do a single
+# discovery + claim pass and exit, so no long-lived host process is needed. GitHub
+# Actions cron is free for public repositories, which is why this replaced the local
+# soak that died with its host session.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# A slow run must not overlap the next tick.
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  claim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Claim timeouts
+        env:
+          ARC_RPC_URL: https://rpc.testnet.arc.io
+          KEEPER_PK: ${{ secrets.KEEPER_PK }}
+          ONCE: "1"
+          POLL_MS: "60000"
+          SOAK_LOG_DIR: ${{ runner.temp }}/keeper-soak
+        run: |
+          if [ -z "$KEEPER_PK" ]; then
+            echo "KEEPER_PK secret is not set" >&2
+            exit 1
+          fi
+          bun scripts/keeper-soak.js
+
+      - name: Upload JSONL evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keeper-log-${{ github.run_id }}
+          path: ${{ runner.temp }}/keeper-soak
+          retention-days: 30
+          if-no-files-found: ignore
