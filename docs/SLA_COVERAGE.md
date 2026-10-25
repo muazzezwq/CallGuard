@@ -23,7 +23,7 @@ Status vocabulary:
 | A1 | Each call snapshots `maxResponseTime`, `slashBps`, `termsVersion` at open, so a later terms update cannot change the rules mid-call | `PayPerCallV8._createCall`, `test_PayPerCallV8.test_callService_escrowsAndSnapshotsTerms` | prod: provider `1` runs `120 s`, every call stores it | PASS |
 | A2 | A receipt is rejected when the provider claims a `respondedAt` past the deadline, or submits after `deadline + SUBMIT_GRACE (5 s)` | `submitReceipt`, `test_submitReceipt_respondedAfterDeadline_reverts`, `test_submitReceipt_afterGrace_reverts` | prod: timeout drill `0xc4e2245e…` | PASS |
 | A3 | A missed deadline refunds the caller and slashes the stake; keeper earns a bounty | `claimTimeout`, `test_claimTimeout_refundsSlashesAndPaysBounty` | prod: call `0xc4e2245e…` → refund `1.0`, slashed `1.9`, bounty `0.1` | PASS |
-| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | soak `soak-2026-10-24T15-33-35Z.jsonl`: `289` cycles over `5 h 13 min` from 24 Oct 15:33 UTC, then the host session ended at 20:46 UTC and the process stopped. The gap is visible on chain: call `0x3805a0e4…` has stayed `Pending` since 24 Oct 21:00 UTC with its deadline long past, so nothing is claiming today. Restart needed before the row can move | PARTIAL — mechanism proven, soak interrupted |
+| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | soak `soak-2026-10-24T15-33-35Z.jsonl`: `289` cycles over `5 h 13 min` from 24 Oct 15:33 UTC, then the host session ended at 20:46 UTC and the process stopped. The gap is visible on chain: call `0x3805a0e4…` stayed `Pending` from 24 Oct 21:00 UTC until it was claimed by hand on 25 Oct (`Slashed`, stake `48.359232 → 38.687386`, bounty `0.483592`), so nothing was claiming timeouts. Restart needed before the row can move | PARTIAL — mechanism proven, soak interrupted |
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` — cap keyed on `openCallsPerCaller[providerId][beneficiary]`, so `callServiceFor` spends the beneficiary's budget, not the payer's | `test/PayPerCallV8.t.sol` — 6 tests: default cap `10`, provider-declared cap, per-caller isolation, beneficiary accounting, slot freed on receipt, slot freed on timeout. Note: `ServiceRegistryV8` pins `zkTier` to `0`, so the 2× multiplier is unreachable in v8; it stays covered by the v7 suite | PASS |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
@@ -38,7 +38,7 @@ Status vocabulary:
 | B3 | The receipt is checked against the *content* of the response | not on-chain: `responseHash` is whatever the provider signed | — | **GAP** (by design; B4 is the backstop) |
 | B4 | Only the call's caller, only a `Completed` call, only inside `disputeWindow`, only once, and only with the right `providerId` can open a dispute | `DisputeV2.openDispute`, `test/DisputeV2.t.sol` (7 rejection tests) | prod: dispute #1 on `0x8828799a…c9ddfe` | PASS |
 | B5 | The arbiter resolves `Upheld` (stake held, bond returned) or `Rejected` (bond to treasury) | `resolve`, `test_resolve_upheld_returnsBondAndHoldsSlash`, `test_resolve_rejected_sendsBondToTreasury` | prod: `resolve(1, true)` → `heldSlash 0.64`, bond returned | PASS |
-| B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | never exercised from the panel | PARTIAL |
+| B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
 | B7 | After `appealWindow`, `finalize` pays the held slash to the caller and marks the dispute settled | `finalize`, `test_finalize_releasesHeldSlashToCaller` | dispute #1 unlocks 26 Oct 2026 18:58:38 UTC | PARTIAL |
 | B8 | If the arbiter never resolves, the caller reclaims the bond after `resolutionWindow` | `reclaimExpiredBond`, 2 tests | no UI path | PARTIAL |
 
@@ -142,32 +142,33 @@ slashes, so the incentive still points at serving.
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
 | A — Availability | 7 | 1 | 0 |
-| B — Quality | 4 | 3 | 1 |
+| B — Quality | 5 | 2 | 1 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **19** | **4** | **1** |
+| **Total** | **20** | **3** | **1** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
 C8 and A8 are both proven on chain: disputes #1 and #2 escrowed their slashes at
 open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
-gaps, not mechanism gaps: A4 (the soak died after 5 h 13 min and one call has been
-`Pending` since 24 Oct 21:00 UTC, so the keeper is not running) and B6–B8 (appeal,
-finalize, and `reclaimExpiredBond` never driven end to end).
+gaps, not mechanism gaps: A4 (the soak died after 5 h 13 min, so the keeper is not
+running) and B7/B8 (finalize and `reclaimExpiredBond` are waiting on their windows,
+not on code).
 
 ## Next work, highest value first
 
-1. **B6 — drive an appeal end to end** — dispute #2 (`0x8828799a…`, `Upheld`,
-   resolved 24 Oct 21:52:02 UTC) is still appealable until 26 Oct 21:52 UTC, and a
-   third completed call (`0x041ab7c6…`) is undisputed, so a fresh dispute can run
-   the whole `openDispute → resolve → appeal → resolveAppeal` path today. After
-   that, `finalize` (#1 unlocks 26 Oct 20:13:05 UTC, #2 unlocks 26 Oct 21:52:02
-   UTC) proves B7, and the old V2 dispute (26 Oct 18:58:38 UTC) can be finalized
-   and `revokeSlasher(0xe5D993E0…0900)` run.
-2. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
-   `DisputesV8` so all three are proven end to end instead of test-only. A4 only
-   needs the keeper soak to finish (31 Oct 15:33 UTC).
+1. **B7 — `finalize` both open disputes** — #1 unlocks 26 Oct 20:13:05 UTC and #2
+   unlocks 26 Oct 21:52:02 UTC; each pays its held slash to the caller and marks
+   the dispute settled. Then the old V2 dispute (26 Oct 18:58:38 UTC) can be
+   finalized and `revokeSlasher(0xe5D993E0…0900)` run, which retires V2.
+2. **B8 — start the `reclaimExpiredBond` clock** — one completed call is still
+   undisputed (`0xb773c233…`, completed 24 Oct 20:44:22 UTC, dispute window closes
+   in ~6 days). Opening dispute #4 on it and leaving it `Pending` lets
+   `reclaimExpiredBond(4)` run on 1 Nov, which returns the bond to the caller and
+   the escrow to the provider — silence from the arbiter costs nobody.
 3. **A4 — restart the keeper soak** — the old process died with its host session
-   after 289 cycles. `KEEPER_PK` is not in this workspace, so the soak has to be
-   started from the wallet that owns keeper `0xd7B4C2B1…7d59`; until it is, call
-   `0x3805a0e4…` stays `Pending` and A4 stays PARTIAL.
+   after 289 cycles. The stuck call `0x3805a0e4…` was claimed by hand (status
+   `Slashed`, stake `48.359232 → 38.687386`, bounty `0.483592`), which is what the
+   keeper should have done 24 h earlier. `KEEPER_PK` for keeper `0xd7B4C2B1…7d59`
+   is not in this workspace, so the soak has to be restarted from that wallet
+   before A4 can move.
