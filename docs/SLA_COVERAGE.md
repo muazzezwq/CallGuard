@@ -36,7 +36,7 @@ Status vocabulary:
 | B1 | A receipt is an EIP-712 signature over `callId`, `responseHash`, `respondedAt`, `termsVersion` | `hashReceipt` / `submitReceipt` | `test_submitReceipt_completesAndCreditsProvider` | PASS |
 | B2 | Wrong signer, wrong terms version, zero hash, and replay are rejected | `submitReceipt` guards | 4 v8 tests (`wrongSigner`, `wrongTermsVersion`, `zeroResponseHash`, `replay`) | PASS |
 | B3a | The delivered payload is the payload the provider committed to (`responseHash`) | `src/lib/responseProof.ts`, `Verify Receipt` panel, 11 tests | `checkPayloadAgainstCommitment` hashes the body locally and compares it with `getCall().responseHash`; a mismatch is offered as dispute evidence (`buildPayloadEvidence`) and the `DisputesV8` form fills itself from it. Verified in the dev server on call `0x8cfa1821…` (committed `0x188fcd5c…`): payload `pong` → `MATCH`, payload `pongg` → `MISMATCH` with the dispute handoff prefilled | PASS — off-chain, no contract change |
-| B3b | The payload is a *correct* answer to the request, not merely the committed one | not on-chain, and a hash cannot express it | — | **GAP** (needs attested execution — TEE or zk-proof; CallGuard does not claim it) |
+| B3b | The payload was witnessed by someone the caller chose to trust, and the *correctness* of the answer is provable | mechanism: `SLAProvenance` `0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb` — an allowlisted attestor signs an EIP-712 digest over `(callId, payloadHash, originHash, observedAt)`; the contract recovers the signer and stores the record. Correctness of the answer is still not expressible on chain | `contracts/SLAProvenance.sol` + 19 tests in `test/SLAProvenance.t.sol` (wrong signer, replay, other call/origin/chain, malformed signature, empty hash, future timestamp, revocation). Live on Arc Testnet: tx `0x7cd975ab…fa76` (block `69078912`, gas `145459`) recorded call `0x8cfa1821…` with payload hash `0x188fcd5c…`, origin `arcsla.vercel.app`, attestor `0x528581fB…2F9c`; `verifyProvenance(callId, committedHash) = true`, and the Verify panel renders the record, the origin hash and the comparison. Verified in the dev server on both branches (recorded call → MATCH, unattested call → "no attestation") | **PARTIAL** — provenance is real and on chain, but the only allowlisted attestor is a key this repository holds, so the trust assumption is "trust CallGuard's witness", not independence. A correct-answer proof needs attested execution (TEE or zk-proof) and is not claimed |
 | B4 | Only the call's caller, only a `Completed` call, only inside `disputeWindow`, only once, and only with the right `providerId` can open a dispute | `DisputeV2.openDispute`, `test/DisputeV2.t.sol` (7 rejection tests) | prod: dispute #1 on `0x8828799a…c9ddfe` | PASS |
 | B5 | The arbiter resolves `Upheld` (stake held, bond returned) or `Rejected` (bond to treasury) | `resolve`, `test_resolve_upheld_returnsBondAndHoldsSlash`, `test_resolve_rejected_sendsBondToTreasury` | prod: `resolve(1, true)` → `heldSlash 0.64`, bond returned | PASS |
 | B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
@@ -143,9 +143,9 @@ slashes, so the incentive still points at serving.
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
 | A — Availability | 8 | 0 | 0 |
-| B — Quality | 6 | 2 | 1 |
+| B — Quality | 6 | 3 | 0 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **22** | **2** | **1** |
+| **Total** | **22** | **3** | **0** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
@@ -154,9 +154,10 @@ open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
 gaps, not mechanism gaps: B7/B8 (finalize and `reclaimExpiredBond` are waiting on
 their windows, not on code). B3 split in two: `B3a` (the delivered body matches the
-committed hash) is now PASS through `src/lib/responseProof.ts` and the Verify panel,
-while `B3b` (the body is a correct answer, not just the committed one) stays a GAP
-because a hash cannot express correctness.
+committed hash) is PASS through `src/lib/responseProof.ts` and the Verify panel, and
+`B3b` moved from GAP to PARTIAL because `SLAProvenance` now records an allowlisted
+attestor's observation on chain — the mechanism exists, but the witness is a key this
+repository controls, and no hash can prove an answer is *correct*.
 
 ## Next work, highest value first
 

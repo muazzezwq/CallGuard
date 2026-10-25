@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE } from "../../lib/config";
+import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
@@ -75,6 +75,15 @@ export default function Verify() {
   const [payloadCheck, setPayloadCheck] = useState<PayloadCheck | null>(null);
   const [committedHash, setCommittedHash] = useState<string | null>(null);
 
+  // B3b — attested provenance. The local hash check proves the body was not
+  // swapped after delivery; a record here proves an allowlisted key saw those
+  // bytes and signed the observation. Still not a proof that the answer is
+  // correct, and the card says so.
+  const [provenance, setProvenance] = useState<{
+    payloadHash: string; attestor: string; originHash: string; observedAt: number; recordedAt: number;
+  } | null>(null);
+  const [provenanceOnChain, setProvenanceOnChain] = useState<boolean | null>(null);
+
   useEffect(() => {
     setPayloadCheck(null);
     setCommittedHash(result?.responseHash ?? null);
@@ -97,6 +106,55 @@ export default function Verify() {
     return () => { alive = false; };
   }, [result, publicClient]);
 
+  useEffect(() => {
+    setProvenance(null);
+    setProvenanceOnChain(null);
+    if (!SLA_PROVENANCE_ENABLED || result?.kind !== "call" || !result.callId || !publicClient) return;
+    const callId = result.callId as `0x${string}`;
+    let alive = true;
+    (async () => {
+      try {
+        const rec = await publicClient.readContract({
+          address: SLA_PROVENANCE_ADDRESS,
+          abi: SLA_PROVENANCE_ABI,
+          functionName: "getProvenance",
+          args: [callId],
+        }) as unknown as Record<string | number, unknown>;
+        const payloadHash = (rec?.payloadHash ?? rec?.[0]) as string | undefined;
+        const attestor = (rec?.attestor ?? rec?.[1]) as string | undefined;
+        const originHash = (rec?.originHash ?? rec?.[2]) as string | undefined;
+        const observedAt = Number(rec?.observedAt ?? rec?.[3] ?? 0);
+        const recordedAt = Number(rec?.recordedAt ?? rec?.[4] ?? 0);
+        // recordedAt == 0 means the registry has no record for this call.
+        if (!alive || !payloadHash || !attestor || recordedAt === 0) return;
+        setProvenance({ payloadHash, attestor, originHash: originHash ?? "", observedAt, recordedAt });
+      } catch { /* registry unreachable; the card states that instead of guessing */ }
+    })();
+    return () => { alive = false; };
+  }, [result, publicClient]);
+
+  // The meaningful question is not "did an attestor sign something" but "did an
+  // attestor sign the payload the provider committed to", so ask the contract
+  // with the committed hash rather than with the recorded one.
+  useEffect(() => {
+    if (!provenance || !committedHash || !publicClient || !SLA_PROVENANCE_ENABLED) return;
+    if (!/^0x[0-9a-fA-F]{64}$/.test(committedHash)) return;
+    if (!result?.callId) return;
+    const callId = result.callId as `0x${string}`;
+    let alive = true;
+    (async () => {
+      try {
+        const ok = await publicClient.readContract({
+          address: SLA_PROVENANCE_ADDRESS,
+          abi: SLA_PROVENANCE_ABI,
+          functionName: "verifyProvenance",
+          args: [callId, committedHash as `0x${string}`],
+        }) as boolean;
+        if (alive) setProvenanceOnChain(ok);
+      } catch { /* leave unknown; the card does not claim a match */ }
+    })();
+    return () => { alive = false; };
+  }, [provenance, committedHash, publicClient, result]);
   // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
   const pendingVerify = useAppStore(s => s.pendingVerify);
   const clearPendingVerify = useAppStore(s => s.clearPendingVerify);
@@ -620,6 +678,70 @@ export default function Verify() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* B3b — provenance. An allowlisted attestor signed an observation of the
+          payload. The contract verifies who signed, not that the answer is right;
+          the footnote says so rather than letting the badge overclaim. */}
+      {SLA_PROVENANCE_ENABLED && result?.kind === "call" && result.callId && (
+        <div style={s.card}>
+          <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text)", fontWeight: 600, marginBottom: 8 }}>
+            Attested provenance — who else saw this payload?
+          </div>
+
+          {provenance ? (
+            <>
+              <div style={{ display: "grid", gap: 4 }}>
+                {[
+                  ["Attestor", `${provenance.attestor.slice(0, 10)}…${provenance.attestor.slice(-6)}`],
+                  ["Origin hash", `${provenance.originHash.slice(0, 12)}…${provenance.originHash.slice(-8)}`],
+                  ["Observed at", new Date(provenance.observedAt * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
+                  ["Recorded at", new Date(provenance.recordedAt * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
+                  ["Attested hash", `${provenance.payloadHash.slice(0, 12)}…${provenance.payloadHash.slice(-8)}`],
+                ].map(([k, v]) => (
+                  <div key={k} style={s.row}>
+                    <span style={s.rowLabel}>{k}</span>
+                    <span style={s.rowVal}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <a
+                href={`https://explorer.testnet.arc.io/address/${provenance.attestor}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 11, color: "var(--accent-ink)", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8 }}
+              >
+                Attestor on ArcScan <ExternalLink size={11} />
+              </a>
+              <div
+                role="status"
+                style={{
+                  marginTop: 10,
+                  padding: 10,
+                  borderRadius: 10,
+                  fontSize: 12,
+                  background: provenanceOnChain === true ? "rgba(25,209,134,.08)" : provenanceOnChain === false ? "rgba(238,69,57,.08)" : "rgba(148,163,184,.08)",
+                  border: `1px solid ${provenanceOnChain === true ? "rgba(25,209,134,.25)" : provenanceOnChain === false ? "rgba(238,69,57,.25)" : "rgba(148,163,184,.25)"}`,
+                }}
+              >
+                {provenanceOnChain === true && "MATCH — the attested payload is the committed response"}
+                {provenanceOnChain === false && "DIFFERENT — the attested payload is not the committed response"}
+                {provenanceOnChain === null && "Comparing the attested hash with the committed one…"}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: "var(--text)" }}>
+              No attestation recorded for this call yet. An allowlisted attestor records one with
+              <code> recordProvenance(callId, payloadHash, origin, observedAt, signature)</code>.
+            </div>
+          )}
+
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "10px 0 0" }}>
+            The registry checks <em>who</em> signed the observation, not that the payload is a correct
+            answer. A single allowlisted key means that key must be trusted — CallGuard does not claim
+            attested execution.
+          </p>
         </div>
       )}
 

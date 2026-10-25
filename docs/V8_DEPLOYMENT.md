@@ -438,3 +438,74 @@ Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`; the deployment
 `previewAvailability(1)` afterwards reports `ready = false`: the window is empty
 and the 24 h cooldown is running, so the same calls cannot be claimed twice. This
 is the A8 PASS evidence in `docs/SLA_COVERAGE.md`.
+
+## 10. SLAProvenance (B3b payload provenance) — deployed 25 Oct 2026
+
+`PayPerCallV8` binds a receipt to a `responseHash`, which says the provider committed
+to a body — not where that body came from. `SLAProvenance` adds the missing slot: an
+allowlisted attestor signs an EIP-712 digest over
+`(callId, payloadHash, originHash, observedAt)`; anyone may submit the signature, and
+the contract recovers the signer and stores the record only for an allowlisted key.
+
+The digest binds chain id, verifying contract, call id, payload hash, origin hash and
+observation time, so a signature cannot be replayed onto another call, origin,
+deployment or chain. One record per call id, zero payload hash rejected, and an
+observation more than `MAX_CLOCK_SKEW` (300 s) in the future rejected. Revoking a key
+stops new records and leaves history intact.
+
+**Trust model, stated plainly.** The contract verifies *who attested*, not that the
+attestation is true, and not that the payload is a correct answer. On this deployment
+the only allowlisted attestor is a key held by this workspace, so `B3b` is PARTIAL:
+the mechanism is real and on chain, independence is not.
+
+### 10.1 Deployment record
+
+| Item | Value |
+|---|---|
+| `SLAProvenance` | `0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb` |
+| deploy tx | `0xf858d54e469d1e2acb17eb957627205506ef628fff0e73062103a94d45c2d944` (block `69078183`, gas `577821`) |
+| `setAttestor` tx | `0x94d6482e2f81acaaff882806b3c31163a10b74a6b14bff0f2f41343731cc3f78` |
+| owner | `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` (the admin wallet) |
+| attestor | `0x528581fB8E66186Ba14650a1bD0bbd88DBC82F9c` (drill key, `chmod 600` under `/tmp/opencode/`) |
+| `MAX_CLOCK_SKEW` | `300` |
+
+Deploy script: `script/DeploySLAProvenance.s.sol` (`PROVENANCE_OWNER`, optional
+`ATTESTOR_ADDRESS`). Contract tests: `test/SLAProvenance.t.sol`, 19 cases — happy path,
+clock skew, unallowlisted signer, replay, wrong payload, wrong call, wrong origin,
+wrong chain, malformed signature, empty hash, future timestamp, revocation.
+
+Frontend wiring: `VITE_SLA_PROVENANCE` (`SLA_PROVENANCE_ADDRESS`,
+`SLA_PROVENANCE_ENABLED`, `SLA_PROVENANCE_ABI` in `src/lib/config.ts`). Without the
+address the Verify panel keeps only the local hash check.
+
+### 10.2 Attestor runbook
+
+```bash
+CALL_ID=0x... ENDPOINT_URL=https://api.example.com/x \
+  ATTESTOR_PK=0x... bun scripts/provenance-attest.js
+```
+
+The script hashes the exact response bytes, reads `provenanceDigest` from the
+contract (so the EIP-712 encoding is never guessed), signs that raw digest, sends
+`recordProvenance`, then re-reads `getProvenance` and `verifyProvenance` and fails if
+the registry does not confirm what it just accepted. `PAYLOAD` / `PAYLOAD_FILE` /
+`ORIGIN` cover endpoints that are not GET-able; `DRY_RUN=1` prints the digest and
+signature without sending.
+
+#### First record — 25 Oct 2026
+
+| Field | Value |
+|---|---|
+| call | `0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265` |
+| tx | `0x7cd975aba4e24ccb8fbeab98a000ed92003791313e9f11320ca7342e9373fa76` |
+| block / gas | `69078912` / `145459` |
+| payload | `pong` → `0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d` (equals the call's `responseHash`) |
+| origin | `arcsla.vercel.app` → `0x0533755f352233ad0fe3675873655f9a13056f080bed0f759461613b00f6a78b` |
+| observedAt / recordedAt | `1792955719` / `1792955722` |
+| `verifyProvenance(callId, committedHash)` | `true` |
+
+The Verify panel shows the record (attestor, origin hash, both timestamps, attested
+hash), links the attestor on ArcScan, and asks `verifyProvenance` with the *committed*
+hash — the meaningful question — rather than with the recorded one. Checked in the
+dev server: the attested call renders `MATCH`, an unattested call renders
+"no attestation recorded for this call yet", and the console stays clean.

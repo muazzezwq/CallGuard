@@ -115,6 +115,13 @@ export const DISPUTE_V3_ENABLED = Boolean(import.meta.env.VITE_DISPUTE_V3);
 export const SLA_UPTIME_ADDRESS = envAddress(import.meta.env.VITE_SLA_UPTIME as string | undefined) as `0x${string}`;
 export const SLA_UPTIME_ENABLED = V8_ENABLED && SLA_UPTIME_ADDRESS.length === 42;
 
+/// B3b: `SLAProvenance` records that an allowlisted attestor saw a specific
+/// payload for a call. Optional — without the address the Verify panel keeps the
+/// local hash check and says provenance is not configured, instead of claiming a
+/// proof it cannot show.
+export const SLA_PROVENANCE_ADDRESS = envAddress(import.meta.env.VITE_SLA_PROVENANCE as string | undefined) as `0x${string}`;
+export const SLA_PROVENANCE_ENABLED = SLA_PROVENANCE_ADDRESS.length === 42;
+
 /// Address/ABI pair used by the call builder and receipt flow. When v8 is not
 /// configured, the legacy v7 pair stays active and the UI labels it as such.
 export const ACTIVE_PPC_ADDRESS = (V8_ENABLED ? V8_CONFIG.payPerCall : CONFIG.payPerCall) as `0x${string}`;
@@ -601,4 +608,43 @@ export const SLA_UPTIME_ABI = [
   { name: "bountyBps", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
   { name: "arbiter", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
   { name: "treasury", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+] as const;
+
+/// B3b — attestor provenance. The contract checks *who* signed an observation of
+/// a call's payload, not that the payload is a correct answer. `provenanceDigest`
+/// is exposed so clients never guess the EIP-712 encoding.
+export const SLA_PROVENANCE_ABI = [
+  { name: "recordProvenance", type: "function", stateMutability: "nonpayable",
+    inputs: [
+      {name:"callId",type:"bytes32"},
+      {name:"payloadHash",type:"bytes32"},
+      {name:"origin",type:"string"},
+      {name:"observedAt",type:"uint64"},
+      {name:"signature",type:"bytes"},
+    ], outputs: [] },
+  { name: "getProvenance", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}],
+    outputs: [
+      {name:"payloadHash",type:"bytes32"},
+      {name:"attestor",type:"address"},
+      {name:"originHash",type:"bytes32"},
+      {name:"observedAt",type:"uint64"},
+      {name:"recordedAt",type:"uint64"},
+    ] },
+  { name: "verifyProvenance", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}, {name:"expectedPayloadHash",type:"bytes32"}],
+    outputs: [{type:"bool"}] },
+  { name: "provenanceDigest", type: "function", stateMutability: "view",
+    inputs: [
+      {name:"callId",type:"bytes32"},
+      {name:"payloadHash",type:"bytes32"},
+      {name:"originHash",type:"bytes32"},
+      {name:"observedAt",type:"uint64"},
+    ], outputs: [{type:"bytes32"}] },
+  { name: "verified", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}], outputs: [{type:"bool"}] },
+  { name: "isAttestor", type: "function", stateMutability: "view",
+    inputs: [{name:"attestor",type:"address"}], outputs: [{type:"bool"}] },
+  { name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "MAX_CLOCK_SKEW", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint64"}] },
 ] as const;

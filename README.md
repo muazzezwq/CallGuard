@@ -60,6 +60,7 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 | `SLAKeeper` | [`0xBe897043...`](https://explorer.testnet.arc.io/address/0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7) | Permissionless batch timeout claims + bounty withdrawal |
 | `DisputeV3` | [`0xEf9f21E...`](https://explorer.testnet.arc.io/address/0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec) | Disputes with the slash escrowed at open |
 | `SLAUptime` | [`0x6916997D...`](https://explorer.testnet.arc.io/address/0x6916997DEFe98819176F66867fD5B356C284e89f) | Rolling-uptime verdict against `availabilityTargetBps` |
+| `SLAProvenance` | [`0xa74D1A80...`](https://explorer.testnet.arc.io/address/0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb) | Allowlisted attestor records *who* witnessed a call's payload |
 | `DisputeV2` | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, open disputes only |
 | `USDC` | [`0x36000000...`](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) | Native gas token, ERC-20 `decimals() = 6` |
 
@@ -143,7 +144,7 @@ Three promises, three mechanisms. Full table with per-row evidence: [`docs/SLA_C
 
 **A — Availability.** Each call snapshots `maxResponseTime`, `slashBps` and `availabilityTargetBps`, so terms cannot move under a live call. Past `deadline + SUBMIT_GRACE` (5 s), `PayPerCallV8.claimTimeout` is permissionless: 20 % of stake is slashed at claim time, the caller's escrow is refunded, the keeper takes `keeperBountyBps` (5 %) capped at 5 USDC. The aggregate promise — `availabilityTargetBps`, e.g. 9950 = 99.5 % — is scored by `SLAUptime` over `completedCalls / (completedCalls + slashedCalls)` since the provider's last check, gated by `minSamples` (5 on testnet, 20 intended for mainnet) and a 24 h cooldown, slashing 10 % with 20 % of it to the claimant.
 
-**B — Quality.** A receipt is an EIP-712 signature over `(callId, responseHash, respondedAt, termsVersion)` in the `ArcSLA/1` domain, so replay, wrong signer, wrong terms version and back-dated `respondedAt` all fail. The delivered body is then checked against the committed `responseHash` locally in `Verify Receipt` (`src/lib/responseProof.ts`): a match proves the payload was not swapped after delivery, and a mismatch becomes dispute evidence an arbiter can recompute. Only the call's caller can open a dispute, only inside the 7-day `disputeWindow`, only on a `Completed` call, and only once.
+**B — Quality.** A receipt is an EIP-712 signature over `(callId, responseHash, respondedAt, termsVersion)` in the `ArcSLA/1` domain, so replay, wrong signer, wrong terms version and back-dated `respondedAt` all fail. The delivered body is then checked against the committed `responseHash` locally in `Verify Receipt` (`src/lib/responseProof.ts`): a match proves the payload was not swapped after delivery, and a mismatch becomes dispute evidence an arbiter can recompute. `SLAProvenance` adds the next layer: an allowlisted attestor signs `(callId, payloadHash, originHash, observedAt)`, so the caller can see *who* witnessed the body — with the caveat that the contract verifies the witness, not the answer. Only the call's caller can open a dispute, only inside the 7-day `disputeWindow`, only on a `Completed` call, and only once.
 
 **C — Money.** `DisputeV3` slashes and **escrows at `openDispute`** — the old "serve, unstake, dodge the slash" escape is closed. Outcomes: `resolve(true)` → bond back to the caller, escrow held; `resolve(false)` → bond to the treasury; `finalize` after the 48 h appeal window pays the escrow to the winner; and if the arbiter never answers, `reclaimExpiredBond` after 7 days returns the bond to the caller and the escrow to the provider, so silence costs neither party.
 
@@ -155,7 +156,7 @@ Live claim (run `40221690767`, tx `0x87fc2941…2d9a`): `requested 2 / claimed 2
 
 ### Coverage, stated honestly
 
-25 SLA behaviours are tracked as PASS / PARTIAL / GAP: **22 PASS** (enforced, covered by a test, demonstrated on the deployed contracts), **2 PARTIAL** waiting only on their time windows (`finalize`, `reclaimExpiredBond`), **1 GAP** — `B3b`: the payload is proven to be the committed one, not proven to be a correct answer. That needs attested execution (TEE or zk-proof) and CallGuard does not claim it.
+25 SLA behaviours are tracked as PASS / PARTIAL / GAP: **22 PASS** (enforced, covered by a test, demonstrated on the deployed contracts), **3 PARTIAL** — two waiting only on their time windows (`finalize`, `reclaimExpiredBond`) and one on independence (`B3b`: `SLAProvenance` records an allowlisted attestor's observation of the payload, but the only attestor key is one this repository controls, and no hash proves an answer is *correct*). That last step needs attested execution (TEE or zk-proof) and CallGuard does not claim it.
 
 
 
@@ -653,9 +654,10 @@ CallGuard/
 - `ServiceRegistryV8` + `PayPerCallV8` — per-call terms snapshot, `bytes32` call ids, EIP-712 `ArcSLA/1` receipts with `respondedAt`
 - `DisputeV3` — slashes and escrows at `openDispute`, so unstaking between receipt and verdict no longer dodges a quality slash; `finalize` and `reclaimExpiredBond` settle arbiter silence
 - `SLAUptime` — the published `availabilityTargetBps` is scored against rolling uptime and actually slashed (first live claim: 99.5 % target vs 57.14 % delivered, 5.373248 USDC)
+- `SLAProvenance` — an allowlisted attestor signs `(callId, payloadHash, originHash, observedAt)`; the contract recovers the signer, so a caller can check *who* witnessed the payload (live record for call `0x8cfa1821…`)
 - Keeper automation — `.github/workflows/keeper.yml` runs `ONCE=1` every 15 minutes on a GitHub runner, batches `claimBatch`, withdraws bounties, uploads JSONL evidence
 - Per-caller concurrency caps tested on v8 (`maxConcurrentCalls`, default 10)
-- 472/472 Foundry tests passing (18 suites); coverage table in `docs/SLA_COVERAGE.md`
+- 491/491 Foundry tests passing (19 suites); coverage table in `docs/SLA_COVERAGE.md`
 
 **Core Protocol (v5)**
 - EIP-712 typed receipt signing — structured receipt preview in MetaMask
