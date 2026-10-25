@@ -341,3 +341,59 @@ Verified on chain after the deploy: bytecode present; `arbiter`, `appealArbiter`
 Vercel production received `VITE_DISPUTE_V3` and `DISPUTE_V3`. `DisputeV2`
 (`0xe5D993E0…0900`) stays deployed: dispute #1 is resolved `Upheld` and its
 `finalize` on 26 Oct 2026 18:58:38 UTC still pays out from that contract.
+
+## 9. SLAUptime (A8 availability enforcement) — ready to deploy
+
+The registry publishes `availabilityTargetBps` but never enforced it. `SLAUptime`
+measures availability from the registry counters since the provider's last check
+and lets **anyone** claim a slash when the published target was missed. Evidence:
+`test/SLAUptime.t.sol` (29 tests), `docs/SLA_COVERAGE.md` A8.
+
+Only a new contract is added; the registry, `PayPerCallV8`, the keeper, provider
+registrations, and the subgraph stay as they are.
+
+### 9.1 Deploy
+
+```bash
+export USDC_ADDRESS=0x3600000000000000000000000000000000000000
+export SERVICE_REGISTRY_V8=0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3
+export ARBITER_ADDRESS=0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da
+export TREASURY_ADDRESS=0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da
+# defaults: 10 % slash, 20 % bounty, 24 h cooldown, 20 samples
+# On testnet use AVAILABILITY_MIN_SAMPLES=5: the live provider has a handful of
+# calls, so a 20-call window cannot be reached by hand. Keep 20+ on mainnet.
+export AVAILABILITY_MIN_SAMPLES=5
+forge script script/DeploySLAUptime.s.sol:DeploySLAUptime \
+  --account deployer --rpc-url arc_testnet --broadcast
+```
+
+If the broadcaster is not the registry admin, the in-script `authorizeSlasher`
+reverts. Deploy without it and authorise from the owner wallet:
+
+```bash
+cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
+  'authorizeSlasher(address)' <SLA_UPTIME> \
+  --account <owner-account> --rpc-url arc_testnet
+```
+
+Without that authorisation `claimAvailability` reverts: the registry only lets
+authorised slashers move stake.
+
+### 9.2 Wire the frontend
+
+1. Set `VITE_SLA_UPTIME=<SLA_UPTIME>` in Vercel production and redeploy.
+2. The new **Trust & Quality → Availability** panel lists providers with target,
+   observed availability, sample count, and a `Claim` button that appears only when
+   the contract would accept it.
+3. Leaving the variable unset keeps the panel in explain-only mode: it documents
+   the mechanism and hides every write.
+
+### 9.3 After deploy
+
+- Publish a target on a provider that has one: `availabilityTargetBps` must be
+  non-zero, otherwise `claimAvailability` reverts with `TargetUnspecified`.
+- Let the provider miss enough calls to reach `minSamples` with a rate below the
+  target, then claim once and confirm the stake fell by `availabilitySlashBps`,
+  the claimer received `bountyBps` of the slash, and the treasury got the rest.
+- `previewAvailability(providerId)` mirrors the same decision, so the panel and the
+  transaction can never disagree.

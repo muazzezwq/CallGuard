@@ -109,6 +109,12 @@ export const V8_CONFIG = {
 /// exist and the call would revert.
 export const DISPUTE_V3_ENABLED = Boolean(import.meta.env.VITE_DISPUTE_V3);
 
+/// A8: `SLAUptime` turns the published `availabilityTargetBps` into a slash that
+/// anyone can claim. Optional — without the address the Availability panel only
+/// explains the mechanism and hides the claim actions.
+export const SLA_UPTIME_ADDRESS = envAddress(import.meta.env.VITE_SLA_UPTIME as string | undefined) as `0x${string}`;
+export const SLA_UPTIME_ENABLED = V8_ENABLED && SLA_UPTIME_ADDRESS.length === 42;
+
 /// Address/ABI pair used by the call builder and receipt flow. When v8 is not
 /// configured, the legacy v7 pair stays active and the UI labels it as such.
 export const ACTIVE_PPC_ADDRESS = (V8_ENABLED ? V8_CONFIG.payPerCall : CONFIG.payPerCall) as `0x${string}`;
@@ -564,3 +570,35 @@ export const wagmiConfig = createConfig(
     appUrl: "https://arcsla.vercel.app",
   })
 );
+
+/// A8 — SLAUptime. Anyone can prove that a provider's observed availability
+/// since the last check fell below its published target, which slashes the stake
+/// and pays a share to the claimer.
+export const SLA_UPTIME_ABI = [
+  { name: "claimAvailability", type: "function", stateMutability: "nonpayable",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [] },
+  { name: "previewAvailability", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}],
+    outputs: [
+      {name:"availabilityBps",type:"uint256"},
+      {name:"targetBps",type:"uint16"},
+      {name:"samples",type:"uint256"},
+      {name:"slashAmount",type:"uint256"},
+      {name:"cooldownEndsAt",type:"uint256"},
+      {name:"ready",type:"bool"},
+    ] },
+  { name: "observedAvailability", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}],
+    outputs: [{name:"availabilityBps",type:"uint256"}, {name:"samples",type:"uint256"}] },
+  { name: "windows", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}],
+    outputs: [{name:"completed",type:"uint64"},{name:"slashed",type:"uint64"},{name:"checkedAt",type:"uint64"}] },
+  { name: "lastClaimAt", type: "function", stateMutability: "view",
+    inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint32"}] },
+  { name: "minSamples", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "cooldown", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
+  { name: "availabilitySlashBps", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+  { name: "bountyBps", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+  { name: "arbiter", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "treasury", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+] as const;

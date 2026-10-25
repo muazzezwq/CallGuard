@@ -4,7 +4,7 @@ import {
   Gauge, Repeat, Landmark, TrendingUp, Coins, Link2, Wallet,
   Scale, ShieldAlert, ShieldCheck, Send, BarChart3, Briefcase,
   Boxes, FileText, Webhook, Workflow, Bot, KeyRound,
-  ScrollText, Settings, UserPlus, EyeOff, SlidersHorizontal,
+  ScrollText, Settings, UserPlus, EyeOff, SlidersHorizontal, Activity,
   House, Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -72,6 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Trust & Quality",
     items: [
       { id: "disputes",    simple: "Disputes",        pro: "Disputes",        icon: Scale },
+      { id: "uptime",      simple: "Availability",    pro: "SLA Availability", icon: Activity },
       { id: "quality",     simple: "Quality",         pro: "Quality Disputes", icon: ShieldAlert },
       { id: "attestation", simple: "SLA Bridge",      pro: "SLA Bridge",      icon: Send },
       { id: "verify",      simple: "Verify Receipt",  pro: "Verify Receipt",  icon: ShieldCheck },

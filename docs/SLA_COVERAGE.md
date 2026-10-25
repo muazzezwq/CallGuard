@@ -27,7 +27,7 @@ Status vocabulary:
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` | tests exist only in the **v7** suite (`test/PayPerCall.t.sol:585`); no v8 test | PARTIAL |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
-| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | stored and displayed only; no contract path reads it for a verdict | — | **GAP** |
+| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime.claimAvailability`: reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests: window resets between claims, `TargetMet` at and above target, `NotEnoughSamples`, `Cooldown`, stake cap, bounty/treasury split, admin bounds | **PARTIAL — implemented and tested, contract not deployed** |
 
 ## B — Quality
 
@@ -97,6 +97,37 @@ Cost of the design: while a dispute is open the provider's stake is `10 %`
 smaller and that money is locked in the dispute contract. A spam dispute costs
 the caller the `2 USDC` bond when rejected.
 
+## A8 detail — the uptime promise
+
+`availabilityTargetBps` is stored per terms version (default `9950` = 99.5 %) and
+was never read for a verdict: a provider could publish it, miss calls, and keep
+the full stake. Per-call timeouts are covered by `PayPerCallV8.claimTimeout`, but
+an aggregate promise is not a call.
+
+`SLAUptime` closes that:
+
+1. **Window** — `completedCalls` and `slashedCalls` deltas since the provider's
+   last check. The first check scores the whole history, so a new provider gets no
+   free pass.
+2. **Metric** — `completed / (completed + slashed)` in basis points.
+3. **Gates** — at least `minSamples` (20) observations, an observed rate below the
+   published target, and the cooldown (24 h) elapsed.
+4. **Penalty** — `availabilitySlashBps` (10 %) of the stake, capped at the stake.
+5. **Split** — `bountyBps` (20 %) of the slash to the claimer immediately, the rest
+   to the treasury. No bond: a claim costs gas only.
+6. **Reset** — the window baseline and the cooldown update before the external
+   calls, so a reentrant claim cannot score the same calls twice.
+
+Why the window resets instead of using a lifetime ratio: a provider with 200 clean
+calls at 99.9 % would need hundreds of misses before a cumulative score moved.
+After each claim the baseline moves, so the next claim scores only what happened
+since the last decision, and a recovered provider is back in compliance after one
+clean window.
+
+Known limit, stated honestly: a provider that stops taking calls stops
+accumulating misses. It also stops earning, and the stake stays exposed to dispute
+slashes, so the incentive still points at serving.
+
 ## Score
 
 | Axis | PASS | PARTIAL | GAP |
@@ -108,8 +139,8 @@ the caller the `2 USDC` bond when rejected.
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
-the one real hole left is A8 (published uptime target is decorative); C8 is closed
-and proven on chain by dispute #1 on `DisputeV3`.
+C8 is closed and proven on chain by dispute #1 on `DisputeV3`; A8 now has an
+enforcement contract (`SLAUptime`) with tests, waiting on a deploy.
 
 ## Next work, highest value first
 
@@ -117,8 +148,9 @@ and proven on chain by dispute #1 on `DisputeV3`.
    resolves it, run `finalize` once the appeal window closes. Then finalize the old
    V2 dispute (26 Oct 18:58 UTC) and `revokeSlasher(0xe5D993E0…0900)` so no stale
    slasher keeps authority over the registry.
-2. **A8** — give `availabilityTargetBps` teeth: a rolling window of
-   `Slashed / (Completed + Slashed)` per provider, claimable by anyone, with the
-   same bounty pattern as `SLAKeeper`.
+2. **Deploy `SLAUptime`** — the A8 contract, tests, deploy script, and the
+   Availability panel are ready (`V8_DEPLOYMENT.md` §9). The deploy plus
+   `authorizeSlasher` needs the owner wallet; after that, publish a target on a
+   provider, let its window miss it, and claim once to prove A8 on chain.
 3. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
    `DisputesV8` so all three are proven end to end instead of test-only.

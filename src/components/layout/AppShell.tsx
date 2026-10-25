@@ -24,6 +24,7 @@ const panels = {
   receipts:      lazy(() => import("../panels/Receipts")),
   payments:      lazy(() => import("../panels/Payments")),
   disputes:      lazy(() => import("../panels/DisputesV8")),
+  uptime:        lazy(() => import("../panels/Uptime")),
   history:       lazy(() => import("../panels/History")),
   quality:       lazy(() => import("../panels/Quality")),
   agent:         lazy(() => import("../panels/Agent")),
