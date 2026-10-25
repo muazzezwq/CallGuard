@@ -1,0 +1,196 @@
+# Verification layer — design
+
+Status: prototype, additive to the v8 deployment. Nothing in `PayPerCallV8`,
+`ServiceRegistryV8` or `DisputeV3` was modified, and no payment path depends on this
+layer.
+
+## 1. The problem this layer is allowed to solve
+
+CallGuard already proves three things about a call:
+
+| Already proven | Where |
+|---|---|
+| the provider committed to a `responseHash` | EIP-712 receipt, `PayPerCallV8.submitReceipt` |
+| the bytes the caller received hash to that commitment | `src/lib/responseProof.ts` (B3a, off chain) |
+| an allowlisted witness saw those bytes at an origin | `SLAProvenance` (B3b, on chain) |
+
+None of them says anything about **how** the response was produced. That is the gap this
+layer fills, and it fills it narrowly. Three claim shapes exist, each with a statement that
+is exact:
+
+| Claim kind | Statement that is actually verified | Requires trusting |
+|---|---|---|
+| `witness` | an allowlisted attestor signed `(callId, payloadHash, origin, observedAt)` | the attestor key |
+| `tee-attestation` | an enclave measuring to an allowlisted PCR0 signed `userData`, and `userData` binds this call's `callId`, `termsHash` and `responseHash` | AWS Nitro root of trust, the PCR0 allowlist, the absence of side channels |
+| `zk-constraint` | there exists a private body whose keccak256 is the committed `responseHash`, and whose first byte is a declared public value, for this `callId` | the verifier bytecode; that the commitment itself was honest |
+
+**None of these is a proof of factual correctness.** A TEE proves an image ran; the image
+can compute a wrong answer. A zk proof proves the committed output satisfies a stated
+constraint; the constraint is chosen by whoever wrote the circuit. The envelope forces the
+statement and the assumptions to travel with the artifact, so a verifier badge can never be
+read as "the answer is right".
+
+## 2. Envelope (`src/lib/verification/schema.ts`)
+
+```ts
+interface EvidenceEnvelope {
+  version: "cg-claim/1";
+  subject: { callId; providerId; termsHash; responseHash };
+  claim: { kind: ClaimKind; statement: string; assumptions: string[] };
+  proof: { type: string; payload: string };  // base64
+  issuedAt: number;
+}
+```
+
+`validateEnvelope` rejects an envelope whose claim is unnamed (`statement` blank), whose
+`assumptions` array is empty, or whose `kind` is unknown. Those three checks are the whole
+point: a blank statement is a green badge pretending to be evidence.
+
+`termsHash` is in `subject` because terms can be replaced between calls; a proof that
+outlives its terms would certify a different promise.
+
+### 2.1 Digest
+
+`envelopeDigest` keccaks a JSON array of explicit fields in a fixed order (version, subject
+fields lowercased, kind, statement, assumptions, `issuedAt`). Consequences:
+
+- object key order and whitespace cannot move the digest;
+- the proof bytes are **excluded**, so the digest is what gets anchored on chain while the
+  artifact stays wherever the caller keeps it;
+- two envelopes that claim the same thing about the same call digest identically regardless
+  of proof encoding.
+
+### 2.2 `userData` binding
+
+`subjectUserData = keccak256(callId ‖ termsHash ‖ responseHash)` is the 32 bytes an enclave
+must place in `userData`. Binding only `responseHash` would let a good attestation be
+replayed onto another call under the same terms.
+
+## 3. AWS Nitro path (`src/lib/verification/nitro.ts`)
+
+`verifyNitroDoc` checks, in this order:
+
+1. a trust root is configured (refusing to trust anything by default);
+2. the document is CBOR, and a `COSE_Sign1` array of four items;
+3. protected header names ES384 (`-35`);
+4. the COSE signature verifies against the leaf certificate;
+5. the leaf chains to a configured root (depth-capped at 6, cycle-detected, expiry checked);
+6. the payload timestamp is not in the future beyond 300 s skew and not older than
+   `maxAgeSec`;
+7. PCR0 is present.
+
+`checkNitroBinding` then compares `userData` with `subjectUserData(subject)` and PCR0 with
+the caller's allowlist. A document that failed verification binds nothing — the failure is
+carried through, not retried.
+
+`src/lib/verification/cbor.ts` is a hand-written, strict codec (no floats, no
+indefinite lengths, no tags, no trailing bytes) because the decoder parses the bytes whose
+signature is then checked; a lenient parser is attack surface.
+
+**Why this runs off chain:** Nitro signs with P-384, and the EVM has no P-384 precompile
+(Arc's available pairing is bn254 — verified this session: precompile `0x08` returns `1`).
+So on chain the result is anchored in `Signature` mode by an allowlisted key. That is the
+same trust shape as `SLAProvenance`, deliberately: the layer must not pretend a P-384
+signature was checked by the EVM.
+
+## 4. ZK path
+
+Circuit (`/tmp/opencode/zk/keccakclaim`, source kept out of the repo because it needs
+`nargo` 1.0.0-rc.5 + `bb` 6.0.0):
+
+```noir
+fn main(body: [u8; 4], call_id: pub [u8; 32], response_hash: pub [u8; 32], first_byte: pub u8) {
+    let computed = keccak_256(body);
+    assert(computed == response_hash);
+    assert(body[0] == first_byte);
+    // call_id is bound by being a public input: UltraHonk constrains every declared
+    // public input, so a proof about one call cannot be presented for another.
+}
+```
+
+Noir 1.0 ships only the permutation (`std::hash::keccakf1600`), so the keccak-256 sponge
+for a 4-byte input is written in the circuit (one 136-byte rate block, pad `0x01 … 0x80`).
+The circuit was checked against the live hash of `pong`
+(`0x188fcd5c…6e8d`), which is the `responseHash` of call `0x8cfa1821…`.
+
+Public input layout, in order and as individual field elements: `call_id` (32 words),
+`response_hash` (32 words), `first_byte` (1 word) — 65 words total. `bb` reports
+`NUMBER_OF_PUBLIC_INPUTS = 73`, which is 65 plus the 8-word pairing-point object the
+generated verifier requires; `verify` asserts `publicInputs.length == vk.publicInputsSize -
+PAIRING_POINTS_SIZE`.
+
+### 4.1 Adapter (`contracts/zk/ZkClaimAdapter.sol`)
+
+The registry's verifier surface takes `(proof, callId, claimHash, responseHash)`. The
+adapter rebuilds the 65 public inputs from `callId` and `responseHash`, takes the predicate
+byte from the proof blob (`abi.encode(uint8 firstByte, bytes honkProof)`), and calls the
+UltraHonk verifier. Changing any of the three changes a public input and the pairing check
+fails.
+
+`claimHash` is not a circuit input. It commits to the off-chain envelope (statement,
+assumptions, `issuedAt`), which the circuit cannot constrain; the registry stores it
+alongside the proof so the description cannot be swapped after anchoring.
+
+The generated verifier signals failure by reverting (`ShpleminiFailed()`), so the adapter
+catches reverts and returns `false`; the registry treats a revert as `VerifierFailed` and a
+`false` as `ProofRejected`.
+
+### 4.2 Verifier compilation
+
+`bb write_solidity_verifier -t evm` emits `assembly {` blocks with no memory annotation.
+With `via_ir = true` the `--optimized` variant fails to compile (`Could not create stack
+layout after 1000 iterations`) and the plain variant fails with
+`Variable expr_mpos_20 is 1 too deep in the stack ... No memoryguard was present`.
+Patching the five `assembly {` sites to `assembly ("memory-safe") {` compiles cleanly on
+solc 0.8.37 → 18,100 bytes deployed, under the 24,576-byte limit. This patch is applied to
+the checked-in `contracts/zk/KeccakClaimVerifier.sol` and must be reapplied whenever the
+verifier is regenerated.
+
+## 5. `SLAEvidenceRegistry` (`contracts/SLAEvidenceRegistry.sol`)
+
+Deployed on Arc Testnet at `0x7d643B2bE50F6E7593c09A0fc26246ca06d862dB`, with
+`HonkVerifier` `0xC64341aBd4dfC62aCd11E35245D06FCF2B094846` and `ZkClaimAdapter`
+`0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E`; `zk-constraint` is wired to the adapter in
+`Proof` mode. Deploy script: `script/DeployEvidence.s.sol`.
+
+State: `modeOf[kind]`, `signatureVerifier[kind][address]`, `proofVerifier[kind]`,
+`_evidence[callId][kind]`, `_anchored[callId][kind]`.
+
+- **One claim per `(callId, kind)`.** A second anchor reverts `AlreadyAnchored`, so a call's
+  evidence cannot be rewritten by a later, cheaper claim.
+- **`Signature` mode.** EIP-712 domain `CallGuardEvidence` / `1` over
+  `Evidence(bytes32 callId,bytes32 kind,bytes32 claimHash,bytes32 responseHash)`. The digest
+  includes `block.chainid` and `address(this)`, so a signature cannot move chains or
+  contracts. Signatures are checked low-`s` to kill malleability. Revoking a verifier stops
+  new anchors and leaves history readable.
+- **`Proof` mode.** Calls `IEvidenceVerifier.verify`. A reverting verifier is
+  `VerifierFailed`, not a silent pass.
+- Zero `callId`, `claimHash` or `responseHash` is refused (`EmptyHash`).
+- `anchorDigest` is public so clients cannot guess the encoding.
+
+## 6. Trust model, stated plainly
+
+| Artifact | What it proves | What it does not prove |
+|---|---|---|
+| `witness` | a specific key signed this call's payload hash | that the key is independent of the provider |
+| `tee-attestation` | an enclave with this image signed this call's `userData` | that the image is honest, that hardware is side-channel free, that the answer is correct |
+| `zk-constraint` | the committed hash has a preimage satisfying the circuit's predicate | that the predicate is the right one, that the body came from the provider's endpoint, that the answer is correct |
+
+The layer's own limitation, repeated because it matters: **the TEE path is exercised against
+fixtures, not Nitro hardware.** No AWS account exists in this environment, so the verifier
+is tested with a locally generated P-384 chain and a trust root injected by the test. The
+production call would pass the AWS Nitro root and an allowlist of real PCR0 values.
+
+## 7. Files
+
+- `src/lib/verification/schema.ts` — envelope, validation, digest, `userData`
+- `src/lib/verification/cbor.ts` — strict CBOR codec
+- `src/lib/verification/nitro.ts` — Nitro document verification + call binding
+- `src/lib/verification/verify.ts` — dispatcher, report with statement and assumptions
+- `contracts/SLAEvidenceRegistry.sol` — anchoring, both modes
+- `contracts/zk/KeccakClaimVerifier.sol` — bb-generated UltraHonk verifier (patched)
+- `contracts/zk/ZkClaimAdapter.sol` — proof → registry surface
+- `scripts/zk-claim-envelope.ts` — rebuilds the envelope, its digest and the proof blob
+- `tests/verification/*.test.ts` — 57 tests (envelope, CBOR, Nitro, dispatcher, fixture reproduction)
+- `test/SLAEvidenceRegistry.t.sol` — 21 tests
+- `test/HonkKeccakClaim.t.sol`, `test/ZkClaimEvidence.t.sol` — 14 tests

@@ -648,3 +648,42 @@ export const SLA_PROVENANCE_ABI = [
   { name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
   { name: "MAX_CLOCK_SKEW", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint64"}] },
 ] as const;
+
+/// Modular verification layer (B3c). Anchors a *named* claim about a call — an
+/// execution attestation, a zk output constraint — without touching PayPerCallV8.
+/// The record is a digest plus the address that vouched for it, never a verdict
+/// about whether the answer is correct.
+export const SLA_EVIDENCE_ADDRESS = envAddress(import.meta.env.VITE_SLA_EVIDENCE as string | undefined) as `0x${string}`;
+export const SLA_EVIDENCE_ENABLED = SLA_EVIDENCE_ADDRESS.length === 42;
+
+export const SLA_EVIDENCE_ABI = [
+  { name: "getEvidence", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}, {name:"kind",type:"bytes32"}],
+    outputs: [{
+      type: "tuple",
+      components: [
+        {name:"kind",type:"bytes32"},
+        {name:"claimHash",type:"bytes32"},
+        {name:"responseHash",type:"bytes32"},
+        {name:"verifier",type:"address"},
+        {name:"anchoredAt",type:"uint64"},
+      ],
+    }] },
+  { name: "isAnchored", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}, {name:"kind",type:"bytes32"}, {name:"claimHash",type:"bytes32"}],
+    outputs: [{type:"bool"}] },
+  { name: "modeOf", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}],
+    // 0 = None, 1 = Signature (verified off chain, vouched by a key), 2 = Proof (checked on chain)
+    outputs: [{type:"uint8"}] },
+  { name: "proofVerifier", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}], outputs: [{type:"address"}] },
+  { name: "anchorDigest", type: "function", stateMutability: "view",
+    inputs: [
+      {name:"callId",type:"bytes32"},
+      {name:"kind",type:"bytes32"},
+      {name:"claimHash",type:"bytes32"},
+      {name:"responseHash",type:"bytes32"},
+    ], outputs: [{type:"bytes32"}] },
+  { name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+] as const;

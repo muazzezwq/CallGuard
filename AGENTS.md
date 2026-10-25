@@ -147,6 +147,31 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
+## Verification layer (B3c/B3d, 26 Oct 2026) — additive, no v8 contract changed
+
+| Contract | Address |
+|---|---|
+| `SLAProvenance` (B3b witness) | `0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb` |
+| `SLAEvidenceRegistry` (claim anchoring) | `0x7d643B2bE50F6E7593c09A0fc26246ca06d862dB` |
+| `HonkVerifier` (UltraHonk, keccak claim) | `0xC64341aBd4dfC62aCd11E35245D06FCF2B094846` |
+| `ZkClaimAdapter` | `0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E` |
+
+`zk-constraint` is wired in `Proof` mode to the adapter; `modeOf(kind) = 2` reads back from
+chain. Anchor gas `3.8M`, verify gas `2.9M`. Frontend: `VITE_SLA_EVIDENCE` drives the Verify
+panel's "Anchored evidence" card. Design: `docs/verification/DESIGN.md`; measurements and the
+TEE-vs-zk comparison: `docs/verification/REPORT.md`; runbook: `docs/V8_DEPLOYMENT.md` §11.
+
+Three claim kinds, and none of them is "the answer is correct": `witness` (a key saw the
+bytes), `tee-attestation` (an allowlisted image signed `userData` — fixtures only, no enclave
+hardware here, so B3b stays PARTIAL), `zk-constraint` (the committed hash has a private
+preimage satisfying a stated predicate). The envelope schema rejects a claim with no
+statement or no assumption.
+
+Verifier gotchas: `bb` needs `-t evm` for both `write_vk` and `prove`, and the generated
+Solidity verifier only compiles under `via_ir` after its five `assembly` blocks are
+annotated `("memory-safe")`. Regenerate via `scripts/zk-claim-envelope.ts` and the notes in
+`docs/verification/DESIGN.md` §4.2.
+
 ## Key parameters
 
 - Chain ID `5042002`; RPC `https://rpc.testnet.arc.io`; explorer `https://explorer.testnet.arc.io`.

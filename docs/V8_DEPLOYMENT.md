@@ -509,3 +509,59 @@ hash), links the attestor on ArcScan, and asks `verifyProvenance` with the *comm
 hash — the meaningful question — rather than with the recorded one. Checked in the
 dev server: the attested call renders `MATCH`, an unattested call renders
 "no attestation recorded for this call yet", and the console stays clean.
+
+## 11. Evidence layer (B3c/B3d modular verification) — deployed 26 Oct 2026
+
+`SLAProvenance` answers "a key saw these bytes". It cannot answer "how was this answer
+produced", and it must not pretend to. `SLAEvidenceRegistry` is the additive slot for
+stronger artifacts: it anchors a *named* claim about a call, plus the address that
+vouched for it, in one of two modes.
+
+- **Signature** — the artifact was checked off chain and an allowlisted key signs the
+  claim (EIP-712 `CallGuardEvidence` / `1`). Used for AWS Nitro attestations: Nitro signs
+  with P-384, which has no EVM precompile, so on-chain verification is impossible and
+  saying otherwise would be a lie.
+- **Proof** — a verifier contract checks the artifact on chain. Used for the UltraHonk zk
+  proof, which the EVM can check.
+
+One claim per `(callId, kind)`, so evidence cannot be rewritten by a later, cheaper claim;
+zero hashes rejected; a reverting verifier is a failure, not a pass. The stored value is a
+digest of the off-chain envelope (`cg-claim/1`), which carries the statement and its
+assumptions — a claim that does not name what it proves is rejected by the schema before it
+reaches the chain.
+
+### 11.1 Deployment record
+
+| Item | Value |
+|---|---|
+| `SLAEvidenceRegistry` | `0x7d643B2bE50F6E7593c09A0fc26246ca06d862dB` |
+| `HonkVerifier` (UltraHonk, keccak claim) | `0xC64341aBd4dfC62aCd11E35245D06FCF2B094846` |
+| `ZkClaimAdapter` | `0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E` |
+| verifier libraries | `RelationsLib` `0xb3dfa23c23eb683615408db4389ff1bbf74169ed`, `ZKTranscriptLib` `0x4cb5b3e5db8511c7caa53a073646267fd114d640` |
+| deploy txs | `0x0d478277…` (RelationsLib), `0x01bd877f…` (ZKTranscriptLib), `0xabee20b4…` (HonkVerifier), `0xad2b170b…` (adapter), `0xc311a817…` (registry), `0x8063a5ce…` (`setProofVerifier`) |
+| blocks / gas | `69090922`–`69090923` / **8,699,831** total (≈4.64 USDC at 533 gwei) |
+| owner | `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` |
+| wiring read back | `modeOf(keccak256("zk-constraint")) = 2`, `proofVerifier = adapter`, `owner = admin` |
+| script | `script/DeployEvidence.s.sol` (`EVIDENCE_OWNER`, optional `ZK_KIND`, `TEE_ATTESTOR_ADDRESS`) |
+| frontend | `VITE_SLA_EVIDENCE` → the Verify panel's "Anchored evidence" card |
+
+### 11.2 First live claim (zk output constraint)
+
+| Item | Value |
+|---|---|
+| tx | `0xe8f6b0c594234d9ad318af41bcbade5374456e6c8e9ae552e0998fdb92673732` |
+| block / gas | `69092517` / `3,810,232` |
+| call | `0x8cfa1821…b265` (provider 1, `COMPLETED`) |
+| claim hash | `0x51323974d481dbcb701dfb12f57e988b73ddd4a2b0a60525b1382caf39608021` |
+| statement | "A private 4-byte body hashes to the committed responseHash and starts with the byte 0x70, for this callId" |
+| reproduction | `bun scripts/zk-claim-envelope.ts --write` rebuilds the envelope and reprints the digest |
+
+The claim is an output constraint, not correctness. The circuit proves the committed
+`responseHash` has a preimage that starts with `0x70`, bound to the call by a `call_id`
+public input; it says nothing about whether the body came from the provider's endpoint or
+whether the answer is right. `B3b` therefore stays PARTIAL: attested *execution* still needs
+real enclave hardware, and this workspace has none.
+
+Operational notes worth keeping: `bb` needs `-t evm` on both `write_vk` and `prove`, and the
+generated verifier does not compile under `via_ir` until its five `assembly` blocks are
+annotated `("memory-safe")` — `docs/verification/DESIGN.md` §4.2.

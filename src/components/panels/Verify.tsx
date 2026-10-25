@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI } from "../../lib/config";
+import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI, SLA_EVIDENCE_ADDRESS, SLA_EVIDENCE_ENABLED, SLA_EVIDENCE_ABI } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
@@ -55,6 +55,27 @@ function formatAmount(value: unknown): string | undefined {
   try { return formatUsdc(BigInt(String(value))); } catch { return undefined; }
 }
 
+/** The three claim kinds the verification layer can record. Each label names the
+ *  claim instead of saying "verified", because the tiers prove different things. */
+const EVIDENCE_KINDS = [
+  { label: "ZK output constraint", kind: keccak256(toBytes("zk-constraint")) },
+  { label: "TEE execution image", kind: keccak256(toBytes("tee-attestation")) },
+  { label: "Witness observation", kind: keccak256(toBytes("witness")) },
+] as const;
+
+/** `SLAEvidenceRegistry.VerifierMode`: proof checked on chain, or checked off chain
+ *  and vouched for by a key. The difference is the whole trust story. */
+const EVIDENCE_MODES = ["no verifier", "off-chain check, signed by a key", "checked on chain"] as const;
+
+interface EvidenceRecord {
+  label: string;
+  claimHash: string;
+  responseHash: string;
+  verifier: string;
+  anchoredAt: number;
+  mode: number;
+}
+
 export default function Verify() {
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
@@ -83,6 +104,12 @@ export default function Verify() {
     payloadHash: string; attestor: string; originHash: string; observedAt: number; recordedAt: number;
   } | null>(null);
   const [provenanceOnChain, setProvenanceOnChain] = useState<boolean | null>(null);
+
+  // B3c — anchored evidence. The verification layer records a *named* claim (an
+  // execution attestation, a zk output constraint) together with the address that
+  // vouched for it. Reading it back is the whole point: a claim nobody can inspect
+  // is indistinguishable from a claim nobody made.
+  const [evidence, setEvidence] = useState<EvidenceRecord[] | null>(null);
 
   useEffect(() => {
     setPayloadCheck(null);
@@ -155,6 +182,47 @@ export default function Verify() {
     })();
     return () => { alive = false; };
   }, [provenance, committedHash, publicClient, result]);
+
+  useEffect(() => {
+    setEvidence(null);
+    if (!SLA_EVIDENCE_ENABLED || result?.kind !== "call" || !result.callId || !publicClient) return;
+    const callId = result.callId as `0x${string}`;
+    let alive = true;
+    (async () => {
+      const found: EvidenceRecord[] = [];
+      await Promise.all(EVIDENCE_KINDS.map(async ({ label, kind }) => {
+        try {
+          const rec = (await publicClient.readContract({
+            address: SLA_EVIDENCE_ADDRESS,
+            abi: SLA_EVIDENCE_ABI,
+            functionName: "getEvidence",
+            args: [callId, kind],
+          })) as unknown as Record<string | number, unknown>;
+          const anchoredAt = Number(rec?.anchoredAt ?? rec?.[4] ?? 0);
+          // anchoredAt == 0 means the registry holds no claim of this kind.
+          if (anchoredAt === 0) return;
+          const mode = Number(
+            (await publicClient.readContract({
+              address: SLA_EVIDENCE_ADDRESS,
+              abi: SLA_EVIDENCE_ABI,
+              functionName: "modeOf",
+              args: [kind],
+            })) as unknown as number,
+          );
+          found.push({
+            label,
+            claimHash: String(rec?.claimHash ?? rec?.[1] ?? ""),
+            responseHash: String(rec?.responseHash ?? rec?.[2] ?? ""),
+            verifier: String(rec?.verifier ?? rec?.[3] ?? ""),
+            anchoredAt,
+            mode,
+          });
+        } catch { /* unreadable kind: say nothing rather than guess */ }
+      }));
+      if (alive) setEvidence(found.sort((a, b) => a.anchoredAt - b.anchoredAt));
+    })();
+    return () => { alive = false; };
+  }, [result, publicClient]);
   // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
   const pendingVerify = useAppStore(s => s.pendingVerify);
   const clearPendingVerify = useAppStore(s => s.clearPendingVerify);
@@ -741,6 +809,87 @@ export default function Verify() {
             The registry checks <em>who</em> signed the observation, not that the payload is a correct
             answer. A single allowlisted key means that key must be trusted — CallGuard does not claim
             attested execution.
+          </p>
+        </div>
+      )}
+
+      {/* B3c — anchored evidence. Each row is a claim of a named kind, plus the address
+          that vouched for it. The card never prints "verified" on its own: the tier and
+          the mode are what a reader has to weigh. */}
+      {SLA_EVIDENCE_ENABLED && result?.kind === "call" && result.callId && (
+        <div style={s.card}>
+          <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text)", fontWeight: 600, marginBottom: 8 }}>
+            Anchored evidence — what was proven about this call
+          </div>
+
+          {evidence === null && (
+            <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Reading the evidence registry…</div>
+          )}
+
+          {evidence !== null && evidence.length === 0 && (
+            <div style={{ fontSize: 12, color: "var(--text)" }}>
+              No claim anchored for this call. A provider or attestor anchors one with
+              <code> anchor(callId, kind, claimHash, responseHash, proof)</code>; the receipt alone
+              proves commitment, not execution.
+            </div>
+          )}
+
+          {evidence !== null && evidence.map(record => {
+            const matches = !!committedHash && record.responseHash.toLowerCase() === committedHash.toLowerCase();
+            return (
+              <div key={record.claimHash + record.label} style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{record.label}</span>
+                  <span style={{
+                    fontSize: 10, padding: "2px 8px", borderRadius: 999, letterSpacing: "0.04em",
+                    textTransform: "uppercase" as const,
+                    background: record.mode === 2 ? "rgba(25,209,134,.12)" : "rgba(148,163,184,.12)",
+                    border: `1px solid ${record.mode === 2 ? "rgba(25,209,134,.3)" : "rgba(148,163,184,.3)"}`,
+                  }}>
+                    {EVIDENCE_MODES[record.mode] ?? "unknown verifier"}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gap: 4 }}>
+                  {[
+                    ["Claim digest", `${record.claimHash.slice(0, 12)}…${record.claimHash.slice(-8)}`],
+                    ["Committed response", `${record.responseHash.slice(0, 12)}…${record.responseHash.slice(-8)}`],
+                    // In proof mode the contract checked the proof, so nothing "vouched";
+                    // in signature mode a key did, and the label has to say which.
+                    [record.mode === 2 ? "Checked by contract" : "Vouched by key",
+                      `${record.verifier.slice(0, 10)}…${record.verifier.slice(-6)}`],
+                    ["Anchored at", new Date(record.anchoredAt * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
+                  ].map(([k, v]) => (
+                    <div key={k} style={s.row}>
+                      <span style={s.rowLabel}>{k}</span>
+                      <span style={s.rowVal}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: matches ? "rgb(25,209,134)" : "rgb(238,69,57)" }}>
+                    {!committedHash
+                      ? "Committed response hash unavailable, so the claim cannot be matched"
+                      : matches
+                        ? "MATCH — the claim is about the committed response"
+                        : "DIFFERENT — the claim is about another response"}
+                  </span>
+                  <a
+                    href={`https://explorer.testnet.arc.io/address/${record.verifier}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 11, color: "var(--accent-ink)", display: "inline-flex", alignItems: "center", gap: 4 }}
+                  >
+                    Verifier <ExternalLink size={11} />
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "10px 0 0" }}>
+            The registry stores a digest, not a verdict. A zk row means a verifier contract accepted a
+            proof of a stated output constraint; a TEE row means an allowlisted key vouched for an
+            attestation it checked off chain. Neither says the answer is correct.
           </p>
         </div>
       )}
