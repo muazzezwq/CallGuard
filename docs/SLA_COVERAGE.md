@@ -151,9 +151,10 @@ mechanism exists, but appeal/finalize/reclaim were never driven from the UI), an
 C8 and A8 are both proven on chain: disputes #1 and #2 escrowed their slashes at
 open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
-gaps, not mechanism gaps: A4 (the soak died after 5 h 13 min, so the keeper is not
-running) and B7/B8 (finalize and `reclaimExpiredBond` are waiting on their windows,
-not on code).
+gaps, not mechanism gaps: A4 (the restarted soak needs seven uninterrupted days),
+B7/B8 (finalize and `reclaimExpiredBond` are waiting on their windows, not on code),
+and B3 (the receipt proves who signed it, not that the payload was the promised
+content — the only real design gap left).
 
 ## Next work, highest value first
 
