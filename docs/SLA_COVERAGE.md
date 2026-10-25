@@ -40,7 +40,7 @@ Status vocabulary:
 | B5 | The arbiter resolves `Upheld` (stake held, bond returned) or `Rejected` (bond to treasury) | `resolve`, `test_resolve_upheld_returnsBondAndHoldsSlash`, `test_resolve_rejected_sendsBondToTreasury` | prod: `resolve(1, true)` → `heldSlash 0.64`, bond returned | PASS |
 | B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
 | B7 | After `appealWindow`, `finalize` pays the held slash to the caller and marks the dispute settled | `finalize`, `test_finalize_releasesHeldSlashToCaller` | dispute #1 unlocks 26 Oct 2026 18:58:38 UTC | PARTIAL |
-| B8 | If the arbiter never resolves, the caller reclaims the bond after `resolutionWindow` | `reclaimExpiredBond`, 2 tests | no UI path | PARTIAL |
+| B8 | If the arbiter never resolves, the caller reclaims the bond after `resolutionWindow` | `reclaimExpiredBond`, 2 tests | clock started: dispute #4 on call `0xb773c233…` (`openDispute` tx `0x6f94d2a6…cac8`, block `69067859`), status `Pending`, `SlashHeld(4, 3481864)`, bond `2.0`, `heldSlash(4) = 3481864`, `settled(4) = false`. `reclaimExpiredBond(4)` opens at `2026-11-01 17:42:05 UTC` (`openedAt + 604800`); it must stay unresolved until then | PARTIAL — waiting on the 7-day window |
 
 ## C — Financial
 
@@ -161,11 +161,10 @@ not on code).
    unlocks 26 Oct 21:52:02 UTC; each pays its held slash to the caller and marks
    the dispute settled. Then the old V2 dispute (26 Oct 18:58:38 UTC) can be
    finalized and `revokeSlasher(0xe5D993E0…0900)` run, which retires V2.
-2. **B8 — start the `reclaimExpiredBond` clock** — one completed call is still
-   undisputed (`0xb773c233…`, completed 24 Oct 20:44:22 UTC, dispute window closes
-   in ~6 days). Opening dispute #4 on it and leaving it `Pending` lets
-   `reclaimExpiredBond(4)` run on 1 Nov, which returns the bond to the caller and
-   the escrow to the provider — silence from the arbiter costs nobody.
+2. **B8 — run `reclaimExpiredBond(4)` on 1 Nov 17:42:05 UTC** — dispute #4 is
+   `Pending` with `3.481864` escrowed and the arbiter must not touch it. The
+   reclaim returns the `2.0` bond to the caller and the escrow to the provider, so
+   silence from the arbiter costs nobody. Nobody may `resolve` it before then.
 3. **A4 — restart the keeper soak** — the old process died with its host session
    after 289 cycles. The stuck call `0x3805a0e4…` was claimed by hand (status
    `Slashed`, stake `48.359232 → 38.687386`, bounty `0.483592`), which is what the
