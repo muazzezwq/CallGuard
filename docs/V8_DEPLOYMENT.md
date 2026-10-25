@@ -414,10 +414,27 @@ First live reading, `previewAvailability(1)` on provider 1:
 - observed availability `5714` bps (`57.14 %`) against a published target of
   `9950` bps (`99.50 %`)
 - `7` samples (`4` completed, `3` timed out)
-- `slashAmount 5.373632 USDC` (10 % of the `53.73632 USDC` stake), bounty
-  `1.0747264 USDC`, treasury `4.2989056 USDC`
+- `slashAmount 5.373248 USDC` (10 % of the `53.732480 USDC` stake), bounty
+  `1.074649 USDC`, treasury `4.298599 USDC`
 - `ready = true`
 
-Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`. The claim itself is
-the remaining step: it needs the caller's wallet, and it is what moves A8 from
-PARTIAL to PASS.
+Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`; the deployment
+`callguard-deq5jxv2j-muazzezwqs-projects.vercel.app` is `READY` and aliased to
+`arcsla.vercel.app`, and the bundle references the contract address.
+
+#### First claim — 25 Oct 2026
+
+| Field | Value |
+|---|---|
+| tx | `0xd7429d93cca53a9cdb5c12933c4023eb8da03c5e504dceea8aa352f8d6160539` |
+| block | `69063379` |
+| gas | `180217` |
+| event | `AvailabilitySlashed(1, 0xfbac…06Da, 5714, 9950, 7, 5373248, 1074649)` |
+| stake | `53.732480 → 48.359232 USDC` |
+| claimer | `+1.074649 USDC` (bounty, 20 % of the slash) |
+| treasury | `+4.298599 USDC` (the rest) |
+| window after | `completed 4`, `slashed 3`, `samples 0`, `cooldownEndsAt 1793034255` |
+
+`previewAvailability(1)` afterwards reports `ready = false`: the window is empty
+and the 24 h cooldown is running, so the same calls cannot be claimed twice. This
+is the A8 PASS evidence in `docs/SLA_COVERAGE.md`.

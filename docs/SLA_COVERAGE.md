@@ -27,7 +27,7 @@ Status vocabulary:
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` | tests exist only in the **v7** suite (`test/PayPerCall.t.sol:585`); no v8 test | PARTIAL |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
-| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime` `0x6916997DEFe98819176F66867fD5B356C284e89f` — live on Arc Testnet, authorised as a registry slasher. `claimAvailability` reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests: window resets between claims, `TargetMet` at and above target, `NotEnoughSamples`, `Cooldown`, stake cap, bounty/treasury split, admin bounds. On chain: `previewAvailability(1)` reads `5714` bps against the `9950` target with `7` samples and `slashAmount 5.373632 USDC`, `ready = true` | **PARTIAL — deployed and wired, first claim not yet sent** |
+| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime` `0x6916997DEFe98819176F66867fD5B356C284e89f` — live on Arc Testnet, authorised as a registry slasher. `claimAvailability` reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests covering the window reset, `TargetMet`, `NotEnoughSamples`, `Cooldown`, the stake cap, the bounty split, and admin bounds. On chain, tx `0xd7429d93cca53a9cdb5c12933c4023eb8da03c5e504dceea8aa352f8d6160539` (block `69063379`): `AvailabilitySlashed(1, 0xfbac…06Da, 5714, 9950, 7, 5373248, 1074649)`, stake `53.732480 → 48.359232 USDC`, claimer `+1.074649`, treasury `+4.298599`, window reset to `0` samples | **PASS** |
 
 ## B — Quality
 
@@ -97,7 +97,7 @@ Cost of the design: while a dispute is open the provider's stake is `10 %`
 smaller and that money is locked in the dispute contract. A spam dispute costs
 the caller the `2 USDC` bond when rejected.
 
-## A8 detail — the uptime promise
+## A8 detail — the uptime promise (closed 25 Oct 2026)
 
 `availabilityTargetBps` is stored per terms version (default `9950` = 99.5 %) and
 was never read for a verdict: a provider could publish it, miss calls, and keep
@@ -126,6 +126,13 @@ After each claim the baseline moves, so the next claim scores only what happened
 since the last decision, and a recovered provider is back in compliance after one
 clean window.
 
+First live claim (provider 1, 25 Oct 2026): window `4 completed / 3 slashed` =
+`5714` bps against the `9950` target, `7` samples, slash `5.373248 USDC` (10 % of
+the `53.732480` stake), split `1.074649` to the claimer and `4.298599` to the
+treasury, tx `0xd7429d93…60539`. The window reset to `0` samples and
+`previewAvailability(1)` now reports `ready = false` until the 24 h cooldown
+(`1793034255`) elapses and new calls land.
+
 Known limit, stated honestly: a provider that stops taking calls stops
 accumulating misses. It also stops earning, and the stake stays exposed to dispute
 slashes, so the incentive still points at serving.
@@ -134,16 +141,19 @@ slashes, so the incentive still points at serving.
 
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
-| A — Availability | 6 | 2 | 1 |
-| B — Quality | 3 | 3 | 1 |
-| C — Financial | 7 | 0 | 1 |
-| **Total** | **16** | **5** | **3** |
+| A — Availability | 6 | 2 | 0 |
+| B — Quality | 4 | 3 | 1 |
+| C — Financial | 8 | 0 | 0 |
+| **Total** | **18** | **5** | **1** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
-C8 is closed and proven on chain by dispute #1 on `DisputeV3`; A8's enforcement
-contract (`SLAUptime`) is deployed and wired, waiting on the first claim to prove
-the slash path on chain.
+C8 and A8 are both proven on chain: dispute #1 escrowed its slash at open on
+`DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from provider 1
+for missing its published 99.5 % target. The remaining gaps are proof gaps, not
+mechanism gaps: A4 (keeper soak still running this week), A5 (v8 concurrency cap
+is tested only in the v7 suite), and B6–B8 (appeal, finalize, and
+`reclaimExpiredBond` never driven end to end from the UI).
 
 ## Next work, highest value first
 
@@ -151,12 +161,8 @@ the slash path on chain.
    resolves it, run `finalize` once the appeal window closes. Then finalize the old
    V2 dispute (26 Oct 18:58 UTC) and `revokeSlasher(0xe5D993E0…0900)` so no stale
    slasher keeps authority over the registry.
-2. **Claim the A8 slash** — `SLAUptime` is deployed at
-   `0x6916997DEFe98819176F66867fD5B356C284e89f` and authorised
-   (`V8_DEPLOYMENT.md` §9.4). Provider 1 already misses its published target
-   (`5714` bps against `9950`, `7` samples, `5.373632 USDC` slash, `ready`), so one
-   `claimAvailability(1)` from the Availability panel or the owner wallet flips A8
-   to PASS. Check afterwards that the stake fell by `5.373632`, the claimer got
-   `1.0747264`, and the treasury got `4.2989056`.
+2. **Prove A5 in v8** — the concurrency cap is the last A row without v8 evidence;
+   porting the v7 test (`test/PayPerCall.t.sol:585`) to `PayPerCallV8` closes it.
+   A4 only needs the keeper soak to finish (31 Oct 15:33 UTC).
 3. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
    `DisputesV8` so all three are proven end to end instead of test-only.
