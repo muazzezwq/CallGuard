@@ -397,3 +397,27 @@ authorised slashers move stake.
   the claimer received `bountyBps` of the slash, and the treasury got the rest.
 - `previewAvailability(providerId)` mirrors the same decision, so the panel and the
   transaction can never disagree.
+
+### 9.4 Deployment record — 25 Oct 2026
+
+| Contract | Address |
+|---|---|
+| `SLAUptime` | `0x6916997DEFe98819176F66867fD5B356C284e89f` |
+
+Verified on chain after the deploy: bytecode present; `arbiter` and `treasury` are
+the owner wallet; `availabilitySlashBps 1000`, `bountyBps 2000`, `cooldown 86400`,
+`minSamples 5`; `registry()` is `ServiceRegistryV8`; and
+`registry.authorizedSlashers(0x6916…e89f)` is `true`.
+
+First live reading, `previewAvailability(1)` on provider 1:
+
+- observed availability `5714` bps (`57.14 %`) against a published target of
+  `9950` bps (`99.50 %`)
+- `7` samples (`4` completed, `3` timed out)
+- `slashAmount 5.373632 USDC` (10 % of the `53.73632 USDC` stake), bounty
+  `1.0747264 USDC`, treasury `4.2989056 USDC`
+- `ready = true`
+
+Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`. The claim itself is
+the remaining step: it needs the caller's wallet, and it is what moves A8 from
+PARTIAL to PASS.

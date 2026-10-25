@@ -27,7 +27,7 @@ Status vocabulary:
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` | tests exist only in the **v7** suite (`test/PayPerCall.t.sol:585`); no v8 test | PARTIAL |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
-| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime.claimAvailability`: reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests: window resets between claims, `TargetMet` at and above target, `NotEnoughSamples`, `Cooldown`, stake cap, bounty/treasury split, admin bounds | **PARTIAL — implemented and tested, contract not deployed** |
+| A8 | The published `availabilityTargetBps` (e.g. `9950` = 99.5 %) is enforced against rolling uptime | `SLAUptime` `0x6916997DEFe98819176F66867fD5B356C284e89f` — live on Arc Testnet, authorised as a registry slasher. `claimAvailability` reads the registry counters since the last check, slashes `availabilitySlashBps` of the stake when the observed rate is below the published target, pays `bountyBps` of the slash to the claimer and the rest to the treasury | `test/SLAUptime.t.sol` — 29 tests: window resets between claims, `TargetMet` at and above target, `NotEnoughSamples`, `Cooldown`, stake cap, bounty/treasury split, admin bounds. On chain: `previewAvailability(1)` reads `5714` bps against the `9950` target with `7` samples and `slashAmount 5.373632 USDC`, `ready = true` | **PARTIAL — deployed and wired, first claim not yet sent** |
 
 ## B — Quality
 
@@ -110,8 +110,10 @@ an aggregate promise is not a call.
    last check. The first check scores the whole history, so a new provider gets no
    free pass.
 2. **Metric** — `completed / (completed + slashed)` in basis points.
-3. **Gates** — at least `minSamples` (20) observations, an observed rate below the
-   published target, and the cooldown (24 h) elapsed.
+3. **Gates** — at least `minSamples` observations, an observed rate below the
+   published target, and the cooldown (24 h) elapsed. Deployed with `minSamples 5`
+   on testnet so the live provider's handful of calls can reach a verdict; `20` is
+   the mainnet value.
 4. **Penalty** — `availabilitySlashBps` (10 %) of the stake, capped at the stake.
 5. **Split** — `bountyBps` (20 %) of the slash to the claimer immediately, the rest
    to the treasury. No bond: a claim costs gas only.
@@ -139,8 +141,9 @@ slashes, so the incentive still points at serving.
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
-C8 is closed and proven on chain by dispute #1 on `DisputeV3`; A8 now has an
-enforcement contract (`SLAUptime`) with tests, waiting on a deploy.
+C8 is closed and proven on chain by dispute #1 on `DisputeV3`; A8's enforcement
+contract (`SLAUptime`) is deployed and wired, waiting on the first claim to prove
+the slash path on chain.
 
 ## Next work, highest value first
 
@@ -148,9 +151,12 @@ enforcement contract (`SLAUptime`) with tests, waiting on a deploy.
    resolves it, run `finalize` once the appeal window closes. Then finalize the old
    V2 dispute (26 Oct 18:58 UTC) and `revokeSlasher(0xe5D993E0…0900)` so no stale
    slasher keeps authority over the registry.
-2. **Deploy `SLAUptime`** — the A8 contract, tests, deploy script, and the
-   Availability panel are ready (`V8_DEPLOYMENT.md` §9). The deploy plus
-   `authorizeSlasher` needs the owner wallet; after that, publish a target on a
-   provider, let its window miss it, and claim once to prove A8 on chain.
+2. **Claim the A8 slash** — `SLAUptime` is deployed at
+   `0x6916997DEFe98819176F66867fD5B356C284e89f` and authorised
+   (`V8_DEPLOYMENT.md` §9.4). Provider 1 already misses its published target
+   (`5714` bps against `9950`, `7` samples, `5.373632 USDC` slash, `ready`), so one
+   `claimAvailability(1)` from the Availability panel or the owner wallet flips A8
+   to PASS. Check afterwards that the stake fell by `5.373632`, the claimer got
+   `1.0747264`, and the treasury got `4.2989056`.
 3. **B6/B7/B8** — drive appeal, finalize, and `reclaimExpiredBond` from
    `DisputesV8` so all three are proven end to end instead of test-only.
