@@ -23,7 +23,7 @@ Status vocabulary:
 | A1 | Each call snapshots `maxResponseTime`, `slashBps`, `termsVersion` at open, so a later terms update cannot change the rules mid-call | `PayPerCallV8._createCall`, `test_PayPerCallV8.test_callService_escrowsAndSnapshotsTerms` | prod: provider `1` runs `120 s`, every call stores it | PASS |
 | A2 | A receipt is rejected when the provider claims a `respondedAt` past the deadline, or submits after `deadline + SUBMIT_GRACE (5 s)` | `submitReceipt`, `test_submitReceipt_respondedAfterDeadline_reverts`, `test_submitReceipt_afterGrace_reverts` | prod: timeout drill `0xc4e2245e…` | PASS |
 | A3 | A missed deadline refunds the caller and slashes the stake; keeper earns a bounty | `claimTimeout`, `test_claimTimeout_refundsSlashesAndPaysBounty` | prod: call `0xc4e2245e…` → refund `1.0`, slashed `1.9`, bounty `0.1` | PASS |
-| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | first run: `289` cycles over `5 h 13 min` from 24 Oct 15:33 UTC, killed when the host session ended at 20:46 UTC. The gap showed on chain — call `0x3805a0e4…` stayed `Pending` for 20 h until it was claimed by hand. Restarted 25 Oct 17:54 UTC on a fresh keeper `0xAF677A30…b5dF` (`20 USDC` gas), 7-day window ends 1 Nov 17:54 UTC | PARTIAL — running, needs the full week |
+| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | first run: `289` cycles over `5 h 13 min` from 24 Oct 15:33 UTC, killed when the host session ended at 20:46 UTC. The gap showed on chain — call `0x3805a0e4…` stayed `Pending` for 20 h until it was claimed by hand. Since 25 Oct the keeper runs two ways on key `0xAF677A30…b5dF`: the local soak (restarted 17:54 UTC, `20 USDC` gas) and `.github/workflows/keeper.yml`, a GitHub Actions cron every 15 min that runs `ONCE=1` and exits, so a dead host session can no longer stop claims. 7-day evidence window ends 1 Nov 17:54 UTC | PARTIAL — running, needs the full week |
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` — cap keyed on `openCallsPerCaller[providerId][beneficiary]`, so `callServiceFor` spends the beneficiary's budget, not the payer's | `test/PayPerCallV8.t.sol` — 6 tests: default cap `10`, provider-declared cap, per-caller isolation, beneficiary accounting, slot freed on receipt, slot freed on timeout. Note: `ServiceRegistryV8` pins `zkTier` to `0`, so the 2× multiplier is unreachable in v8; it stays covered by the v7 suite | PASS |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
@@ -166,8 +166,9 @@ content — the only real design gap left).
    `Pending` with `3.481864` escrowed and the arbiter must not touch it. The
    reclaim returns the `2.0` bond to the caller and the escrow to the provider, so
    silence from the arbiter costs nobody. Nobody may `resolve` it before then.
-3. **A4 — let the restarted soak run to 1 Nov 17:54 UTC** — keeper
-   `0xAF677A30…b5dF`, polling every 60 s. The earlier keeper `0xd7B4C2B1…7d59`
-   still holds `20 USDC` that nobody can spend (its key is not in this workspace),
-   so the new wallet was funded separately. A4 flips to PASS only if the process
-   survives the full seven days.
+3. **A4 — let the keeper run to 1 Nov 17:54 UTC** — keeper `0xAF677A30…b5dF`
+   runs both as a local soak (60 s poll) and as a GitHub Actions cron every 15 min
+   (`keeper.yml`, `ONCE=1`, `KEEPER_PK` repo secret). The cron is the durable half:
+   it needs no host session. The earlier keeper `0xd7B4C2B1…7d59` still holds
+   `20 USDC` that nobody can spend (its key is not in this workspace), so the new
+   wallet was funded separately.

@@ -25,6 +25,7 @@
  *   BATCH_SIZE           optional, callIds per claimBatch tx, default 20
  *   MIN_BOUNTY_WITHDRAW  optional, withdraw when bountyClaimable >= this (6dp), default 1000000 (1 USDC)
  *   DURATION_DAYS        optional, stop after N days, default 7
+ *   ONCE                 optional, run one cycle and exit (scheduled runners)
  *   SOAK_LOG_DIR         optional, JSONL output directory, default /tmp/opencode/keeper-soak
  */
 import { ethers } from "ethers";
@@ -54,6 +55,9 @@ const BATCH_SIZE = Number(process.env.BATCH_SIZE || 20);
 const MIN_BOUNTY_WITHDRAW = BigInt(process.env.MIN_BOUNTY_WITHDRAW || "1000000"); // 1 USDC, 6dp
 const DURATION_DAYS = Number(process.env.DURATION_DAYS || 7);
 const LOG_DIR = process.env.SOAK_LOG_DIR || "/tmp/opencode/keeper-soak";
+// ONCE=1 runs a single cycle and exits, which is how a scheduled runner (GitHub
+// Actions cron) uses this script: no long-lived process, no host to die under it.
+const ONCE = process.env.ONCE === "1" || process.env.ONCE === "true";
 
 const KEEPER_ABI = [
   "function isClaimable(bytes32 callId) view returns (bool)",
@@ -259,6 +263,20 @@ async function main() {
     submitGrace: graceSeconds,
     durationDays: DURATION_DAYS,
   });
+
+  if (ONCE) {
+    try {
+      await cycle(graceSeconds);
+    } catch (error) {
+      log("error", "cycle failed", { reason: error.shortMessage || error.message });
+      log("stop", "single pass failed", summary());
+      console.log(JSON.stringify(summary(), null, 2));
+      process.exit(1);
+    }
+    log("stop", "single pass finished", summary());
+    console.log(JSON.stringify(summary(), null, 2));
+    return;
+  }
 
   while (Date.now() < deadline) {
     try {
