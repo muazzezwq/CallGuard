@@ -23,7 +23,7 @@ Status vocabulary:
 | A1 | Each call snapshots `maxResponseTime`, `slashBps`, `termsVersion` at open, so a later terms update cannot change the rules mid-call | `PayPerCallV8._createCall`, `test_PayPerCallV8.test_callService_escrowsAndSnapshotsTerms` | prod: provider `1` runs `120 s`, every call stores it | PASS |
 | A2 | A receipt is rejected when the provider claims a `respondedAt` past the deadline, or submits after `deadline + SUBMIT_GRACE (5 s)` | `submitReceipt`, `test_submitReceipt_respondedAfterDeadline_reverts`, `test_submitReceipt_afterGrace_reverts` | prod: timeout drill `0xc4e2245e…` | PASS |
 | A3 | A missed deadline refunds the caller and slashes the stake; keeper earns a bounty | `claimTimeout`, `test_claimTimeout_refundsSlashesAndPaysBounty` | prod: call `0xc4e2245e…` → refund `1.0`, slashed `1.9`, bounty `0.1` | PASS |
-| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | first run: `289` cycles over `5 h 13 min` from 24 Oct 15:33 UTC, killed when the host session ended at 20:46 UTC, and call `0x3805a0e4…` then sat `Pending` for 20 h until it was claimed by hand. Fixed: the keeper now runs as GitHub Actions cron `.github/workflows/keeper.yml` (every 15 min, `ONCE=1`, `KEEPER_PK` repo secret, no host to die under it). First scheduled-runner pass on `main`: run `40220434080`, keeper `0xAF677A30…b5dF`, `cycles 1`, `gasNative 20.0`, `batchTxFailures 0`, JSONL artifact uploaded. Local soak stopped so the two do not race for the same bounty | PARTIAL — automation live since 25 Oct 18:16 UTC, needs the seven-day window (to 1 Nov) plus an organic claim |
+| A4 | A keeper claims timeouts without human action | `SLAKeeper.claim/claimBatch`, `test/SLAKeeper.t.sol` (9 tests) | first run died with its host session after `289` cycles / `5 h 13 min`, so call `0x3805a0e4…` sat `Pending` for 20 h. Replaced by GitHub Actions cron `.github/workflows/keeper.yml` (every 15 min, `ONCE=1`, `KEEPER_PK` secret, no host). Live claim, run `40221690767`: heartbeat `startedCalls 2, claimable 2`, then `claim batch claimed` tx `0x87fc2941…2d9a`, `requested 2 / claimed 2`, `bounty 0.564061`, `gasUsed 274729`. It claimed the drill call `0xf2f5919e…` (slash `6.267356`, `1.0` refunded, bounty `0.313367`) **and** call `0x5b09a40a…`, which nobody had touched (slash `5.013885`, bounty `0.250694`). Stake `31.336784 → 20.055543`, `slashedCalls 4 → 6`, `pendingCalls 0`, keeper gas `20.0 → 19.993131`, `bountyClaimable 0.564061` | PASS — on chain, no human claim |
 | A5 | Concurrent calls per caller are capped (`maxConcurrentCalls`, doubled for `zkTier >= 2`) | `PayPerCallV8._createCall` — cap keyed on `openCallsPerCaller[providerId][beneficiary]`, so `callServiceFor` spends the beneficiary's budget, not the payer's | `test/PayPerCallV8.t.sol` — 6 tests: default cap `10`, provider-declared cap, per-caller isolation, beneficiary accounting, slot freed on receipt, slot freed on timeout. Note: `ServiceRegistryV8` pins `zkTier` to `0`, so the 2× multiplier is unreachable in v8; it stays covered by the v7 suite | PASS |
 | A6 | A call cannot open unless the stake still covers this terms version's slash (`expectedSlash >= pricePerCall`) | `PayPerCallV8._createCall`, `test_callService_insufficientStake_reverts` | prod: stake `5.76`, price `1.0`, slash `20 %` | PASS |
 | A7 | A provider cannot withdraw stake while it has open calls, and must wait a cooldown after deactivating | `ServiceRegistryV8.unstake` (`PendingCalls`, `UNSTAKE_COOLDOWN = 1 h`) | v7 retirement followed the same path | PASS |
@@ -141,20 +141,20 @@ slashes, so the incentive still points at serving.
 
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
-| A — Availability | 7 | 1 | 0 |
+| A — Availability | 8 | 0 | 0 |
 | B — Quality | 5 | 2 | 1 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **20** | **3** | **1** |
+| **Total** | **21** | **2** | **1** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
 C8 and A8 are both proven on chain: disputes #1 and #2 escrowed their slashes at
 open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
-gaps, not mechanism gaps: A4 (the restarted soak needs seven uninterrupted days),
-B7/B8 (finalize and `reclaimExpiredBond` are waiting on their windows, not on code),
-and B3 (the receipt proves who signed it, not that the payload was the promised
-content — the only real design gap left).
+gaps, not mechanism gaps: B7/B8 (finalize and `reclaimExpiredBond` are waiting on
+their windows, not on code) and B3 (the receipt proves who signed it, not that the
+payload was the promised content — the only real design gap left). A no longer has
+an open row: the keeper runs on GitHub Actions and claimed two timeouts unattended.
 
 ## Next work, highest value first
 
@@ -166,9 +166,9 @@ content — the only real design gap left).
    `Pending` with `3.481864` escrowed and the arbiter must not touch it. The
    reclaim returns the `2.0` bond to the caller and the escrow to the provider, so
    silence from the arbiter costs nobody. Nobody may `resolve` it before then.
-3. **A4 — watch the Actions cron to 1 Nov** — `keeper.yml` runs every 15 min with
-   keeper `0xAF677A30…b5dF` and keeps its JSONL evidence as a run artifact. A4
-   flips to PASS once it claims at least one real timeout with nobody touching the
-   chain, so the next deliberately-missed call is the proof. The earlier keeper
-   `0xd7B4C2B1…7d59` still holds `20 USDC` that nobody can spend (its key is not in
-   this workspace).
+3. **A4 — keep the Actions cron green** — done as a mechanism (run `40221690767`
+   claimed two timeouts, one of them never touched by hand). What is worth watching
+   now is only reliability: GitHub delays `*/15` schedules by minutes to tens of
+   minutes, so a call can stay `Pending` longer than a 60 s poll would allow. If that
+   matters, drop to a self-hosted runner or add a second trigger. The earlier keeper
+   `0xd7B4C2B1…7d59` still holds `20 USDC` whose key is not in this workspace.
