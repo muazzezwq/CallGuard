@@ -28,7 +28,7 @@ env:
   # One set. r0vm and cargo-risczero must match risc0-zkvm, and risc0-ethereum
   # v3.0.1 is built for this set; a mismatch surfaces as a selector mismatch at proof time.
   RISC0_VERSION: "3.0.3"
-  RUST_VERSION: "1.89.0"
+  RUST_VERSION: "1.88.0"
   # abi.encode(callId, requestHash, responseHash, handlerId) for
   # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
   EXPECTED_JOURNAL: "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
