@@ -37,7 +37,7 @@ env:
   # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
   # Pinned from the first reproducible build. A drift fails the job instead of
   # producing a proof the deployed adapter would reject.
-  EXPECTED_IMAGE_ID: "0xd583c45f7aebc58b3dff50a65dde38f1f3975d43f7062c9ec4407b4efab90485"
+  EXPECTED_IMAGE_ID: "0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa"
   # Dispatching this workflow needs a token, so a Groth16 run can also be requested
   # by putting `[prove]` in the commit message of a push that touches this workflow.
   PROVE_REQUESTED: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[prove]')) || inputs.mode == 'groth16' }}

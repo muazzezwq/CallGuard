@@ -86,12 +86,12 @@ fn check_dev_mode(dev_flag: bool) -> Result<bool> {
 }
 
 fn image_id_hex() -> String {
-    // `PING_ID` is `[u32; 8]`, each word big-endian — the digest layout the verifier expects.
-    let mut bytes = [0u8; 32];
-    for (i, word) in PING_ID.iter().enumerate() {
-        bytes[i * 4..i * 4 + 4].copy_from_slice(&word.to_be_bytes());
-    }
-    format!("0x{}", hex::encode(bytes))
+    // A RISC Zero digest is eight words whose bytes are little-endian. Formatting the words
+    // big-endian produces a hash that looks right and commits to nothing: the claim digest built
+    // from it is not the one the proof proved, so the pairing check fails on chain with no hint
+    // about why. Go through `Digest` so the layout is the library's, not ours.
+    let digest = risc0_zkvm::Digest::from(PING_ID);
+    format!("0x{}", hex::encode(digest.as_bytes()))
 }
 
 /// The seal the Solidity verifier expects: four selector bytes derived from the receipt's
@@ -128,7 +128,15 @@ fn main() -> Result<()> {
         .receipt;
 
     // Local check first: a receipt that does not verify here would not verify on chain.
+    // `verify` only checks the claim against the image id; `verify_integrity` runs the seal, so a
+    // receipt whose proof does not attest to that claim is caught before it is written. A dev-mode
+    // receipt has no seal to run, so there is nothing to check there.
     receipt.verify(PING_ID)?;
+    if !dev {
+        receipt
+            .verify_integrity()
+            .context("the seal does not attest to the receipt's own claim")?;
+    }
 
     let image_id = image_id_hex();
     let journal = receipt.journal.bytes.clone();
