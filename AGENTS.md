@@ -147,7 +147,7 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
-## Verification layer (B3c/B3d, 26 Oct 2026) — additive, no v8 contract changed
+## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — additive, no v8 contract changed
 
 | Contract | Address |
 |---|---|
@@ -155,18 +155,33 @@ order: `docs/V8_DEPLOYMENT.md` §7.
 | `SLAEvidenceRegistry` (claim anchoring) | `0x7d643B2bE50F6E7593c09A0fc26246ca06d862dB` |
 | `HonkVerifier` (UltraHonk, keccak claim) | `0xC64341aBd4dfC62aCd11E35245D06FCF2B094846` |
 | `ZkClaimAdapter` | `0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E` |
+| `RiscZeroGroth16Verifier` (Groth16, execution claim) | `0x8F0a67be3cB5750e1Ea088ECbfD27DBdB8228f01` |
+| `Risc0ExecutionAdapter` (`zk-execution`) | `0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21` |
 
 `zk-constraint` is wired in `Proof` mode to the adapter; `modeOf(kind) = 2` reads back from
 chain. Anchor gas `3.8M`, verify gas `2.9M`. Frontend: `VITE_SLA_EVIDENCE` drives the Verify
 panel's "Anchored evidence" card. Design: `docs/verification/DESIGN.md`; measurements and the
 TEE-vs-zk comparison: `docs/verification/REPORT.md`; runbook: `docs/V8_DEPLOYMENT.md` §11.
 
-Three claim kinds, and none of them is "the answer is correct": `witness` (a key saw the
+Four claim kinds, and none of them is "the answer is correct": `witness` (a key saw the
 bytes), `tee-attestation` (an allowlisted image signed `userData`/`report_data` — both the
 Nitro and the Intel TDX verifier run against synthetic evidence only, no enclave hardware
 was reached, so B3b stays PARTIAL), `zk-constraint` (the committed hash has a private
-preimage satisfying a stated predicate). The envelope schema rejects a claim with no
-statement or no assumption.
+preimage satisfying a stated predicate), `zk-execution` (a RISC Zero guest with the published
+image id ran and committed `(callId, requestHash, responseHash, handlerId)`; the Groth16 seal
+verifies on chain at `256,608` gas and `Risc0ExecutionAdapter` binds the journal to the call
+by reading `requestHash` from `PayPerCallV8`). The envelope schema rejects a claim with no
+statement or no assumption. Live anchor: tx `0x21dbb04b…` (block `69236411`, gas `404,917`),
+claim `0xe3baff68…419c`, `isAnchored = true`; runbook `docs/V8_DEPLOYMENT.md` §13.
+
+`zk-execution` gotchas: the guest image id is `[u32; 8]` in **little-endian** byte order —
+format it through `risc0_zkvm::Digest` and never by hand, or every artifact agrees with a wrong
+id and the chain answers with a bare `VerificationFailed` (this happened; `docs/V8_DEPLOYMENT.md`
+§13.4). The Groth16 prover is x86-only, so proving happens in
+`.github/workflows/zk-execution.yml`, requested by `[prove]` in a commit message; a plain run
+only builds the guest and asserts the pinned `EXPECTED_IMAGE_ID`. Check any new seal with
+`forge test --match-contract Risc0ReceiptTest` before deploying: `imageId` is immutable, so a
+wrong one costs a new adapter plus a repeatable `setProofVerifier` (the registry allows it).
 
 TDX path: `src/lib/verification/tdx.ts` (quote → Intel root via `@phala/dcap-qvl`, the
 32/32 `report_data` split `subjectUserData ‖ nonce`, RTMR3 replay, compose-hash allowlist),

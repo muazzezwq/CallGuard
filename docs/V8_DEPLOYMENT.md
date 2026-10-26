@@ -653,3 +653,110 @@ The billing gate also falsifies an assumption this section opened with: Phala Cl
 hand out a free CVM on signup. An account with no payment method has a `$0.00` balance, and
 `POST /cvms/provision` answers `ERR-04-001` before any node is chosen. Two TDX nodes were
 online and available to the account at the time, so this is money, not capacity.
+
+## 13. Execution proof (RISC Zero zkVM, Groth16) — anchored 26 Oct 2026
+
+`B3b`'s honest claim — "the execution that produced this answer was attested" — needs
+hardware it does not have (§12). A zkVM is the other route to a weaker, checkable version of
+it: the guest program's execution is proven by a SNARK the EVM verifies itself, so no key sits
+in the loop and nothing has to be trusted off chain. Proving runs on GitHub Actions, so the
+cost is `$0`; the Groth16 prover is x86-only, which is why it cannot run in this workspace.
+
+The claim this earns, stated as narrowly as it should be: *a guest program with the published
+image id ran on a private request whose `keccak256` is the call's committed `requestHash`, and
+committed this `responseHash` for this `callId`*. It does not say the body came from the
+provider's endpoint and it does not say the answer is correct. Freshness is the journal's
+binding to the call, never a clock — a proof has no timestamp.
+
+### 13.1 What is deployed
+
+| Item | Value |
+|---|---|
+| `RiscZeroGroth16Verifier` | `0x8F0a67be3cB5750e1Ea088ECbfD27DBdB8228f01` |
+| `Risc0ExecutionAdapter` (active) | `0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21` |
+| `Risc0ExecutionAdapter` (superseded) | `0xfB9b71be4f719688C906A76b8f81B63c27c4e560` — deployed with a mis-formatted image id, never used, see §13.4 |
+| vendored verifier source | `lib/risc0-ethereum` at `365e7b2` (`v3.0.1`), GPL-3.0, unchanged |
+| deploy txs | verifier `0x5e1a5cd8…` (block `69234491`, `1,135,268` gas), adapter `0x2b334a30…` (block `69236302`, `470,413` gas) |
+| wiring txs | `setProofVerifier(keccak256("zk-execution"), adapter)` — `0x72d58a6d…` (block `69234518`, `70,907` gas) into first adapter, `0x3c2dd697…` (block `69236342`, `33,907` gas) into the active one. Repeatable by design, not one-time |
+| constants | `ControlID.CONTROL_ROOT` `0xa54dc85a…`, `BN254_CONTROL_ID` `0x04446e66…`, selector `0x73c457ba`, all read back from chain |
+| image id | `0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa` |
+| script | `script/DeployZkExecution.s.sol` (`PAY_PER_CALL_V8`, `ZK_EXECUTION_IMAGE_ID`, optional `ZK_VERIFIER` to reuse a deployed verifier) |
+| frontend | the Verify panel's "Anchored evidence" card gains a `ZK execution proof` row |
+
+### 13.2 The anchored claim
+
+| Item | Value |
+|---|---|
+| tx | `0x21dbb04b7f265fb67ce2ed83cae10f0413bcf14310c2a764f77d297ef2be57cf` |
+| block / gas | `69236411` / `404,917` |
+| `anchoredAt` | `1793049878` (2026-10-26 21:24:38 UTC) |
+| call | `0x8cfa1821…b265` (provider 1, `COMPLETED`) |
+| claim hash | `0xe3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c` |
+| response hash | `0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d` |
+| proof blob | `abi.encode(seal, journal)` = **544 bytes** (260-byte seal, 128-byte journal) |
+| read back | `modeOf = 2`, `getEvidence(callId, kind) = (kind, claimHash, responseHash, 0xD804F2E0…, 1793049878)`, `isAnchored = true`, `adapter.imageId` and `adapter.verifier` as above |
+| reproduction | `bun scripts/zk-execution-proof.ts --write --blob <file>` rebuilds the envelope, the digest and the blob from the committed artifacts |
+
+The registry stores a digest, not a verdict. The row is real because the verifier contract
+accepted a Groth16 seal over the claim digest rebuilt from `imageId ‖ sha256(journal)`, and
+because the adapter separately read the call's `requestHash` from `PayPerCallV8` and compared
+it with the journal — a proof for one call cannot be presented for another, and a proof about
+another response cannot be presented for this one.
+
+### 13.3 Measurements
+
+| Measurement | Value |
+|---|---|
+| prove (CI, `ubuntu-latest`, cold cache) | **238 s** |
+| guest image id / journal | `0x5fc483d5…`, 128 bytes, digest `0xa86c1ab9…3694` |
+| seal | 260 bytes (4-byte selector + 256-byte Groth16 proof) |
+| `RiscZeroGroth16Verifier.verify` alone on Arc | **256,608** gas |
+| `Risc0ExecutionAdapter.verify` (pairing + journal binding + `getCall`) | **285,885** gas |
+| anchor, end to end | **404,917** gas (≈0.012 USDC at 30 gwei) |
+| third-party service cost | none — the verifier is vendored, proving is CI |
+
+Compare with §11's UltraHonk path: 2.9M gas to verify an output constraint, versus 0.26M here,
+because the RISC Zero verifier is a hand-written pairing check with the verification key
+compiled into it and only five public inputs.
+
+### 13.4 The bug that only the chain could report, and how it was found
+
+The first anchor reverted `ProofRejected`, and a direct `verify` call on the deployed verifier
+reverted `VerificationFailed` with `PRECOMPILES::ecpairing` returning `false`. Nothing else was
+wrong: the selector matched the seal, `BN254_CONTROL_ID` matched, and the journal was the one
+the guest wrote. The cause was the guest image id.
+
+`PING_ID` is `[u32; 8]`, and a RISC Zero digest is those eight words with **little-endian**
+byte order. The host formatted them big-endian, so it printed an id that looks like a hash and
+commits to nothing; the workflow pinned it, the fixture recorded it and the adapter was
+deployed with it, so every artifact agreed with the wrong value. The chain then had nothing to
+say except that the pairing failed.
+
+The proof was always valid. `test/Risc0Receipt.t.sol` proves it locally: the committed seal
+verifies against `0x5fc483d5…`, and is rejected against the old misread id. The host now goes
+through `Digest::from(PING_ID).as_bytes()` instead of formatting words by hand, and runs
+`verify_integrity_with_context` before writing anything, so a seal that does not attest to its
+own claim cannot leave CI. Confirming the fix needed no new proof — only a new adapter, because
+`imageId` is immutable — and the CI dev run prints the corrected id, which is what
+`EXPECTED_IMAGE_ID` pins.
+
+### 13.5 Runbook
+
+1. `[prove]` in the commit message of a push that touches `.github/workflows/zk-execution.yml`
+   requests a Groth16 run (`PROVE_REQUESTED`); a plain run builds the guest and stops before
+   proving. Job logs need a token, so the job publishes the values as annotations, which do not.
+2. Read `imageId`, `journal`, `journalDigest` and `sealHex` from the run's notice annotation and
+   write them to `test/fixtures/zk-execution/{seal.bin,journal.bin,image_id.txt}`; compare the id
+   with `EXPECTED_IMAGE_ID`.
+3. `bun scripts/zk-execution-proof.ts --write --blob <file>` regenerates
+   `src/lib/verification/fixtures/zk-execution.json` and the anchor blob.
+4. `forge test --match-contract Risc0ReceiptTest` must pass before any deploy: it verifies the
+   seal locally, which is the only check available without gas.
+5. `ZK_VERIFIER=<deployed> bash` the deploy runner, then `setProofVerifier` for the new adapter
+   and `anchor` the blob. Simulate first; every step in the runner is an `eth_call` before it is
+   a transaction.
+
+Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkvm 3.0.6`,
+`r0vm 3.0.6`, `cargo-risczero 3.0.6`, host Rust `1.91.0`, guest Rust `1.88.0` via
+`rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
+4.3.0`) because the guest toolchain resolves differently from the host.

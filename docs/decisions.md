@@ -281,3 +281,27 @@ Conservative choices made without stopping. Format: decision + reason.
   broadcast; the unspent balance was returned. Reason: Vercel marks private-key env vars as
   sensitive and the CLI returns `[SENSITIVE]`, so reusing a service key would have required
   exporting a secret that cannot be read back.
+- **B3e — execution proof is a RISC Zero zkVM receipt, not a TEE and not another circuit.** The
+  claim `B3b` could not make ("the execution was attested") is mostly reachable without hardware if
+  the *program* is the thing under proof: the guest commits a journal naming the call and a Groth16
+  seal proves it ran. Reason: Phala refused to provision a CVM on a `$0` balance (`ERR-04-001`) and
+  an output constraint says nothing about execution. The cost is a CI job, because the Groth16
+  prover is x86-only.
+- **B3e — the vendored `RiscZeroGroth16Verifier` is used unchanged, at a pinned tag.** `lib/risc0-ethereum`
+  is pinned to `365e7b2` (`v3.0.1`) and supplies both the verifier and `ControlID`; no constant is an
+  env var. Reason: the deployed root of trust should be what the repository committed, not what an
+  operator typed at deploy time. GPL-3.0 is acceptable because the contracts are not distributed as
+  a library.
+- **B3e — the guest image id is formatted through `Digest`, never by hand.** `PING_ID` is `[u32; 8]`
+  and a RISC Zero digest is those words in little-endian byte order. The first deploy formatted them
+  big-endian, which pinned a wrong id into the workflow, the fixture *and* the adapter's immutable
+  field; the only symptom was `VerificationFailed` from the pairing check. Reason: every artifact
+  agreed with the bad value, so nothing but the chain could report it. `test/Risc0Receipt.t.sol` now
+  pins both directions.
+- **B3e — `imageId` is immutable, so a wrong one costs a new adapter, never a patch.** The verifier
+  was reused through `ZK_VERIFIER` and only the adapter was redeployed; `SLAEvidenceRegistry.setProofVerifier`
+  is deliberately repeatable for exactly this migration. Reason: one owner transaction instead of a
+  new root of trust, and each anchored claim already records which adapter vouched for it.
+- **B3e — the Groth16 run is requested by `[prove]` in a commit message.** `workflow_dispatch` needs a
+  token this environment does not have, and a proof every push would waste CI minutes. Reason: the
+  trigger is part of the reviewed diff and survives without credentials.

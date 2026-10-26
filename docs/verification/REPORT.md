@@ -36,6 +36,29 @@ not invented. Fixtures: `test/fixtures/zk/keccak-call.{proof,inputs,vk}`.
 | on-chain anchor through the registry | **191,022 gas** (Signature mode, test measurement) |
 | comparable live anchor | 145,459 gas (`SLAProvenance` tx `0x7cd975ab…fa76`) |
 
+### Execution path (RISC Zero zkVM, Groth16) — measured 26 Oct 2026
+
+| Quantity | Value |
+|---|---|
+| proving time | **238 s** on `ubuntu-latest` (4 vCPU, warm crate cache, cold guest build) |
+| proving cost | **$0** — GitHub Actions; the Groth16 prover is x86-only and does not run here |
+| guest | `risc0-zkvm 3.0.6`, Rust `1.88.0`, ~40 lines; handler `keccak256("callguard.handler.ping/1")` |
+| image id | `0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa` |
+| journal | 128 bytes (4 × `bytes32`), digest `0xa86c1ab9…3694` |
+| seal | **260 bytes** = 4-byte selector `0x73c457ba` + 256-byte Groth16 proof |
+| anchor blob | 544 bytes (`abi.encode(seal, journal)`) |
+| on-chain verification | **256,608 gas** (`RiscZeroGroth16Verifier.verify` alone) |
+| on-chain verification + binding | **285,885 gas** (`Risc0ExecutionAdapter.verify`) |
+| on-chain anchor through the registry | **404,917 gas** (live tx, block `69236411`, ≈0.012 USDC at 30 gwei) |
+| deploy | verifier 1,135,268 gas, adapter 470,413 gas, `setProofVerifier` 33,907 gas |
+
+The seal was produced by CI run `40398709972` for the same live call as the UltraHonk claim,
+and the artifacts are committed (`test/fixtures/zk-execution/`). Two independent checks say it
+is real: `test/Risc0Receipt.t.sol` verifies it against the vendored verifier locally, and the
+chain accepted it in `SLAEvidenceRegistry.anchor`. Arc's `0x08` (bn254) precompile therefore
+does execute a pairing check, which the TEE row above could only assert — the failed attempt
+before it (`PRECOMPILES::ecpairing` → `false`) was a wrong image id, not a missing precompile.
+
 ### Whole-layer deployment (done, Arc Testnet)
 
 `script/DeployEvidence.s.sol`, broadcast on 26 Oct 2026:
@@ -75,19 +98,19 @@ renders `No claim anchored for this call` — both branches checked in the dev s
 
 ## 2. Comparison
 
-| | `witness` (`SLAProvenance`) | `tee-attestation` (Nitro) | `zk-constraint` (UltraHonk) |
-|---|---|---|---|
-| what is proven | a key saw these bytes | an image with this PCR0 signed this call's `userData` | the committed hash has a preimage satisfying the predicate, for this call |
-| on-chain verification | signature recovery, no proof | none — off chain, anchored by signature | full pairing check on chain |
-| verification cost | 145,459 gas (live) | ~0 on chain + 1.5 ms off chain | 2,915,938 gas |
-| proof size | 65-byte signature | 1.3–6 KB document | 8,768 bytes |
-| proving cost | negligible | hardware run | 725 ms, 72 MiB |
-| root of trust | the attestor key | AWS root + PCR0 allowlist + hardware | the verifier bytecode |
-| independent operator needed | yes (that is the current weakness) | no (AWS is the third party) | no |
-| tells you the answer is correct | no | no | no |
-| can be produced today in this repo | yes, live | **no** — fixtures only, no AWS account | yes, verified locally and in `forge test` |
-| integration complexity | low | medium (attestation plumbing, nonce/`userData`, PCR allowlist, freshness window) | high (circuit authoring, vk generation, verifier compile workaround, gas) |
-| what breaks it | a provider-colluding attestor | model extraction, side channels, wrong PCR allowlist, stale document | a badly chosen predicate, i.e. the claim itself |
+| | `witness` (`SLAProvenance`) | `tee-attestation` (Nitro) | `zk-constraint` (UltraHonk) | `zk-execution` (RISC Zero) |
+|---|---|---|---|---|
+| what is proven | a key saw these bytes | an image with this PCR0 signed this call's `userData` | the committed hash has a preimage satisfying the predicate, for this call | a guest with this image id ran and committed this call's `requestHash`/`responseHash` |
+| on-chain verification | signature recovery, no proof | none — off chain, anchored by signature | full pairing check on chain | Groth16 pairing check on chain |
+| verification cost | 145,459 gas (live) | ~0 on chain + 1.5 ms off chain | 2,915,938 gas | 256,608 gas (285,885 through the adapter) |
+| proof size | 65-byte signature | 1.3–6 KB document | 8,768 bytes | 260-byte seal + 128-byte journal |
+| proving cost | negligible | hardware run | 725 ms, 72 MiB | 238 s of free CI; not possible in this workspace |
+| root of trust | the attestor key | AWS root + PCR0 allowlist + hardware | the verifier bytecode | the verifier bytecode, vendored at a pinned tag |
+| independent operator needed | yes (that is the current weakness) | no (AWS is the third party) | no | no |
+| tells you the answer is correct | no | no | no | no |
+| can be produced today in this repo | yes, live | **no** — fixtures only, no AWS account | yes, verified locally and in `forge test` | yes, live and anchored |
+| integration complexity | low | medium (attestation plumbing, nonce/`userData`, PCR allowlist, freshness window) | high (circuit authoring, vk generation, verifier compile workaround, gas) | high (guest/host split, x86-only prover, version-pinned toolchain, image id binding) |
+| what breaks it | a provider-colluding attestor | model extraction, side channels, wrong PCR allowlist, stale document | a badly chosen predicate, i.e. the claim itself | a guest whose journal does not describe the answer the provider actually sent |
 
 ### Effort that was actually required per path
 
@@ -100,6 +123,11 @@ renders `No claim anchored for this call` — both branches checked in the dev s
   different reason: the container and the verifier exist, but Phala Cloud refuses to
   provision a CVM on a `$0` balance, so no quote was captured
   (`docs/V8_DEPLOYMENT.md` §12.4).
+- **Execution proof:** ~450 lines (guest, host, adapter, TS verifier, workflow) and one
+  vendored verifier. The risk is the toolchain, not the code: the Groth16 prover is x86-only, so
+  every iteration costs a CI run; `rzup` refuses `linux/aarch64`; and the guest resolves its own
+  dependency graph, so it keeps a committed `Cargo.lock`. The one bug that reached the chain was
+  the image id's byte order (`DESIGN.md` §4.3) — invisible everywhere except as `VerificationFailed`.
 - **ZK:** the circuit is 40 lines of Noir, but the toolchain is the risk. Noir 1.0 has no
   `keccak256` (only the permutation), `bb` requires `-t evm` for both `write_vk` and
   `prove`, and the generated verifier does not compile under `via_ir` until five

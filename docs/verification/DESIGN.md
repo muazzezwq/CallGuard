@@ -180,6 +180,61 @@ solc 0.8.37 → 18,100 bytes deployed, under the 24,576-byte limit. This patch i
 the checked-in `contracts/zk/KeccakClaimVerifier.sol` and must be reapplied whenever the
 verifier is regenerated.
 
+### 4.3 RISC Zero execution proof (`zk-execution`)
+
+The UltraHonk circuit above constrains an *output* — the committed hash has a preimage with a
+chosen prefix. The second ZK path constrains *execution*: a guest program runs inside a zkVM and
+commits a journal, and a Groth16 seal proves that this program, with this image id, produced
+exactly that journal. That is the strongest honest answer to "how was this answer produced"
+that a chain can check by itself, and it needs no key and no enclave.
+
+Guest (`zk-execution/methods/guest/src/main.rs`): reads `(call_id: [u8;32], request: Vec<u8>)`,
+answers `ping` with `pong`, and commits
+
+```
+journal = abi.encode(bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId)
+```
+
+128 bytes, where `requestHash = keccak256(request)`, `responseHash = keccak256(response)` and
+`handlerId = keccak256("callguard.handler.ping/1")`. Journal contents are public in a zkVM:
+privacy is over the input and the execution trace, not the output.
+
+On chain, `contracts/zk/Risc0ExecutionAdapter.sol` takes the registry's
+`(proof, callId, claimHash, responseHash)` and:
+
+1. decodes the blob as `abi.encode(bytes seal, bytes journal)`; a malformed blob returns
+   `false` instead of reverting, because the registry treats a revert as "the verifier broke";
+2. decodes the four journal words and requires `journalCallId == callId`,
+   `journalResponseHash == responseHash`, `journalHandler == handlerId`;
+3. reads the call's `requestHash` from `PayPerCallV8.getCall(callId)` and requires the journal's
+   `requestHash` to equal it — this is what ties a proof to a call rather than to a judgment
+   about the call;
+4. calls `IRiscZeroVerifier.verify(seal, imageId, sha256(journal))`.
+
+`imageId`, `handlerId` and `verifier` are immutable, so swapping the guest program needs a new
+adapter and a new `setProofVerifier`; the registry's `setProofVerifier` is deliberately
+repeatable so that migration is one owner transaction, and the old claims stay readable because
+each is already labelled with the adapter that vouched for it.
+
+`claimHash` is not a circuit input here either. It commits to the envelope (statement,
+assumptions), and the image id is bound by the adapter's immutable field. Neither is a verdict
+about correctness.
+
+The verifier is vendored, not written here: `lib/risc0-ethereum` at `365e7b2` (`v3.0.1`),
+GPL-3.0, with `ControlID` supplying `CONTROL_ROOT` and `BN254_CONTROL_ID`. `IRiscZeroVerifier`
+is `external view` and signals failure by reverting `VerificationFailed`, so the adapter wraps
+it in `try/catch` and any mock in tests must be `view`.
+
+**The image id is eight little-endian words.** `PING_ID` is `[u32; 8]` and `Digest::as_bytes`
+lays each word out little-endian. Formatting the words big-endian produces a plausible-looking
+id that commits to nothing, and the only symptom on chain is `VerificationFailed`, because the
+claim digest the verifier builds is not the one the proof proved. The host therefore formats
+through `Digest::from(PING_ID)` rather than doing byte order by hand, and
+`test/Risc0Receipt.t.sol` pins both directions: the committed seal verifies against
+`0x5fc483d5…` and is rejected against the misread id. The selector in the seal covers the
+control root, the BN254 control id and the verification-key digest, not the caller's image id,
+so a selector match says nothing about whether the image id is right.
+
 ## 5. `SLAEvidenceRegistry` (`contracts/SLAEvidenceRegistry.sol`)
 
 Deployed on Arc Testnet at `0x7d643B2bE50F6E7593c09A0fc26246ca06d862dB`, with
@@ -209,6 +264,7 @@ State: `modeOf[kind]`, `signatureVerifier[kind][address]`, `proofVerifier[kind]`
 | `witness` | a specific key signed this call's payload hash | that the key is independent of the provider |
 | `tee-attestation` | an enclave with this image signed this call's `userData` | that the image is honest, that hardware is side-channel free, that the answer is correct |
 | `zk-constraint` | the committed hash has a preimage satisfying the circuit's predicate | that the predicate is the right one, that the body came from the provider's endpoint, that the answer is correct |
+| `zk-execution` | the guest with the published image id ran and committed this `callId`/`requestHash`/`responseHash`/`handlerId`, verified on chain by a Groth16 seal | that the guest's `ping`/`pong` handler is the code that produced the answer the provider actually sent, that the answer is correct |
 
 The layer's own limitation, repeated because it matters: **neither TEE path is exercised
 against real hardware.** No AWS account exists in this environment, so the Nitro verifier is
@@ -237,3 +293,9 @@ reason it always had: no hardware evidence anchored on chain.
 - `tests/verification/*.test.ts` — 60 tests (envelope, CBOR, Nitro, TDX, dispatcher, fixture reproduction)
 - `test/SLAEvidenceRegistry.t.sol` — 21 tests
 - `test/HonkKeccakClaim.t.sol`, `test/ZkClaimEvidence.t.sol` — 14 tests
+- `contracts/zk/Risc0ExecutionAdapter.sol` — Groth16 receipt → registry surface, 14 tests
+- `zk-execution/` — guest, host prover and methods (`risc0-zkvm 3.0.6`)
+- `test/Risc0Receipt.t.sol` — the committed seal verifies locally, 4 tests
+- `test/fixtures/zk-execution/`, `src/lib/verification/fixtures/zk-execution.json` — the artifacts and the envelope
+- `scripts/zk-execution-proof.ts` — rebuilds the envelope digest and the anchor blob
+- `.github/workflows/zk-execution.yml` — the free Groth16 run (`[prove]`)
