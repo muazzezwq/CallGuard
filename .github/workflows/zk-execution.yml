@@ -62,9 +62,30 @@ jobs:
           r0vm --version
           cargo risczero --version
 
+      # The dependency graph is ~450 crates; rebuilding it on every push is the
+      # difference between a 20-minute run and a 40-minute one.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zk-execution -> target
+
       - name: Build host
         working-directory: zk-execution
-        run: cargo build --release
+        run: |
+          set -o pipefail
+          cargo build --release 2>&1 | tee /tmp/build.log
+
+      # Logs need an authenticated token to read, annotations do not. When the build
+      # fails, publish its tail here so the failure is diagnosable from outside.
+      - name: Report build failure
+        if: failure()
+        run: |
+          if [ -f /tmp/build.log ]; then
+            {
+              echo "::error title=cargo build failed::$(tail -c 7000 /tmp/build.log | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')"
+            }
+            echo "--- last 60 lines ---"
+            tail -60 /tmp/build.log
+          fi
 
       - name: Image id is stable across rebuilds
         id: image
