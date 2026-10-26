@@ -1,0 +1,12 @@
+[package]
+name = "ping"
+version = "0.1.0"
+edition = "2021"
+
+# The guest is its own workspace: it is compiled for the zkVM target, not for the host.
+[workspace]
+
+[dependencies]
+risc0-zkvm = { version = "3.0.3", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+sha3 = { version = "0.10", default-features = false }

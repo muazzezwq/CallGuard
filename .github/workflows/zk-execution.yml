@@ -1,0 +1,121 @@
+name: zk-execution
+
+# Proves that the committed response for the target call is the output of the pinned
+# guest program run on the committed request. Free: public repo, standard runners.
+#
+# `dev` mode is a journal-encoding self-check and produces no artifact on purpose —
+# a dev receipt is not a proof, and publishing one would be worse than publishing none.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dev validates the journal only; groth16 produces a verifiable receipt"
+        type: choice
+        options: [dev, groth16]
+        default: dev
+  push:
+    branches: [main]
+    # Never include test/fixtures: the fixture is this workflow's output.
+    paths:
+      - "zk-execution/**"
+      - ".github/workflows/zk-execution.yml"
+
+concurrency:
+  group: zk-execution-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # One set. r0vm and cargo-risczero must match risc0-zkvm, and risc0-ethereum
+  # v3.0.1 is built for this set; a mismatch surfaces as a selector mismatch at proof time.
+  RISC0_VERSION: "3.0.3"
+  RUST_VERSION: "1.89.0"
+  # abi.encode(callId, requestHash, responseHash, handlerId) for
+  # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
+  EXPECTED_JOURNAL: "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup toolchain install "$RUST_VERSION" --component rustfmt --profile minimal
+
+      - name: Install RISC Zero toolchain (pinned)
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.rzup/bin:$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.rzup/bin:$HOME/.risc0/bin:$PATH"
+          rzup install rust "$RUST_VERSION"
+          rzup install r0vm "$RISC0_VERSION"
+          rzup install cargo-risczero "$RISC0_VERSION"
+          r0vm --version
+          cargo risczero --version
+
+      - name: Build host
+        working-directory: zk-execution
+        run: cargo build --release
+
+      - name: Image id is stable across rebuilds
+        id: image
+        working-directory: zk-execution
+        run: |
+          first=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/first --dev \
+                  | sed -n 's/^imageId=//p')
+          touch methods/guest/src/main.rs
+          second=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/second --dev \
+                  | sed -n 's/^imageId=//p')
+          echo "first=$first"
+          echo "second=$second"
+          if [ -z "$first" ] || [ "$first" != "$second" ]; then
+            echo "image id is not reproducible across rebuilds" >&2
+            exit 1
+          fi
+          echo "image-id=$first" >> "$GITHUB_OUTPUT"
+
+      - name: Journal binds the call (dev mode, no proof)
+        working-directory: zk-execution
+        run: |
+          RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/dev --dev \
+            --assert-journal "$EXPECTED_JOURNAL"
+          grep -q '"devMode": true' /tmp/dev/receipt.json
+
+      - name: Groth16 receipt
+        if: inputs.mode == 'groth16'
+        working-directory: zk-execution
+        run: |
+          start=$(date +%s)
+          cargo run --release -q -- input.json --out out
+          echo "prove-seconds=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+          grep -q '"devMode": false' out/receipt.json
+          test -s out/seal.bin
+          test "$(wc -c < out/journal.bin)" = 128
+
+      - name: Print the artifacts worth checking
+        if: inputs.mode == 'groth16'
+        working-directory: zk-execution
+        run: |
+          echo "prove-seconds=$prove-seconds"
+          cat out/receipt.json
+          sha256sum out/journal.bin out/seal.bin
+
+      - name: Attest build provenance
+        if: inputs.mode == 'groth16'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: zk-execution/out/*
+
+      - name: Upload proof
+        if: inputs.mode == 'groth16'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zk-execution-proof
+          path: zk-execution/out/
+          if-no-files-found: error
+          retention-days: 90
