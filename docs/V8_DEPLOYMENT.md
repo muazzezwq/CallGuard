@@ -565,3 +565,58 @@ real enclave hardware, and this workspace has none.
 Operational notes worth keeping: `bb` needs `-t evm` on both `write_vk` and `prove`, and the
 generated verifier does not compile under `via_ir` until its five `assembly` blocks are
 annotated `("memory-safe")` — `docs/verification/DESIGN.md` §4.2.
+
+## 12. Intel TDX path (B3b on real hardware) — Phala Cloud, in progress
+
+The Nitro path in §11 is exercised against fixtures because this workspace has no AWS
+account. Phala Cloud gives every account one free CVM on Intel TDX, and the TDX verifier
+needs no account of its own to check a quote — so this is the route that puts B3b on real
+hardware at zero cost.
+
+Three pieces:
+
+| Piece | Path | What it does |
+|---|---|---|
+| container | `verification/tdx-app/` | runs in the CVM; `/answer` returns a body plus a TDX quote bound to `callId` and the caller's nonce |
+| verifier | `src/lib/verification/tdx.ts` | quote → Intel root, `report_data` binding, RTMR3 replay, compose-hash allowlist |
+| capture | `scripts/tdx-attest.ts` | fetches `/answer` + `/info`, verifies, prints the claim digest, `--write` stores fixtures |
+
+### 12.1 Why `report_data` is split 32/32
+
+`report_data` is the only 64 bytes in a TDX quote the guest controls. First half:
+`subjectUserData(callId, termsHash, responseHash)` — the same binding the Nitro path uses,
+so evidence cannot be moved between calls. Second half: the caller's nonce, because a TDX
+quote has no timestamp and freshness has to come from somewhere. A verifier that skips the
+nonce is replayable; the script generates a fresh one per run.
+
+### 12.2 The claim this earns
+
+Statement (stored in the envelope, digest anchored on chain):
+
+> The committed response for this call was produced inside an Intel TDX trust domain whose
+> measured compose file is the one listed here, and the quote binds this call and a fresh
+> caller nonce
+
+Assumptions, all named in the envelope: Intel TDX root of trust; Phala's dstack measures the
+compose file into RTMR3 and the compose-hash allowlist is current; the image digest inside
+the compose file is the image whose source was reviewed.
+
+Still not claimed: that the answer is correct.
+
+### 12.3 Runbook
+
+1. Build the container (`.github/workflows/tdx-app.yml`) and pin the printed digest in
+   `verification/tdx-app/docker-compose.yaml`. A tag is not evidence; a digest is.
+2. Deploy the compose file as a CVM on Phala Cloud (dashboard → Advanced, or `phala deploy`).
+3. `bun scripts/tdx-attest.ts --base https://<cvm-host> --call 0x<callId> --write`
+   — this fails loudly if the body does not hash to the committed `responseHash`, if the
+   quote is not TDX, if the TCB is revoked, if the nonce is not echoed, or if the measured
+   compose-hash is not the served one.
+4. Owner signs once: `setSignatureVerifier(keccak256("tee-attestation"), <attestor>, true)`.
+5. Anyone anchors the claim with the attestor signature. One anchor exists per
+   `(callId, kind)`, and `tee-attestation` is a different kind from `witness`, so the TDX
+   claim does not collide with the provenance record already stored for that call.
+
+`B3b` moves to PASS only after step 5 lands on chain and the Verify panel shows the row.
+Until then it stays PARTIAL with the same reason it has had all along: no hardware evidence
+anchored.

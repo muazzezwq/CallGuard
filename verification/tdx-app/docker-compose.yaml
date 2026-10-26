@@ -1,0 +1,18 @@
+# Deploy target for Phala Cloud (Intel TDX CVM).
+#
+# Two rules this file follows, because the compose file is itself measured:
+#   1. The image is pinned by digest, never by tag. `sha256:` below is the digest
+#      CI printed when it built the image from this directory.
+#   2. Nothing else is injected at runtime. Environment variables are part of the
+#      measured configuration, so a secret here would ship inside the attestation.
+#
+# Verify with: bun scripts/tdx-attest.ts --base https://<cvm-host> --call <callId>
+services:
+  app:
+    image: ghcr.io/muazzezwq/callguard-tdx@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    ports:
+      - "8080:8080"
+    volumes:
+      # dstack guest agent: the only way to ask the TD for a quote.
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    restart: unless-stopped

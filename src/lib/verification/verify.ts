@@ -7,6 +7,13 @@ import {
   type EvidenceEnvelope,
 } from "./schema";
 import { checkNitroBinding, verifyNitroDoc, type NitroOptions, type NitroResult } from "./nitro";
+import {
+  checkTdxBinding,
+  verifyTdxQuote,
+  type TdxEvent,
+  type TdxOptions,
+  type TdxResult,
+} from "./tdx";
 
 /**
  * Envelope-level verification: pick the verifier the proof names, run it, and
@@ -32,10 +39,21 @@ export interface VerifyOptions {
   allowedPcr0: string[];
   /** On-chain `SLAProvenance` record, when the caller fetched one. */
   witness?: WitnessRecord;
+  /** TDX verification inputs; required only for an `intel-tdx-quote` proof. */
+  tdx?: {
+    options: TdxOptions;
+    /** The nonce the caller sent to the enclave before it produced the quote. */
+    nonce: Uint8Array;
+    /** `event_log` returned next to the quote, replayed against RTMR3. */
+    events: TdxEvent[];
+    /** The exact `app_compose` string the CVM served at `/info`. */
+    appCompose: string;
+  };
 }
 
 export type EvidenceDetail =
-  | { kind: "tee-attestation"; nitro: NitroResult }
+  | { kind: "tee-attestation"; platform: "nitro"; nitro: NitroResult }
+  | { kind: "tee-attestation"; platform: "tdx"; tdx: TdxResult }
   | { kind: "witness"; record: WitnessRecord };
 
 export interface EvidenceReport {
@@ -53,6 +71,7 @@ export interface EvidenceReport {
 
 const PROOF_TYPES = {
   tee: "aws-nitro-attestation-doc",
+  tdx: "intel-tdx-quote",
   witness: "sla-provenance-record",
 } as const;
 
@@ -92,6 +111,9 @@ export function verifyEvidence(envelope: EvidenceEnvelope, options: VerifyOption
   if (envelope.proof.type === PROOF_TYPES.tee) {
     return verifyTee(envelope, options, base);
   }
+  if (envelope.proof.type === PROOF_TYPES.tdx) {
+    return verifyIntelTdx(envelope, options, base);
+  }
   if (envelope.proof.type === PROOF_TYPES.witness) {
     return verifyWitness(envelope, options, base);
   }
@@ -117,7 +139,7 @@ export function verifyTee(
       ...base,
       ok: false,
       reasons: [`proof payload is unusable: ${(error as Error).message}`],
-      detail: { kind: "tee-attestation", nitro: { ok: false, reasons: [] } },
+      detail: { kind: "tee-attestation", platform: "nitro", nitro: { ok: false, reasons: [] } },
     };
   }
 
@@ -127,7 +149,59 @@ export function verifyTee(
     ...base,
     ok: nitro.ok && binding.ok,
     reasons: [...nitro.reasons, ...binding.reasons],
-    detail: { kind: "tee-attestation", nitro },
+    detail: { kind: "tee-attestation", platform: "nitro", nitro },
+  };
+}
+
+/**
+ * TDX quotes cannot be checked on chain either: the chain is ECDSA over P-256 with
+ * collateral, so the registry anchors an attestor's signature over this result.
+ * The proof type names the platform so a reader knows which root of trust applied.
+ */
+export function verifyIntelTdx(
+  envelope: EvidenceEnvelope,
+  options: VerifyOptions,
+  base: Omit<EvidenceReport, "ok" | "reasons" | "detail">,
+): EvidenceReport {
+  let quote: Uint8Array;
+  try {
+    quote = decodeProofBytes(envelope.proof.payload);
+  } catch (error) {
+    return {
+      ...base,
+      ok: false,
+      reasons: [`proof payload is unusable: ${(error as Error).message}`],
+      detail: { kind: "tee-attestation", platform: "tdx", tdx: { ok: false, reasons: [], platform: "tdx", advisoryIds: [] } },
+    };
+  }
+
+  const inputs = options.tdx;
+  if (!inputs) {
+    return {
+      ...base,
+      ok: false,
+      reasons: [
+        "no TDX verifier inputs: a quote is checked against collateral, a nonce, an event log and an app_compose, and none was supplied",
+      ],
+      detail: { kind: "tee-attestation", platform: "tdx", tdx: { ok: false, reasons: [], platform: "tdx", advisoryIds: [] } },
+    };
+  }
+
+  const hardware = verifyTdxQuote(quote, inputs.options);
+  const bound = checkTdxBinding(
+    hardware,
+    envelope.subject,
+    inputs.nonce,
+    inputs.events,
+    inputs.appCompose,
+    inputs.options,
+  );
+
+  return {
+    ...base,
+    ok: bound.ok,
+    reasons: bound.reasons,
+    detail: { kind: "tee-attestation", platform: "tdx", tdx: bound },
   };
 }
 

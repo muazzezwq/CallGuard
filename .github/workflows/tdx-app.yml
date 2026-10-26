@@ -1,0 +1,63 @@
+name: tdx-app
+
+# Builds the CallGuard TDX answer container and prints the digest the compose file
+# must pin. Without a pinned digest the attestation names an image nobody can check.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "verification/tdx-app/**"
+      - ".github/workflows/tdx-app.yml"
+
+concurrency:
+  group: tdx-app-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/callguard-tdx
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push linux/amd64
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: verification/tdx-app
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          provenance: true
+          sbom: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Print the digest to pin
+        run: |
+          echo "image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "digest: ${{ steps.build.outputs.digest }}"
+          echo "pin this in verification/tdx-app/docker-compose.yaml"

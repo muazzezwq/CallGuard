@@ -93,6 +93,40 @@ So on chain the result is anchored in `Signature` mode by an allowlisted key. Th
 same trust shape as `SLAProvenance`, deliberately: the layer must not pretend a P-384
 signature was checked by the EVM.
 
+## 3.1 Intel TDX path (`src/lib/verification/tdx.ts`)
+
+A second TEE platform behind the same envelope. The claim kind is still
+`tee-attestation`; the proof type says which root of trust applied
+(`aws-nitro-attestation-doc` vs `intel-tdx-quote`), so a reader never has to guess.
+
+TDX differs from Nitro in three ways that shape the code:
+
+- **No timestamp in the quote.** Nitro documents carry `timestamp` and the verifier
+  enforces `maxAgeSec`. A TDX quote carries nothing of the sort, so freshness comes from
+  the caller: it generates a 32-byte nonce, sends it with the request, and refuses a quote
+  whose `report_data` does not echo it. Replay is excluded by the nonce, not by a clock.
+- **64 bytes of `report_data`.** Layout is `subjectUserData(callId, termsHash,
+  responseHash)` (32) followed by the nonce (32). The first half is the same binding the
+  Nitro path puts in `userData`, so a quote for one call cannot be presented for another.
+- **Collateral, not an embedded chain.** Verification needs PCK certificates, TCB info,
+  QE identity and CRLs. `@phala/dcap-qvl` does the crypto (pure JS, Intel production root
+  pinned); this repo never lets the verifier fetch its own evidence — collateral is passed
+  in, so a verification run is reproducible offline from a pinned JSON file.
+
+What the event log adds: `RTMR3` is replayed locally as
+`RTMR3_new = SHA384(RTMR3_old ‖ digest)` from 48 zero bytes, and the `compose-hash` event
+must equal `sha256` of the exact `app_compose` the CVM served **and** match an allowlist the
+caller supplies. That is what turns "a TDX machine signed something" into "this compose
+file, whose image digest I can read, produced this body".
+
+Accepted TCB statuses are `UpToDate` and `SWHardeningNeeded`. A revoked, out-of-date or
+debug TD (`td_attributes` bit 0) is a refusal, reported with the status that caused it.
+
+The chain check is off chain for the same reason as Nitro: TDX quotes are ECDSA over P-256
+with X.509 collateral, and the EVM has no verifier for that chain. The registry therefore
+anchors the attestor's EIP-712 signature over the claim digest — the proof stays off chain
+and is reproducible from `test/fixtures/tdx/`.
+
 ## 4. ZK path
 
 Circuit (`/tmp/opencode/zk/keccakclaim`, source kept out of the repo because it needs
@@ -176,21 +210,25 @@ State: `modeOf[kind]`, `signatureVerifier[kind][address]`, `proofVerifier[kind]`
 | `tee-attestation` | an enclave with this image signed this call's `userData` | that the image is honest, that hardware is side-channel free, that the answer is correct |
 | `zk-constraint` | the committed hash has a preimage satisfying the circuit's predicate | that the predicate is the right one, that the body came from the provider's endpoint, that the answer is correct |
 
-The layer's own limitation, repeated because it matters: **the TEE path is exercised against
-fixtures, not Nitro hardware.** No AWS account exists in this environment, so the verifier
-is tested with a locally generated P-384 chain and a trust root injected by the test. The
-production call would pass the AWS Nitro root and an allowlist of real PCR0 values.
+The layer's own limitation, repeated because it matters: **the Nitro path is still exercised
+against fixtures, not Nitro hardware.** No AWS account exists in this environment, so the
+Nitro verifier is tested with a locally generated P-384 chain and a trust root injected by
+the test. The TDX path is the one that reaches real hardware: it is verified against a quote
+captured from a Phala Cloud CVM, with Intel collateral and an event log replayed locally.
 
 ## 7. Files
 
 - `src/lib/verification/schema.ts` — envelope, validation, digest, `userData`
 - `src/lib/verification/cbor.ts` — strict CBOR codec
 - `src/lib/verification/nitro.ts` — Nitro document verification + call binding
+- `src/lib/verification/tdx.ts` — TDX quote verification, `report_data` binding, RTMR3 replay
 - `src/lib/verification/verify.ts` — dispatcher, report with statement and assumptions
 - `contracts/SLAEvidenceRegistry.sol` — anchoring, both modes
 - `contracts/zk/KeccakClaimVerifier.sol` — bb-generated UltraHonk verifier (patched)
 - `contracts/zk/ZkClaimAdapter.sol` — proof → registry surface
 - `scripts/zk-claim-envelope.ts` — rebuilds the envelope, its digest and the proof blob
-- `tests/verification/*.test.ts` — 57 tests (envelope, CBOR, Nitro, dispatcher, fixture reproduction)
+- `scripts/tdx-attest.ts` — fetches an attested answer from a CVM and verifies it end to end
+- `verification/tdx-app/` — the container that runs inside the CVM (Dockerfile, compose, server)
+- `tests/verification/*.test.ts` — 60 tests (envelope, CBOR, Nitro, TDX, dispatcher, fixture reproduction)
 - `test/SLAEvidenceRegistry.t.sol` — 21 tests
 - `test/HonkKeccakClaim.t.sol`, `test/ZkClaimEvidence.t.sol` — 14 tests

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@circle-fin/modular-wallets-core": "^1.0.16",
+    "@phala/dcap-qvl": "^0.7.0",
     "@react-three/drei": "9.114.3",
     "@react-three/fiber": "8.17.10",
     "@tanstack/react-query": "^5.56.0",
