@@ -6,10 +6,26 @@ name: Keeper
 # discovery + claim pass and exit, so no long-lived host process is needed. GitHub
 # Actions cron is free for public repositories, which is why this replaced the local
 # soak that died with its host session.
+#
+# Cadence, stated honestly. This workflow asks for every 15 minutes, and that is not
+# what GitHub delivers: 8 runs were observed in the 26 hours to 26 Oct 2026 21:00 UTC
+# (01:31, 07:01, 14:18, 20:04 and earlier), i.e. roughly every 3-6 hours, because the
+# scheduler throttles repositories without recent activity. Hence the three triggers:
+#   - the shortest cron requests the intended cadence;
+#   - the second cron is offset, so a throttled tick on one schedule does not remove
+#     the other one (overlapping ticks still collapse into a single run);
+#   - a push to main is real repository activity, which runs the keeper at a known
+#     moment and is what keeps the scheduler unthrottled.
+# A late claim costs the caller time, never funds: `claimTimeout` is permissionless
+# and the Requests panel exposes it, so a caller can settle a stale call without
+# waiting for this workflow.
 
 on:
   schedule:
     - cron: "*/15 * * * *"
+    - cron: "7,37 * * * *"
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:

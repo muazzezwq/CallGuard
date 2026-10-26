@@ -24,3 +24,19 @@ export const V8 = Object.freeze({
 
 export const V8_ACTIVE = Boolean(V8.SERVICE_REGISTRY && V8.PAY_PER_CALL);
 export const ACTIVE = V8_ACTIVE ? V8 : V7;
+
+// The pair above is fixed when this module is evaluated, which is enough on
+// Vercel (a function instance starts with its environment already set). Code
+// that must follow the environment of the current call — a test, or a route
+// whose sibling was evaluated earlier with a different pair — resolves here.
+export function activeContracts(env = process.env) {
+  const isV8 = Boolean(env.SERVICE_REGISTRY_V8 && env.PAY_PER_CALL_V8);
+  return {
+    isV8,
+    registry: isV8 ? env.SERVICE_REGISTRY_V8 : V7.SERVICE_REGISTRY,
+    payPerCall: isV8 ? env.PAY_PER_CALL_V8 : V7.PAY_PER_CALL,
+    usdc: V7.USDC,
+    chainId: V7.CHAIN_ID,
+    network: V7.NETWORK,
+  };
+}

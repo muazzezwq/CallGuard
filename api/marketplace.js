@@ -11,7 +11,9 @@
  *   https://developers.circle.com/agent-stack/agent-marketplace/discovery-api
  */
 
-import { ACTIVE } from "./_contracts.js";
+import { ACTIVE, activeContracts } from "./_contracts.js";
+import { listActiveProviders } from "./_registry.js";
+import { getRpcUrl } from "./_rpc.js";
 
 const {
   PAY_PER_CALL,
@@ -190,60 +192,83 @@ export default async function handler(req, res) {
 // ── Health check ──────────────────────────────────────────────────────────────
 
 async function handleHealth(req, res) {
-  const PING_TIMEOUT_MS = 4000;
+  // Measured: a warm `/api/auto-receipt/health` answers in ~0.45 s, a cold Vercel
+  // function in ~2.45 s. 4 s turned cold starts into false "unreachable" rows.
+  const PING_TIMEOUT_MS = 5000;
+  const MAX_PINGED = 5;
 
-  // Fetch provider list from /api/energy-data (which lists active providers)
-  // and ping each endpoint. We do this best-effort — a ping failure does not
-  // mean the SLA contract is down.
+  // This endpoint reports two different things and must not conflate them:
+  //   - its own liveness, which is the registry read: no registry, no service;
+  //   - each active provider's endpoint, which is that provider's problem and is
+  //     reported per row rather than folded into `status`.
+  // The provider list comes from `ServiceRegistry.getProvider`/`nextProviderId`,
+  // not from a sibling x402 route: `/api/energy-data` answers 402 to an internal
+  // fetch, so reading it here produced an always-empty list.
+  // Resolved per request so the reported address is the one actually read.
+  const active = activeContracts();
   const results = {
     status: "ok",
     timestamp: new Date().toISOString(),
     contracts: {
-      payPerCall:      PAY_PER_CALL      ? "configured" : "missing",
-      serviceRegistry: SERVICE_REG       ? "configured" : "missing",
+      payPerCall:      active.payPerCall ? "configured" : "missing",
+      serviceRegistry: active.registry   ? "configured" : "missing",
     },
+    registry: { address: active.registry || null, activeProviders: 0 },
     providers: [],
+    summary: { active: 0, ok: 0, degraded: 0, unreachable: 0, noEndpoint: 0 },
   };
 
-  // Try to load provider data from the sibling API via same-origin URL.
-  // (Never localhost — that fails on Vercel serverless where each function
-  // is isolated. baseUrl() resolves the public deployment host instead.)
-  try {
-    const energyRes = await Promise.race([
-      fetch(`${baseUrl(req)}/api/energy-data`),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), PING_TIMEOUT_MS)
-      ),
-    ]);
-    if (energyRes.ok) {
-      const data = await energyRes.json();
-      const providers = data?.providers || [];
-
-      // Ping each provider endpoint in parallel.
-      const pings = providers.slice(0, 5).map(async (p) => {
-        if (!p.endpoint) return { id: p.id, status: "no-endpoint" };
-        try {
-          const start = Date.now();
-          const r = await Promise.race([
-            fetch(`${p.endpoint}/health`),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error("timeout")), PING_TIMEOUT_MS)
-            ),
-          ]);
-          return { id: p.id, endpoint: p.endpoint, status: r.ok ? "ok" : "degraded", latencyMs: Date.now() - start };
-        } catch {
-          return { id: p.id, endpoint: p.endpoint, status: "unreachable" };
-        }
-      });
-
-      results.providers = await Promise.all(pings);
-    }
-  } catch {
-    // Provider ping is best-effort.
+  const rpcUrl = getRpcUrl();
+  if (!rpcUrl || !active.registry) {
+    results.status = "degraded";
+    results.registry.error = !rpcUrl ? "RPC URL not configured" : "SERVICE_REGISTRY not configured";
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(results);
   }
 
-  const allOk = results.providers.every((p) => p.status === "ok" || p.status === "no-endpoint");
-  results.status = allOk ? "ok" : "degraded";
+  let providers = [];
+  try {
+    providers = await listActiveProviders(rpcUrl, MAX_PINGED);
+    results.registry.activeProviders = providers.length;
+  } catch (e) {
+    results.status = "degraded";
+    results.registry.error = "registry read failed";
+  }
+
+  const pings = providers.map(async (p) => {
+    const row = {
+      id: p.id,
+      endpoint: p.endpoint || "",
+      pricePerCall: p.pricePerCall,
+      stake: p.stake,
+    };
+    if (!p.endpoint) return { ...row, status: "no-endpoint" };
+
+    const healthUrl = `${p.endpoint.replace(/\/+$/, "")}/health`;
+    try {
+      const start = Date.now();
+      const r = await fetch(healthUrl, {
+        signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+      });
+      return {
+        ...row,
+        status: r.ok ? "ok" : "degraded",
+        httpStatus: r.status,
+        latencyMs: Date.now() - start,
+      };
+    } catch {
+      return { ...row, status: "unreachable" };
+    }
+  });
+
+  results.providers = await Promise.all(pings);
+  results.summary = {
+    active: results.providers.length,
+    ok: results.providers.filter((p) => p.status === "ok").length,
+    degraded: results.providers.filter((p) => p.status === "degraded").length,
+    unreachable: results.providers.filter((p) => p.status === "unreachable").length,
+    noEndpoint: results.providers.filter((p) => p.status === "no-endpoint").length,
+  };
 
   res.setHeader("Content-Type", "application/json");
   return res.status(200).json(results);

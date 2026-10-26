@@ -305,3 +305,24 @@ Conservative choices made without stopping. Format: decision + reason.
 - **B3e — the Groth16 run is requested by `[prove]` in a commit message.** `workflow_dispatch` needs a
   token this environment does not have, and a proof every push would waste CI minutes. Reason: the
   trigger is part of the reviewed diff and survives without credentials.
+- **Marketplace health reads the registry, not the sibling x402 route.** `GET /api/marketplace/health`
+  used to take its provider list from `/api/energy-data`, which is x402-gated: the internal fetch
+  got a 402, `energyRes.ok` was false, and the answer was `providers: []` while the registry held
+  two active providers. It now enumerates `ServiceRegistry.nextProviderId` / `getProvider` and reads
+  each `getEndpoint`, the same reads the sitemap and the provider page use, through one shared module
+  (`api/_registry.js`). Reason: a health endpoint that reports zero providers is worse than none.
+- **`/api/marketplace/health` distinguishes its own liveness from a provider's.** `status` is `ok`
+  when the registry was read and `degraded` when it was not; each provider row carries
+  `ok`/`degraded`/`unreachable`/`no-endpoint` plus a `summary` count. Provider `2` on Arc Testnet
+  advertises the placeholder endpoint `https://your-provider-endpoint.com/api`, so the first version,
+  which folded every provider ping into `status`, would have reported the whole service as degraded
+  forever. Reason: one dead third-party endpoint is that provider's problem, and a monitor must be
+  able to tell the two apart. The ping timeout rose from 4 s to 5 s because a cold Vercel function
+  was measured at 2.45 s against 0.45 s warm, which turned cold starts into false `unreachable` rows.
+- **The keeper cadence is stated as measured, and a push to `main` is a trigger.** GitHub throttled
+  `cron: "*/15 * * * *"` to 8 runs in 26 h (roughly every 3-6 h) on a quiet repository, so the
+  workflow now carries an offset second cron and also runs on every push to `main`, which is real
+  activity and is what the scheduler rewards. Reason: promising 15 minutes in the docs was false, and
+  the free tier offers no way to buy a tighter one. No funds are at risk either way — `claimTimeout`
+  is permissionless and the Requests panel exposes it — so the honest fix is cadence plus a documented
+  fallback, not a paid runner.

@@ -1,74 +1,9 @@
 // /api/provider-page.js — SSR provider profile + sitemap for SEO
-import { ACTIVE, V8_ACTIVE } from './_contracts.js';
+import { activeContracts } from './_contracts.js';
 import { getRpcUrl } from './_rpc.js';
+import { listActiveProviderIds, readProvider } from './_registry.js';
 
-// getProvider(uint256) keeps the same selector on the v7 and v8 registries.
-const SELECTOR_GET_PROVIDER = '0x5c42d079';
-// nextProviderId() exists on v8 only.
-const SELECTOR_NEXT_PROVIDER_ID = '0x51a8dbcf';
 const SITEMAP_LIMIT = 50;
-const ZERO_WORD = '0'.repeat(64);
-
-function encodeUintArg(value) {
-  return Number(value).toString(16).padStart(64, '0');
-}
-
-async function rpcCall(rpcUrl, method, params) {
-  const r = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  });
-  if (!r.ok) throw new Error(`rpc http ${r.status}`);
-  return (await r.json()).result;
-}
-
-function wordAt(raw, index) {
-  return raw.slice(2 + index * 64, 2 + (index + 1) * 64);
-}
-
-function isActiveWord(raw) {
-  // v8 ProviderView puts active at 5, v7 at 6; both are a single bool word.
-  return wordAt(raw, V8_ACTIVE ? 5 : 6) !== ZERO_WORD;
-}
-
-// The sitemap used to be built from the retired Goldsky v7 subgraph, so it
-// listed the wrong marketplace. v8 exposes nextProviderId(), so the list comes
-// straight from the registry that enforces the SLA, with no indexer dependency.
-async function listActiveProviderIds(rpcUrl, limit) {
-  async function readActive(id) {
-    const raw = await rpcCall(rpcUrl, 'eth_call', [
-      { to: ACTIVE.SERVICE_REGISTRY, data: SELECTOR_GET_PROVIDER + encodeUintArg(id) },
-      'latest'
-    ]);
-    return raw && raw !== '0x' ? isActiveWord(raw) : false;
-  }
-
-  const ids = [];
-  if (V8_ACTIVE) {
-    const raw = await rpcCall(rpcUrl, 'eth_call', [
-      { to: ACTIVE.SERVICE_REGISTRY, data: SELECTOR_NEXT_PROVIDER_ID },
-      'latest'
-    ]);
-    const next = Number(BigInt(raw));
-    // Chunked so a long registry does not serialize into one huge round trip.
-    for (let start = 1; start < next; start += 10) {
-      const chunk = [];
-      for (let id = start; id < Math.min(start + 10, next); id += 1) chunk.push(id);
-      const flags = await Promise.all(chunk.map((id) => readActive(id).catch(() => false)));
-      chunk.forEach((id, i) => { if (flags[i]) ids.push(String(id)); });
-      if (ids.length >= limit) break;
-    }
-    return ids.slice(0, limit);
-  }
-  // v7 has no enumerator: ids are dense from 1, so probe up to the limit.
-  for (let id = 1; id <= limit; id += 1) {
-    try {
-      if (await readActive(id)) ids.push(String(id));
-    } catch { /* keep probing */ }
-  }
-  return ids;
-}
 
 async function handleSitemap(req, res, rpcUrl) {
   const base = 'https://arcsla.vercel.app';
@@ -97,7 +32,7 @@ export default async function handler(req, res) {
   if (req.url?.includes('sitemap') || req.query?.sitemap) return handleSitemap(req, res, rpcUrl);
   const id = (req.query.id || '1').toString().replace(/\D/g, '') || '1';
 
-  const registryAddr = ACTIVE.SERVICE_REGISTRY;
+  const { registry: registryAddr } = activeContracts();
 
   if (!rpcUrl) {
     res.status(503).json({ error: 'RPC URL not configured' });
@@ -112,25 +47,14 @@ export default async function handler(req, res) {
   let completedCalls = 0, slashedCalls = 0;
 
   try {
-    const raw = await rpcCall(rpcUrl, 'eth_call', [
-      { to: registryAddr, data: SELECTOR_GET_PROVIDER + encodeUintArg(id) },
-      'latest'
-    ]);
-    if (raw && raw !== '0x') {
-      const stake = BigInt('0x' + wordAt(raw, 2));
-      const price = BigInt('0x' + wordAt(raw, 3));
-      provider.stake = (Number(stake) / 1e6).toFixed(2);
-      provider.price = (Number(price) / 1e6).toFixed(2);
-      provider.active = isActiveWord(raw);
-      if (V8_ACTIVE) {
-        // v8 ProviderView: 0 owner, 1 signer, 2 stake, 3 pricePerCall,
-        // 4 latestTermsVersion, 5 active, 6 pendingCalls, 7 completedCalls,
-        // 8 slashedCalls, 9 maxConcurrentCalls, 10 zkTier. Counters live on the
-        // registry now, so the page no longer depends on an indexer.
-        provider.termsVersion = Number(BigInt('0x' + wordAt(raw, 4)));
-        completedCalls = Number(BigInt('0x' + wordAt(raw, 7)));
-        slashedCalls = Number(BigInt('0x' + wordAt(raw, 8)));
-      }
+    const snapshot = await readProvider(rpcUrl, id);
+    if (snapshot) {
+      provider.stake = (Number(BigInt(snapshot.stake)) / 1e6).toFixed(2);
+      provider.price = (Number(BigInt(snapshot.pricePerCall)) / 1e6).toFixed(2);
+      provider.active = snapshot.active;
+      provider.termsVersion = snapshot.termsVersion ?? 0;
+      completedCalls = snapshot.completedCalls ?? 0;
+      slashedCalls = snapshot.slashedCalls ?? 0;
     }
   } catch (e) { /* fallback */ }
 
