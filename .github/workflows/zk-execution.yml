@@ -74,27 +74,14 @@ jobs:
           set -o pipefail
           cargo build --release 2>&1 | tee /tmp/build.log
 
-      # Logs need an authenticated token to read, annotations do not. When the build
-      # fails, publish its tail here so the failure is diagnosable from outside.
-      - name: Report build failure
-        if: failure()
-        run: |
-          if [ -f /tmp/build.log ]; then
-            {
-              echo "::error title=cargo build failed::$(tail -c 7000 /tmp/build.log | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')"
-            }
-            echo "--- last 60 lines ---"
-            tail -60 /tmp/build.log
-          fi
-
       - name: Image id is stable across rebuilds
         id: image
         working-directory: zk-execution
         run: |
-          first=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/first --dev \
+          first=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/first --dev 2>&1 | tee /tmp/image.log \
                   | sed -n 's/^imageId=//p')
           touch methods/guest/src/main.rs
-          second=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/second --dev \
+          second=$(RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/second --dev 2>&1 | tee -a /tmp/image.log \
                   | sed -n 's/^imageId=//p')
           echo "first=$first"
           echo "second=$second"
@@ -108,7 +95,7 @@ jobs:
         working-directory: zk-execution
         run: |
           RISC0_DEV_MODE=1 cargo run --release -q -- input.json --out /tmp/dev --dev \
-            --assert-journal "$EXPECTED_JOURNAL"
+            --assert-journal "$EXPECTED_JOURNAL" 2>&1 | tee /tmp/journal.log
           grep -q '"devMode": true' /tmp/dev/receipt.json
 
       - name: Groth16 receipt
@@ -135,6 +122,21 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: zk-execution/out/*
+
+      # Logs need an authenticated token to read; annotations do not. When anything
+      # fails, publish the captured tails here so the failure is diagnosable from
+      # outside without repo write access.
+      - name: Report failure
+        if: failure()
+        run: |
+          tail -c 6000 /tmp/build.log /tmp/image.log /tmp/journal.log 2>/dev/null > /tmp/all.log || true
+          if [ -s /tmp/all.log ]; then
+            escaped=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' /tmp/all.log | tail -c 12000)
+            echo "::error title=zk-execution failed at ${{ github.job }}::$escaped"
+            tail -40 /tmp/all.log
+          else
+            echo "::error title=zk-execution failed::no captured log; see the failing step"
+          fi
 
       - name: Upload proof
         if: inputs.mode == 'groth16'

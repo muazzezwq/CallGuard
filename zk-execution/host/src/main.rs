@@ -132,7 +132,9 @@ fn main() -> Result<()> {
 
     let image_id = image_id_hex();
     let journal = receipt.journal.bytes.clone();
-    let seal = encode_seal(&receipt)?;
+    // A dev-mode receipt is `InnerReceipt::Fake`, which has no seal to encode. Writing an
+    // empty seal is the honest artifact: the journal is real, the proof does not exist.
+    let seal = if dev { Vec::new() } else { encode_seal(&receipt)? };
     let journal_hex = format!("0x{}", hex::encode(&journal));
     let journal_digest = format!("0x{}", hex::encode(Sha256::digest(&journal)));
 
