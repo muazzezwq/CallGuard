@@ -10,6 +10,7 @@ import { buildPayloadEvidence, checkPayloadAgainstCommitment, type PayloadCheck 
 import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation } from "../../lib/paymentGate";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
+import zkExecutionFixture from "../../lib/verification/fixtures/zk-execution.json";
 
 
 
@@ -58,6 +59,9 @@ function formatAmount(value: unknown): string | undefined {
 /** The three claim kinds the verification layer can record. Each label names the
  *  claim instead of saying "verified", because the tiers prove different things. */
 const EVIDENCE_KINDS = [
+  // The one proof this repository can point at a committed artifact for: a RISC Zero
+  // receipt about the call's execution, verified on chain by `Risc0ExecutionAdapter`.
+  { label: "ZK execution proof", kind: keccak256(toBytes("zk-execution")) },
   { label: "ZK output constraint", kind: keccak256(toBytes("zk-constraint")) },
   { label: "TEE execution image", kind: keccak256(toBytes("tee-attestation")) },
   { label: "Witness observation", kind: keccak256(toBytes("witness")) },
@@ -865,6 +869,43 @@ export default function Verify() {
                     </div>
                   ))}
                 </div>
+                {record.label === "ZK execution proof" && (() => {
+                  // The anchor says a verifier accepted a proof; the panel can only say
+                  // *which* proof. It prints the committed artifact when the anchor is about
+                  // that artifact, and says so plainly when it is not — an anchor is real
+                  // whether or not this repository holds the receipt it was made from.
+                  const published =
+                    record.claimHash.toLowerCase() === zkExecutionFixture.claimHash.toLowerCase() &&
+                    record.responseHash.toLowerCase() === zkExecutionFixture.responseHash.toLowerCase();
+                  return published ? (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+                      <div style={{ display: "grid", gap: 4 }}>
+                        {[
+                          ["Guest image id", `${zkExecutionFixture.imageId.slice(0, 18)}…${zkExecutionFixture.imageId.slice(-8)}`],
+                          ["Journal callId", `${zkExecutionFixture.callId.slice(0, 18)}…${zkExecutionFixture.callId.slice(-8)}`],
+                          ["Journal requestHash", `${zkExecutionFixture.journal.slice(2 + 64, 2 + 128).slice(0, 16)}…`],
+                          ["Journal responseHash", `${zkExecutionFixture.responseHash.slice(0, 18)}…${zkExecutionFixture.responseHash.slice(-8)}`],
+                          ["Journal handlerId", `${zkExecutionFixture.handlerId.slice(0, 18)}…${zkExecutionFixture.handlerId.slice(-8)}`],
+                          ["Seal", `${zkExecutionFixture.sealBytes} bytes, journal digest ${zkExecutionFixture.journalDigest.slice(0, 12)}…`],
+                        ].map(([k, v]) => (
+                          <div key={k} style={s.row}>
+                            <span style={s.rowLabel}>{k}</span>
+                            <span style={s.rowVal}>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.5 }}>
+                        {zkExecutionFixture.statement}. Not a claim that the response is a correct answer —
+                        that is what the assumptions name: {zkExecutionFixture.assumptions.join("; ")}.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                      This row is a zk-execution claim, but it is not the proof published in this
+                      repository; the anchor is real, the artifact is elsewhere.
+                    </div>
+                  );
+                })()}
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
                   <span style={{ fontSize: 11, color: matches ? "rgb(25,209,134)" : "rgb(238,69,57)" }}>
                     {!committedHash
