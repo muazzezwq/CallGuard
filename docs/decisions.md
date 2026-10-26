@@ -326,3 +326,9 @@ Conservative choices made without stopping. Format: decision + reason.
   the free tier offers no way to buy a tighter one. No funds are at risk either way — `claimTimeout`
   is permissionless and the Requests panel exposes it — so the honest fix is cadence plus a documented
   fallback, not a paid runner.
+- **`DisputeV2` is retired as a slasher once its last dispute is settled.** `DisputeV3` slashes inside
+  `openDispute` and escrows the money, so leaving the old contract authorised meant two contracts
+  could slash the same stake. `finalize(1)` paid out on 26 Oct (`0xa09b50b2…`) and
+  `registry.revokeSlasher(DisputeV2)` followed (`0xc0d3f541…`), leaving
+  `authorizedSlashers(DisputeV3) = true`. Reason: an unused authority is still authority, and the
+  registry's slasher list is the only place that grants it.

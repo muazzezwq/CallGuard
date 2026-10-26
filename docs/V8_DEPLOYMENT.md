@@ -342,6 +342,14 @@ Vercel production received `VITE_DISPUTE_V3` and `DISPUTE_V3`. `DisputeV2`
 (`0xe5D993E0…0900`) stays deployed: dispute #1 is resolved `Upheld` and its
 `finalize` on 26 Oct 2026 18:58:38 UTC still pays out from that contract.
 
+Update, 26 Oct 2026 21:53 UTC: that payout happened (`finalize(1)` tx `0xa09b50b2…`, block
+`69223802`, `settled = true`, `heldSlash = 0`), `DisputeV3` finalized both of its disputes
+(tx `0x7fe6d6fa…` block `69230325` returning `0.576512` USDC, and tx `0xdc1e6ff9…` block
+`69238954` returning `0.41472` USDC, gas `85,048`), and `registry.revokeSlasher(DisputeV2)`
+(tx `0xc0d3f541…`, block `69238925`, gas `27,592`) retired the V2 authority:
+`authorizedSlashers(DisputeV2)` is now `false`, `authorizedSlashers(DisputeV3)` is `true`.
+A replay of either finalize reverts `AlreadySettled()` (`0x560ff900`).
+
 ## 9. SLAUptime (A8 availability enforcement) — ready to deploy
 
 The registry publishes `availabilityTargetBps` but never enforced it. `SLAUptime`

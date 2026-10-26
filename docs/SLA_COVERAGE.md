@@ -43,7 +43,7 @@ Status vocabulary:
 | B4 | Only the call's caller, only a `Completed` call, only inside `disputeWindow`, only once, and only with the right `providerId` can open a dispute | `DisputeV2.openDispute`, `test/DisputeV2.t.sol` (7 rejection tests) | prod: dispute #1 on `0x8828799a…c9ddfe` | PASS |
 | B5 | The arbiter resolves `Upheld` (stake held, bond returned) or `Rejected` (bond to treasury) | `resolve`, `test_resolve_upheld_returnsBondAndHoldsSlash`, `test_resolve_rejected_sendsBondToTreasury` | prod: `resolve(1, true)` → `heldSlash 0.64`, bond returned | PASS |
 | B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
-| B7 | After `appealWindow`, `finalize` pays the held slash to the caller and marks the dispute settled | `finalize`, `test_finalize_releasesHeldSlashToCaller` | dispute #1 unlocks 26 Oct 2026 18:58:38 UTC | PARTIAL |
+| B7 | After `appealWindow`, `finalize` pays the held slash to the caller and marks the dispute settled | `finalize`, `test_finalize_releasesHeldSlashToCaller` | all three open disputes were finalized on chain: `DisputeV2` #1 tx `0xa09b50b2…` (26 Oct `18:59:36`, `settled = true`, `heldSlash 0`), `DisputeV3` #1 tx `0x7fe6d6fa…` block `69230325` (26 Oct `20:14:41`, `0.576512` USDC returned, `heldSlash 0`), `DisputeV3` #2 tx `0xdc1e6ff9…` block `69238954` (26 Oct `21:53:50`, gas `85,048`, `0.41472` USDC returned to the owner wallet, `heldSlash 0`). A replay of either `finalize` now reverts `AlreadySettled()` (`0x560ff900`), which is what the `PARTIAL` above was waiting to see. The retired `DisputeV2` slasher authority was then removed: `ServiceRegistryV8.revokeSlasher(0xe5D993E0…0900)` tx `0xc0d3f541…` block `69238925`, gas `27,592`, `SlasherRevoked` → `authorizedSlashers(DisputeV2) = false` | **PASS** — the escrow pays out after the window and only after it |
 | B8 | If the arbiter never resolves, the caller reclaims the bond after `resolutionWindow` | `reclaimExpiredBond`, 2 tests | clock started: dispute #4 on call `0xb773c233…` (`openDispute` tx `0x6f94d2a6…cac8`, block `69067859`), status `Pending`, `SlashHeld(4, 3481864)`, bond `2.0`, `heldSlash(4) = 3481864`, `settled(4) = false`. `reclaimExpiredBond(4)` opens at `2026-11-01 17:42:05 UTC` (`openedAt + 604800`); it must stay unresolved until then | PARTIAL — waiting on the 7-day window |
 
 ## C — Financial
@@ -146,17 +146,17 @@ slashes, so the incentive still points at serving.
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
 | A — Availability | 8 | 0 | 0 |
-| B — Quality | 8 | 3 | 0 |
+| B — Quality | 10 | 2 | 0 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **24** | **3** | **0** |
+| **Total** | **26** | **2** | **0** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
 C8 and A8 are both proven on chain: disputes #1 and #2 escrowed their slashes at
 open on `DisputeV3`, and the first `SLAUptime` claim took `5.373248 USDC` from
 provider 1 for missing its published 99.5 % target. The remaining gaps are proof
-gaps, not mechanism gaps: B7/B8 (finalize and `reclaimExpiredBond` are waiting on
-their windows, not on code). B3 split in two: `B3a` (the delivered body matches the
+gaps, not mechanism gaps: `B7` is done (all three disputes finalized on chain and the V2 slasher
+authority revoked), and `B8` is the one left, waiting on its 7-day window rather than on code. B3 split in two: `B3a` (the delivered body matches the
 committed hash) is PASS through `src/lib/responseProof.ts` and the Verify panel, and
 `B3b` moved from GAP to PARTIAL because `SLAProvenance` now records an allowlisted
 attestor's observation on chain — the mechanism exists, but the witness is a key this
@@ -187,17 +187,13 @@ this" and "this program ran" are different claims, and only the second one is no
    costs nothing to run; what it proves is still `ping`/`pong`. The next honest step is a guest
    whose journal commits a fact the caller cares about (e.g. a response body typed against a
    declared schema), so the claim covers more than "this program ran".
-1. **B7 — `finalize` both open disputes** — #1 unlocks 26 Oct 20:13:05 UTC and #2
-   unlocks 26 Oct 21:52:02 UTC; each pays its held slash to the caller and marks
-   the dispute settled. Then the old V2 dispute (26 Oct 18:58:38 UTC) can be
-   finalized and `revokeSlasher(0xe5D993E0…0900)` run, which retires V2.
-2. **B8 — run `reclaimExpiredBond(4)` on 1 Nov 17:42:05 UTC** — dispute #4 is
+1. **B8 — run `reclaimExpiredBond(4)` on 1 Nov 17:42:05 UTC** — dispute #4 is
    `Pending` with `3.481864` escrowed and the arbiter must not touch it. The
    reclaim returns the `2.0` bond to the caller and the escrow to the provider, so
    silence from the arbiter costs nobody. Nobody may `resolve` it before then.
-3. **A4 — keep the Actions cron green** — done as a mechanism (run `40221690767`
-   claimed two timeouts, one of them never touched by hand). What is worth watching
-   now is only reliability: GitHub delays `*/15` schedules by minutes to tens of
-   minutes, so a call can stay `Pending` longer than a 60 s poll would allow. If that
-   matters, drop to a self-hosted runner or add a second trigger. The earlier keeper
+2. **A4 — keeper cadence** — measured, not assumed: 8 runs in 26 h (roughly every
+   3-6 h) against a `*/15` request, so the workflow now also runs on every push to
+   `main` and carries an offset second cron (commit `56d48da`). A call can still sit
+   `Pending` for hours when the repository is quiet; only a paid runner or an external
+   scheduler would tighten that, and neither is free. The earlier keeper
    `0xd7B4C2B1…7d59` still holds `20 USDC` whose key is not in this workspace.

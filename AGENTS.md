@@ -132,8 +132,13 @@ Also superseded: AgentWallet `0xf73f2Fc5…` (1 Oct).
 
 Registry admin, arbiter, appeal arbiter, and treasury are all the owner wallet
 `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`. On-chain wiring is verified:
-`registry.payPerCall()` is `PayPerCallV8`, `registry.authorizedSlashers(DisputeV2)` is true,
-and `SLAKeeper.payPerCall()` is `PayPerCallV8`.
+`registry.payPerCall()` is `PayPerCallV8`, and `SLAKeeper.payPerCall()` is `PayPerCallV8`.
+
+**`DisputeV2` no longer holds slasher authority.** Its last dispute was finalized on 26 Oct 2026
+18:59:36 UTC (tx `0xa09b50b2…`), and `registry.revokeSlasher(DisputeV2)` followed at 21:53 UTC
+(tx `0xc0d3f541…`, block `69238925`), so `registry.authorizedSlashers(DisputeV2)` is now `false`
+while `authorizedSlashers(DisputeV3)` stays `true`. The contract remains deployed and readable;
+do not route new disputes to it.
 
 The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
 `ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
