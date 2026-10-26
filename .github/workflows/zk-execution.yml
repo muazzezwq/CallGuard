@@ -35,9 +35,12 @@ env:
   RISC0_RUST_VERSION: "1.88.0"
   # abi.encode(callId, requestHash, responseHash, handlerId) for
   # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
-  # Set once the first real run prints it; a drift then fails the job instead of
-  # producing a proof no deployed adapter accepts. Empty means "not pinned yet".
-  EXPECTED_IMAGE_ID: ""
+  # Pinned from the first reproducible build. A drift fails the job instead of
+  # producing a proof the deployed adapter would reject.
+  EXPECTED_IMAGE_ID: "0xd583c45f7aebc58b3dff50a65dde38f1f3975d43f7062c9ec4407b4efab90485"
+  # Dispatching this workflow needs a token, so a Groth16 run can also be requested
+  # by putting `[prove]` in the commit message of a push that touches this workflow.
+  PROVE_REQUESTED: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[prove]')) || inputs.mode == 'groth16' }}
   EXPECTED_JOURNAL: "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
 
 jobs:
@@ -110,7 +113,7 @@ jobs:
           grep -q '"devMode": true' /tmp/dev/receipt.json
 
       - name: Groth16 receipt
-        if: inputs.mode == 'groth16'
+        if: env.PROVE_REQUESTED == 'true'
         working-directory: zk-execution
         run: |
           start=$(date +%s)
@@ -121,7 +124,7 @@ jobs:
           test "$(wc -c < out/journal.bin)" = 128
 
       - name: Print the artifacts worth checking
-        if: inputs.mode == 'groth16'
+        if: env.PROVE_REQUESTED == 'true'
         working-directory: zk-execution
         run: |
           echo "prove-seconds=$PROVE_SECONDS"
@@ -129,7 +132,7 @@ jobs:
           sha256sum out/journal.bin out/seal.bin
 
       - name: Attest build provenance
-        if: inputs.mode == 'groth16'
+        if: env.PROVE_REQUESTED == 'true'
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: zk-execution/out/*
@@ -162,7 +165,7 @@ jobs:
           fi
 
       - name: Upload proof
-        if: inputs.mode == 'groth16'
+        if: env.PROVE_REQUESTED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: zk-execution-proof
