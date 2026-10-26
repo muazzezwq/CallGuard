@@ -566,12 +566,13 @@ Operational notes worth keeping: `bb` needs `-t evm` on both `write_vk` and `pro
 generated verifier does not compile under `via_ir` until its five `assembly` blocks are
 annotated `("memory-safe")` — `docs/verification/DESIGN.md` §4.2.
 
-## 12. Intel TDX path (B3b on real hardware) — Phala Cloud, in progress
+## 12. Intel TDX path (B3b on real hardware) — Phala Cloud, attempted and stopped
 
 The Nitro path in §11 is exercised against fixtures because this workspace has no AWS
-account. Phala Cloud gives every account one free CVM on Intel TDX, and the TDX verifier
-needs no account of its own to check a quote — so this is the route that puts B3b on real
-hardware at zero cost.
+account. Phala Cloud was picked as the second attempt because a TDX verifier needs no
+account of its own to check a quote, so the only thing to obtain was one CVM-hour. The CVM
+was never obtained: provisioning is refused on a zero balance (§12.4). The code and the
+image remain, and steps 1–5 below are still the runbook once a balance exists.
 
 Three pieces:
 
@@ -620,3 +621,35 @@ Still not claimed: that the answer is correct.
 `B3b` moves to PASS only after step 5 lands on chain and the Verify panel shows the row.
 Until then it stays PARTIAL with the same reason it has had all along: no hardware evidence
 anchored.
+
+### 12.4 Where this stopped (26 Oct 2026)
+
+Step 1 is done: the image built on CI (`run 40363049500`, `linux/amd64`, index digest
+`sha256:11ee891a8955e7815a41a0f22304e9e528351f27065fdffb92141c74bbea6b23`), provenance
+attested, and pullable anonymously from `ghcr.io/muazzezwq/callguard-tdx`. The digest is
+**not** pinned in the committed compose file, because step 2 never ran and a digest that no
+CVM was started from would look like deployment evidence it is not.
+
+Step 2 is refused:
+
+```
+phala deploy -n callguard-tdx -c verification/tdx-app/docker-compose.yaml -t tdx.small
+Error [ERR-04-001]: Balance $0.00 is below minimum $0.00
+POST https://cloud-api.phala.com/api/v1/cvms/provision → 400
+```
+
+Two TDX nodes are online and visible to the account (`prod5`, `prod9`, US-WEST-1), so the
+platform is reachable; the gate is billing, not capacity. Provisioning needs a non-zero
+balance and no payment method was added, so the work stopped here by decision. Nothing was
+deployed, nothing was charged, and no owner transaction was signed.
+
+Consequence, stated plainly: the TDX verifier is exercised against synthetic quotes only.
+The real-quote regression suite still skips, `test/fixtures/tdx/` is empty, and no
+`tee-attestation` claim is anchored. Resuming needs one thing — a funded balance — after
+which §12.3 steps 1–5 run unchanged.
+
+
+The billing gate also falsifies an assumption this section opened with: Phala Cloud does not
+hand out a free CVM on signup. An account with no payment method has a `$0.00` balance, and
+`POST /cvms/provision` answers `ERR-04-001` before any node is chosen. Two TDX nodes were
+online and available to the account at the time, so this is money, not capacity.

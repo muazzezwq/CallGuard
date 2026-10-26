@@ -162,9 +162,9 @@ panel's "Anchored evidence" card. Design: `docs/verification/DESIGN.md`; measure
 TEE-vs-zk comparison: `docs/verification/REPORT.md`; runbook: `docs/V8_DEPLOYMENT.md` §11.
 
 Three claim kinds, and none of them is "the answer is correct": `witness` (a key saw the
-bytes), `tee-attestation` (an allowlisted image signed `userData`/`report_data` — the Nitro
-path is fixtures only, the Intel TDX path targets real Phala Cloud hardware, so B3b stays
-PARTIAL until a TDX quote is anchored), `zk-constraint` (the committed hash has a private
+bytes), `tee-attestation` (an allowlisted image signed `userData`/`report_data` — both the
+Nitro and the Intel TDX verifier run against synthetic evidence only, no enclave hardware
+was reached, so B3b stays PARTIAL), `zk-constraint` (the committed hash has a private
 preimage satisfying a stated predicate). The envelope schema rejects a claim with no
 statement or no assumption.
 
@@ -172,8 +172,10 @@ TDX path: `src/lib/verification/tdx.ts` (quote → Intel root via `@phala/dcap-q
 32/32 `report_data` split `subjectUserData ‖ nonce`, RTMR3 replay, compose-hash allowlist),
 container in `verification/tdx-app/`, capture + verify in `scripts/tdx-attest.ts`
 (`--base <cvm> --call <callId> --write` stores `test/fixtures/tdx/`). Runbook:
-`docs/V8_DEPLOYMENT.md` §12. A TDX quote has no timestamp, so freshness is the caller's
-nonce, never a clock.
+`docs/V8_DEPLOYMENT.md` §12; **§12.4 records why it stopped**: the image is built and its
+digest known, but Phala Cloud refuses to provision on a `$0` balance (`ERR-04-001`), so no
+quote was ever captured and `test/fixtures/tdx/` is empty. A TDX quote has no timestamp, so
+freshness is the caller's nonce, never a clock.
 
 Verifier gotchas: `bb` needs `-t evm` for both `write_vk` and `prove`, and the generated
 Solidity verifier only compiles under `via_ir` after its five `assembly` blocks are

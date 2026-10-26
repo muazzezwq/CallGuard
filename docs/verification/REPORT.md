@@ -96,6 +96,10 @@ renders `No claim anchored for this call` — both branches checked in the dev s
   hard part is not the code; it is the operational chain — enclave image build, PCR0
   measurement, KMS-attested signing key, real Nitro hardware. Attempting it without hardware
   would have produced a badge, not evidence, which is why it is labelled `PARTIAL`.
+  A second platform (Intel TDX) was built the same way and stopped at the same wall for a
+  different reason: the container and the verifier exist, but Phala Cloud refuses to
+  provision a CVM on a `$0` balance, so no quote was captured
+  (`docs/V8_DEPLOYMENT.md` §12.4).
 - **ZK:** the circuit is 40 lines of Noir, but the toolchain is the risk. Noir 1.0 has no
   `keccak256` (only the permutation), `bb` requires `-t evm` for both `write_vk` and
   `prove`, and the generated verifier does not compile under `via_ir` until five

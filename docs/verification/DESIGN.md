@@ -210,11 +210,16 @@ State: `modeOf[kind]`, `signatureVerifier[kind][address]`, `proofVerifier[kind]`
 | `tee-attestation` | an enclave with this image signed this call's `userData` | that the image is honest, that hardware is side-channel free, that the answer is correct |
 | `zk-constraint` | the committed hash has a preimage satisfying the circuit's predicate | that the predicate is the right one, that the body came from the provider's endpoint, that the answer is correct |
 
-The layer's own limitation, repeated because it matters: **the Nitro path is still exercised
-against fixtures, not Nitro hardware.** No AWS account exists in this environment, so the
-Nitro verifier is tested with a locally generated P-384 chain and a trust root injected by
-the test. The TDX path is the one that reaches real hardware: it is verified against a quote
-captured from a Phala Cloud CVM, with Intel collateral and an event log replayed locally.
+The layer's own limitation, repeated because it matters: **neither TEE path is exercised
+against real hardware.** No AWS account exists in this environment, so the Nitro verifier is
+tested with a locally generated P-384 chain and a trust root injected by the test. The TDX
+verifier is tested the same way — synthetic quotes for the refusal and binding cases, and a
+real-quote suite (`tests/verification/tdx-fixture.test.ts`) that skips while
+`test/fixtures/tdx/` is empty. The path to hardware exists and is one deploy away: the
+container is built, the verifier runs, and a Phala Cloud CVM would supply the quote. It was
+not reached, because provisioning is refused on a zero account balance
+(`ERR-04-001: Balance $0.00`) and no payment method was added. So B3b stays PARTIAL for the
+reason it always had: no hardware evidence anchored on chain.
 
 ## 7. Files
 
