@@ -134,8 +134,8 @@ fn main() -> Result<()> {
     receipt.verify(PING_ID)?;
     if !dev {
         receipt
-            .verify_integrity()
-            .context("the seal does not attest to the receipt's own claim")?;
+            .verify_integrity_with_context(&ctx)
+            .map_err(|e| anyhow::anyhow!("the seal does not attest to the receipt's own claim: {e:?}"))?;
     }
 
     let image_id = image_id_hex();
