@@ -72,7 +72,8 @@ jobs:
           workspaces: zk-execution -> target
           # A failed run still warms the cache; without this every failure costs
           # another full 450-crate build before the next diagnosis.
-          save-if: ${{ !cancelled() }}
+          # `cancelled()` is only valid in `if:` — a `with:` value gets plain expressions.
+          save-if: ${{ github.event_name != 'pull_request' }}
 
       - name: Build host
         working-directory: zk-execution
