@@ -36,3 +36,7 @@ skills-lock.json
 # v8 subgraph generated output (regenerate with npm run codegen:v8 / build:v8)
 subgraph/v8/generated/
 subgraph/v8/build/
+
+# zk-execution: cargo output (the guest is built by risc0-build into the host target dir)
+zk-execution/target/
+zk-execution/methods/guest/target/
