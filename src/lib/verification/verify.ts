@@ -14,6 +14,7 @@ import {
   type TdxOptions,
   type TdxResult,
 } from "./tdx";
+import { checkRisc0Binding, decodeJournal, type Risc0Journal } from "./risc0";
 
 /**
  * Envelope-level verification: pick the verifier the proof names, run it, and
@@ -39,6 +40,8 @@ export interface VerifyOptions {
   allowedPcr0: string[];
   /** On-chain `SLAProvenance` record, when the caller fetched one. */
   witness?: WitnessRecord;
+  /** The guest whose id the journal must name; required only for a RISC Zero receipt. */
+  risc0?: { handlerId: string };
   /** TDX verification inputs; required only for an `intel-tdx-quote` proof. */
   tdx?: {
     options: TdxOptions;
@@ -54,7 +57,8 @@ export interface VerifyOptions {
 export type EvidenceDetail =
   | { kind: "tee-attestation"; platform: "nitro"; nitro: NitroResult }
   | { kind: "tee-attestation"; platform: "tdx"; tdx: TdxResult }
-  | { kind: "witness"; record: WitnessRecord };
+  | { kind: "witness"; record: WitnessRecord }
+  | { kind: "zk-execution"; journal: Risc0Journal };
 
 export interface EvidenceReport {
   ok: boolean;
@@ -73,6 +77,7 @@ const PROOF_TYPES = {
   tee: "aws-nitro-attestation-doc",
   tdx: "intel-tdx-quote",
   witness: "sla-provenance-record",
+  risc0: "risc0-groth16-receipt",
 } as const;
 
 export function encodeProofBytes(bytes: Uint8Array): string {
@@ -116,6 +121,9 @@ export function verifyEvidence(envelope: EvidenceEnvelope, options: VerifyOption
   }
   if (envelope.proof.type === PROOF_TYPES.witness) {
     return verifyWitness(envelope, options, base);
+  }
+  if (envelope.proof.type === PROOF_TYPES.risc0) {
+    return verifyRisc0(envelope, options, base);
   }
 
   return {
@@ -202,6 +210,67 @@ export function verifyIntelTdx(
     ok: bound.ok,
     reasons: bound.reasons,
     detail: { kind: "tee-attestation", platform: "tdx", tdx: bound },
+  };
+}
+
+/**
+ * A RISC Zero receipt is discharged on chain, by `Risc0ExecutionAdapter` calling the
+ * Groth16 verifier. This function therefore cannot say "the seal is valid" — it says
+ * whether the journal the proof commits to is about this call, this response and the
+ * published guest, and leaves the seal to the registry's anchor. Presenting it as a
+ * local verification would be a claim the browser cannot make.
+ */
+export function verifyRisc0(
+  envelope: EvidenceEnvelope,
+  options: VerifyOptions,
+  base: Omit<EvidenceReport, "ok" | "reasons" | "detail">,
+): EvidenceReport {
+  const emptyJournal: Risc0Journal = {
+    callId: `0x${"0".repeat(64)}`,
+    requestHash: `0x${"0".repeat(64)}`,
+    responseHash: `0x${"0".repeat(64)}`,
+    handlerId: `0x${"0".repeat(64)}`,
+  };
+
+  const fail = (reason: string): EvidenceReport => ({
+    ...base,
+    ok: false,
+    reasons: [reason],
+    detail: { kind: "zk-execution", journal: emptyJournal },
+  });
+
+  let bytes: Uint8Array;
+  try {
+    bytes = decodeProofBytes(envelope.proof.payload);
+  } catch (error) {
+    return fail(`proof payload is unusable: ${(error as Error).message}`);
+  }
+
+  let journal: Risc0Journal;
+  try {
+    journal = decodeJournal(`0x${Buffer.from(bytes).toString("hex")}`);
+  } catch (error) {
+    return fail((error as Error).message);
+  }
+
+  const expected = options.risc0;
+  if (!expected) {
+    return {
+      ...base,
+      ok: false,
+      reasons: [
+        "no handler id supplied: the journal names a guest, and without the published id there is nothing to compare it with",
+      ],
+      detail: { kind: "zk-execution", journal },
+    };
+  }
+
+  const binding = checkRisc0Binding(journal, envelope.subject, expected);
+  return {
+    ...base,
+    ok: binding.ok,
+    reasons: binding.reasons,
+    detail: { kind: "zk-execution", journal },
   };
 }
 

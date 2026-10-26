@@ -11,8 +11,8 @@ import { encodePacked, keccak256 } from "viem";
 
 export const CG_CLAIM_VERSION = "cg-claim/1";
 
-/** The three claim shapes CallGuard can actually check today. */
-export type ClaimKind = "witness" | "tee-attestation" | "zk-constraint";
+/** The claim shapes CallGuard can actually check today. */
+export type ClaimKind = "witness" | "tee-attestation" | "zk-constraint" | "zk-execution";
 
 /** What the evidence is about. Every field also exists on chain for the call. */
 export interface ClaimSubject {
@@ -47,7 +47,7 @@ export interface ValidationResult {
 }
 
 const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
-const KINDS: ClaimKind[] = ["witness", "tee-attestation", "zk-constraint"];
+const KINDS: ClaimKind[] = ["witness", "tee-attestation", "zk-constraint", "zk-execution"];
 
 function isHash(value: unknown): value is `0x${string}` {
   return typeof value === "string" && HASH_RE.test(value);
