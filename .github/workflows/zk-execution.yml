@@ -35,6 +35,9 @@ env:
   RISC0_RUST_VERSION: "1.88.0"
   # abi.encode(callId, requestHash, responseHash, handlerId) for
   # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
+  # Set once the first real run prints it; a drift then fails the job instead of
+  # producing a proof no deployed adapter accepts. Empty means "not pinned yet".
+  EXPECTED_IMAGE_ID: ""
   EXPECTED_JOURNAL: "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
 
 jobs:
@@ -67,6 +70,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: zk-execution -> target
+          # A failed run still warms the cache; without this every failure costs
+          # another full 450-crate build before the next diagnosis.
+          save-if: ${{ !cancelled() }}
 
       - name: Build host
         working-directory: zk-execution
@@ -89,6 +95,10 @@ jobs:
             echo "image id is not reproducible across rebuilds" >&2
             exit 1
           fi
+          if [ -n "$EXPECTED_IMAGE_ID" ] && [ "$first" != "$EXPECTED_IMAGE_ID" ]; then
+            echo "image id $first is not the pinned $EXPECTED_IMAGE_ID — a proof from this build would be rejected on chain" >&2
+            exit 1
+          fi
           echo "image-id=$first" >> "$GITHUB_OUTPUT"
 
       - name: Journal binds the call (dev mode, no proof)
@@ -104,7 +114,7 @@ jobs:
         run: |
           start=$(date +%s)
           cargo run --release -q -- input.json --out out
-          echo "prove-seconds=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+          echo "PROVE_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
           grep -q '"devMode": false' out/receipt.json
           test -s out/seal.bin
           test "$(wc -c < out/journal.bin)" = 128
@@ -113,7 +123,7 @@ jobs:
         if: inputs.mode == 'groth16'
         working-directory: zk-execution
         run: |
-          echo "prove-seconds=$prove-seconds"
+          echo "prove-seconds=$PROVE_SECONDS"
           cat out/receipt.json
           sha256sum out/journal.bin out/seal.bin
 
@@ -122,6 +132,18 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: zk-execution/out/*
+
+      # The values that make a proof checkable have to be readable without a token,
+      # so they are published as an annotation whether the run passes or fails.
+      - name: Publish image id and journal
+        if: always()
+        working-directory: zk-execution
+        run: |
+          image=$(sed -n 's/^imageId=//p' /tmp/image.log 2>/dev/null | head -1)
+          journal=$(sed -n 's/^journal=//p' /tmp/journal.log 2>/dev/null | head -1)
+          digest=$(sed -n 's/^journalDigest=//p' /tmp/journal.log 2>/dev/null | head -1)
+          seal=$(cat out/seal.bin 2>/dev/null | xxd -p -c 100000 || true)
+          echo "::notice title=zk-execution values::imageId=$image%0Ajournal=$journal%0AjournalDigest=$digest%0AsealHex=$seal%0AproveSeconds=${PROVE_SECONDS:-}"
 
       # Logs need an authenticated token to read; annotations do not. When anything
       # fails, publish the captured tails here so the failure is diagnosable from
