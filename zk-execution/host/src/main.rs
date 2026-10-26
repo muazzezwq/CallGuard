@@ -12,7 +12,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
-use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, VerifierContext};
+use risc0_zkvm::{default_prover, ExecutorEnv, InnerReceipt, ProverOpts, VerifierContext};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use zk_execution_methods::{PING_ELF, PING_ID};
@@ -94,6 +94,19 @@ fn image_id_hex() -> String {
     format!("0x{}", hex::encode(bytes))
 }
 
+/// The seal the Solidity verifier expects: four selector bytes derived from the receipt's
+/// verifier parameters, then the Groth16 proof. This is `risc0_ethereum_contracts::encode_seal`
+/// written out, because depending on that crate drags in `alloy` and its AVX-era MSRV.
+fn encode_seal(receipt: &risc0_zkvm::Receipt) -> Result<Vec<u8>> {
+    let InnerReceipt::Groth16(groth16) = &receipt.inner else {
+        bail!("receipt is not Groth16; a dev or composite receipt would fail on chain");
+    };
+    let mut seal = Vec::with_capacity(4 + groth16.seal.len());
+    seal.extend_from_slice(&groth16.verifier_parameters.as_bytes()[..4]);
+    seal.extend_from_slice(groth16.seal.as_ref());
+    Ok(seal)
+}
+
 fn main() -> Result<()> {
     let args = parse_args()?;
     let dev = check_dev_mode(args.dev)?;
@@ -119,7 +132,7 @@ fn main() -> Result<()> {
 
     let image_id = image_id_hex();
     let journal = receipt.journal.bytes.clone();
-    let seal = risc0_ethereum_contracts::encode_seal(&receipt)?;
+    let seal = encode_seal(&receipt)?;
     let journal_hex = format!("0x{}", hex::encode(&journal));
     let journal_digest = format!("0x{}", hex::encode(Sha256::digest(&journal)));
 

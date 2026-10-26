@@ -5,10 +5,7 @@ edition = "2021"
 
 [dependencies]
 zk-execution-methods = { path = "../methods" }
-risc0-zkvm = { version = "3.0.3", default-features = false, features = ["client", "prove"] }
-# `encode_seal` prepends the verifier selector, which is what the Solidity verifier
-# dispatches on. Hand-rolling it would be the one line most likely to be wrong.
-risc0-ethereum-contracts = "3.0.1"
+risc0-zkvm = { version = "3.0.6", default-features = false, features = ["client", "prove"] }
 anyhow = "1.0"
 hex = "0.4"
 serde = { version = "1.0", features = ["derive"] }

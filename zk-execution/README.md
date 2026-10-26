@@ -45,8 +45,9 @@ One set, or the verifier rejects the seal:
 
 | Piece | Version |
 |---|---|
-| Rust toolchain | `1.88.0` (`rust-toolchain.toml`, the version risc0 v3.0.3 ships for the zkVM) |
-| `risc0-zkvm`, `risc0-build`, `r0vm` | `3.0.x` |
+| Rust toolchain (host) | `1.91.0` (`rust-toolchain.toml`) |
+| Rust toolchain (guest) | `1.88.0`, installed by `rzup install rust` — `risc0-build` overrides `RUSTC` for guests |
+| `risc0-zkvm`, `risc0-build`, `r0vm`, `cargo-risczero` | `3.0.6` |
 | `risc0-ethereum-contracts` (host) | `3.0.1` |
 | `RiscZeroGroth16Verifier` (chain) | vendored `risc0-ethereum` `v3.0.1` |
 
