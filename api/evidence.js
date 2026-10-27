@@ -12,9 +12,14 @@
  * it never invents an envelope the caller did not ask for.
  */
 
-import fixture from "../src/lib/verification/fixtures/zk-execution.json";
-import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.ts";
-import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.ts";
+// The deploy runtime (nodejs24.x, ESM) rejects a bare JSON import with
+// `needs an import attribute of "type: json"`; createRequire loads it under both
+// bun and node and keeps the fixture traced into the function bundle on every runtime.
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const fixture = require("../src/lib/verification/fixtures/zk-execution.json");
+import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
+import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
 import { encodeFunctionData, decodeFunctionResult, keccak256, toBytes } from "viem";
 import { getRpcUrl } from "./_rpc.js";
 

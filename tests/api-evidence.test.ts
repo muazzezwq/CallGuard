@@ -209,3 +209,16 @@ describe("GET /api/evidence wrapper", () => {
     expect((rows.body as { envelope: unknown }).envelope).toBeNull();
   });
 });
+
+describe("api/evidence.js source discipline", () => {
+  test("imports no specifier ending in .ts", () => {
+    // Vercel's Node builder compiles the TypeScript it reaches but does not rewrite
+    // import specifiers: the emitter sits next to the handler as schema.js, while the
+    // handler keeps asking for schema.ts — which resolves to nothing on the deploy
+    // runtime. A green bun test hides that failure (bun happily resolves .ts), so the
+    // guard is on the source text: no specifier in api/evidence.js may end in ".ts".
+    const source = readFileSync("api/evidence.js", "utf8");
+    const tsSpecifier = /(?:from|import)\s+["'][^"']+\.ts["']/;
+    expect(tsSpecifier.test(source)).toBe(false);
+  });
+});
