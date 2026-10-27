@@ -656,6 +656,50 @@ export const SLA_PROVENANCE_ABI = [
 export const SLA_EVIDENCE_ADDRESS = envAddress(import.meta.env.VITE_SLA_EVIDENCE as string | undefined) as `0x${string}`;
 export const SLA_EVIDENCE_ENABLED = SLA_EVIDENCE_ADDRESS.length === 42;
 
+/// v2 keeps the same `(callId, kind)` key but widens the record: `statementHash`
+/// and `assumptionHash` sit between `responseHash` and `verifier`, so a dispute
+/// can check the claim's words against the chain instead of an off-chain mirror
+/// (the "Anchored evidence" card texts this as MATCH/MISMATCH). v1 stays as-is.
+export const SLA_EVIDENCE_V2_ADDRESS = envAddress(import.meta.env.VITE_SLA_EVIDENCE_V2 as string | undefined) as `0x${string}`;
+export const SLA_EVIDENCE_V2_ENABLED = SLA_EVIDENCE_V2_ADDRESS.length === 42;
+
+export const SLA_EVIDENCE_ABI_V2 = [
+  { name: "getEvidence", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}, {name:"kind",type:"bytes32"}],
+    outputs: [{
+      type: "tuple",
+      components: [
+        {name:"kind",type:"bytes32"},
+        {name:"claimHash",type:"bytes32"},
+        {name:"responseHash",type:"bytes32"},
+        {name:"statementHash",type:"bytes32"},
+        {name:"assumptionHash",type:"bytes32"},
+        {name:"verifier",type:"address"},
+        {name:"anchoredAt",type:"uint64"},
+      ],
+    }] },
+  { name: "isAnchored", type: "function", stateMutability: "view",
+    inputs: [{name:"callId",type:"bytes32"}, {name:"kind",type:"bytes32"}, {name:"claimHash",type:"bytes32"}],
+    outputs: [{type:"bool"}] },
+  { name: "modeOf", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}],
+    // 0 = None, 1 = Signature (verified off chain, vouched by a key), 2 = Proof (checked on chain)
+    outputs: [{type:"uint8"}] },
+  { name: "bindsResponse", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}], outputs: [{type:"bool"}] },
+  { name: "anchorDigest", type: "function", stateMutability: "view",
+    inputs: [
+      {name:"callId",type:"bytes32"},
+      {name:"kind",type:"bytes32"},
+      {name:"claimHash",type:"bytes32"},
+      {name:"responseHash",type:"bytes32"},
+      {name:"statementHash",type:"bytes32"},
+      {name:"assumptionHash",type:"bytes32"},
+    ], outputs: [{type:"bytes32"}] },
+  { name: "owner", type: "function", stateMutability: "view",
+    inputs: [], outputs: [{type:"address"}] },
+] as const;
+
 export const SLA_EVIDENCE_ABI = [
   { name: "getEvidence", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}, {name:"kind",type:"bytes32"}],

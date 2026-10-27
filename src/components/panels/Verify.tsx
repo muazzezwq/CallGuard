@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI, SLA_EVIDENCE_ADDRESS, SLA_EVIDENCE_ENABLED, SLA_EVIDENCE_ABI } from "../../lib/config";
+import { decodeEvidence, EVIDENCE_MODES, type EvidenceRecord } from "../../lib/verification/evidenceRecord";
+import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI, SLA_EVIDENCE_ADDRESS, SLA_EVIDENCE_ENABLED, SLA_EVIDENCE_ABI, SLA_EVIDENCE_V2_ADDRESS, SLA_EVIDENCE_V2_ENABLED, SLA_EVIDENCE_ABI_V2 } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
@@ -58,29 +59,51 @@ function formatAmount(value: unknown): string | undefined {
 }
 
 /** The three claim kinds the verification layer can record. Each label names the
- *  claim instead of saying "verified", because the tiers prove different things. */
+ *  claim instead of saying "verified", because the tiers prove different things.
+ *  `name` is the wire name `/api/evidence` answers for; `kind` is its keccak. */
 const EVIDENCE_KINDS = [
   // The one proof this repository can point at a committed artifact for: a RISC Zero
   // receipt about the call's execution, verified on chain by `Risc0ExecutionAdapter`.
-  { label: "ZK execution proof", kind: keccak256(toBytes("zk-execution")) },
-  { label: "ZK output constraint", kind: keccak256(toBytes("zk-constraint")) },
-  { label: "TEE execution image", kind: keccak256(toBytes("tee-attestation")) },
-  { label: "Witness observation", kind: keccak256(toBytes("witness")) },
+  { label: "ZK execution proof", name: "zk-execution", kind: keccak256(toBytes("zk-execution")) },
+  { label: "ZK output constraint", name: "zk-constraint", kind: keccak256(toBytes("zk-constraint")) },
+  { label: "TEE execution image", name: "tee-attestation", kind: keccak256(toBytes("tee-attestation")) },
+  { label: "Witness observation", name: "witness", kind: keccak256(toBytes("witness")) },
 ] as const;
 
-/** `SLAEvidenceRegistry.VerifierMode`: proof checked on chain, or checked off chain
- *  and vouched for by a key. The difference is the whole trust story. */
-const EVIDENCE_MODES = ["no verifier", "off-chain check, signed by a key", "checked on chain"] as const;
+const EVIDENCE_KIND_NAMES = new Map<string, string>(EVIDENCE_KINDS.map(({ label, name }) => [label, name]));
 
-interface EvidenceRecord {
-  label: string;
-  claimHash: string;
-  responseHash: string;
-  verifier: string;
-  anchoredAt: number;
-  mode: number;
+/** A decoded registry row plus the panel's presentation fields. */
+type RegistryRow = EvidenceRecord & { label: string; mode: number };
+
+/** What `/api/evidence` answered for one (callId, kind): the envelope's words
+ *  and the hash comparison, mirrored — never a truth verdict. A third value,
+ *  `"mirror-unreachable"`, marks a fetch that threw: not an answer, and not the
+ *  same as an envelope the endpoint chose not to bundle. */
+interface StatementCheck {
+  statement: string;
+  assumptions: string[];
+  match: boolean | null;
+  note: string | null;
 }
 
+/** Field names in positional order for each `Evidence` layout: a viem decode can
+ *  hand back named fields or numeric positions, and both must work. */
+const EVIDENCE_FIELD_NAMES = [
+  ["kind", "claimHash", "responseHash", "verifier", "anchoredAt"],
+  ["kind", "claimHash", "responseHash", "statementHash", "assumptionHash", "verifier", "anchoredAt"],
+] as const;
+
+function structWords(rec: Record<string | number, unknown>, width: 5 | 7): string[] {
+  const names = EVIDENCE_FIELD_NAMES[width === 5 ? 0 : 1];
+  return Array.from({ length: width }, (_, i) =>
+    String(rec[names[i]] ?? rec?.[i] ?? "0x0"));
+}
+
+/** The dedupe/lookup key for one claim: (callId, kind, claimHash), with kind
+ *  carried by the row's unique label. The endpoint mirror is keyed the same way. */
+function registryKey(row: Pick<RegistryRow, "label" | "claimHash">): string {
+  return `${row.label}|${row.claimHash.toLowerCase()}`;
+}
 export default function Verify() {
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
@@ -113,11 +136,107 @@ export default function Verify() {
   } | null>(null);
   const [provenanceOnChain, setProvenanceOnChain] = useState<boolean | null>(null);
 
-  // B3c — anchored evidence. The verification layer records a *named* claim (an
-  // execution attestation, a zk output constraint) together with the address that
-  // vouched for it. Reading it back is the whole point: a claim nobody can inspect
-  // is indistinguishable from a claim nobody made.
-  const [evidence, setEvidence] = useState<EvidenceRecord[] | null>(null);
+  // B3c — anchored evidence registry row state. Statement checks for v2 rows
+  // are keyed the same way rows are deduped: `(label, claimHash)`. The anchored
+  // hash is never taken from the mirror — the registry row is the trust root.
+  const [evidence, setEvidence] = useState<RegistryRow[] | null>(null);
+  const [statementChecks, setStatementChecks] = useState<Record<string, StatementCheck | "mirror-unreachable" | null>>({});
+  useEffect(() => {
+    setEvidence(null);
+    setStatementChecks({});
+    if ((!SLA_EVIDENCE_ENABLED && !SLA_EVIDENCE_V2_ENABLED) || result?.kind !== "call" || !result.callId || !publicClient) return;
+    const callId = result.callId as `0x${string}`;
+    let alive = true;
+    (async () => {
+      // Width matters: v1's Evidence is five static words, v2's seven. The
+      // positional layout is the only discriminator a decoder can use.
+      const sources = [
+        ...(SLA_EVIDENCE_ENABLED
+          ? [{ source: "v1" as const, address: SLA_EVIDENCE_ADDRESS, abi: SLA_EVIDENCE_ABI, width: 5 as const }]
+          : []),
+        ...(SLA_EVIDENCE_V2_ENABLED
+          ? [{ source: "v2" as const, address: SLA_EVIDENCE_V2_ADDRESS, abi: SLA_EVIDENCE_ABI_V2, width: 7 as const }]
+          : []),
+      ].sort((a, b) => (a.source === "v2" ? -1 : b.source === "v2" ? 1 : 0));
+      const found: RegistryRow[] = [];
+      const seen = new Set<string>();
+      for (const cfg of sources) {
+        const hits = await Promise.all(EVIDENCE_KINDS.map(async ({ label, kind }) => {
+          try {
+            const rec = (await publicClient.readContract({
+              address: cfg.address,
+              abi: cfg.abi,
+              functionName: "getEvidence",
+              args: [callId, kind],
+            })) as unknown as Record<string | number, unknown>;
+            const decoded = decodeEvidence(structWords(rec, cfg.width));
+            // anchoredAt == 0 (or a zero claimHash) means the registry holds no
+            // claim of this kind, not an error.
+            if (!decoded || decoded.anchoredAt === 0 || /^0x0{64}$/.test(decoded.claimHash)) return null;
+            const mode = Number(
+              (await publicClient.readContract({
+                address: cfg.address,
+                abi: cfg.abi,
+                functionName: "modeOf",
+                args: [kind],
+              })) as unknown as number,
+            );
+            return { label, ...decoded, mode };
+          } catch { /* unreadable kind: say nothing rather than guess */ return null; }
+        }));
+        for (const hit of hits) {
+          if (!hit) continue;
+          const key = registryKey(hit);
+          // Same (callId, kind, claimHash) from both registries: keep the v2
+          // row, which carries statement/assumption digests too.
+          if (!seen.has(key)) { seen.add(key); found.push(hit); }
+        }
+      }
+      if (alive) setEvidence(found.sort((a, b) => a.anchoredAt - b.anchoredAt));
+    })();
+    return () => { alive = false; };
+  }, [result, publicClient]);
+
+  // Statement text. `/api/evidence` mirrors the envelope for kinds it bundles and
+  // compares the four hashes against what v2 anchored; the card renders that
+  // copy verbatim and a MATCH/MISMATCH computed from it. The registry row, read
+  // above, stays the source of the anchored claim hash shown next to it.
+  useEffect(() => {
+    if (!evidence || evidence.length === 0 || !result?.callId) return;
+    const callId = result.callId as `0x${string}`;
+    let alive = true;
+    (async () => {
+      await Promise.all(evidence.filter(r => r.source === "v2").map(async row => {
+        const kindName = EVIDENCE_KIND_NAMES.get(row.label) ?? row.label;
+        try {
+          const r = await fetch(`/api/evidence?callId=${encodeURIComponent(callId)}&kind=${encodeURIComponent(kindName)}`);
+          const text = await r.text();
+          let d: {
+            envelope?: { claim?: { statement?: string; assumptions?: string[] } } | null;
+            match?: boolean; note?: string | null;
+          } | null = null;
+          try { d = JSON.parse(text); } catch { d = null; }
+          // The endpoint returns JSON payload next to 404 when it has nothing to
+          // show; the payloads are data either way.
+          if (!alive) return;
+          const statement = d?.envelope?.claim?.statement;
+          setStatementChecks(prev => ({
+            ...prev,
+            [registryKey(row)]: statement !== undefined
+              ? { statement, assumptions: d?.envelope?.claim?.assumptions ?? [], match: !!d?.match, note: d?.note ?? null }
+              : null,
+          }));
+        } catch {
+          if (alive) {
+            // The mirror is unreachable: not the same thing as nothing anchored,
+            // and not an answer the endpoint gave. Its own sentence below.
+            setStatementChecks(prev => ({ ...prev, [registryKey(row)]: "mirror-unreachable" }));
+          }
+        }
+      }));
+    })();
+    return () => { alive = false; };
+  }, [evidence, result?.callId]);
 
   useEffect(() => {
     setPayloadCheck(null);
@@ -191,46 +310,6 @@ export default function Verify() {
     return () => { alive = false; };
   }, [provenance, committedHash, publicClient, result]);
 
-  useEffect(() => {
-    setEvidence(null);
-    if (!SLA_EVIDENCE_ENABLED || result?.kind !== "call" || !result.callId || !publicClient) return;
-    const callId = result.callId as `0x${string}`;
-    let alive = true;
-    (async () => {
-      const found: EvidenceRecord[] = [];
-      await Promise.all(EVIDENCE_KINDS.map(async ({ label, kind }) => {
-        try {
-          const rec = (await publicClient.readContract({
-            address: SLA_EVIDENCE_ADDRESS,
-            abi: SLA_EVIDENCE_ABI,
-            functionName: "getEvidence",
-            args: [callId, kind],
-          })) as unknown as Record<string | number, unknown>;
-          const anchoredAt = Number(rec?.anchoredAt ?? rec?.[4] ?? 0);
-          // anchoredAt == 0 means the registry holds no claim of this kind.
-          if (anchoredAt === 0) return;
-          const mode = Number(
-            (await publicClient.readContract({
-              address: SLA_EVIDENCE_ADDRESS,
-              abi: SLA_EVIDENCE_ABI,
-              functionName: "modeOf",
-              args: [kind],
-            })) as unknown as number,
-          );
-          found.push({
-            label,
-            claimHash: String(rec?.claimHash ?? rec?.[1] ?? ""),
-            responseHash: String(rec?.responseHash ?? rec?.[2] ?? ""),
-            verifier: String(rec?.verifier ?? rec?.[3] ?? ""),
-            anchoredAt,
-            mode,
-          });
-        } catch { /* unreadable kind: say nothing rather than guess */ }
-      }));
-      if (alive) setEvidence(found.sort((a, b) => a.anchoredAt - b.anchoredAt));
-    })();
-    return () => { alive = false; };
-  }, [result, publicClient]);
   // Read pendingVerify from store (set by Receipts panel "Verify ↗" button)
   const pendingVerify = useAppStore(s => s.pendingVerify);
   const clearPendingVerify = useAppStore(s => s.clearPendingVerify);
@@ -827,7 +906,7 @@ export default function Verify() {
       {/* B3c — anchored evidence. Each row is a claim of a named kind, plus the address
           that vouched for it. The card never prints "verified" on its own: the tier and
           the mode are what a reader has to weigh. */}
-      {SLA_EVIDENCE_ENABLED && result?.kind === "call" && result.callId && (
+      {(SLA_EVIDENCE_ENABLED || SLA_EVIDENCE_V2_ENABLED) && result?.kind === "call" && result.callId && (
         <div style={s.card}>
           <div style={{ fontSize: 11, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "var(--text)", fontWeight: 600, marginBottom: 8 }}>
             Anchored evidence — what was proven about this call
@@ -839,8 +918,15 @@ export default function Verify() {
 
           {evidence !== null && evidence.length === 0 && (
             <div style={{ fontSize: 12, color: "var(--text)" }}>
-              No claim anchored for this call. A provider or attestor anchors one with
-              <code> anchor(callId, kind, claimHash, responseHash, proof)</code>; the receipt alone
+              {SLA_EVIDENCE_ENABLED && SLA_EVIDENCE_V2_ENABLED
+                ? "No claim anchored for this call in either evidence registry."
+                : SLA_EVIDENCE_V2_ENABLED
+                  ? "No claim anchored for this call in the v2 evidence registry."
+                  : "No claim anchored for this call in the v1 evidence registry."}
+              {" "}A provider or attestor anchors one with
+              <code>{SLA_EVIDENCE_V2_ENABLED
+                ? " anchor(callId, kind, claimHash, responseHash, statementHash, assumptionHash, proof)"
+                : " anchor(callId, kind, claimHash, responseHash, proof)"}</code>; the receipt alone
               proves commitment, not execution.
             </div>
           )}
@@ -875,7 +961,82 @@ export default function Verify() {
                       <span style={s.rowVal}>{v}</span>
                     </div>
                   ))}
-                </div>
+                 </div>
+                {/* B3e — the claim's words. The endpoint mirror reads v2 and compares
+                    the rendered envelope's hashes against the anchored ones, so the
+                    badge answers a narrow question: are these the words the chain
+                    anchored? It never says the statement is true. */}
+                {record.source === "v1" ? (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                    This row comes from the v1 evidence registry, which predates statement
+                    hashing; the anchored record has no digest of what this claim states.
+                  </div>
+                ) : (() => {
+                  const check = statementChecks[registryKey(record)];
+                  if (statementChecks[registryKey(record)] === undefined) {
+                    return <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>Reading the mirrored statement…</div>;
+                  }
+                  if (check === "mirror-unreachable") {
+                    return (
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                        The evidence mirror is unreachable, so the statement text cannot be shown
+                        here; the digests the chain anchored are what the rows above show.
+                      </div>
+                    );
+                  }
+                  // No bundled envelope: the chain holds the digests, the mirror holds no copy.
+                  if (!check) {
+                    return (
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                        This claim is anchored with its statement and assumption digests, but the
+                        evidence mirror has no copy of the words, so the statement text cannot be
+                        shown or checked here.
+                      </div>
+                    );
+                  }
+                  const note = check.note === "rpc-error"
+                    ? "the evidence endpoint could not reach the chain, so this copy is unconfirmed"
+                    : check.note === "no-registry"
+                      ? "no v2 evidence registry is configured for this deployment, so the statement text cannot be checked against the chain"
+                      : null;
+                  return (
+                    <div
+                      role="status"
+                      style={{
+                        marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)",
+                        padding: 10, borderRadius: 10, fontSize: 12,
+                        background: check.match ? "rgba(25,209,134,.08)" : "rgba(238,69,57,.12)",
+                        border: `1px solid ${check.match ? "rgba(25,209,134,.25)" : "rgba(238,69,57,.3)"}`,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                        {check.match
+                          ? "MATCH — the words you are reading hash to the anchored claim hash"
+                          : "MISMATCH — the words you are reading do not hash to the anchored claim hash"}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>
+                        {check.statement}
+                      </div>
+                      {check.assumptions.length > 0 && (
+                        <ul style={{ margin: "0 0 6px 16px", padding: 0, fontSize: 11, color: "var(--text)", lineHeight: 1.5 }}>
+                          {check.assumptions.map(a => <li key={a}>{a}</li>)}
+                        </ul>
+                      )}
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, wordBreak: "break-all" as const }}>
+                        anchored&nbsp;claim&nbsp;{record.claimHash}
+                      </div>
+                      {note && (
+                        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>{note}</p>
+                      )}
+                      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+                        MATCH means the rendered words hash to the anchor the registry holds — it
+                        does not mean the statement is true. With MISMATCH the anchor hash is still
+                        shown above: the chain keeps the original digest even when this copy drifted.
+                      </p>
+                    </div>
+                  );
+                })()}
+
                 {record.label === "ZK execution proof" && (() => {
                   // The anchor says a verifier accepted a proof; the panel can only say
                   // *which* proof. It prints the committed artifact when the anchor is about
