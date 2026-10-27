@@ -789,6 +789,107 @@ contract DisputeV4Test is Test {
         assertEq(abi.encode(dispute.evidenceOf(id)), before);
     }
 
+    /// Flatness: the evidence snapshot is written at open and read by nobody in
+    /// the money paths, so a dispute whose call carries a genuinely bound
+    /// `zk-execution` claim must leave exactly the same caller, provider,
+    /// treasury and dispute-contract balance deltas as a dispute whose call has
+    /// nothing anchored — for both verdicts.
+    struct Deltas {
+        int256 caller;
+        int256 provider;
+        int256 treasury;
+        int256 dispute;
+    }
+
+    function test_balancesAreIdenticalWithAndWithoutEvidence() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        Deltas memory upheldWithEvidence = _runFullDispute(true, true);
+        Deltas memory upheldWithoutEvidence = _runFullDispute(false, true);
+        Deltas memory rejectedWithEvidence = _runFullDispute(true, false);
+        Deltas memory rejectedWithoutEvidence = _runFullDispute(false, false);
+
+        // Same verdict, same provider stake: deltas must be exactly equal.
+        assertEq(upheldWithEvidence.caller, upheldWithoutEvidence.caller);
+        assertEq(upheldWithEvidence.provider, upheldWithoutEvidence.provider);
+        assertEq(upheldWithEvidence.treasury, upheldWithoutEvidence.treasury);
+        assertEq(upheldWithEvidence.dispute, upheldWithoutEvidence.dispute);
+
+        assertEq(rejectedWithEvidence.caller, rejectedWithoutEvidence.caller);
+        assertEq(rejectedWithEvidence.provider, rejectedWithoutEvidence.provider);
+        assertEq(rejectedWithEvidence.treasury, rejectedWithoutEvidence.treasury);
+        assertEq(rejectedWithEvidence.dispute, rejectedWithoutEvidence.dispute);
+
+        // And the flows themselves stay the known ones, so a broken money path
+        // cannot hide behind two equally-broken runs. The escrowed slash moves
+        // registry → dispute → party, so the provider wallet only sees it when
+        // the escrow returns to them.
+        assertEq(upheldWithEvidence.caller, 10e6); // escrowed slash
+        assertEq(upheldWithEvidence.provider, 0);
+        assertEq(upheldWithEvidence.treasury, 0);
+        assertEq(upheldWithEvidence.dispute, 0);
+
+        assertEq(rejectedWithEvidence.caller, -2e6); // bond forfeited
+        assertEq(rejectedWithEvidence.provider, 10e6); // escrow returned
+        assertEq(rejectedWithEvidence.treasury, 2e6);
+        assertEq(rejectedWithEvidence.dispute, 0);
+    }
+
+    /// One complete V4 dispute lifecycle: top the provider stake back to
+    /// `STAKE` so every run escrows the same slash, open (optionally with a
+    /// bound claim anchored first), resolve, skip the appeal window, finalize,
+    /// then report the balance deltas across the whole run.
+    function _runFullDispute(bool anchored, bool upheld) internal returns (Deltas memory d) {
+        _replenishProviderStake();
+        assertEq(registry.getProvider(providerId).stake, STAKE);
+
+        bytes32 callId = _completedCall();
+        if (anchored) {
+            _anchorProof(callId, ZK_EXECUTION, RESPONSE_HASH);
+        }
+
+        // Deltas cover the dispute lifecycle only: the call's own price (paid
+        // by `callService` above) must not leak into these numbers.
+        uint256 callerBefore = usdc.balanceOf(caller);
+        uint256 providerBefore = usdc.balanceOf(provider);
+        uint256 treasuryBefore = usdc.balanceOf(treasury);
+        uint256 disputeBefore = usdc.balanceOf(address(dispute));
+
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        if (anchored) {
+            // A regression that stops binding must not pass below by comparing
+            // two evidence-free disputes: this run must be genuinely bound.
+            assertTrue(rows[0].bound);
+        } else {
+            assertFalse(rows[0].bound);
+            assertFalse(rows[0].present);
+        }
+
+        vm.prank(arbiter);
+        dispute.resolve(id, upheld);
+        skip(APPEAL_WINDOW + 1);
+        dispute.finalize(id);
+
+        d.caller = int256(usdc.balanceOf(caller)) - int256(callerBefore);
+        d.provider = int256(usdc.balanceOf(provider)) - int256(providerBefore);
+        d.treasury = int256(usdc.balanceOf(treasury)) - int256(treasuryBefore);
+        d.dispute = int256(usdc.balanceOf(address(dispute))) - int256(disputeBefore);
+    }
+
+    function _replenishProviderStake() internal {
+        uint256 stake = registry.getProvider(providerId).stake;
+        if (stake < STAKE) {
+            vm.prank(provider);
+            registry.addStake(providerId, STAKE - stake);
+        }
+    }
+
     function test_evidenceKindsCappedAtEight() public {
         bytes32[] memory nine = new bytes32[](9);
         for (uint256 i = 0; i < 9; ++i) {
