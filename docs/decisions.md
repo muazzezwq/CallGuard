@@ -388,3 +388,11 @@ Conservative choices made without stopping. Format: decision + reason.
   `.ts`, and a bare ESM JSON import needs an import attribute on `nodejs24.x`. Reason: a green
   `bun test` proved only that bun resolves both. The test suite now asserts in source text that
   the route carries no `.ts` specifier, so the class of failure cannot return quietly.
+- **A failed read renders; it never becomes an empty list.** `DisputesV8`'s retired-V3 section now
+  shows a danger notice when `disputeCount` errors and an info notice while it is in flight; the
+  evidence snapshot block does the same for `evidenceOf`. Reason: `DISPUTE_V3_ADDRESS` shipped
+  with one wrong capital in its checksum, viem refused the address, and the section that holds
+  dispute #4's `3.481864 USDC` rendered as if the contract had no disputes — with `forge test`,
+  `bun test`, `tsc`, ESLint and `vite build` all green. `if (!Number(count ?? 0n)) return null;`
+  turned an error into a fact about the chain. `tests/address-literal.test.ts` now fails on any
+  mixed-case literal in `src/` or `api/` that `isAddress(address, { strict: true })` rejects.
