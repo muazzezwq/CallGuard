@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useAccount } from "wagmi";
 import { Toaster } from "sonner";
 import { useAppStore } from "./store/useAppStore";
+import { allowsWalletlessAccess } from "./lib/deepLink";
 
 const MarketingLayout = lazy(() => import("./marketing/MarketingLayout"));
 const Landing        = lazy(() => import("./marketing/Landing"));
@@ -16,8 +17,12 @@ const AppShell       = lazy(() => import("./components/layout/AppShell"));
 function AppGate() {
   const { isConnected } = useAccount();
   const loc = useLocation();
-  // TEMP DEBUG: allows rendering the shell without a wallet in dev only.
-  const bypass = import.meta.env.DEV && new URLSearchParams(loc.search).has("nogate");
+  // A verification link reads the attestation API and the chain, so it opens
+  // without a wallet: nothing in that flow signs. Every other panel under /app can
+  // write, so it keeps the gate. `?nogate` stays the dev-only escape hatch.
+  const bypass =
+    (import.meta.env.DEV && new URLSearchParams(loc.search).has("nogate")) ||
+    allowsWalletlessAccess(loc.search);
   if (!isConnected && !bypass) return <Navigate to="/" replace state={{ from: loc.pathname + loc.search }} />;
   return <AppShell />;
 }

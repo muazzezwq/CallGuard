@@ -6,6 +6,7 @@ import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
 import { friendlyError } from "../../lib/utils";
+import { parseCallIdInput } from "../../lib/deepLink";
 import { buildPayloadEvidence, checkPayloadAgainstCommitment, type PayloadCheck } from "../../lib/responseProof";
 import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation } from "../../lib/paymentGate";
 import { ExternalLink, CheckCircle, XCircle, Search, Share2 } from "lucide-react";
@@ -92,6 +93,9 @@ export default function Verify() {
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [shareLink, setShareLink] = useState("");
   const verifySeq = useRef(0);
+  // One request per call id at a time. React StrictMode runs an effect twice in
+  // development, and a shareable link must not become two attestation requests.
+  const verifyInFlight = useRef<string | null>(null);
 
   // B3a — response binding. The receipt commits to `responseHash`, but nothing
   // checked that the body the caller received hashes to it. The caller can now
@@ -406,31 +410,33 @@ export default function Verify() {
     }
   }, [rcpReceiptError]);
 
-  // Auto-verify from store (set by Receipts "Verify ↗" button — SPA navigation, no page reload)
+  // Auto-verify from the store: the Receipts "Verify ↗" button and the shell's
+  // `?verify=` deep link both arrive here. Single ownership on purpose — a second
+  // URL reader in this panel fired one attestation request per reader, so the shell
+  // (AppShell.tsx) is the only thing that parses the link.
   useEffect(() => {
-    if (pendingVerify) {
-      setInput(pendingVerify);
-      setResult(null);
-      clearPendingVerify();
-      setTimeout(() => handleVerify(pendingVerify), 300);
+    // `""` is a real intent (/?verify= with nothing after it) and must be answered,
+    // so only an absent value is ignored.
+    if (pendingVerify === null) return;
+    const intent = parseCallIdInput(pendingVerify);
+    setInput(intent.input);
+    setResult(null);
+    setShareLink("");
+    clearPendingVerify();
+    if (!intent.callId) {
+      // A malformed link is answered here, before any request leaves the browser.
+      setResult({ ok: false, error: intent.error ?? "That is not a call ID." });
+      return;
     }
+    void handleVerify(intent.callId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingVerify]);
-
-  // Auto-verify from URL param (fallback for direct links)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const v = params.get("verify");
-    if (v) {
-      setInput(v);
-      setTimeout(() => handleVerify(v), 500);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function handleVerify(overrideInput?: string) {
     const val = (overrideInput || input).trim();
     if (!val) return;
+    if (verifyInFlight.current === val) return;
+    verifyInFlight.current = val;
     const seq = ++verifySeq.current;
     setLoading(true);
     setResult(null);
@@ -537,6 +543,7 @@ export default function Verify() {
         setResult({ ok: false, error: (_err instanceof Error ? _err.message : String(_err)) });
       }
     } finally {
+      if (verifyInFlight.current === val) verifyInFlight.current = null;
       if (seq === verifySeq.current) setLoading(false);
     }
   }

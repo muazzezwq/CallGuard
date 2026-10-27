@@ -13,6 +13,7 @@ import UsdcBanner from "./UsdcBanner";
 import ContextualHint from "./ContextualHint";
 import ErrorBoundary from "../ErrorBoundary";
 import { initTabTitleCounter } from "../../lib/utils";
+import { readProviderIntent, readVerifyIntent } from "../../lib/deepLink";
 import { MOBILE_NAV, PANEL_LABELS, groupOfPanel } from "./navConfig";
 
 const panels = {
@@ -68,6 +69,7 @@ export default function AppShell() {
   const theme = useAppStore(s => s.theme);
   const mode = useAppStore(s => s.mode);
   const setPanel = useAppStore(s => s.setPanel);
+  const openVerify = useAppStore(s => s.openVerify);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   /* Tablets start collapsed; an explicit user preference always wins. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -99,11 +101,19 @@ export default function AppShell() {
 
   useEffect(() => initTabTitleCounter(), []);
 
-  // Deep-link: /?provider=X opens the provider profile (shareable links)
+  // Deep links, one intent per page load: /app?verify=<callId> opens verification
+  // and hands the id to the panel, /?provider=<id> opens the provider profile.
+  // The panel is selected here rather than in the panel itself, because a panel
+  // that is not mounted cannot read its own URL.
   useEffect(() => {
-    const pId = new URLSearchParams(window.location.search).get("provider");
-    if (pId && /^\d+$/.test(pId)) setPanel("provprofile");
-  }, [setPanel]);
+    const verify = readVerifyIntent(window.location.search);
+    if (verify) {
+      openVerify(verify.input);
+      return;
+    }
+    const providerId = readProviderIntent(window.location.search);
+    if (providerId) setPanel("provprofile");
+  }, [openVerify, setPanel]);
 
   const toggleCollapsed = () => {
     setSidebarCollapsed(v => {
