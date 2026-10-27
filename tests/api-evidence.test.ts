@@ -61,6 +61,7 @@ describe("GET /api/evidence (handle)", () => {
     expect(res.anchoredStatementHash).toBe(statementHash(fixture.statement));
     expect(res.anchoredAssumptionHash).toBe(assumptionHash(fixture.assumptions));
     expect(res.source).toBe("fixture");
+    expect(res.note).toBeNull();
     const envelope = res.envelope as EvidenceEnvelope;
     expect(envelope.subject.callId).toBe(LIVE_CALL);
     expect(envelope.claim.statement).toBe(fixture.statement);
@@ -132,10 +133,22 @@ describe("GET /api/evidence (handle)", () => {
       expect(res.anchoredStatementHash).toBeNull();
       expect(res.anchoredAssumptionHash).toBeNull();
       expect(res.match).toBe(false);
+      expect(res.note).toBe("no-registry");
       expect(res.envelope ? envelopeDigest(res.envelope as EvidenceEnvelope) : null).toBe(LIVE_CLAIM_HASH);
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  test("an injected read that throws reports a failed look, not an absence", async () => {
+    const { handle } = await import("../api/evidence.js");
+    const res = await handle(
+      { callId: LIVE_CALL, kind: "zk-execution" },
+      { readAnchored: async () => { throw new Error("rpc failed"); } },
+    );
+    expect(res.anchored).toBe(false);
+    expect(res.note).toBe("rpc-error");
+    expect(res.match).toBe(false);
   });
 
   test("the fixture is withheld for a call it does not describe, even with an anchored row", async () => {

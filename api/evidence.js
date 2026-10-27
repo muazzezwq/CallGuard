@@ -7,6 +7,14 @@
  * `match`, which is the comparison of four hashes, never a verdict about whether
  * the statement is true.
  *
+ * The response carries `note` so a caller must distinguish "nothing anchored"
+ * from "could not look": a read that failed or a registry that was never
+ * configured both leave `anchored: false`, and treating either as "no evidence"
+ * would show a disputing party an absence that was never established.
+ *   - note: "no-registry" — no evidence registry address is configured
+ *   - note: "rpc-error"   — the chain read threw (or answered with an RPC error)
+ *   - note: null          — the read was attempted and answered, anchored or not.
+ *
  * The only bundled envelope is the committed zk-execution fixture. For any other
  * `(callId, kind)` the endpoint reports what the chain anchored and nothing else;
  * it never invents an envelope the caller did not ask for.
@@ -91,35 +99,42 @@ const EMPTY = Object.freeze({
   anchoredAssumptionHash: null,
   match: false,
   source: null,
+  note: null,
 });
 
 async function readAnchoredFromChain(callId, kind32, env) {
+  // `{ row: null, note }` — `note: null` when the chain answered (nothing
+  // anchored for this pair), `"no-registry"` / `"rpc-error"` when it could not.
   const registry = env.SLA_EVIDENCE_V2 || env.VITE_SLA_EVIDENCE_V2 || "";
-  if (!registry) return null;
+  if (!registry) return { row: null, note: "no-registry" };
   const rpcUrl = getRpcUrl(env);
-  if (!rpcUrl) return null;
+  if (!rpcUrl) return { row: null, note: "rpc-error" };
 
-  const data = encodeFunctionData({
-    abi: SLA_EVIDENCE_ABI_V2,
-    functionName: "getEvidence",
-    args: [callId, kind32],
-  });
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: registry, data }, "latest"] }),
-    signal: AbortSignal.timeout(3000),
-  });
-  const body = await response.json();
-  if (body?.error) return null;
-  const [row] = decodeFunctionResult({
-    abi: SLA_EVIDENCE_ABI_V2,
-    functionName: "getEvidence",
-    data: body.result,
-  });
-  // An empty claimHash means "nothing anchored for this pair", not an error.
-  if (!row || row.claimHash === `0x${"0".repeat(64)}`) return null;
-  return row;
+  try {
+    const data = encodeFunctionData({
+      abi: SLA_EVIDENCE_ABI_V2,
+      functionName: "getEvidence",
+      args: [callId, kind32],
+    });
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: registry, data }, "latest"] }),
+      signal: AbortSignal.timeout(3000),
+    });
+    const body = await response.json();
+    if (body?.error) return { row: null, note: "rpc-error" };
+    const [row] = decodeFunctionResult({
+      abi: SLA_EVIDENCE_ABI_V2,
+      functionName: "getEvidence",
+      data: body.result,
+    });
+    // An empty claimHash means "nothing anchored for this pair", not an error.
+    if (!row || row.claimHash === `0x${"0".repeat(64)}`) return { row: null, note: null };
+    return { row, note: null };
+  } catch {
+    return { row: null, note: "rpc-error" };
+  }
 }
 
 /**
@@ -145,13 +160,20 @@ export async function handle(query, deps = {}) {
   // response always answers exactly what some attestor anchored — nothing more.
   let anchored = false;
   let row = null;
+  let note = null;
   if (KINDS.has(kind)) {
-    const readAnchored = deps.readAnchored ?? ((id, k32) => readAnchoredFromChain(id, k32, process.env));
+    const kind32 = keccak256(toBytes(kind));
     try {
-      row = await readAnchored(callId, keccak256(toBytes(kind)));
-      anchored = row !== null;
+      if (deps.readAnchored) {
+        row = await deps.readAnchored(callId, kind32);
+        anchored = row !== null;
+      } else {
+        ({ row, note } = await readAnchoredFromChain(callId, kind32, process.env));
+        anchored = row !== null;
+      }
     } catch {
-      anchored = false;
+      // An injected read that threw is a failed look, not "no evidence".
+      note = "rpc-error";
     }
   }
 
@@ -186,6 +208,7 @@ export async function handle(query, deps = {}) {
     anchoredAssumptionHash: row ? row.assumptionHash : null,
     match,
     source: envelope ? "fixture" : null,
+    note,
   };
 }
 
