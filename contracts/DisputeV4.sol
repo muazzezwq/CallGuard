@@ -26,13 +26,16 @@ import { IServiceRegistryV8 } from "./interfaces/IServiceRegistryV8.sol";
 ///         activity that happens between the receipt and the decision.
 ///
 ///         V4 is a faithful port of V3's money flow. It adds two constructor
-///         wires for later tasks: the `SLAEvidenceRegistryV2` (`evidence`), from
-///         which a dispute will read anchored evidence snapshots, and the
+///         wires: the `SLAEvidenceRegistryV2` (`evidence`), from which
+///         `openDispute` snapshots every configured evidence claim, and the
 ///         previous arbitration contract (`legacyDispute`), against which open
-///         legacy disputes will be checked. Neither is read yet: this contract
-///         behaves exactly like `DisputeV3` until those tasks land.
+///         legacy disputes will be checked. The snapshot is written at open and
+///         read by nobody in the money paths: it can never change the bonds,
+///         the slash or a verdict. The legacy-guard itself is a later task.
 contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
+    uint256 private constant MAX_EVIDENCE_KINDS = 8;
 
     // ---------------------------------------------------------------------
     // Errors
@@ -57,6 +60,8 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     error AppealWindowOpen();
     error NotAppealed();
     error AlreadySettled();
+    error TooManyKinds();
+    error DuplicateKind();
 
     // ---------------------------------------------------------------------
     // Events
@@ -64,6 +69,53 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
 
     /// @notice Emitted when the slash is escrowed at open time.
     event SlashHeld(uint256 indexed disputeId, uint256 amount);
+
+    event EvidenceKindsSet(bytes32[] kinds);
+
+    /// @notice One configured kind had an anchored claim at open. `bound` is
+    ///         false for a present claim that does not bind the call's response.
+    event EvidenceLinked(
+        uint256 indexed disputeId, bytes32 indexed kind, bytes32 claimHash, uint8 mode, bool bound
+    );
+
+    /// @notice One configured kind had nothing anchored for this call.
+    event EvidenceAbsent(uint256 indexed disputeId, bytes32 indexed kind, AbsentReason reason);
+
+    // ---------------------------------------------------------------------
+    // Types
+    // ---------------------------------------------------------------------
+
+    /// @notice Why a snapshot row failed to bind, in evaluation order.
+    /// @dev    Sixth value `VerifierNotBinding` extends the five planned
+    ///         originally: a `Proof`-mode kind whose wiring recorded
+    ///         `bindsResponse == false` would otherwise read "present, not
+    ///         bound, `None`", which tells a reader nothing. A `Signature`-mode
+    ///         kind can never be `bound`, even though `bindsResponse` is true
+    ///         for it by construction.
+    enum AbsentReason {
+        None,
+        NoVerifier,
+        NoAnchor,
+        WrongResponse,
+        ModeIsSignature,
+        VerifierNotBinding
+    }
+
+    /// @notice One configured evidence kind, as seen at the moment the dispute
+    ///         opened. Written once at open and read by nobody in the money
+    ///         paths: it cannot change `disputeBond`, the slash or a verdict.
+    struct LinkedEvidence {
+        bytes32 kind;
+        bytes32 claimHash;
+        bytes32 responseHash;
+        bytes32 statementHash;
+        bytes32 assumptionHash;
+        address verifier;
+        uint64 anchoredAt;
+        uint8 mode;
+        bool bound;
+        bool present;
+    }
 
     // ---------------------------------------------------------------------
     // State
@@ -97,6 +149,10 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     mapping(uint256 => Status) public firstDecision;
     mapping(uint256 => uint256) public heldSlash;
     mapping(uint256 => bool) public settled;
+
+    /// @notice Claim kinds configured by the arbiter that `openDispute` snapshots.
+    bytes32[] private _evidenceKinds;
+    mapping(uint256 => LinkedEvidence[]) private _evidenceOf;
 
     // ---------------------------------------------------------------------
     // Constructor
@@ -188,6 +244,11 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
             registry.slash(providerId, slashAmount, address(this));
             emit SlashHeld(disputeId, slashAmount);
         }
+
+        // The snapshot runs only after the escrow for one reason: this block
+        // must never be able to skip or fail the money move above. It reads
+        // pure storage from a fixed immutable registry and reverts nowhere.
+        _snapshotEvidence(disputeId, callId, call_.responseHash);
 
         emit DisputeOpened(disputeId, callId, msg.sender, providerId);
     }
@@ -372,6 +433,28 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
         disputeSlashBps = next;
     }
 
+    /// @notice Sets which claim kinds `openDispute` snapshots, bounded to 8 so a
+    ///         dispute open stays within one cheap loop.
+    /// @dev    Arbiter-gated like every other admin lever in this contract.
+    ///         A duplicated kind would render twice in the UI as if it were two
+    ///         claims, so duplicates revert. An empty array is legal and means
+    ///         "snapshot nothing": `openDispute` then performs zero external
+    ///         calls, which is the state of a fresh deployment.
+    function setEvidenceKinds(bytes32[] calldata kinds) external {
+        if (msg.sender != arbiter) revert NotArbiter();
+        if (kinds.length > MAX_EVIDENCE_KINDS) revert TooManyKinds();
+        for (uint256 i = 0; i < kinds.length; ++i) {
+            for (uint256 j = i + 1; j < kinds.length; ++j) {
+                if (kinds[i] == kinds[j]) revert DuplicateKind();
+            }
+        }
+        delete _evidenceKinds;
+        for (uint256 i = 0; i < kinds.length; ++i) {
+            _evidenceKinds.push(kinds[i]);
+        }
+        emit EvidenceKindsSet(kinds);
+    }
+
     // ---------------------------------------------------------------------
     // Views
     // ---------------------------------------------------------------------
@@ -391,6 +474,17 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
         return _currentDisputeSlash(providerId);
     }
 
+    /// @notice Claim kinds `openDispute` snapshots, in configured order.
+    function evidenceKinds() external view returns (bytes32[] memory) {
+        return _evidenceKinds;
+    }
+
+    /// @notice The evidence snapshot written once at open and never re-read by
+    ///         `resolve`, `resolveAppeal`, `finalize` or `reclaimExpiredBond`.
+    function evidenceOf(uint256 disputeId) external view returns (LinkedEvidence[] memory) {
+        return _evidenceOf[disputeId];
+    }
+
     // ---------------------------------------------------------------------
     // Internal
     // ---------------------------------------------------------------------
@@ -402,6 +496,73 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
 
     function _providerOwner(uint256 providerId) internal view returns (address) {
         return registry.getProvider(providerId).owner;
+    }
+
+    /// @notice Snapshots every configured evidence kind for the disputed call.
+    /// @dev    No `try/catch`: `evidence` is a fixed immutable address of the
+    ///         reviewed `SLAEvidenceRegistryV2`, whose `getEvidence`/`modeOf`/
+    ///         `bindsResponse` are pure storage reads that cannot revert, and
+    ///         with the default empty `evidenceKinds` this performs zero
+    ///         external calls — so disputes open even before any kind is wired.
+    ///         `present` means "something is anchored for this call and kind"
+    ///         and is independent of `bound`. Reason precedence is fixed,
+    ///         first failing wins: mode 0 → `NoVerifier`, never anchored →
+    ///         `NoAnchor`, stored response mismatch → `WrongResponse`,
+    ///         signature mode → `ModeIsSignature`, proof mode without a
+    ///         response-binding verifier → `VerifierNotBinding`, else `bound`.
+    function _snapshotEvidence(uint256 disputeId, bytes32 callId, bytes32 responseHash) private {
+        bytes32[] memory kinds = _evidenceKinds;
+        if (kinds.length == 0) return;
+
+        LinkedEvidence[] storage rows = _evidenceOf[disputeId];
+        for (uint256 i = 0; i < kinds.length; ++i) {
+            bytes32 kind = kinds[i];
+            uint8 mode = evidence.modeOf(kind);
+            ISLAEvidenceV2.Evidence memory stored;
+            bool present;
+            bool bound;
+            AbsentReason absent = AbsentReason.None;
+
+            if (mode == 0) {
+                absent = AbsentReason.NoVerifier;
+            } else {
+                stored = evidence.getEvidence(callId, kind);
+                present = stored.anchoredAt != 0 && stored.claimHash != bytes32(0);
+
+                if (!present) {
+                    absent = AbsentReason.NoAnchor;
+                } else if (stored.responseHash != responseHash) {
+                    absent = AbsentReason.WrongResponse;
+                } else if (mode == 1) {
+                    absent = AbsentReason.ModeIsSignature;
+                } else if (!evidence.bindsResponse(kind)) {
+                    absent = AbsentReason.VerifierNotBinding;
+                } else {
+                    bound = true;
+                }
+            }
+
+            LinkedEvidence memory row;
+            row.kind = kind;
+            row.claimHash = stored.claimHash;
+            row.responseHash = stored.responseHash;
+            row.statementHash = stored.statementHash;
+            row.assumptionHash = stored.assumptionHash;
+            row.verifier = stored.verifier;
+            row.anchoredAt = stored.anchoredAt;
+            row.mode = mode;
+            row.bound = bound;
+            row.present = present;
+            rows.push(row);
+
+            // At most one of the two fires per kind: a present claim reports
+            // itself with `bound`, only an absent one reports why it is absent.
+            if (present) {
+                emit EvidenceLinked(disputeId, kind, stored.claimHash, mode, bound);
+            } else {
+                emit EvidenceAbsent(disputeId, kind, absent);
+            }
+        }
     }
 
     function _currentDisputeSlash(uint256 providerId) internal view returns (uint256) {

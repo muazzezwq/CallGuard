@@ -8,10 +8,18 @@ import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { DisputeV4, ISLAEvidenceV2 } from "../contracts/DisputeV4.sol";
 import { DisputeV3 } from "../contracts/DisputeV3.sol";
-import { SLAEvidenceRegistryV2 } from "../contracts/SLAEvidenceRegistryV2.sol";
+import { SLAEvidenceRegistryV2, IEvidenceVerifier } from "../contracts/SLAEvidenceRegistryV2.sol";
 import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
 import { IDisputeV2 } from "../contracts/interfaces/IDisputeV2.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
+
+/// @notice Minimal on-chain proof verifier stand-in; the registry only reads its
+///         address when wiring and calls `verify` when anchoring.
+contract MockProofVerifier is IEvidenceVerifier {
+    function verify(bytes calldata, bytes32, bytes32, bytes32) external pure returns (bool) {
+        return true;
+    }
+}
 
 contract DisputeV4Test is Test {
     MockUSDC internal usdc;
@@ -31,6 +39,9 @@ contract DisputeV4Test is Test {
     uint256 internal signerPk = 0xA11CE_BEEF;
     address internal signer;
 
+    address internal attestor;
+    uint256 internal attestorKey;
+
     uint256 internal constant MIN_STAKE = 10e6;
     uint256 internal constant STAKE = 100e6;
     uint256 internal constant PRICE = 1e6;
@@ -44,11 +55,22 @@ contract DisputeV4Test is Test {
     uint32 internal constant RESOLUTION_WINDOW = 2 days;
     bytes32 internal constant TERMS_HASH = keccak256("terms-v1");
 
+    bytes32 internal constant RESPONSE_HASH = keccak256("response");
+    bytes32 internal constant OTHER_RESPONSE_HASH = keccak256("wrong-response");
+    bytes32 internal constant CLAIM_HASH = keccak256("claim-1");
+    bytes32 internal constant STATEMENT_HASH = keccak256("statement-1");
+    bytes32 internal constant ASSUMPTION_HASH = keccak256("assumption-1");
+    bytes32 internal constant ZK_EXECUTION = keccak256("zk-execution");
+    bytes32 internal constant TEE_ATTESTATION = keccak256("tee-attestation");
+    bytes32 internal constant NO_VERIFIER_KIND = keccak256("no-verifier");
+
     uint256 internal providerId;
     DisputeV3 internal legacyDispute;
+    address internal adapter;
 
     function setUp() public {
         signer = vm.addr(signerPk);
+        (attestor, attestorKey) = makeAddrAndKey("attestor");
 
         vm.startPrank(admin);
         usdc = new MockUSDC();
@@ -85,6 +107,7 @@ contract DisputeV4Test is Test {
             ISLAEvidenceV2(address(evidence)),
             legacyDispute
         );
+        adapter = address(new MockProofVerifier());
         registry.setPayPerCall(address(payPerCall));
         registry.authorizeSlasher(address(dispute));
         vm.stopPrank();
@@ -602,8 +625,247 @@ contract DisputeV4Test is Test {
     }
 
     // ---------------------------------------------------------------------
+    // evidence snapshot at open
+    // ---------------------------------------------------------------------
+
+    function test_boundWhenProofModeAndResponseMatches() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+        _anchorProof(callId, ZK_EXECUTION, RESPONSE_HASH);
+
+        expectEmitEvidenceLinked(1, ZK_EXECUTION, CLAIM_HASH, 2, true);
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertTrue(rows[0].present);
+        assertTrue(rows[0].bound);
+        assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertEq(rows[0].kind, ZK_EXECUTION);
+        assertEq(rows[0].claimHash, CLAIM_HASH);
+        assertEq(rows[0].responseHash, RESPONSE_HASH);
+        assertEq(rows[0].statementHash, STATEMENT_HASH);
+        assertEq(rows[0].assumptionHash, ASSUMPTION_HASH);
+        assertEq(rows[0].verifier, adapter);
+        assertGt(rows[0].anchoredAt, 0);
+    }
+
+    function test_unboundWhenStoredResponseDiffers() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+        _anchorProof(callId, ZK_EXECUTION, OTHER_RESPONSE_HASH);
+
+        expectEmitEvidenceLinked(1, ZK_EXECUTION, CLAIM_HASH, 2, false);
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertTrue(rows[0].present);
+        assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertEq(rows[0].claimHash, CLAIM_HASH);
+        assertEq(rows[0].responseHash, OTHER_RESPONSE_HASH);
+    }
+
+    function test_unboundWhenModeIsSignature() public {
+        // The registry records `bindsResponse = true` for signature wiring by
+        // construction, yet a dispute never treats a signature claim as bound.
+        _wireSignature(TEE_ATTESTATION);
+        assertTrue(evidence.bindsResponse(TEE_ATTESTATION));
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = TEE_ATTESTATION;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+        _anchorSignature(callId, TEE_ATTESTATION, RESPONSE_HASH);
+
+        expectEmitEvidenceLinked(1, TEE_ATTESTATION, CLAIM_HASH, 1, false);
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertTrue(rows[0].present);
+        assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Signature));
+        assertEq(rows[0].claimHash, CLAIM_HASH);
+        assertEq(rows[0].responseHash, RESPONSE_HASH);
+    }
+
+    function test_absentWhenKindHasNoVerifier() public {
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = NO_VERIFIER_KIND;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+
+        expectEmitEvidenceAbsent(1, NO_VERIFIER_KIND, DisputeV4.AbsentReason.NoVerifier);
+        uint256 id = _openDispute(callId);
+
+        // The registry has no verifier for this kind, and nothing was anchored.
+        SLAEvidenceRegistryV2.Evidence memory stored = evidence.getEvidence(callId, NO_VERIFIER_KIND);
+        assertEq(uint64(stored.anchoredAt), 0);
+        assertEq(stored.claimHash, bytes32(0));
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertFalse(rows[0].present);
+        assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].mode), 0);
+        assertEq(rows[0].claimHash, bytes32(0));
+        assertEq(rows[0].anchoredAt, 0);
+    }
+
+    function test_absentWhenNothingAnchored() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+
+        expectEmitEvidenceAbsent(1, ZK_EXECUTION, DisputeV4.AbsentReason.NoAnchor);
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertFalse(rows[0].present);
+        assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertEq(rows[0].claimHash, bytes32(0));
+        assertEq(rows[0].anchoredAt, 0);
+    }
+
+    function test_snapshotDoesNotChangeAfterResolve() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+        _anchorProof(callId, ZK_EXECUTION, RESPONSE_HASH);
+        uint256 id = _openDispute(callId);
+
+        bytes memory before = abi.encode(dispute.evidenceOf(id));
+
+        vm.prank(arbiter);
+        dispute.resolve(id, false);
+        skip(APPEAL_WINDOW + 1);
+        dispute.finalize(id);
+
+        assertEq(abi.encode(dispute.evidenceOf(id)), before);
+    }
+
+    function test_evidenceKindsCappedAtEight() public {
+        bytes32[] memory nine = new bytes32[](9);
+        for (uint256 i = 0; i < 9; ++i) {
+            nine[i] = keccak256(abi.encode("kind", i));
+        }
+
+        vm.prank(arbiter);
+        vm.expectRevert(DisputeV4.TooManyKinds.selector);
+        dispute.setEvidenceKinds(nine);
+
+        bytes32[] memory eight = new bytes32[](8);
+        for (uint256 i = 0; i < 8; ++i) {
+            eight[i] = nine[i];
+        }
+        _setKinds(eight);
+        bytes32[] memory stored = dispute.evidenceKinds();
+        assertEq(stored.length, 8);
+        for (uint256 i = 0; i < 8; ++i) {
+            assertEq(stored[i], nine[i]);
+        }
+    }
+
+    function test_setEvidenceKinds_rejectsDuplicateKind() public {
+        bytes32[] memory kinds = new bytes32[](2);
+        kinds[0] = ZK_EXECUTION;
+        kinds[1] = ZK_EXECUTION;
+
+        vm.prank(arbiter);
+        vm.expectRevert(DisputeV4.DuplicateKind.selector);
+        dispute.setEvidenceKinds(kinds);
+    }
+
+    function test_setEvidenceKinds_onlyArbiter() public {
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+
+        vm.prank(caller);
+        vm.expectRevert(DisputeV4.NotArbiter.selector);
+        dispute.setEvidenceKinds(kinds);
+
+        _setKinds(kinds);
+        assertEq(dispute.evidenceKinds()[0], ZK_EXECUTION);
+    }
+
+    /// Default-state liveness: a fresh contract has no kinds configured, so the
+    /// snapshot performs zero external calls and a dispute opens anyway.
+    function test_openDispute_snapshotsNothingByDefault() public {
+        assertEq(dispute.evidenceKinds().length, 0);
+
+        bytes32 callId = _completedCall();
+        uint256 id = _openDispute(callId);
+
+        assertEq(dispute.evidenceOf(id).length, 0);
+    }
+
+    // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
+
+    function expectEmitEvidenceLinked(
+        uint256 disputeId,
+        bytes32 kind,
+        bytes32 claimHash,
+        uint8 mode,
+        bool bound
+    )
+        internal
+    {
+        vm.expectEmit(true, true, false, true, address(dispute));
+        emit DisputeV4.EvidenceLinked(disputeId, kind, claimHash, mode, bound);
+    }
+
+    function expectEmitEvidenceAbsent(uint256 disputeId, bytes32 kind, DisputeV4.AbsentReason reason) internal {
+        vm.expectEmit(true, true, false, true, address(dispute));
+        emit DisputeV4.EvidenceAbsent(disputeId, kind, reason);
+    }
+
+    function _setKinds(bytes32[] memory kinds) internal {
+        vm.prank(arbiter);
+        dispute.setEvidenceKinds(kinds);
+    }
+
+    function _wireProof(bytes32 kind, bool bindsResponse_) internal {
+        vm.prank(admin);
+        evidence.setProofVerifier(kind, adapter, bindsResponse_);
+    }
+
+    function _wireSignature(bytes32 kind) internal {
+        vm.prank(admin);
+        evidence.setSignatureVerifier(kind, attestor, true);
+    }
+
+    function _anchorProof(bytes32 callId, bytes32 kind, bytes32 responseHash) internal {
+        vm.prank(caller);
+        evidence.anchor(callId, kind, CLAIM_HASH, responseHash, STATEMENT_HASH, ASSUMPTION_HASH, "");
+    }
+
+    function _anchorSignature(bytes32 callId, bytes32 kind, bytes32 responseHash) internal {
+        bytes32 digest = evidence.anchorDigest(callId, kind, CLAIM_HASH, responseHash, STATEMENT_HASH, ASSUMPTION_HASH);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(attestorKey, digest);
+        vm.prank(attestor);
+        evidence.anchor(callId, kind, CLAIM_HASH, responseHash, STATEMENT_HASH, ASSUMPTION_HASH, abi.encodePacked(r, s, v));
+    }
 
     function _completedCall() internal returns (bytes32 callId) {
         vm.prank(caller);
