@@ -157,4 +157,17 @@ contract SLAEvidenceRegistryV2Test is Test {
         assertTrue(registry.bindsResponse(ZK_EXEC));
         assertEq(uint8(registry.modeOf(ZK_EXEC)), uint8(SLAEvidenceRegistryV2.VerifierMode.Signature));
     }
+
+    /// Revoking a signature key is not a statement about the proof wiring. It used
+    /// to stamp `bindsResponse = true` on a `Proof`-mode kind anyway, which would
+    /// have told `DisputeV4` that a verifier the owner recorded as non-binding does
+    /// bind the response — the exact claim `setProofVerifier` exists to keep honest.
+    function test_revokingASignatureKeyLeavesTheProofBindingFlagAlone() public {
+        vm.startPrank(admin);
+        registry.setProofVerifier(ZK_EXEC, address(adapter), false);
+        registry.setSignatureVerifier(ZK_EXEC, attestor, false);
+        vm.stopPrank();
+        assertFalse(registry.bindsResponse(ZK_EXEC));
+        assertEq(uint8(registry.modeOf(ZK_EXEC)), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+    }
 }

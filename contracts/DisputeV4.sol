@@ -28,10 +28,10 @@ import { IServiceRegistryV8 } from "./interfaces/IServiceRegistryV8.sol";
 ///         V4 is a faithful port of V3's money flow. It adds two constructor
 ///         wires: the `SLAEvidenceRegistryV2` (`evidence`), from which
 ///         `openDispute` snapshots every configured evidence claim, and the
-///         previous arbitration contract (`legacyDispute`), against which open
-///         legacy disputes will be checked. The snapshot is written at open and
-///         read by nobody in the money paths: it can never change the bonds,
-///         the slash or a verdict. The legacy-guard itself is a later task.
+///         retiring `DisputeV3` (`legacyDispute`), whose call index `openDispute`
+///         reads so the same stake cannot be slashable twice. The snapshot is
+///         written at open and read by nobody in the money paths: it can never
+///         change the bonds, the slash or a verdict.
 contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     using SafeERC20 for IERC20;
 

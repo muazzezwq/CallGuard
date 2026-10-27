@@ -121,11 +121,13 @@ contract SLAEvidenceRegistryV2 {
     function setSignatureVerifier(bytes32 kind, address verifier, bool allowed) external onlyOwner {
         if (verifier == address(0)) revert InvalidAddress();
         if (allowed) modeOf[kind] = VerifierMode.Signature;
-        // A signature-mode verifier always signs the v2 digest, which includes
-        // responseHash, so its wiring always binds the response.
         signatureVerifier[kind][verifier] = allowed;
-        bindsResponse[kind] = true;
-        emit VerifierChanged(kind, verifier, VerifierMode.Signature, allowed, true);
+        // Only grant the flag, never revoke it here: revoking an old signature key
+        // says nothing about the proof wiring that `setProofVerifier` recorded, and
+        // stamping `true` on a `Proof`-mode kind would tell `DisputeV4` that a
+        // verifier the owner recorded as non-binding does bind the response.
+        if (allowed) bindsResponse[kind] = true;
+        emit VerifierChanged(kind, verifier, modeOf[kind], allowed, bindsResponse[kind]);
     }
 
     /// @notice Points a kind at a verifier contract that checks proofs on chain, and

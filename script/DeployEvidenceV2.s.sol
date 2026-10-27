@@ -271,6 +271,20 @@ contract DeployEvidenceV2 is Script {
         // Steps 5-6. DisputeV3 keeps a read path and holds dispute #4's escrow,
         // but must not stay a slasher: two authorised contracts could slash the
         // same stake. DisputeV4 cannot open anything until authorised.
+        //
+        // The V3 guard in DisputeV4 is one-directional: V4 asks V3 whether it
+        // already holds a call, and V3 has no reciprocal check. Until step 5
+        // lands, V3 can still open a dispute on a call V4 escrowed, so this is a
+        // hard ordering requirement, not a note.
+        bool legacyStillSlashes = registry.authorizedSlashers(legacyDisputeAddress);
+        if (legacyStillSlashes) {
+            console2.log("");
+            console2.log("!! ORDERING GATE: DisputeV3 is still an authorizedSlasher right now.");
+            console2.log("   Run step 5 (revokeSlasher) BEFORE step 6 (authorizeSlasher). While both");
+            console2.log("   contracts are authorized, a caller can open a second dispute on a call");
+            console2.log("   DisputeV4 already escrowed, because V3 has no reciprocal guard.");
+            console2.log("");
+        }
         console2.log("5) cast send %s \\", _addr(address(registry)));
         console2.log("    \"revokeSlasher(address)\" %s", _addr(legacyDisputeAddress));
         console2.log(

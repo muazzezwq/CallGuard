@@ -396,3 +396,11 @@ Conservative choices made without stopping. Format: decision + reason.
   `bun test`, `tsc`, ESLint and `vite build` all green. `if (!Number(count ?? 0n)) return null;`
   turned an error into a fact about the chain. `tests/address-literal.test.ts` now fails on any
   mixed-case literal in `src/` or `api/` that `isAddress(address, { strict: true })` rejects.
+- **The anchored statement is content the anchoring party chose, not something the proof covers.**
+  The registry stores `statementHash` and `assumptionHash` next to the claim, and `anchor` is
+  permissionless and first-come per `(callId, kind)`. Neither deployed adapter (B3c/B3d/B3e) covers
+  the statement in what it verifies, so a bound row is evidence about the *response*, never about
+  the words beside it. The Verify panel states this in the card copy and in a footnote instead of
+  letting "MATCH" read as "the proof attested the words"; closing the gap needs a verifier that
+  commits `statementHash` in its journal, which the deploy runbook lists as future work rather than
+  a wiring task.

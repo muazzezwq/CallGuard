@@ -223,7 +223,13 @@ export default async function handler(req, res) {
   const payload = await handle(req.query ?? {});
   // 404 when there is nothing to show at all: no anchored row and no bundled
   // envelope. 200 otherwise, even when match is false — a hash mismatch is data.
-  const status = payload.envelope || payload.anchored ? 200 : 404;
+  // An unreadable chain is a third case: 502, because a caller that only reads
+  // the status code must not hear "the read failed" as "nothing is anchored".
+  const status = payload.note === "rpc-error"
+    ? 502
+    : payload.envelope || payload.anchored
+      ? 200
+      : 404;
   res.setHeader("Content-Type", "application/json");
   return res.status(status).json(payload);
 }

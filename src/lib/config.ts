@@ -538,6 +538,10 @@ export const DISPUTE_V2_ABI = [
       {name:"status",type:"uint8"}, {name:"evidenceUri",type:"string"},
       {name:"appealUri",type:"string"},
     ]}] },
+  // Decoded so the UI can tell "this call has no dispute" (a revert) from
+  // "the read failed" (anything else). Without the entry viem reports no reason
+  // and both cases collapse into one, which is how a failed read becomes a fact.
+  { type: "error", name: "DisputeNotFound", inputs: [] },
   { name: "getDisputeByCallId", type: "function", stateMutability: "view",
     inputs: [{name:"callId",type:"bytes32"}],
     outputs: [{name:"", type:"tuple", components: [
@@ -721,6 +725,10 @@ export const SLA_EVIDENCE_ABI_V2 = [
     outputs: [{type:"uint8"}] },
   { name: "bindsResponse", type: "function", stateMutability: "view",
     inputs: [{name:"kind",type:"bytes32"}], outputs: [{type:"bool"}] },
+  { name: "proofVerifier", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}], outputs: [{type:"address"}] },
+  { name: "signatureVerifier", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}, {name:"verifier",type:"address"}], outputs: [{type:"bool"}] },
   { name: "anchorDigest", type: "function", stateMutability: "view",
     inputs: [
       {name:"callId",type:"bytes32"},
@@ -756,6 +764,10 @@ export const SLA_EVIDENCE_ABI = [
     outputs: [{type:"uint8"}] },
   { name: "proofVerifier", type: "function", stateMutability: "view",
     inputs: [{name:"kind",type:"bytes32"}], outputs: [{type:"address"}] },
+  // Was this key allowed to vouch for this kind at wiring time? Read by the panel
+  // to tell "anchored by a key the registry still trusts" from "anchored, then revoked".
+  { name: "signatureVerifier", type: "function", stateMutability: "view",
+    inputs: [{name:"kind",type:"bytes32"}, {name:"verifier",type:"address"}], outputs: [{type:"bool"}] },
   { name: "anchorDigest", type: "function", stateMutability: "view",
     inputs: [
       {name:"callId",type:"bytes32"},

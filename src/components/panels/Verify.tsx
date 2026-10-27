@@ -3,6 +3,7 @@ import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWait
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
 import { decodeEvidence, EVIDENCE_MODES, EVIDENCE_KINDS, EVIDENCE_KIND_NAMES, type EvidenceRecord } from "../../lib/verification/evidenceRecord";
+import { statementHash, assumptionHash } from "../../lib/verification/claimHashes";
 import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI, SLA_EVIDENCE_ADDRESS, SLA_EVIDENCE_ENABLED, SLA_EVIDENCE_ABI, SLA_EVIDENCE_V2_ADDRESS, SLA_EVIDENCE_V2_ENABLED, SLA_EVIDENCE_ABI_V2 } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
@@ -58,8 +59,15 @@ function formatAmount(value: unknown): string | undefined {
   try { return formatUsdc(BigInt(String(value))); } catch { return undefined; }
 }
 
-/** A decoded registry row plus the panel's presentation fields. */
-type RegistryRow = EvidenceRecord & { label: string; mode: number };
+/** A decoded registry row plus the panel's presentation fields. `wiring` answers
+ *  "is the kind still wired the way this row was anchored?", read at view time:
+ *  the registry stores the verifier that accepted the claim but not the mode it
+ *  ran in, so a re-wire after anchoring must not relabel a historical row. */
+type RegistryRow = EvidenceRecord & {
+  label: string;
+  mode: number;
+  wiring: "matches" | "changed" | "unreadable";
+};
 
 /** What `/api/evidence` answered for one (callId, kind): the envelope's words
  *  and the hash comparison, mirrored — never a truth verdict. A third value,
@@ -167,7 +175,32 @@ export default function Verify() {
                 args: [kind],
               })) as unknown as number,
             );
-            return { label, ...decoded, mode };
+            // The anchored row records which verifier accepted the claim; the mode
+            // is read now. Ask the current wiring whether it still points there, so
+            // the card can say "checked on chain" only when that is still the story.
+            let wiring: "matches" | "changed" | "unreadable" = "unreadable";
+            try {
+              if (mode === 2) {
+                const wired = await publicClient.readContract({
+                  address: cfg.address,
+                  abi: cfg.abi,
+                  functionName: "proofVerifier",
+                  args: [kind],
+                }) as string;
+                wiring = wired.toLowerCase() === String(decoded.verifier).toLowerCase() ? "matches" : "changed";
+              } else if (mode === 1) {
+                const allowed = await publicClient.readContract({
+                  address: cfg.address,
+                  abi: cfg.abi,
+                  functionName: "signatureVerifier",
+                  args: [kind, decoded.verifier as `0x${string}`],
+                }) as boolean;
+                // The anchoring key may have been revoked since: still a real
+                // anchor, but no longer a key the registry vouches for today.
+                wiring = allowed ? "matches" : "changed";
+              }
+            } catch { /* wiring unreadable: the row is shown without a today-claim */ }
+            return { label, ...decoded, mode, wiring };
           } catch { /* unreadable kind: say nothing rather than guess */ return null; }
         }));
         for (const hit of hits) {
@@ -926,19 +959,26 @@ export default function Verify() {
                   <span style={{
                     fontSize: 10, padding: "2px 8px", borderRadius: 999, letterSpacing: "0.04em",
                     textTransform: "uppercase" as const,
-                    background: record.mode === 2 ? "rgba(25,209,134,.12)" : "rgba(148,163,184,.12)",
-                    border: `1px solid ${record.mode === 2 ? "rgba(25,209,134,.3)" : "rgba(148,163,184,.3)"}`,
+                    background: record.mode === 2 && record.wiring === "matches" ? "rgba(25,209,134,.12)" : "rgba(148,163,184,.12)",
+                    border: `1px solid ${record.mode === 2 && record.wiring === "matches" ? "rgba(25,209,134,.3)" : "rgba(148,163,184,.3)"}`,
                   }}>
-                    {EVIDENCE_MODES[record.mode] ?? "unknown verifier"}
+                    {record.wiring === "changed"
+                      ? "re-wired since anchoring"
+                      : EVIDENCE_MODES[record.mode] ?? "unknown verifier"}
                   </span>
                 </div>
                 <div style={{ display: "grid", gap: 4 }}>
                   {[
                     ["Claim digest", `${record.claimHash.slice(0, 12)}…${record.claimHash.slice(-8)}`],
                     ["Committed response", `${record.responseHash.slice(0, 12)}…${record.responseHash.slice(-8)}`],
-                    // In proof mode the contract checked the proof, so nothing "vouched";
-                    // in signature mode a key did, and the label has to say which.
-                    [record.mode === 2 ? "Checked by contract" : "Vouched by key",
+                    // "Checked by contract" is only true while the kind is still
+                    // wired to the verifier that accepted this claim; after a re-wire
+                    // the row gets the neutral name for what it actually stores.
+                    [record.mode === 2 && record.wiring === "matches"
+                      ? "Checked by contract"
+                      : record.mode === 1 && record.wiring === "matches"
+                        ? "Vouched by key"
+                        : "Anchoring verifier",
                       `${record.verifier.slice(0, 10)}…${record.verifier.slice(-6)}`],
                     ["Anchored at", new Date(record.anchoredAt * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
                   ].map(([k, v]) => (
@@ -948,6 +988,13 @@ export default function Verify() {
                     </div>
                   ))}
                  </div>
+                {record.wiring !== "matches" && (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                    {record.wiring === "changed"
+                      ? "This kind is wired differently today than when the claim was anchored: the badge says what the row holds, not what the contract checks now. The anchored verifier address is the one that accepted these bytes."
+                      : "The panel could not read this kind's current wiring, so it makes no claim about what the contract checks today. The anchored verifier address is the one that accepted these bytes."}
+                  </div>
+                )}
                 {/* B3e — the claim's words. The endpoint mirror reads v2 and compares
                     the rendered envelope's hashes against the anchored ones, so the
                     badge answers a narrow question: are these the words the chain
@@ -980,25 +1027,40 @@ export default function Verify() {
                       </div>
                     );
                   }
+                  // Recompute the two digests from the words on screen and compare them
+                  // with the row this browser read from its own registry. The server's
+                  // `match` compares against the server's registry, which can be a
+                  // different deployment; using it here would badge one contract's row
+                  // with another contract's answer. The server's own read is a note,
+                  // never the verdict.
+                  const localStatement = statementHash(check.statement);
+                  const localAssumptions = assumptionHash(check.assumptions);
+                  const comparable = Boolean(record.statementHash && record.assumptionHash);
+                  const matchesLocally = comparable
+                    && localStatement.toLowerCase() === record.statementHash!.toLowerCase()
+                    && localAssumptions.toLowerCase() === record.assumptionHash!.toLowerCase();
+                  const verdict: "match" | "mismatch" | "unconfirmed" = !comparable
+                    ? "unconfirmed"
+                    : matchesLocally ? "match" : "mismatch";
                   const note = check.note === "rpc-error"
-                    ? "the evidence endpoint could not reach the chain, so this copy is unconfirmed"
+                    ? "The endpoint could not read the anchored row on its own chain call, so the served copy is unconfirmed by that path; the comparison above was made against the row this browser read."
                     : check.note === "no-registry"
-                      ? "no v2 evidence registry is configured for this deployment, so the statement text cannot be checked against the chain"
+                      ? "No v2 evidence registry is configured for the endpoint, so it could not confirm the copy itself; the comparison above was made against the row this browser read."
                       : null;
+                  const tone = verdict === "match"
+                    ? { background: "rgba(25,209,134,.08)", border: "1px solid rgba(25,209,134,.25)" }
+                    : verdict === "mismatch"
+                      ? { background: "rgba(238,69,57,.12)", border: "1px solid rgba(238,69,57,.3)" }
+                      : { background: "rgba(148,163,184,.1)", border: "1px solid rgba(148,163,184,.3)" };
                   return (
                     <div
                       role="status"
-                      style={{
-                        marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)",
-                        padding: 10, borderRadius: 10, fontSize: 12,
-                        background: check.match ? "rgba(25,209,134,.08)" : "rgba(238,69,57,.12)",
-                        border: `1px solid ${check.match ? "rgba(25,209,134,.25)" : "rgba(238,69,57,.3)"}`,
-                      }}
+                      style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)", padding: 10, borderRadius: 10, fontSize: 12, ...tone }}
                     >
                       <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                        {check.match
-                          ? "MATCH — the words you are reading hash to the anchored claim hash"
-                          : "MISMATCH — the words you are reading do not hash to the anchored claim hash"}
+                        {verdict === "match" && "MATCH — the words you are reading hash to the digests this row anchored"}
+                        {verdict === "mismatch" && "MISMATCH — the words you are reading do not hash to the digests this row anchored"}
+                        {verdict === "unconfirmed" && "UNCONFIRMED — this row carries no statement digest, so the words cannot be checked here"}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.5, marginBottom: 6 }}>
                         {check.statement}
@@ -1015,9 +1077,11 @@ export default function Verify() {
                         <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>{note}</p>
                       )}
                       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
-                        MATCH means the rendered words hash to the anchor the registry holds — it
-                        does not mean the statement is true. With MISMATCH the anchor hash is still
+                        MATCH means the rendered words hash to the digests this row anchored — it
+                        does not mean the statement is true. With MISMATCH the anchored hash is still
                         shown above: the chain keeps the original digest even when this copy drifted.
+                        Neither verdict says the verifier attested the words: the registry stores the
+                        statement's digest beside the claim, it does not prove the proof covered it.
                       </p>
                     </div>
                   );

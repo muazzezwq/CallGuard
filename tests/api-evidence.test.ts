@@ -195,6 +195,60 @@ describe("GET /api/evidence wrapper", () => {
     expect(rows.headers["Access-Control-Allow-Origin"]).toBe("*");
   });
 
+  test("answers 502, not 404, when the chain read failed", async () => {
+    // A status-only caller cannot see `note`. The status code itself has to carry
+    // "the look failed" — 404 would say "nothing is anchored", which is a claim
+    // the endpoint could not make.
+    const { default: handler } = await import("../api/evidence.js");
+    const saved = {
+      registry: process.env.SLA_EVIDENCE_V2,
+      vregistry: process.env.VITE_SLA_EVIDENCE_V2,
+      arc: process.env.ARC_RPC_URL,
+      arcTestnet: process.env.ARC_TESTNET_RPC_URL,
+      rpc: process.env.RPC_URL,
+    };
+    process.env.SLA_EVIDENCE_V2 = "0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E";
+    delete process.env.VITE_SLA_EVIDENCE_V2;
+    delete process.env.ARC_RPC_URL;
+    delete process.env.ARC_TESTNET_RPC_URL;
+    delete process.env.RPC_URL;
+    const rows = { statusCode: 0, body: undefined as unknown };
+    const res = {
+      setHeader() {
+        return this;
+      },
+      status(code: number) {
+        rows.statusCode = code;
+        return this;
+      },
+      json(body: unknown) {
+        rows.body = body;
+        return this;
+      },
+      end() {
+        return this;
+      },
+    };
+    try {
+      await handler(
+        { method: "GET", query: { callId: LIVE_CALL, kind: "zk-execution" }, headers: {}, url: "/api/evidence" },
+        res,
+      );
+    } finally {
+      const restore = (key: string, value: string | undefined) => {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      };
+      restore("SLA_EVIDENCE_V2", saved.registry);
+      restore("VITE_SLA_EVIDENCE_V2", saved.vregistry);
+      restore("ARC_RPC_URL", saved.arc);
+      restore("ARC_TESTNET_RPC_URL", saved.arcTestnet);
+      restore("RPC_URL", saved.rpc);
+    }
+    expect((rows.body as { note: string | null }).note).toBe("rpc-error");
+    expect(rows.statusCode).toBe(502);
+  });
+
   test("answers 404 for the unknown call", async () => {
     const { default: handler } = await import("../api/evidence.js");
     const rows = { statusCode: 0, body: undefined as unknown };

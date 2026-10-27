@@ -7,6 +7,7 @@
 // (dispute, resolution, appeal) and gates every action on the same conditions
 // the contract checks, so a click cannot waste gas on a guaranteed revert.
 import { useEffect, useMemo, useState } from "react";
+import { BaseError, ContractFunctionRevertedError } from "viem";
 import {
   useAccount,
   useChainId,
@@ -155,6 +156,15 @@ function normalizeDispute(raw: unknown): DisputeRecord | undefined {
 
 function same(a?: string, b?: string) {
   return Boolean(a && b) && a!.toLowerCase() === b!.toLowerCase();
+}
+
+/// True only when the contract itself answered `DisputeNotFound()`. Every other
+/// failure — an RPC timeout, a decode error, a wrong address — means the read did
+/// not happen, and the caller must not be told the call has no dispute.
+function isDisputeNotFound(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
+  return revert instanceof ContractFunctionRevertedError && revert.data?.errorName === "DisputeNotFound";
 }
 
 /// DisputeV4.AbsentReason enum order: None, NoVerifier, NoAnchor, WrongResponse,
@@ -759,7 +769,12 @@ export default function DisputesV8() {
     query: { enabled: LIVE && callReady },
   });
 
-  const { data: existingDispute, refetch: refetchExisting, isError: noExistingDispute } = useReadContract({
+  const {
+    data: existingDispute,
+    refetch: refetchExisting,
+    isError: existingDisputeFailed,
+    error: existingDisputeError,
+  } = useReadContract({
     address: DISPUTE_ADDRESS,
     abi: DISPUTE_V2_ABI,
     functionName: "getDisputeByCallId",
@@ -795,7 +810,7 @@ export default function DisputesV8() {
     abi: DISPUTE_V2_ABI,
     functionName: "previewSlash",
     args: previewProviderId !== undefined ? [previewProviderId] : undefined,
-    query: { enabled: LIVE && DISPUTE_V3_ENABLED, refetchInterval: 30_000 },
+    query: { enabled: LIVE, refetchInterval: 30_000 },
   });
   const slashPreview = typeof slashPreviewRaw === "bigint" ? slashPreviewRaw : null;
 
@@ -860,10 +875,15 @@ export default function DisputesV8() {
 
   const disputeDeadline = callRecord ? Number(callRecord.completedAt) + params.disputeWindow : 0;
   const callCompleted = callRecord?.status === 2 && Number(callRecord.completedAt) > 0;
-  const alreadyDisputed = !noExistingDispute && existingDispute !== undefined;
+  // `getDisputeByCallId` reverts `DisputeNotFound` for a call this contract does
+  // not hold. That revert is the only reading that may be treated as "no
+  // dispute": a transport or decode failure is unknown, and the button stays
+  // disabled while it is unknown. A guard that fails open is not a guard.
+  const existingDisputeUnknown = existingDisputeFailed && !isDisputeNotFound(existingDisputeError);
+  const alreadyDisputed = !existingDisputeUnknown && existingDispute !== undefined;
   const canOpenNow = Boolean(
     callRecord && callCompleted && same(address, callRecord.caller)
-      && now <= disputeDeadline && !alreadyDisputed,
+      && now <= disputeDeadline && !alreadyDisputed && !existingDisputeUnknown,
   );
 
   async function run(label: string, send: () => Promise<`0x${string}`>) {
@@ -962,6 +982,7 @@ export default function DisputesV8() {
     callRecord && callCompleted && now > disputeDeadline && "The dispute window has closed for that call.",
     callRecord && address && !same(address, callRecord.caller) && "The connected wallet is not the call's caller.",
     alreadyDisputed && "That call already has a dispute.",
+    existingDisputeUnknown && "Could not check whether this call already has a dispute. Retry before opening.",
     !providerValid && "Set the provider id to a nonzero number.",
     evidenceMissing && "Add an Evidence URI (IPFS CID or HTTPS URL).",
   ].filter(Boolean) as string[];
@@ -969,7 +990,7 @@ export default function DisputesV8() {
   return (
     <PanelShell>
       <PanelSource
-        label={DISPUTE_V3_ENABLED ? "DisputeV3" : "DisputeV2"}
+        label={DISPUTE_V4_ENABLED ? "DisputeV4" : DISPUTE_V3_ENABLED ? "DisputeV3" : "DisputeV2"}
         value={shortAddr(DISPUTE_ADDRESS)}
         hint="call-bound arbitration on ServiceRegistryV8 + PayPerCallV8"
         state="live"

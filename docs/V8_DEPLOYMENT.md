@@ -808,13 +808,15 @@ Run them in this order. Each read-back is the gate for the next one.
 | 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
 | 3 | `registryV2.setSignatureVerifier(keccak256("witness"), <attestor>, true)` — optional | `signatureVerifier(kind, attestor) == true` | skipped when no attestor exists; `witness` rows then read `NoVerifier`, which is visible on chain and silent in the money paths |
 | 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
-| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | two authorised contracts could slash the same stake; V3 cannot open a new dispute on the call V4 already holds, but its authority is not needed |
+| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | **do not skip and do not reorder**: the V4 guard is one-directional — V4 asks V3 whether it already holds a call, V3 has no reciprocal check. While V3 stays a slasher, a caller can open a second dispute on a call V4 already escrowed and cut the same stake twice. The script prints an ORDERING GATE line while `authorizedSlashers(V3)` is still true |
 | 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |
 | 7 | `registryV2.anchor(<fixture callId>, keccak256("zk-execution"), …)` with the fixture's four hashes and `` `0x$(xxd -p test/fixtures/zk-execution/seal.bin)` `` | `isAnchored(callId, kind, claimHash) == true`, `modeOf(kind) == 2` | the live UI row disappears; the v1 anchor on the old registry still stands, so the panel would read the v1 row and say the registry predates statement hashing |
 
-Order matters twice: steps 1-2 must precede step 7 (an unwired kind rejects the anchor), and
-step 6 must follow step 5 conceptually — the window where neither contract is authorised is
-harmless (no dispute can open for a few minutes) while the reverse order is not.
+Order matters twice, and only one of the two is negotiable. Steps 1-2 must precede step 7: an
+unwired kind rejects the anchor. Step 6 must follow step 5 — that is a hard gate, not a
+convention. The overlap where both contracts are authorised is the dangerous direction: V3 can
+open a dispute on a call V4 already escrowed, because the guard in V4 covers only V3→V4. The gap
+where neither is authorised is harmless — no dispute can open for a few minutes.
 
 ### 14.3 Env after signing
 
@@ -851,3 +853,18 @@ money. The four claim kinds keep their scopes: `witness` (a key saw the bytes),
 `tee-attestation` (synthetic evidence only, §12), `zk-constraint` (the committed hash has a
 preimage meeting a stated predicate), `zk-execution` (a guest with the published image id ran and
 committed these four words).
+
+### 14.6 Limits this feature does not close
+
+- **The verifier does not attest the statement.** `IEvidenceVerifier.verify` receives
+  `(proof, callId, claimHash, responseHash)` and the deployed adapters check the proof's journal
+  against `callId` and `responseHash`; `Risc0ExecutionAdapter` discards `claimHash`. So a bound row
+  means "the anchored response hash equals the call's, and this kind's verifier was recorded as
+  binding the response" — it does not mean the proof covered the statement text next to it.
+- **Anchoring is permissionless and first-come.** `anchor` is keyed on `(callId, kind)` with
+  `AlreadyAnchored` guarding a second write, so whoever anchors first owns that row for that kind.
+  With the current adapters, a holder of a valid seal can anchor it with statement text of their
+  choosing; the honest attestor is then locked out for that pair. The snapshot shows the digest the
+  chain holds and the Verify panel recomputes it from the served words, so tampering is visible —
+  but the words themselves are not attributable. Closing this needs a verifier that commits
+  `statementHash` in its journal, which is a new adapter, not a wiring change.
