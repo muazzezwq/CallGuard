@@ -163,7 +163,7 @@ from chain.
 |---|---|
 | `SLAEvidenceRegistryV2` | pending user signature — `script/DeployEvidenceV2.s.sol` prints it |
 | `DisputeV4` | pending user signature — same script |
-| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec` |
+| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` |
 
 Seven owner calls remain, in this order, each printed with exact arguments by
 `forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet`:

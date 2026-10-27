@@ -229,13 +229,22 @@ function reasonSentence(reason: number): string {
 // The block states the read-only nature once, in visible copy: bound means the
 // row's response hash equals the call's — it never means the dispute is decided.
 function EvidenceBlock({ id }: { id: number }) {
-  const { data: snapshot, isLoading } = useReadContract({
+  const { data: snapshot, isLoading, isError, error } = useReadContract({
     address: DISPUTE_ADDRESS,
     abi: DISPUTE_V2_ABI,
     functionName: "evidenceOf",
     args: [BigInt(id)],
     query: { enabled: SNAPSHOT_LIVE, refetchInterval: 30_000 },
   });
+  // A failed read is not an answer either: the absent sentence may only be
+  // rendered when the contract answered with an empty array.
+  if (SNAPSHOT_LIVE && isError) {
+    return (
+      <StatusNotice tone="danger" title="Could not read the evidence snapshot">
+        {friendlyError(error)}
+      </StatusNotice>
+    );
+  }
   // A read still in flight is not an answer: the absent sentence may only be
   // rendered after the call answered, never while it is loading.
   if (SNAPSHOT_LIVE && isLoading) {
@@ -553,7 +562,11 @@ function LegacyV3Section({ now }: { now: number }) {
   const { writeContractAsync } = useWriteContract();
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const { data: count } = useReadContract({
+  const {
+    data: count,
+    isError: countFailed,
+    error: countError,
+  } = useReadContract({
     address: DISPUTE_V3_ADDRESS,
     abi: DISPUTE_V2_ABI,
     functionName: "disputeCount",
@@ -595,7 +608,21 @@ function LegacyV3Section({ now }: { now: number }) {
     }
   }
 
-  if (!Number(count ?? 0n)) return null;
+  // The retired contract holds real money, so a failed read must not read as
+  // "nothing here": an unreadable V3 renders an error, never an empty section.
+  if (countFailed) {
+    return (
+      <StatusNotice tone="danger" title="Could not read the retired DisputeV3">
+        {friendlyError(countError)}
+      </StatusNotice>
+    );
+  }
+  if (count === undefined) {
+    return (
+      <StatusNotice tone="info" title="reading the retired DisputeV3…" />
+    );
+  }
+  if (!Number(count)) return null;
 
   return (
     <Ledger label="Retired DisputeV3 — escrow still held" empty="No disputes recorded on the retired contract.">

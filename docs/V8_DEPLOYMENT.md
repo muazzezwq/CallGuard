@@ -795,7 +795,7 @@ back on chain, and then prints the seven owner calls with exact arguments. It re
 continue if any read-back disagrees. Live defaults it pins:
 `DISPUTE_BOND=2000000`, `APPEAL_BOND=3000000`, `DISPUTE_WINDOW=604800`,
 `APPEAL_WINDOW=172800`, `RESOLUTION_WINDOW=604800`, `DISPUTE_SLASH_BPS=1000`,
-`LEGACY_DISPUTE=0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec`.
+`LEGACY_DISPUTE=0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec`.
 `test/DisputeV4.t.sol::test_deployScriptLiveDefaultsMatchTheControllerValues` fails if one drifts.
 
 ### 14.2 The seven owner calls, and what "wrong" looks like
@@ -808,7 +808,7 @@ Run them in this order. Each read-back is the gate for the next one.
 | 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
 | 3 | `registryV2.setSignatureVerifier(keccak256("witness"), <attestor>, true)` — optional | `signatureVerifier(kind, attestor) == true` | skipped when no attestor exists; `witness` rows then read `NoVerifier`, which is visible on chain and silent in the money paths |
 | 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
-| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec)` | `authorizedSlashers(V3) == false` | two authorised contracts could slash the same stake; V3 cannot open a new dispute on the call V4 already holds, but its authority is not needed |
+| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | two authorised contracts could slash the same stake; V3 cannot open a new dispute on the call V4 already holds, but its authority is not needed |
 | 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |
 | 7 | `registryV2.anchor(<fixture callId>, keccak256("zk-execution"), …)` with the fixture's four hashes and `` `0x$(xxd -p test/fixtures/zk-execution/seal.bin)` `` | `isAnchored(callId, kind, claimHash) == true`, `modeOf(kind) == 2` | the live UI row disappears; the v1 anchor on the old registry still stands, so the panel would read the v1 row and say the registry predates statement hashing |
 

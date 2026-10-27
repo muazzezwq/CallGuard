@@ -28,7 +28,7 @@ describe("dispute evidence snapshot", () => {
 
   test("config pins the retiring V3 and adds the V4 write path", async () => {
     const src = await readFile("src/lib/config.ts", "utf8");
-    expect(src).toContain("0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec");
+    expect(src).toContain("0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec");
     expect(src).toContain("VITE_DISPUTE_V4");
     expect(src).toContain("DISPUTE_V4_ENABLED");
   });

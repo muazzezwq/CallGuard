@@ -100,7 +100,7 @@ export const DISPUTE_V4_ENABLED = DISPUTE_V4_ADDRESS.length === 42;
 /// moves to V4, and the legacy section in the Disputes panel must keep reading
 /// the V3 contract (its `disputeCount`, records and `finalize`) until the
 /// escrow is released. Do not repoint this constant.
-export const DISPUTE_V3_ADDRESS = "0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec" as `0x${string}`;
+export const DISPUTE_V3_ADDRESS = "0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec" as `0x${string}`;
 
 export const V8_ENABLED = Boolean(V8_REGISTRY_ADDRESS && V8_PAY_PER_CALL_ADDRESS);
 
