@@ -1,0 +1,62 @@
+import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+
+// Task 11: the Disputes panel shows the snapshot `DisputeV4.evidenceOf` recorded
+// at open — but evidence must never weigh the money: no arithmetic may combine a
+// row with `disputeBond` or `disputeSlashBps`. The retired DisputeV3 keeps an
+// explicitly labelled read path with its own `finalize`, so dispute #4's escrow
+// stays reachable after the env moves to V4.
+describe("dispute evidence snapshot", () => {
+  test("the dispute panel reads the snapshot and never weights it", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    expect(src).toContain("evidenceOf");
+    expect(src).toMatch(/NoVerifier|NoAnchor|WrongResponse|ModeIsSignature/);
+    expect(src).not.toMatch(/evidence[\s\S]{0,80}(disputeBond|disputeSlashBps)/);
+  });
+
+  test("the panel reuses the shared evidence kind table, not a copy", async () => {
+    const panel = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    const verify = await readFile("src/components/panels/Verify.tsx", "utf8");
+    const record = await readFile("src/lib/verification/evidenceRecord.ts", "utf8");
+    // The table lives in `evidenceRecord.ts`; both panels import it.
+    expect(record).toContain("zk-execution");
+    expect(panel).toContain("EVIDENCE_KINDS");
+    expect(verify).toContain("from \"../../lib/verification/evidenceRecord\"");
+    // Verify keeps the usage, not the local copy.
+    expect(verify).not.toMatch(/const EVIDENCE_KINDS = \[/);
+  });
+
+  test("config pins the retiring V3 and adds the V4 write path", async () => {
+    const src = await readFile("src/lib/config.ts", "utf8");
+    expect(src).toContain("0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec");
+    expect(src).toContain("VITE_DISPUTE_V4");
+    expect(src).toContain("DISPUTE_V4_ENABLED");
+  });
+
+  test("the retiring V3 keeps a read path with its finalize", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    expect(src).toContain("DISPUTE_V3_ADDRESS");
+    expect(src).toContain("finalize");
+  });
+
+  test("each absent reason has its plain-language sentence", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    expect(src).toContain("no verifier is wired for this kind on the evidence registry");
+    expect(src).toContain("nothing anchored for this call");
+    expect(src).toContain("anchored, but for a different response than the one this call committed");
+    expect(src).toContain("signed by a key; a signature cannot bind a response on chain");
+    expect(src).toContain("the wired verifier does not bind the call's response");
+  });
+
+  test("the block states the read-only nature once, in visible copy", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    expect(src).toContain("changes neither the bond, the slash, nor the verdict");
+  });
+
+  test("the legacy finalize button is gated on V3's own appeal window", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    // `legacyCanFinalize` reads the window resolved per record (V3 layout), so
+    // both a named field and the positional index work.
+    expect(src).toMatch(/legacyCanFinalize[\s\S]{0,400}legacyAppealWindow/);
+  });
+});

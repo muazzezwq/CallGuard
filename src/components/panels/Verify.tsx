@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { keccak256, toBytes } from "viem";
-import { decodeEvidence, EVIDENCE_MODES, type EvidenceRecord } from "../../lib/verification/evidenceRecord";
+import { decodeEvidence, EVIDENCE_MODES, EVIDENCE_KINDS, EVIDENCE_KIND_NAMES, type EvidenceRecord } from "../../lib/verification/evidenceRecord";
 import { arcTestnet, CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8, PPC_ABI_V8_ACTIVE, SLA_PROVENANCE_ADDRESS, SLA_PROVENANCE_ENABLED, SLA_PROVENANCE_ABI, SLA_EVIDENCE_ADDRESS, SLA_EVIDENCE_ENABLED, SLA_EVIDENCE_ABI, SLA_EVIDENCE_V2_ADDRESS, SLA_EVIDENCE_V2_ENABLED, SLA_EVIDENCE_ABI_V2 } from "../../lib/config";
 import { formatUsdc } from "../../lib/callCosts";
 import { classifyReceipt, classifyVerdict } from "../../lib/txLifecycle";
@@ -57,20 +57,6 @@ function formatAmount(value: unknown): string | undefined {
   if (value == null) return undefined;
   try { return formatUsdc(BigInt(String(value))); } catch { return undefined; }
 }
-
-/** The three claim kinds the verification layer can record. Each label names the
- *  claim instead of saying "verified", because the tiers prove different things.
- *  `name` is the wire name `/api/evidence` answers for; `kind` is its keccak. */
-const EVIDENCE_KINDS = [
-  // The one proof this repository can point at a committed artifact for: a RISC Zero
-  // receipt about the call's execution, verified on chain by `Risc0ExecutionAdapter`.
-  { label: "ZK execution proof", name: "zk-execution", kind: keccak256(toBytes("zk-execution")) },
-  { label: "ZK output constraint", name: "zk-constraint", kind: keccak256(toBytes("zk-constraint")) },
-  { label: "TEE execution image", name: "tee-attestation", kind: keccak256(toBytes("tee-attestation")) },
-  { label: "Witness observation", name: "witness", kind: keccak256(toBytes("witness")) },
-] as const;
-
-const EVIDENCE_KIND_NAMES = new Map<string, string>(EVIDENCE_KINDS.map(({ label, name }) => [label, name]));
 
 /** A decoded registry row plus the panel's presentation fields. */
 type RegistryRow = EvidenceRecord & { label: string; mode: number };

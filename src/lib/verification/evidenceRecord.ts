@@ -12,6 +12,7 @@
  * normalization. It never throws: a registry answered with these words, and a
  * failed decode must read as "unreadable row", not a crash.
  */
+import { keccak256, toBytes } from "viem";
 
 export interface EvidenceRecord {
   claimHash: string;
@@ -34,6 +35,21 @@ export const EVIDENCE_MODES = [
   "off-chain check, signed by a key",
   "checked on chain",
 ] as const;
+
+/** The claim kinds the verification layer can record. Each label names the
+ *  claim instead of saying "verified", because the tiers prove different things.
+ *  `name` is the wire name `/api/evidence` answers for; `kind` is its keccak.
+ *  Shared by the Verify panel and the Disputes evidence snapshot card. */
+export const EVIDENCE_KINDS = [
+  // The one proof this repository can point at a committed artifact for: a RISC Zero
+  // receipt about the call's execution, verified on chain by `Risc0ExecutionAdapter`.
+  { label: "ZK execution proof", name: "zk-execution", kind: keccak256(toBytes("zk-execution")) },
+  { label: "ZK output constraint", name: "zk-constraint", kind: keccak256(toBytes("zk-constraint")) },
+  { label: "TEE execution image", name: "tee-attestation", kind: keccak256(toBytes("tee-attestation")) },
+  { label: "Witness observation", name: "witness", kind: keccak256(toBytes("witness")) },
+] as const;
+
+export const EVIDENCE_KIND_NAMES = new Map<string, string>(EVIDENCE_KINDS.map(({ label, name }) => [label, name]));
 
 /** String(v) then BigInt, tolerating hex strings, decimal strings and bigints. */
 function toUint64(value: unknown): number {

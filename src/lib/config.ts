@@ -90,6 +90,17 @@ const V8_KEEPER_ADDRESS = envAddress(import.meta.env.VITE_SLA_KEEPER as string |
 const DISPUTE_ADDRESS_ENV = envAddress(
   (import.meta.env.VITE_DISPUTE_V3 ?? import.meta.env.VITE_DISPUTE_V2) as string | undefined,
 );
+/// DisputeV4 adds the evidence snapshot (`evidenceOf`) on top of the V3 money
+/// flow. Optional until that deployment is wired: without the variable the
+/// panel keeps resolving today's contract, so nothing breaks before the deploy.
+const DISPUTE_V4_ADDRESS = envAddress(import.meta.env.VITE_DISPUTE_V4 as string | undefined) as `0x${string}`;
+export const DISPUTE_V4_ENABLED = DISPUTE_V4_ADDRESS.length === 42;
+/// DisputeV3 is retired, but it still holds dispute #4's `3.481864` USDC escrow.
+/// The address is pinned as a literal, not read from `VITE_DISPUTE_V3`: the env
+/// moves to V4, and the legacy section in the Disputes panel must keep reading
+/// the V3 contract (its `disputeCount`, records and `finalize`) until the
+/// escrow is released. Do not repoint this constant.
+export const DISPUTE_V3_ADDRESS = "0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec" as `0x${string}`;
 
 export const V8_ENABLED = Boolean(V8_REGISTRY_ADDRESS && V8_PAY_PER_CALL_ADDRESS);
 
@@ -100,8 +111,7 @@ export const V8_CONFIG = {
   ppcAddress: V8_PAY_PER_CALL_ADDRESS as `0x${string}`,
   keeper: V8_KEEPER_ADDRESS,
   keeperAddress: V8_KEEPER_ADDRESS as `0x${string}`,
-  dispute: DISPUTE_ADDRESS_ENV,
-  disputeAddress: DISPUTE_ADDRESS_ENV as `0x${string}`,
+  dispute: (DISPUTE_V4_ENABLED ? DISPUTE_V4_ADDRESS : DISPUTE_ADDRESS_ENV) as `0x${string}`,
 };
 
 /// True when the dispute contract is DisputeV3 (slash escrowed at open). The
@@ -559,6 +569,30 @@ export const DISPUTE_V2_ABI = [
   // simply returns no data and the notice stays hidden.
   { name: "previewSlash", type: "function", stateMutability: "view",
     inputs: [{name:"providerId",type:"uint256"}], outputs: [{type:"uint256"}] },
+  // DisputeV4 evidence snapshot. `openDispute` records one row per configured
+  // kind at open time; no settlement path reads it, and neither does the panel's
+  // arithmetic. The `LinkedEvidence` struct order must match DisputeV4.sol:
+  // kind, claimHash, responseHash, statementHash, assumptionHash, verifier,
+  // anchoredAt, mode, bound, present, reason (AbsentReason enum: 0 None,
+  // 1 NoVerifier, 2 NoAnchor, 3 WrongResponse, 4 ModeIsSignature,
+  // 5 VerifierNotBinding).
+  { name: "evidenceOf", type: "function", stateMutability: "view",
+    inputs: [{name:"disputeId",type:"uint256"}],
+    outputs: [{name:"", type:"tuple[]", components: [
+      {name:"kind",type:"bytes32"},
+      {name:"claimHash",type:"bytes32"},
+      {name:"responseHash",type:"bytes32"},
+      {name:"statementHash",type:"bytes32"},
+      {name:"assumptionHash",type:"bytes32"},
+      {name:"verifier",type:"address"},
+      {name:"anchoredAt",type:"uint64"},
+      {name:"mode",type:"uint8"},
+      {name:"bound",type:"bool"},
+      {name:"present",type:"bool"},
+      {name:"reason",type:"uint8"},
+    ]}] },
+  { name: "evidenceKinds", type: "function", stateMutability: "view",
+    inputs: [], outputs: [{type:"bytes32[]"}] },
 ] as const;
 
 export const wagmiConfig = createConfig(
