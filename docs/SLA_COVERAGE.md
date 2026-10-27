@@ -45,6 +45,7 @@ Status vocabulary:
 | B6 | Either party can appeal once inside `appealWindow`, and the appeal arbiter can reverse the first decision | `appeal`, `resolveAppeal`, 6 tests | Dispute #3 driven end to end on chain: `openDispute` tx `0x9d5a0080…6e36` (block `69066558`, `SlashHeld(3, 3868738)`), `resolve` tx `0x37577f4b…186c` (`DisputeResolved(3, Upheld, 3868738)`), `appeal` tx `0x2067bb59…1b0b`, `resolveAppeal` tx `0x66184d39…f6b8` (`AppealResolved(3, AppealUpheld, 3868738)`). The caller got the `3.868738` escrow back plus the `3.0` appeal bond, `settled(3) = true`, `heldSlash(3) = 0`, stake `38.687386 → 34.818648` | PASS — on chain; the panel renders the same state, the clicks were sent from the owner CLI because the dev browser has no wallet |
 | B7 | After `appealWindow`, `finalize` pays the held slash to the caller and marks the dispute settled | `finalize`, `test_finalize_releasesHeldSlashToCaller` | all three open disputes were finalized on chain: `DisputeV2` #1 tx `0xa09b50b2…` (26 Oct `18:59:36`, `settled = true`, `heldSlash 0`), `DisputeV3` #1 tx `0x7fe6d6fa…` block `69230325` (26 Oct `20:14:41`, `0.576512` USDC returned, `heldSlash 0`), `DisputeV3` #2 tx `0xdc1e6ff9…` block `69238954` (26 Oct `21:53:50`, gas `85,048`, `0.41472` USDC returned to the owner wallet, `heldSlash 0`). A replay of either `finalize` now reverts `AlreadySettled()` (`0x560ff900`), which is what the `PARTIAL` above was waiting to see. The retired `DisputeV2` slasher authority was then removed: `ServiceRegistryV8.revokeSlasher(0xe5D993E0…0900)` tx `0xc0d3f541…` block `69238925`, gas `27,592`, `SlasherRevoked` → `authorizedSlashers(DisputeV2) = false` | **PASS** — the escrow pays out after the window and only after it |
 | B8 | If the arbiter never resolves, the caller reclaims the bond after `resolutionWindow` | `reclaimExpiredBond`, 2 tests | the live drill does not demonstrate this path any more: dispute #4 on call `0xb773c233…` (`openDispute` tx `0x6f94d2a6…cac8`, block `69067859`) opened `2026-10-25 17:42:05 UTC` and was **resolved `Upheld` at `18:27:26 UTC`** (`resolvedAt = 1792952846`), so `reclaimExpiredBond(4)` reverts `AlreadyResolved()` — the 7-day window it was waiting on never applies to a resolved dispute. What #4 does leave behind is `finalize(4)`: permissionless after `resolvedAt + appealWindow` = `2026-10-27 18:27:26 UTC`, releasing `heldSlash(4) = 3481864` (3.481864 USDC) to the caller. The silence path now needs a fresh drill: open a dispute, leave it `Pending` past `resolutionWindow` (`604800` s), then `reclaimExpiredBond` | PARTIAL — the mechanism is tested and `reclaimExpiredBond` is in the contract; the live row needs a new quiet dispute after #4 is finalized |
+| B9 | An anchored evidence claim becomes a dispute input: the snapshot is written at `openDispute`, checked against the call's response, and carries a stated reason when it cannot bind | `DisputeV4.evidenceOf(uint256)` reads a `LinkedEvidence` row per configured kind (`mode`, `bound`, `present`, `reason`). `bound` requires `modeOf(kind) == Proof`, `bindsResponse[kind]` recorded by the owner at wiring time, and the anchored `responseHash` equal to the call's. `AbsentReason` names the first failing check (`NoVerifier`, `NoAnchor`, `WrongResponse`, `ModeIsSignature`, `VerifierNotBinding`) so "nothing anchored" and "signed by a key" are never the same sentence | `test/DisputeV4.t.sol` — 47 tests including one per reason, the empty-allowlist no-op, the V3 cross-contract guard, and `test_balancesAreIdenticalWithAndWithoutEvidence`, which asserts the caller/provider/treasury deltas are exactly equal with and without a bound claim for both verdicts | **PARTIAL** — mechanism implemented and tested on branch `feat/dispute-evidence`; no `SLAEvidenceRegistryV2` or `DisputeV4` is deployed, so no live dispute carries a bound claim yet. Evidence never changes `disputeBond`, `appealBond`, `disputeSlashBps`, a window, or a verdict |
 
 ## C — Financial
 
@@ -146,9 +147,9 @@ slashes, so the incentive still points at serving.
 | Axis | PASS | PARTIAL | GAP |
 |---|---|---|---|
 | A — Availability | 8 | 0 | 0 |
-| B — Quality | 10 | 2 | 0 |
+| B — Quality | 10 | 3 | 0 |
 | C — Financial | 8 | 0 | 0 |
-| **Total** | **26** | **2** | **0** |
+| **Total** | **26** | **3** | **0** |
 
 Reading: the money axis is the strongest, quality is the weakest *in proof* (the
 mechanism exists, but appeal/finalize/reclaim were never driven from the UI), and
@@ -187,10 +188,11 @@ this" and "this program ran" are different claims, and only the second one is no
    costs nothing to run; what it proves is still `ping`/`pong`. The next honest step is a guest
    whose journal commits a fact the caller cares about (e.g. a response body typed against a
    declared schema), so the claim covers more than "this program ran".
-1. **B8 — run `reclaimExpiredBond(4)` on 1 Nov 17:42:05 UTC** — dispute #4 is
-   `Pending` with `3.481864` escrowed and the arbiter must not touch it. The
-   reclaim returns the `2.0` bond to the caller and the escrow to the provider, so
-   silence from the arbiter costs nobody. Nobody may `resolve` it before then.
+1. **B8 — run `finalize(4)`** — dispute #4 resolved `Upheld` on 25 Oct, so
+   `finalize(4)` became callable at `2026-10-27 18:27:26 UTC` and releases
+   `heldSlash(4) = 3481864` (`3.481864 USDC`) to the caller. `finalize` is
+   permissionless, and `reclaimExpiredBond(4)` now reverts `AlreadyResolved`.
+   The remaining gap is a fresh quiet dispute for the silence path, not #4.
 2. **A4 — keeper cadence** — measured, not assumed: 8 runs in 26 h (roughly every
    3-6 h) against a `*/15` request, so the workflow now also runs on every push to
    `main` and carries an offset second cron (commit `56d48da`). A call can still sit

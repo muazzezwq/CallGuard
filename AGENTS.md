@@ -152,6 +152,29 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
+## Dispute evidence binding (branch `feat/dispute-evidence`) — PENDING, NOT DEPLOYED
+
+`SLAEvidenceRegistryV2` and `DisputeV4` are implemented, tested on branch `feat/dispute-evidence`,
+and **not deployed**. Nothing in this section is live; do not point the app, the API or a reader at
+an address from here until the owner has signed the transactions and the addresses are read back
+from chain.
+
+| Artifact | Address |
+|---|---|
+| `SLAEvidenceRegistryV2` | pending user signature — `script/DeployEvidenceV2.s.sol` prints it |
+| `DisputeV4` | pending user signature — same script |
+| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec` |
+
+Seven owner calls remain, in this order, each printed with exact arguments by
+`forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet`:
+two `setProofVerifier(..., true)` calls on the new registry, `setSignatureVerifier` for `witness`
+(when an attestor exists), `DisputeV4.setEvidenceKinds([...4 kinds...])` — **required**, since an
+empty allowlist makes `openDispute` snapshot nothing and the feature ships silently doing nothing —
+then `revokeSlasher(DisputeV3)` and `authorizeSlasher(DisputeV4)` on `ServiceRegistryV8`, then the
+re-anchor of the live zk-execution fixture. Env after signing: `SLA_EVIDENCE_V2`,
+`VITE_SLA_EVIDENCE_V2`, `VITE_DISPUTE_V4`. Runbook and per-step read-backs:
+`docs/V8_DEPLOYMENT.md` §14.
+
 ## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — additive, no v8 contract changed
 
 | Contract | Address |

@@ -8,6 +8,7 @@ import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { DisputeV4, ISLAEvidenceV2 } from "../contracts/DisputeV4.sol";
 import { DisputeV3 } from "../contracts/DisputeV3.sol";
+import { DeployEvidenceV2 } from "../script/DeployEvidenceV2.s.sol";
 import { SLAEvidenceRegistryV2, IEvidenceVerifier } from "../contracts/SLAEvidenceRegistryV2.sol";
 import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
 import { IDisputeV2 } from "../contracts/interfaces/IDisputeV2.sol";
@@ -70,6 +71,7 @@ contract DisputeV4Test is Test {
     address internal adapter;
 
     function setUp() public {
+        deployScript = new DeployEvidenceV2();
         signer = vm.addr(signerPk);
         (attestor, attestorKey) = makeAddrAndKey("attestor");
 
@@ -972,6 +974,129 @@ contract DisputeV4Test is Test {
     }
 
     // ---------------------------------------------------------------------
+    // deploy-script wiring order (Task 12)
+    // ---------------------------------------------------------------------
+
+    bytes32 internal constant WITNESS = keccak256("witness");
+    bytes32 internal constant ZK_CONSTRAINT = keccak256("zk-constraint");
+
+    // The live zk-execution fixture (src/lib/verification/fixtures/zk-execution.json
+    // and its statement/assumption twin pinned in test/ClaimHashes.t.sol).
+    bytes32 internal constant FIXTURE_CALL_ID = 0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265;
+    bytes32 internal constant FIXTURE_RESPONSE_HASH = 0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d;
+    bytes32 internal constant FIXTURE_CLAIM_HASH = 0xe3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c;
+    bytes32 internal constant FIXTURE_STATEMENT_HASH = 0xf638c765d435690aa9da23cf4ab8d3e58f5b29ea8f7ee90d85829f583cd510f9;
+    bytes32 internal constant FIXTURE_ASSUMPTION_HASH = 0xa007194563d9649410719f9f3ba3daf8a8ccefb11c70a25d51be40753d91fef9;
+
+    /// Instance of the deploy script, so the test can read its pinned live
+    /// values through the public getters — static `DeployEvidenceV2.CONSTANT`
+    /// member access from a test is not resolvable under dynamic test linking.
+    DeployEvidenceV2 internal deployScript;
+
+    /// Live values are pinned in the deploy script's defaults, not only in tests,
+    /// so the script itself is the source for the wiring parameters used here.
+    function test_deployScriptLiveDefaultsMatchTheControllerValues() public view {
+        assertEq(deployScript.LIVE_LEGACY_DISPUTE(), address(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec));
+        assertEq(deployScript.DISPUTE_BOND_DEFAULT(), 2_000_000);
+        assertEq(deployScript.APPEAL_BOND_DEFAULT(), 3_000_000);
+        assertEq(deployScript.DISPUTE_WINDOW_DEFAULT(), 604_800);
+        assertEq(deployScript.APPEAL_WINDOW_DEFAULT(), 172_800);
+        assertEq(deployScript.RESOLUTION_WINDOW_DEFAULT(), 604_800);
+        assertEq(deployScript.DISPUTE_SLASH_BPS_DEFAULT(), 1_000);
+        assertEq(deployScript.ZK_CONSTRAINT_ADAPTER(), address(0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E));
+        assertEq(deployScript.ZK_EXECUTION_ADAPTER(), address(0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21));
+    }
+
+    /// `Proof` kinds with `bindsResponse = true`, configure all four kinds, then
+    /// anchor the live fixture's claim. A kind left unwired, a wrong
+    /// `bindsResponse`, or a `DisputeV4` deployed without the evidence wire
+    /// cannot get through this.
+    function test_wiringSequenceLeavesNoKindUnwired() public {
+        // 1. The script deploys the registry with the same owner that wires it.
+        vm.prank(admin);
+        SLAEvidenceRegistryV2 freshRegistry = new SLAEvidenceRegistryV2(admin);
+
+        // 2. The two Proof kinds across the two adapters, in script order.
+        vm.startPrank(admin);
+        freshRegistry.setProofVerifier(ZK_CONSTRAINT, deployScript.ZK_CONSTRAINT_ADAPTER(), true);
+        freshRegistry.setProofVerifier(ZK_EXECUTION, deployScript.ZK_EXECUTION_ADAPTER(), true);
+        vm.stopPrank();
+
+        assertEq(uint8(freshRegistry.modeOf(ZK_CONSTRAINT)), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertEq(uint8(freshRegistry.modeOf(ZK_EXECUTION)), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertTrue(freshRegistry.bindsResponse(ZK_CONSTRAINT));
+        assertTrue(freshRegistry.bindsResponse(ZK_EXECUTION));
+
+        // 3. V4 deployed with the live-shape constructor (live windows and
+        //    bonds, driven by the script's pinned defaults).
+        DisputeV4 wired = new DisputeV4(
+            IERC20(address(usdc)),
+            registry,
+            payPerCall,
+            arbiter,
+            appealArbiter,
+            treasury,
+            deployScript.DISPUTE_BOND_DEFAULT(),
+            deployScript.APPEAL_BOND_DEFAULT(),
+            uint32(deployScript.DISPUTE_WINDOW_DEFAULT()),
+            uint32(deployScript.APPEAL_WINDOW_DEFAULT()),
+            uint32(deployScript.RESOLUTION_WINDOW_DEFAULT()),
+            uint16(deployScript.DISPUTE_SLASH_BPS_DEFAULT()),
+            ISLAEvidenceV2(address(freshRegistry)),
+            legacyDispute
+        );
+        // openDispute at step 7 escrows the 2e6 bond, so the caller approves.
+        vm.prank(caller);
+        usdc.approve(address(wired), type(uint256).max);
+        // openDispute also escrows the slash, and only an authorized slasher
+        // may call registry.slash().
+        vm.prank(admin);
+        registry.authorizeSlasher(address(wired));
+
+        // 4. The allowlist is required: with an empty one `openDispute`
+        //    snapshots nothing and the feature ships silently doing nothing.
+        bytes32[] memory kinds = new bytes32[](4);
+        kinds[0] = WITNESS;
+        kinds[1] = TEE_ATTESTATION;
+        kinds[2] = ZK_CONSTRAINT;
+        kinds[3] = ZK_EXECUTION;
+        vm.prank(arbiter);
+        wired.setEvidenceKinds(kinds);
+        assertEq(wired.evidenceKinds().length, 4);
+
+        // 5. A completed call whose response hash is the fixture's, so the
+        //    anchored claim really binds this dispute's call. The live adapter
+        //    addresses are pinned, so both adapters are given the mock
+        //    verifier's code here; the wiring and addresses under test stay
+        //    the script's own live constants.
+        vm.etch(deployScript.ZK_CONSTRAINT_ADAPTER(), address(new MockProofVerifier()).code);
+        vm.etch(deployScript.ZK_EXECUTION_ADAPTER(), address(new MockProofVerifier()).code);
+        bytes32 callId = _completedCallWithResponse(FIXTURE_RESPONSE_HASH);
+        vm.prank(caller);
+        freshRegistry.anchor(callId, ZK_EXECUTION, FIXTURE_CLAIM_HASH, FIXTURE_RESPONSE_HASH, FIXTURE_STATEMENT_HASH, FIXTURE_ASSUMPTION_HASH, "");
+
+        // 6. The fixture's claim reads back anchored on this call.
+        assertTrue(freshRegistry.isAnchored(callId, ZK_EXECUTION, FIXTURE_CLAIM_HASH));
+
+        // 7. Open the dispute: the snapshot must report the claim bound.
+        vm.prank(caller);
+        uint256 id = wired.openDispute(callId, providerId, "ipfs://evidence");
+
+        DisputeV4.LinkedEvidence[] memory rows = wired.evidenceOf(id);
+        assertEq(rows.length, 4);
+        DisputeV4.LinkedEvidence memory zkRow = rows[3];
+        assertEq(zkRow.kind, ZK_EXECUTION);
+        assertTrue(zkRow.present);
+        assertTrue(zkRow.bound);
+        assertEq(uint8(zkRow.mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertEq(zkRow.claimHash, FIXTURE_CLAIM_HASH);
+        assertEq(zkRow.responseHash, FIXTURE_RESPONSE_HASH);
+        assertEq(zkRow.statementHash, FIXTURE_STATEMENT_HASH);
+        assertEq(zkRow.assumptionHash, FIXTURE_ASSUMPTION_HASH);
+        assertEq(uint8(zkRow.reason), uint8(DisputeV4.AbsentReason.None));
+    }
+
+    // ---------------------------------------------------------------------
     // legacy guard (V3 cross-checks)
     // ---------------------------------------------------------------------
 
@@ -1045,10 +1170,16 @@ contract DisputeV4Test is Test {
     }
 
     function _completedCall() internal returns (bytes32 callId) {
+        callId = _completedCallWithResponse(RESPONSE_HASH);
+    }
+
+    /// Same flow as `_completedCall`, but the committed response hash is chosen
+    /// by the caller of the helper, so an anchored claim can bind a test call
+    /// exactly the way the live fixture binds its on-chain call.
+    function _completedCallWithResponse(bytes32 responseHash) internal returns (bytes32 callId) {
         vm.prank(caller);
         callId = payPerCall.callService(providerId, keccak256("request"));
 
-        bytes32 responseHash = keccak256("response");
         uint64 respondedAt = uint64(block.timestamp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             signerPk,

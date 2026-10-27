@@ -768,3 +768,86 @@ Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkv
 `r0vm 3.0.6`, `cargo-risczero 3.0.6`, host Rust `1.91.0`, guest Rust `1.88.0` via
 `rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
 4.3.0`) because the guest toolchain resolves differently from the host.
+
+## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — ready to deploy
+
+`DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
+snapshot of every configured evidence kind for that call. `SLAEvidenceRegistryV2` is the v1
+registry plus two hashes (the claim's statement and its assumptions) and one wiring flag
+(`bindsResponse`). Evidence never changes `disputeBond`, `appealBond`, `disputeSlashBps`, a
+window, or a verdict — `test_balancesAreIdenticalWithAndWithoutEvidence` asserts the caller,
+provider and treasury deltas are exactly equal with and without a bound claim, for both
+verdicts.
+
+Status: **not deployed**. Everything below is what the owner runs; the agent does not broadcast
+an owner-wallet transaction.
+
+### 14.1 What the script does
+
+```bash
+forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet            # dry run
+forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet --broadcast # two deploys
+```
+
+It deploys `SLAEvidenceRegistryV2` (owner = `EVIDENCE_OWNER_ADDRESS`, default the live owner
+`0xfbac99E6…06Da`) and `DisputeV4` with the live parameters, checks each constructor argument
+back on chain, and then prints the seven owner calls with exact arguments. It refuses to
+continue if any read-back disagrees. Live defaults it pins:
+`DISPUTE_BOND=2000000`, `APPEAL_BOND=3000000`, `DISPUTE_WINDOW=604800`,
+`APPEAL_WINDOW=172800`, `RESOLUTION_WINDOW=604800`, `DISPUTE_SLASH_BPS=1000`,
+`LEGACY_DISPUTE=0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec`.
+`test/DisputeV4.t.sol::test_deployScriptLiveDefaultsMatchTheControllerValues` fails if one drifts.
+
+### 14.2 The seven owner calls, and what "wrong" looks like
+
+Run them in this order. Each read-back is the gate for the next one.
+
+| # | Call | Read-back | What wrong looks like |
+|---|---|---|---|
+| 1 | `registryV2.setProofVerifier(keccak256("zk-constraint"), 0x8bD4fB9F…664E, true)` | `modeOf(kind) == 2`, `bindsResponse(kind) == true` | `bindsResponse` false → every `zk-constraint` row reads `VerifierNotBinding` and never binds |
+| 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
+| 3 | `registryV2.setSignatureVerifier(keccak256("witness"), <attestor>, true)` — optional | `signatureVerifier(kind, attestor) == true` | skipped when no attestor exists; `witness` rows then read `NoVerifier`, which is visible on chain and silent in the money paths |
+| 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
+| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4F4846Ec36Fec)` | `authorizedSlashers(V3) == false` | two authorised contracts could slash the same stake; V3 cannot open a new dispute on the call V4 already holds, but its authority is not needed |
+| 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |
+| 7 | `registryV2.anchor(<fixture callId>, keccak256("zk-execution"), …)` with the fixture's four hashes and `` `0x$(xxd -p test/fixtures/zk-execution/seal.bin)` `` | `isAnchored(callId, kind, claimHash) == true`, `modeOf(kind) == 2` | the live UI row disappears; the v1 anchor on the old registry still stands, so the panel would read the v1 row and say the registry predates statement hashing |
+
+Order matters twice: steps 1-2 must precede step 7 (an unwired kind rejects the anchor), and
+step 6 must follow step 5 conceptually — the window where neither contract is authorised is
+harmless (no dispute can open for a few minutes) while the reverse order is not.
+
+### 14.3 Env after signing
+
+```bash
+SLA_EVIDENCE_V2=<registryV2>      # server: /api/evidence reads it
+VITE_SLA_EVIDENCE_V2=<registryV2> # browser: dual v1/v2 read in Verify
+VITE_DISPUTE_V4=<disputeV4>       # dispute write path; DisputeV3 stays readable
+```
+
+`/api/evidence` answers `anchored: false, note: "no-registry"` until `SLA_EVIDENCE_V2` is set, so
+an unconfigured deployment says so instead of pretending nothing is anchored.
+
+### 14.4 Post-deploy smoke test
+
+The route's module loading was fixed once already (`api/evidence.js` imports compiled specifiers
+and loads its fixture through `createRequire`); a green `bun test` only proves bun resolves it.
+After the deploy, against production:
+
+```bash
+curl -s "https://arcsla.vercel.app/api/evidence?callId=0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265&kind=zk-execution"
+# expect: "anchored": true, "match": true, "source": "fixture", "note": null
+```
+
+`match: false` with `note: null` means the anchored hashes disagree with the served envelope —
+stop and compare `statementHash` and `assumptionHash` with the values in
+`test/ClaimHashes.t.sol`. A 500 means the function did not load; rebuild and check
+`.vercel/output/functions/api/evidence.func/api/evidence.js` for a `.ts` specifier.
+
+### 14.5 What this does not claim
+
+A bound claim means the anchored `responseHash` equals the call's and the kind's verifier was
+recorded as binding the response. It does not mean the answer is correct, and it does not move
+money. The four claim kinds keep their scopes: `witness` (a key saw the bytes),
+`tee-attestation` (synthetic evidence only, §12), `zk-constraint` (the committed hash has a
+preimage meeting a stated predicate), `zk-execution` (a guest with the published image id ran and
+committed these four words).
