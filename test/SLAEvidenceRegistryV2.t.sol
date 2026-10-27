@@ -147,4 +147,14 @@ contract SLAEvidenceRegistryV2Test is Test {
         vm.expectRevert(SLAEvidenceRegistryV2.NotOwner.selector);
         registry.setProofVerifier(ZK_EXEC, address(adapter), true);
     }
+
+    function test_signatureWiringOverwritesTheBindingFlag() public {
+        vm.startPrank(admin);
+        registry.setProofVerifier(ZK_EXEC, address(adapter), false);
+        assertFalse(registry.bindsResponse(ZK_EXEC));
+        registry.setSignatureVerifier(ZK_EXEC, attestor, true);
+        vm.stopPrank();
+        assertTrue(registry.bindsResponse(ZK_EXEC));
+        assertEq(uint8(registry.modeOf(ZK_EXEC)), uint8(SLAEvidenceRegistryV2.VerifierMode.Signature));
+    }
 }

@@ -115,12 +115,16 @@ contract SLAEvidenceRegistryV2 {
 
     /// @notice Allows or revokes a key that vouches for off-chain-verified claims.
     /// @dev    Revoking stops new anchors for that kind and leaves history intact.
+    ///         A signature-mode digest already covers `responseHash`, so
+    ///         `bindsResponse` is true by construction for that mode; `bound`
+    ///         in DisputeV4 still requires `Proof` mode, so this changes no verdict.
     function setSignatureVerifier(bytes32 kind, address verifier, bool allowed) external onlyOwner {
         if (verifier == address(0)) revert InvalidAddress();
         if (allowed) modeOf[kind] = VerifierMode.Signature;
         // A signature-mode verifier always signs the v2 digest, which includes
         // responseHash, so its wiring always binds the response.
         signatureVerifier[kind][verifier] = allowed;
+        bindsResponse[kind] = true;
         emit VerifierChanged(kind, verifier, VerifierMode.Signature, allowed, true);
     }
 
@@ -130,12 +134,12 @@ contract SLAEvidenceRegistryV2 {
     ///         `verify` (which reads the journal's `callId` and `responseHash`). The
     ///         registry does not derive this flag and cannot check it on its own; it
     ///         only records what the owner attests about the verifier it installed.
-    function setProofVerifier(bytes32 kind, address verifier, bool binds) external onlyOwner {
+    function setProofVerifier(bytes32 kind, address verifier, bool bindsResponse_) external onlyOwner {
         if (verifier == address(0)) revert InvalidAddress();
         modeOf[kind] = VerifierMode.Proof;
         proofVerifier[kind] = verifier;
-        bindsResponse[kind] = binds;
-        emit VerifierChanged(kind, verifier, VerifierMode.Proof, true, binds);
+        bindsResponse[kind] = bindsResponse_;
+        emit VerifierChanged(kind, verifier, VerifierMode.Proof, true, bindsResponse_);
     }
 
     // ---------------------------------------------------------------------
