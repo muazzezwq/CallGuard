@@ -576,10 +576,11 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
 }
 
 /// @title ISLAEvidenceV2
-/// @notice Minimal evidence-registry surface DisputeV4 needs. Task 5 reads
-///         `getEvidence` to snapshot the anchored claim into the dispute;
-///         later tasks consult `modeOf` and `bindsResponse`. Declared here so
-///         the dispute never imports the concrete registry contract.
+/// @notice Minimal evidence-registry surface DisputeV4 needs. `openDispute` reads
+///         `getEvidence` to snapshot the anchored claim into the dispute, and
+///         `modeOf`/`bindsResponse` resolve why an anchored claim is unbound.
+///         Declared here so the dispute never imports the concrete registry
+///         contract.
 interface ISLAEvidenceV2 {
     struct Evidence {
         bytes32 kind;

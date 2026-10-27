@@ -63,6 +63,7 @@ contract DisputeV4Test is Test {
     bytes32 internal constant ZK_EXECUTION = keccak256("zk-execution");
     bytes32 internal constant TEE_ATTESTATION = keccak256("tee-attestation");
     bytes32 internal constant NO_VERIFIER_KIND = keccak256("no-verifier");
+    bytes32 internal constant UNBOUND_PROOF_KIND = keccak256("unbound-proof");
 
     uint256 internal providerId;
     DisputeV3 internal legacyDispute;
@@ -695,7 +696,30 @@ contract DisputeV4Test is Test {
         assertEq(rows.length, 1);
         assertTrue(rows[0].present);
         assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].reason), uint8(DisputeV4.AbsentReason.ModeIsSignature));
         assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Signature));
+        assertEq(rows[0].claimHash, CLAIM_HASH);
+        assertEq(rows[0].responseHash, RESPONSE_HASH);
+    }
+
+    function test_unboundWhenProofVerifierDoesNotBind() public {
+        _wireProof(UNBOUND_PROOF_KIND, false);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = UNBOUND_PROOF_KIND;
+        _setKinds(kinds);
+
+        bytes32 callId = _completedCall();
+        _anchorProof(callId, UNBOUND_PROOF_KIND, RESPONSE_HASH);
+
+        expectEmitEvidenceLinked(1, UNBOUND_PROOF_KIND, CLAIM_HASH, 2, false);
+        uint256 id = _openDispute(callId);
+
+        DisputeV4.LinkedEvidence[] memory rows = dispute.evidenceOf(id);
+        assertEq(rows.length, 1);
+        assertTrue(rows[0].present);
+        assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].reason), uint8(DisputeV4.AbsentReason.VerifierNotBinding));
+        assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
         assertEq(rows[0].claimHash, CLAIM_HASH);
         assertEq(rows[0].responseHash, RESPONSE_HASH);
     }
@@ -812,6 +836,24 @@ contract DisputeV4Test is Test {
     /// Default-state liveness: a fresh contract has no kinds configured, so the
     /// snapshot performs zero external calls and a dispute opens anyway.
     function test_openDispute_snapshotsNothingByDefault() public {
+        assertEq(dispute.evidenceKinds().length, 0);
+
+        bytes32 callId = _completedCall();
+        uint256 id = _openDispute(callId);
+
+        assertEq(dispute.evidenceOf(id).length, 0);
+    }
+
+    /// An empty allowlist is a real no-op and resets back to the fresh-deployment
+    /// state: nothing configured, nothing snapshotted.
+    function test_setEvidenceKinds_acceptsEmptyArray() public {
+        _wireProof(ZK_EXECUTION, true);
+        bytes32[] memory kinds = new bytes32[](1);
+        kinds[0] = ZK_EXECUTION;
+        _setKinds(kinds);
+
+        bytes32[] memory none = new bytes32[](0);
+        _setKinds(none);
         assertEq(dispute.evidenceKinds().length, 0);
 
         bytes32 callId = _completedCall();
