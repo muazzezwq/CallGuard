@@ -192,6 +192,15 @@ function evidenceRowValue(row: { bound: boolean; present: boolean; reason: numbe
   let text: string;
   if (row.bound && row.present) {
     text = "bound — this claim's response matches the call's";
+  } else if (row.bound && !row.present) {
+    // Contract-impossible today (bound implies present), so no AbsentReason
+    // names it: an explicit contradiction sentence instead of rendering the
+    // empty `None` label and looking absent.
+    text = "the snapshot says this claim is bound but carries no anchor — read the dispute on chain before relying on it";
+  } else if (!row.bound && row.present && row.reason === 0) {
+    // The same empty-`None` sharp edge on the inverse combination a contract
+    // cannot produce today: present, unbound, and no reason recorded.
+    text = "the snapshot records a present claim with no binding outcome and no stated reason — read the dispute on chain before relying on it";
   } else {
     text = reasonSentence(row.reason);
   }
@@ -220,13 +229,20 @@ function reasonSentence(reason: number): string {
 // The block states the read-only nature once, in visible copy: bound means the
 // row's response hash equals the call's — it never means the dispute is decided.
 function EvidenceBlock({ id }: { id: number }) {
-  const { data: snapshot } = useReadContract({
+  const { data: snapshot, isLoading } = useReadContract({
     address: DISPUTE_ADDRESS,
     abi: DISPUTE_V2_ABI,
     functionName: "evidenceOf",
     args: [BigInt(id)],
     query: { enabled: SNAPSHOT_LIVE, refetchInterval: 30_000 },
   });
+  // A read still in flight is not an answer: the absent sentence may only be
+  // rendered after the call answered, never while it is loading.
+  if (SNAPSHOT_LIVE && isLoading) {
+    return (
+      <StatusNotice tone="info" title="reading the evidence snapshot…" />
+    );
+  }
   if (!Array.isArray(snapshot) || snapshot.length === 0) {
     if (!SNAPSHOT_LIVE) return null;
     return (

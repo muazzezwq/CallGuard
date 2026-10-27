@@ -59,4 +59,25 @@ describe("dispute evidence snapshot", () => {
     // both a named field and the positional index work.
     expect(src).toMatch(/legacyCanFinalize[\s\S]{0,400}legacyAppealWindow/);
   });
+
+  test("a bound row that is not present reads as a contradiction, not absent", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    // No new reason code: the impossible `bound && !present` combination gets
+    // an explicit sentence, visibly different from the absent sentences.
+    expect(src).toContain("is bound but carries no anchor — read the dispute on chain before relying on it");
+  });
+
+  test("the loading snapshot reads as reading, never as absent", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    // The block destructures `isLoading` and guards with it before the absent
+    // notice: locate the loading guard, then the absent sentence within it.
+    expect(src).toContain("reading the evidence snapshot…");
+    const guard = src.match(/if \([\s\S]{0,80}isLoading\)[\s\S]{0,240}\}/);
+    expect(guard).not.toBeNull();
+    expect(guard![0]).toContain("reading the evidence snapshot…");
+    // What this actually proves: the loading guard's body — the branch taken
+    // while the read is in flight — does not contain the absent sentence, so
+    // "No evidence snapshot recorded" cannot be emitted from the loading path.
+    expect(guard![0]).not.toContain("No evidence snapshot recorded");
+  });
 });
