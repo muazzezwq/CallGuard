@@ -332,3 +332,23 @@ Conservative choices made without stopping. Format: decision + reason.
   `registry.revokeSlasher(DisputeV2)` followed (`0xc0d3f541…`), leaving
   `authorizedSlashers(DisputeV3) = true`. Reason: an unused authority is still authority, and the
   registry's slasher list is the only place that grants it.
+- **`?verify=` is a read-only route, so it opens without a wallet.** `AppGate` turned every walletless
+  `/app` request into a redirect to the landing page, and `/` is where a shared verification link
+  ended up. The gate now opens for `?verify=` alone: that flow calls `api/attestation` and reads the
+  chain, so nothing signs, while every other panel can write and keeps the gate. An empty or
+  malformed id still opens the panel so the reader is told what is wrong instead of landing on a page
+  that looks unrelated.
+- **The shell owns the deep link; the panel owns the verification.** `AppShell` reads `?verify=`,
+  selects the Verify panel and hands it the id through the store. `Verify.tsx` used to read the URL
+  itself as well, which meant two readers and two attestation requests per page load, and its
+  `setTimeout` could fire after unmount. Reason: a panel that is not mounted cannot read its own URL,
+  and a duplicate request per share is not something a shareable link can afford. `verifyInFlight`
+  collapses a repeated request for the same id, which React StrictMode triggers in development
+  (measured: 2 requests before, 1 after).
+- **A displayed address comes from `ACTIVE_*`, never from the legacy constants.** The footer, the
+  landing card, the overview contract lists and the settings network row printed `CONFIG.ppcAddress` /
+  `CONFIG.registryAddress`, which are the retired v7 pair, while the app read and wrote v8. The
+  overview also took its provider count from v7 and disagreed with the v8 subgraph beside it
+  (measured: 1 against 2), and its bulk-call write targeted v7. Reason: a label naming a contract the
+  app does not use is worse than no label. `tests/active-contracts.test.ts` pins those surfaces and
+  keeps `V7Cleanup` on the retired registry, which is what that panel exists for.
