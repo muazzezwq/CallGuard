@@ -86,6 +86,8 @@ interface IDisputeV2 {
 
     function getDisputeByCallId(bytes32 callId) external view returns (DisputeRecord memory);
 
+    function disputeIdByCallId(bytes32 callId) external view returns (uint256);
+
     function disputeWindow() external view returns (uint32);
 
     function appealWindow() external view returns (uint32);

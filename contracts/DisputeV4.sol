@@ -218,13 +218,11 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
 
         // Cross-contract answer to "is this call already disputed": the local
         // check above is cheaper and specific to this contract, the legacy read
-        // covers calls still held by the retiring V3. `DisputeV3` reverts
-        // `DisputeNotFound` for a call it never saw, which is the common case,
-        // so the read is wrapped: a revert means "not held there", a record
-        // with a caller means "held".
-        try legacyDispute.getDisputeByCallId(callId) returns (IDisputeV2.DisputeRecord memory legacy) {
-            if (legacy.caller != address(0)) revert AlreadyDisputedElsewhere();
-        } catch (bytes memory) { }
+        // covers calls still held by the retiring V3. V3 assigns dispute ids
+        // from 1 and never deletes, so a non-zero id means V3 holds the call;
+        // the mapping getter is used because the record getter reverts for an
+        // unknown call, and a guard must not fail open.
+        if (legacyDispute.disputeIdByCallId(callId) != 0) revert AlreadyDisputedElsewhere();
 
         IPayPerCallV8.Call memory call_ = payPerCall.getCall(callId);
         if (call_.status != IPayPerCallV8.CallStatus.Completed || call_.completedAt == 0) {
