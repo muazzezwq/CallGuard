@@ -111,6 +111,9 @@ contract DisputeV4Test is Test {
         adapter = address(new MockProofVerifier());
         registry.setPayPerCall(address(payPerCall));
         registry.authorizeSlasher(address(dispute));
+        // The legacy contract slashes its own escrow at open, so it needs the
+        // registry's slasher authorization too in these tests.
+        registry.authorizeSlasher(address(legacyDispute));
         vm.stopPrank();
 
         usdc.mint(provider, 1_000e6);
@@ -127,6 +130,11 @@ contract DisputeV4Test is Test {
         usdc.approve(address(dispute), type(uint256).max);
         vm.prank(provider);
         usdc.approve(address(dispute), type(uint256).max);
+
+        // Legacy-guard tests open the same call on the V3 contract, which also
+        // pulls its dispute bond from the caller.
+        vm.prank(caller);
+        usdc.approve(address(legacyDispute), type(uint256).max);
 
         vm.prank(provider);
         providerId = registry.register(
@@ -961,6 +969,30 @@ contract DisputeV4Test is Test {
         uint256 id = _openDispute(callId);
 
         assertEq(dispute.evidenceOf(id).length, 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // legacy guard (V3 cross-checks)
+    // ---------------------------------------------------------------------
+
+    function test_openRevertsWhenV3AlreadyHoldsTheCall() public {
+        bytes32 callId = _completedCall();
+
+        vm.prank(caller);
+        legacyDispute.openDispute(callId, providerId, "ipfs://first");
+
+        vm.expectRevert(DisputeV4.AlreadyDisputedElsewhere.selector);
+        vm.prank(caller);
+        dispute.openDispute(callId, providerId, "ipfs://second");
+    }
+
+    function test_oldDisputeIsStillReadableThroughV4() public {
+        bytes32 callId = _completedCall();
+
+        vm.prank(caller);
+        legacyDispute.openDispute(callId, providerId, "ipfs://first");
+
+        assertEq(dispute.legacyDispute().getDisputeByCallId(callId).caller, caller);
     }
 
     // ---------------------------------------------------------------------

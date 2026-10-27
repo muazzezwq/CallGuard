@@ -51,6 +51,7 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     error NotCallCaller();
     error ProviderMismatch();
     error AlreadyDisputed();
+    error AlreadyDisputedElsewhere();
     error WindowClosed();
     error ResolutionWindowClosed();
     error ResolutionWindowOpen();
@@ -204,12 +205,26 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     // Caller actions
     // ---------------------------------------------------------------------
 
+    /// @notice Open a dispute for a completed call. The same call must not also
+    ///         be held by the retiring V3: that contract keeps a read path and
+    ///         holds dispute #4's escrow, so the same stake must not be
+    ///         slashable twice.
     function openDispute(bytes32 callId, uint256 providerId, string calldata evidenceUri)
         external
         nonReentrant
         returns (uint256 disputeId)
     {
         if (disputeIdByCallId[callId] != 0) revert AlreadyDisputed();
+
+        // Cross-contract answer to "is this call already disputed": the local
+        // check above is cheaper and specific to this contract, the legacy read
+        // covers calls still held by the retiring V3. `DisputeV3` reverts
+        // `DisputeNotFound` for a call it never saw, which is the common case,
+        // so the read is wrapped: a revert means "not held there", a record
+        // with a caller means "held".
+        try legacyDispute.getDisputeByCallId(callId) returns (IDisputeV2.DisputeRecord memory legacy) {
+            if (legacy.caller != address(0)) revert AlreadyDisputedElsewhere();
+        } catch (bytes memory) { }
 
         IPayPerCallV8.Call memory call_ = payPerCall.getCall(callId);
         if (call_.status != IPayPerCallV8.CallStatus.Completed || call_.completedAt == 0) {
