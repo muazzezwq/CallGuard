@@ -3,7 +3,15 @@ pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 
-import { SLAEvidenceRegistryV2 } from "../contracts/SLAEvidenceRegistryV2.sol";
+import { SLAEvidenceRegistryV2, IEvidenceVerifier } from "../contracts/SLAEvidenceRegistryV2.sol";
+
+/// @notice Minimal on-chain proof verifier stand-in for wiring tests; the registry
+///         only reads its address when wiring and calls `verify` when anchoring.
+contract MockProofVerifier is IEvidenceVerifier {
+    function verify(bytes calldata, bytes32, bytes32, bytes32) external pure returns (bool) {
+        return true;
+    }
+}
 
 /// @notice v2 evidence anchoring: the claim's statement and assumptions become
 ///         contract data next to the claim and response digests, so a dispute
@@ -21,6 +29,9 @@ contract SLAEvidenceRegistryV2Test is Test {
     bytes32 internal constant STATEMENT = keccak256("statement-1");
     bytes32 internal constant ASSUMPTION = keccak256("assumption-1");
     bytes32 internal constant ZK_EXEC = keccak256("zk-execution");
+    bytes32 internal constant ZK_CONSTRAINT = keccak256("zk-constraint");
+
+    address internal adapter;
 
     // v1 encoding, kept only to prove a v1 signature cannot replay into v2.
     bytes32 private constant EIP712_DOMAIN_TYPEHASH =
@@ -34,6 +45,7 @@ contract SLAEvidenceRegistryV2Test is Test {
         (attestor, attestorKey) = makeAddrAndKey("attestor");
 
         registry = new SLAEvidenceRegistryV2(admin);
+        adapter = address(new MockProofVerifier());
         vm.prank(admin);
         // Task brief: kind must be wired so the anchor test can sign; EmptyStatement
         // is checked before the mode lookup anyway.
@@ -111,5 +123,28 @@ contract SLAEvidenceRegistryV2Test is Test {
         assertEq(e.statementHash, STATEMENT);
         assertEq(e.assumptionHash, ASSUMPTION);
         assertEq(e.responseHash, RESPONSE);
+    }
+
+    // ------------------------------------------------------------------
+    // Wiring: does the verifier bind the call's response
+    // ------------------------------------------------------------------
+
+    function test_wiringRecordsTheBindingFlag() public {
+        vm.prank(admin);
+        registry.setProofVerifier(ZK_EXEC, address(adapter), true);
+        assertEq(uint8(registry.modeOf(ZK_EXEC)), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
+        assertTrue(registry.bindsResponse(ZK_EXEC));
+    }
+
+    function test_bindingFlagDefaultsFalse() public {
+        vm.prank(admin);
+        registry.setProofVerifier(ZK_EXEC, address(adapter), true);
+        assertFalse(registry.bindsResponse(ZK_CONSTRAINT));
+    }
+
+    function test_nonOwnerCannotWire() public {
+        vm.prank(attestor);
+        vm.expectRevert(SLAEvidenceRegistryV2.NotOwner.selector);
+        registry.setProofVerifier(ZK_EXEC, address(adapter), true);
     }
 }

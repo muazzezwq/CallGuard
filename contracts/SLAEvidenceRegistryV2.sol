@@ -42,7 +42,7 @@ contract SLAEvidenceRegistryV2 {
     // ---------------------------------------------------------------------
 
     event OwnerChanged(address indexed previousOwner, address indexed newOwner);
-    event VerifierChanged(bytes32 indexed kind, address indexed verifier, VerifierMode mode, bool allowed);
+    event VerifierChanged(bytes32 indexed kind, address indexed verifier, VerifierMode mode, bool allowed, bool bindsResponse);
     event EvidenceAnchored(
         bytes32 indexed callId,
         bytes32 indexed kind,
@@ -88,6 +88,7 @@ contract SLAEvidenceRegistryV2 {
     mapping(bytes32 => VerifierMode) public modeOf;
     mapping(bytes32 => mapping(address => bool)) public signatureVerifier;
     mapping(bytes32 => address) public proofVerifier;
+    mapping(bytes32 => bool) public bindsResponse;
     mapping(bytes32 => mapping(bytes32 => Evidence)) private _evidence;
     mapping(bytes32 => mapping(bytes32 => bool)) private _anchored;
 
@@ -117,16 +118,24 @@ contract SLAEvidenceRegistryV2 {
     function setSignatureVerifier(bytes32 kind, address verifier, bool allowed) external onlyOwner {
         if (verifier == address(0)) revert InvalidAddress();
         if (allowed) modeOf[kind] = VerifierMode.Signature;
+        // A signature-mode verifier always signs the v2 digest, which includes
+        // responseHash, so its wiring always binds the response.
         signatureVerifier[kind][verifier] = allowed;
-        emit VerifierChanged(kind, verifier, VerifierMode.Signature, allowed);
+        emit VerifierChanged(kind, verifier, VerifierMode.Signature, allowed, true);
     }
 
-    /// @notice Points a kind at a verifier contract that checks proofs on chain.
-    function setProofVerifier(bytes32 kind, address verifier) external onlyOwner {
+    /// @notice Points a kind at a verifier contract that checks proofs on chain, and
+    ///         records whether that proof binds the call's `responseHash`.
+    /// @dev    `bindsResponse` is the owner's assertion, checked against the adapter's
+    ///         `verify` (which reads the journal's `callId` and `responseHash`). The
+    ///         registry does not derive this flag and cannot check it on its own; it
+    ///         only records what the owner attests about the verifier it installed.
+    function setProofVerifier(bytes32 kind, address verifier, bool binds) external onlyOwner {
         if (verifier == address(0)) revert InvalidAddress();
         modeOf[kind] = VerifierMode.Proof;
         proofVerifier[kind] = verifier;
-        emit VerifierChanged(kind, verifier, VerifierMode.Proof, true);
+        bindsResponse[kind] = binds;
+        emit VerifierChanged(kind, verifier, VerifierMode.Proof, true, binds);
     }
 
     // ---------------------------------------------------------------------
