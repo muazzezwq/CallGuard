@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { Button, Input, PageHeader } from "../../ui";
-import { CONFIG } from "../../lib/config";
+import { ACTIVE_PPC_ADDRESS } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import {
   CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource,
@@ -10,7 +10,7 @@ import {
 
 const SDK_SNIPPET = `// npm install ethers
 import { ethers } from "ethers";
-const PPC = "${CONFIG.ppcAddress}";
+const PPC = "${ACTIVE_PPC_ADDRESS}";
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
 const ppc = new ethers.Contract(PPC, ABI, signer);
@@ -132,10 +132,10 @@ export default function SettingsPanel() {
             <Ledger label="Network">
               <LedgerRow
                 lead="PayPerCall Contract"
-                meta={<span className="pg-mono">{CONFIG.ppcAddress}</span>}
+                meta={<span className="pg-mono">{ACTIVE_PPC_ADDRESS}</span>}
                 trailing={
                   <a
-                    href={`https://explorer.testnet.arc.io/address/${CONFIG.ppcAddress}`}
+                    href={`https://explorer.testnet.arc.io/address/${ACTIVE_PPC_ADDRESS}`}
                     target="_blank"
                     rel="noreferrer"
                     className="pg-rowlink"

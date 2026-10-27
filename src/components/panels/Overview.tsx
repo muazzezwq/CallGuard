@@ -4,7 +4,7 @@ import {
   useBlockNumber, useChainId, usePublicClient,
 } from "wagmi";
 import { formatUnits, keccak256, stringToBytes } from "viem";
-import { CONFIG, REGISTRY_ABI, PPC_ABI, USDC_ABI, arcTestnet } from "../../lib/config";
+import { CONFIG, USDC_ABI, arcTestnet, ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, PPC_ABI_V8_ACTIVE, REGISTRY_ABI_V8_ACTIVE } from "../../lib/config";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { usdcAmount } from "../../lib/activity";
 import { useAppStore } from "../../store/useAppStore";
@@ -32,8 +32,8 @@ import type { SgCall, SgMeta, SgProvider } from "../overview/types";
 import "../overview/overview.css";
 
 const CONTRACTS = [
-  { name: "ServiceRegistry", addr: CONFIG.registryAddress },
-  { name: "PayPerCall",      addr: CONFIG.ppcAddress },
+  { name: "ServiceRegistry", addr: ACTIVE_REGISTRY_ADDRESS },
+  { name: "PayPerCall",      addr: ACTIVE_PPC_ADDRESS },
   { name: "DisputeQuality",  addr: CONFIG.disputeQualityAddress, retired: !CONFIG.disputeQualityEnabled },
   { name: "SLAFutures",      addr: CONFIG.slaFuturesAddress },
   { name: "ReputationLoan",  addr: CONFIG.reputationLoanAddress },
@@ -154,8 +154,8 @@ export default function Overview() {
     data: providerCountRaw, isLoading: providerCountLoading,
     isFetching: providerCountFetching, refetch: refetchProviderCount,
   } = useReadContract({
-    address: CONFIG.registryAddress as `0x${string}`,
-    abi: REGISTRY_ABI,
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_V8_ACTIVE,
     functionName: "nextProviderId",
   });
   const {
@@ -293,8 +293,8 @@ export default function Overview() {
   const liveFailed = (err: unknown) => setLiveError(String((err as Error)?.message ?? err).slice(0, 160));
 
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "CallStarted",
     chainId: arcTestnet.id,
     onError: liveFailed,
@@ -310,8 +310,8 @@ export default function Overview() {
     }),
   });
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "ReceiptSubmitted",
     chainId: arcTestnet.id,
     onError: liveFailed,
@@ -327,8 +327,8 @@ export default function Overview() {
     }),
   });
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "CallSlashed",
     chainId: arcTestnet.id,
     onError: liveFailed,
@@ -389,8 +389,8 @@ export default function Overview() {
           try {
             const reqHash = keccak256(stringToBytes(`${multiPayload}-${pid}-${i}-${Date.now()}`)) as `0x${string}`;
             const hash = await writeContractAsync({
-              address: CONFIG.ppcAddress as `0x${string}`,
-              abi: PPC_ABI,
+              address: ACTIVE_PPC_ADDRESS,
+              abi: PPC_ABI_V8_ACTIVE,
               functionName: "callService",
               args: [BigInt(pid), reqHash],
             });
@@ -837,8 +837,8 @@ export default function Overview() {
         >
           <ul className="ov-health">
             {[
-              { name: "PayPerCall", addr: CONFIG.ppcAddress },
-              { name: "ServiceRegistry", addr: CONFIG.registryAddress },
+              { name: "PayPerCall", addr: ACTIVE_PPC_ADDRESS },
+              { name: "ServiceRegistry", addr: ACTIVE_REGISTRY_ADDRESS },
             ].map(c => (
               <li key={c.name} className="ov-health__row">
                 <span className="ov-health__name"><Server size={14} />{c.name}</span>

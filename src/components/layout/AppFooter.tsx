@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CONFIG } from "../../lib/config";
+import { ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG } from "../../lib/config";
 
 const ARCSCAN = "https://explorer.testnet.arc.io";
 
@@ -17,7 +17,7 @@ const LINK_GROUPS = [
   {
     title: "Testnet Tools",
     links: [
-      { icon: "🔍", label: "ArcScan Testnet", href: `${ARCSCAN}/address/${CONFIG.ppcAddress}` },
+      { icon: "🔍", label: "ArcScan Testnet", href: `${ARCSCAN}/address/${ACTIVE_PPC_ADDRESS}` },
       { icon: "🪙", label: "Arc Testnet Faucet", href: "https://faucet.testnet.arc.io" },
       { icon: "🕸️", label: "Thirdweb Arc Testnet", href: "https://thirdweb.com/arc-testnet" },
       { icon: "📊", label: "Goldsky Subgraph", href: CONFIG.subgraphUrl },
@@ -36,8 +36,8 @@ const LINK_GROUPS = [
 ];
 
 const CONTRACTS: { name: string; addr: string }[] = [
-  { name: "Registry",   addr: CONFIG.registryAddress },
-  { name: "PayPerCall", addr: CONFIG.ppcAddress },
+  { name: "Registry",   addr: ACTIVE_REGISTRY_ADDRESS },
+  { name: "PayPerCall", addr: ACTIVE_PPC_ADDRESS },
   { name: "USDC",       addr: CONFIG.usdcAddress },
 ];
 
@@ -94,7 +94,7 @@ export default function AppFooter() {
           ))}
           <a
             className="app-footer-contract"
-            href={`${ARCSCAN}/address/${CONFIG.ppcAddress}`}
+            href={`${ARCSCAN}/address/${ACTIVE_PPC_ADDRESS}`}
             target="_blank"
             rel="noopener noreferrer"
           >

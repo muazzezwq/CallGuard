@@ -4,7 +4,7 @@ import { useSubgraph } from "../hooks/useSubgraph";
 import { useReveal } from "./useReveal";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { NetworkGraph } from "../components/viz/NetworkGraph";
-import { CONFIG } from "../lib/config";
+import { ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG } from "../lib/config";
 import {
   Lock, FileCheck2, ShieldCheck, Zap, Terminal, Webhook, Workflow, BadgeCheck,
   Check, Copy, Coins, Boxes, Clock, ChevronDown, ExternalLink,
@@ -139,8 +139,8 @@ const ECOSYSTEM = [
 ];
 
 const CONTRACTS = [
-  { name: "ServiceRegistry", role: "Providers, stakes and SLA terms", addr: CONFIG.registryAddress },
-  { name: "PayPerCall",      role: "Escrow, receipts and settlement", addr: CONFIG.payPerCall },
+  { name: "ServiceRegistry", role: "Providers, stakes and SLA terms", addr: ACTIVE_REGISTRY_ADDRESS },
+  { name: "PayPerCall",      role: "Escrow, receipts and settlement", addr: ACTIVE_PPC_ADDRESS },
   { name: "AgentWallet",     role: "Policy-limited agent spending",   addr: CONFIG.agentWallet },
   { name: "Subscription",    role: "Recurring access to providers",   addr: CONFIG.subscriptionAddress },
   { name: "USDC",            role: "Settlement token and gas",        addr: CONFIG.usdcAddress },
