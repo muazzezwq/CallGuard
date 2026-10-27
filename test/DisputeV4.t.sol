@@ -670,6 +670,7 @@ contract DisputeV4Test is Test {
         assertEq(rows.length, 1);
         assertTrue(rows[0].present);
         assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].reason), uint8(DisputeV4.AbsentReason.WrongResponse));
         assertEq(uint8(rows[0].mode), uint8(SLAEvidenceRegistryV2.VerifierMode.Proof));
         assertEq(rows[0].claimHash, CLAIM_HASH);
         assertEq(rows[0].responseHash, OTHER_RESPONSE_HASH);
@@ -718,6 +719,7 @@ contract DisputeV4Test is Test {
         assertEq(rows.length, 1);
         assertFalse(rows[0].present);
         assertFalse(rows[0].bound);
+        assertEq(uint8(rows[0].reason), uint8(DisputeV4.AbsentReason.NoVerifier));
         assertEq(uint8(rows[0].mode), 0);
         assertEq(rows[0].claimHash, bytes32(0));
         assertEq(rows[0].anchoredAt, 0);

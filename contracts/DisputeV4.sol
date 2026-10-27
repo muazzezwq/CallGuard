@@ -104,6 +104,8 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
     /// @notice One configured evidence kind, as seen at the moment the dispute
     ///         opened. Written once at open and read by nobody in the money
     ///         paths: it cannot change `disputeBond`, the slash or a verdict.
+    ///         `reason` is `None` exactly when `bound` is true, and otherwise
+    ///         names the first check that failed.
     struct LinkedEvidence {
         bytes32 kind;
         bytes32 claimHash;
@@ -115,6 +117,7 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
         uint8 mode;
         bool bound;
         bool present;
+        AbsentReason reason;
     }
 
     // ---------------------------------------------------------------------
@@ -553,6 +556,7 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
             row.mode = mode;
             row.bound = bound;
             row.present = present;
+            row.reason = absent;
             rows.push(row);
 
             // At most one of the two fires per kind: a present claim reports
