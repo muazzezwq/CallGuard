@@ -94,7 +94,8 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 - Test counts drift fast. Measured 28 Oct 2026: `forge test` **617 tests / 29 suites**,
   `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip). Fork suite added the same day:
   `forge test` **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents
-  the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
+  the EIP-712 receipt scheme correctly (`ArcSLA/2` for v8, `ArcSLA/1` for v7); the older
+  `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
   the `callguard-v7/1.0.0` deploy were stale — they indexed the retired v3 registry.)
@@ -200,9 +201,17 @@ gas `206,535`, `claimHash` `0x3e1dc967…2514` for call `0x8cfa1821…`, verifie
 `0x7d643B2b…` — `DisputeV4` reads `V2` (`0x64872c29…11FC`), so its row says `NoAnchor` (mode `2`),
 not `NoVerifier`. A snapshot therefore mixes three different sentences and
 `test/DisputeV4ForkEvidence.t.sol` asserts all three against the deployed contracts.
-No dispute has ever been opened on `DisputeV4`: all four completed V8 calls already carry a V3
-dispute id, so `openDispute` answers `AlreadyDisputedElsewhere` — correct double-slash behaviour,
-not a bug. The fork test forces that one V3 read to zero and is the only way to see the snapshot.
+**DisputeV4 has exactly one dispute: `1`.** It was opened on 28 Oct 2026 for call
+`0x5ca2100b…b9ed1` (tx `0x3ce4abe3…aed1`, block `69537552`, gas `775,507`), with bond
+`2,000,000` and `heldSlash` `1,283,554` (10% of stake `12,835,548`). It needed a *new* call
+because all four earlier completed V8 calls already carry a V3 dispute id and `openDispute`
+answers `AlreadyDisputedElsewhere` for them — the double-slash guard working, not a defect.
+Its snapshot is four `EvidenceAbsent` events and four unbound rows: `witness`, `zk-constraint`
+and `zk-execution` read `NoAnchor` (the anchored claims belong to call `0x8cfa1821…`), and
+`tee-attestation` reads `NoVerifier`. `test/DisputeV4ForkEvidence.t.sol` supplies the rows the
+live chain cannot show: on the call that has claims it asserts `witness` and `zk-execution`
+`bound`, `zk-constraint` `NoAnchor` (claim on the v1 registry) and `tee-attestation`
+`NoVerifier`.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|
@@ -287,7 +296,9 @@ annotated `("memory-safe")`. Regenerate via `scripts/zk-claim-envelope.ts` and t
 - Chain ID `5042002`; RPC `https://rpc.testnet.arc.io`; explorer `https://explorer.testnet.arc.io`.
 - Subgraph (v8, live app, The Graph Studio): `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`.
 - Subgraph (v7 legacy): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn`.
-- `SUBMIT_GRACE = 5` seconds. EIP-712 receipt domain ArcSLA/1 with `respondedAt`.
+- `SUBMIT_GRACE = 5` seconds. EIP-712 receipt domain is `ArcSLA/2` on v8 (`PayPerCallV8`'s
+  `EIP712("ArcSLA", "2")`, with `termsVersion` in the struct) and `ArcSLA/1` on the retired v7
+  (`EIP712("ArcSLA", "1")`, four-field `submitReceipt`). Both include `respondedAt`.
 - Erc-8004 `ReputationRegistry` `0x8004B663…` and ERC-8183 `AgenticCommerce` `0x0747EEf0…`
   integrations are **best-effort**: a revert there does not fail `submitReceipt`/`agentCall`.
 

@@ -167,16 +167,9 @@ envelope digests to the anchored claim, so the page and the chain agree on every
 and `tee-attestation` still answer `anchored: false` for the same call, which is the expected
 asymmetry: three kinds have a verifier, one has a claim.
 
-An adapter would be small: implement
-`verify(bytes proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash) external view returns (bool)`,
-read `getProvenance(callId)`, and answer `recordedAt != 0 && payloadHash == responseHash && isAttestor[attestor]`.
-The proof blob can stay empty — everything the check needs is already on chain. Cost is a handful
-of storage reads, well under the `256,608` gas the RISC Zero adapter spends on a Groth16
-verification.
-
-Then one owner transaction: `setProofVerifier(keccak256("witness"), adapter, true)`.
-
-What it still would not prove: that the response body came from the provider's endpoint (an
+The adapter is that small: `verify` reads `getProvenance(callId)` and answers
+`recordedAt != 0 && payloadHash == responseHash && isAttestor(attestor)`. The proof blob stays
+empty because everything the check needs is already on chain. What it still would not prove: that the response body came from the provider's endpoint (an
 attestor sees what it fetched, and it is the attestor's log that is trusted), and never that the
 answer is correct.
 
@@ -219,10 +212,45 @@ this repository.
 
 ## 5a. What a dispute snapshot actually said
 
-`DisputeV4.openDispute` was never sent on Arc: every completed V8 call (four of them) already has a
-V3 dispute id, and V4 refuses those with `AlreadyDisputedElsewhere` so the same stake cannot be
-slashed twice. `test/DisputeV4ForkEvidence.t.sol` clears that single legacy read and opens a real
-dispute against the deployed contracts at block `69498000`; the four rows it wrote read:
+### The real dispute
+
+`DisputeV4` dispute `1` is open on Arc Testnet, and it is the first one this contract has ever
+held. Opening it needed a call with no V3 record: all four earlier completed V8 calls already carry
+a V3 dispute id, and V4 answers those with `AlreadyDisputedElsewhere` so one stake cannot be slashed
+twice. So a fresh call was made and completed, then disputed by its own caller.
+
+| Field | Value |
+|---|---|
+| call | `0x5ca2100b…b9ed1` (provider `1`, `1.000000` USDC, `Completed` at `1793209388`) |
+| tx | `0x3ce4abe3a09b2c0b522f6487b64240cc60774b360349983a11aec7cce02aaed1` |
+| block / gas | `69537552` / `775,507` |
+| `openedAt` | `1793209403` |
+| bond | `2,000,000` (2 USDC, pulled from the caller) |
+| `heldSlash` | `1,283,554` — `10%` of stake `12,835,548`, escrowed, not moved |
+| events | `DisputeOpened`, `SlashHeld`, and `EvidenceAbsent` four times |
+
+The four rows it wrote, read back with `evidenceOf(1)`:
+
+| Kind | mode | present | bound | reason |
+|---|---|---|---|---|
+| `witness` | `2` | false | false | `NoAnchor` |
+| `tee-attestation` | `0` | false | false | `NoVerifier` |
+| `zk-constraint` | `2` | false | false | `NoAnchor` |
+| `zk-execution` | `2` | false | false | `NoAnchor` |
+
+Four `EvidenceAbsent` events for four rows, and the reasons differ in exactly the way the enum
+promises: `NoVerifier` is the registry refusing a kind no claim of any strength can exist for,
+`NoAnchor` is a checkable kind where nobody anchored a claim for *this* call. The claims that do
+exist — `witness` and `zk-execution` — belong to call `0x8cfa1821…`, so they are correctly not
+offered here. That is the sentence a snapshot has to get right: evidence for another call must never
+read as evidence for this one.
+
+### The bound rows, which the real chain cannot show
+
+No live call carries an anchored claim *and* lacks a V3 dispute id, so a real dispute cannot show a
+`bound = true` row yet. `test/DisputeV4ForkEvidence.t.sol` supplies the missing case: it clears the
+single V3 read with `vm.mockCall` and opens a dispute against the deployed contracts at block
+`69498000`, on the call that does have claims.
 
 | Kind | mode | present | bound | reason |
 |---|---|---|---|---|
@@ -231,14 +259,18 @@ dispute against the deployed contracts at block `69498000`; the four rows it wro
 | `zk-constraint` | `2` | false | false | `NoAnchor` — its live claim is on the **v1** registry `0x7d643B2b…`, which V4 does not read |
 | `zk-execution` | `2` | true | **true** | `None` — claim `0xe3baff68…419c`, verifier `0xD804F2E0…1a21` |
 
-Three different sentences in one table, which is why the reason is stored rather than inferred: a
-`NoAnchor` row means the kind is checkable and nobody anchored a claim *there*, a `NoVerifier` row
-means no claim of any strength can exist at all.
+Read the two tables together and the snapshot's whole vocabulary is covered: bound, `NoAnchor`,
+`NoVerifier`, and a `zk-constraint` anchor that exists but on a registry this contract does not
+read. Two Arc system contracts behind USDC are stubbed in that test because Foundry cannot execute
+them inside a fork, so it asserts the recorded bond and `heldSlash` rather than token deltas; real
+token movement is covered by `test/DisputeV4.t.sol` and by the live transactions above.
 
 ## 6. What a reader should not conclude
 
 Four kinds in `evidenceKinds()` is not four claims per dispute, and a wired kind is not an anchored
-one. Three kinds now have a verifier (`witness`, `zk-constraint`, `zk-execution`) and `witness` has
-no claim anchored yet, so its row would read `NoAnchor`; `tee-attestation` cannot be anchored at all
-and reads `NoVerifier`. Count `bound = true` rows when judging a dispute snapshot, not rows, and
-read the reason on each unbound one — the reasons are different sentences for a reason.
+one. Three kinds have a verifier (`witness`, `zk-constraint`, `zk-execution`) and only one call has
+claims, so a dispute on any other call reads `NoAnchor` on all three of them; `tee-attestation`
+cannot be anchored at all and reads `NoVerifier`. Count `bound = true` rows when judging a dispute
+snapshot, not rows, and read the reason on each unbound one — the reasons are different sentences
+for a reason. A bound row also never decides the dispute by itself: `DisputeV4` writes the snapshot
+in `openDispute` and no resolution function reads it back.

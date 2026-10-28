@@ -37,10 +37,10 @@ export default function HowItWorks() {
 
         <h3>What the receipt proves</h3>
         <p>
-          The receipt domain is <code>ArcSLA / 1</code>, bound to the chain id and the PayPerCall
-          contract, and includes <code>respondedAt</code>. It proves that a response existed at a
-          specific time. It enforces <strong>timeliness</strong>, not correctness — quality is the
-          job of the separate arbitration path.
+          The receipt domain is <code>ArcSLA / 2</code>, bound to the chain id and the PayPerCall
+          contract, and includes <code>respondedAt</code> plus the call&apos;s terms version. It proves
+          that a response existed at a specific time. It enforces <strong>timeliness</strong>, not
+          correctness — quality is the job of the separate arbitration path.
         </p>
 
         <h3>Reputation</h3>

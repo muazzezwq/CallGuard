@@ -49,7 +49,7 @@ const PRIMITIVES = [
   },
   {
     t: "EIP-712 Receipts",
-    d: "Providers sign the response hash with domain ArcSLA/1. The signature is recovered and checked on-chain.",
+    d: "Providers sign the response hash with domain ArcSLA/2. The signature is recovered and checked on-chain.",
     Icon: FileCheck2,
   },
   {
@@ -157,7 +157,7 @@ const FAQ = [
   },
   {
     q: "How are receipts verified?",
-    a: "After the work, the provider signs the response hash with EIP-712 (domain ArcSLA, version 1, including respondedAt). PayPerCall recovers the signer on-chain and requires it to match the provider's registered signer.",
+    a: "After the work, the provider signs the response hash with EIP-712 (domain ArcSLA, version 2, including respondedAt and the call's terms version). PayPerCall recovers the signer on-chain and requires it to match the provider's registered signer.",
   },
   {
     q: "What happens when a deadline is missed?",

@@ -122,18 +122,23 @@ The nonce and timestamp ensure two identical requests from the same caller produ
 
 ### EIP-712 typed data
 
+The active contract is `PayPerCallV8`, whose receipt carries the call's terms version:
+
 ```solidity
 bytes32 digest = _hashTypedDataV4(
     keccak256(abi.encode(
-        RECEIPT_TYPEHASH, // keccak256("Receipt(bytes32 callId,bytes32 responseHash,uint64 respondedAt)")
+        RECEIPT_TYPEHASH, // keccak256("Receipt(bytes32 callId,bytes32 responseHash,uint64 respondedAt,uint32 termsVersion)")
         callId,
         responseHash,
-        respondedAt
+        respondedAt,
+        termsVersion
     ))
 );
 ```
 
-The EIP-712 domain is `{ name: "ArcSLA", version: "1", chainId, verifyingContract }` (see `PayPerCall`'s `EIP712("ArcSLA", "1")` constructor). Providers sign this structured receipt off-chain and submit it via `submitReceipt(callId, responseHash, respondedAt, signature)`.
+The v8 EIP-712 domain is `{ name: "ArcSLA", version: "2", chainId, verifyingContract }` — `PayPerCallV8`'s `EIP712("ArcSLA", "2")` constructor. Providers sign this structured receipt off-chain and submit it via `submitReceipt(callId, responseHash, respondedAt, termsVersion, signature)`. `termsVersion` must equal the version the call started under, so a provider cannot be held to terms adopted after the call opened.
+
+The retired v7 `PayPerCall` used the same shape without `termsVersion`: domain `{ name: "ArcSLA", version: "1", chainId, verifyingContract }` and `submitReceipt(callId, responseHash, respondedAt, signature)`. A v7 receipt does not verify on v8 or the reverse, because the domain separator differs.
 
 EIP-712 is used instead of the older EIP-191 `personal_sign` scheme for two reasons: the receipt is structured data that wallets can render with a human-readable preview, and the domain separator binds the signature to this specific chain and contract — giving cross-chain and cross-contract replay protection for free.
 
