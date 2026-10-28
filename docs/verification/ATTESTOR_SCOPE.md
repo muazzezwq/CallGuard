@@ -97,8 +97,24 @@ Measured on call `0x8cfa1821…fb265` (28 Oct 2026):
 | `isAttestor(0x528581fB…2F9c)` | `true` |
 | `verifyProvenance(callId, responseHash)` | `true` |
 
-So the only missing piece for `witness` is the adapter contract and the owner transaction that
+So the missing pieces for `witness` are the adapter contract and the owner transaction that
 points the kind at it — not the evidence.
+
+**Built 28 Oct 2026, not deployed.** `contracts/zk/SLAProvenanceAdapter.sol` implements
+`verify(proof, callId, claimHash, responseHash)` as: the provenance address has code, the record
+exists, `record.payloadHash == responseHash`, and `isAttestor(record.attestor)` — the allowlist
+read *now*, so a revoked key cannot anchor new claims while its old records stay readable. It
+answers `false` on every miss instead of reverting, because the registry maps a revert to
+`VerifierFailed` and a refusal to `ProofRejected`, and those are different sentences.
+
+Measured in `test/SLAProvenanceAdapter.t.sol` (11 tests): a registry `anchor()` through this
+adapter costs `206,535` gas — below the `256,608` the RISC Zero adapter spends on one Groth16
+verification. The same tests prove the two integration properties: with the kind wired, `anchor`
+lands and `modeOf` reads `2`; with a mismatched payload, the registry answers `ProofRejected`,
+not `VerifierFailed`.
+
+Deploy script: `script/DeploySLAProvenanceAdapter.s.sol` (deploy only; it prints the wiring
+command and deliberately does not send it).
 
 An adapter would be small: implement
 `verify(bytes proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash) external view returns (bool)`,
@@ -113,11 +129,11 @@ What it still would not prove: that the response body came from the provider's e
 attestor sees what it fetched, and it is the attestor's log that is trusted), and never that the
 answer is correct.
 
-Re-open condition: someone other than the provider operates an attestor and wants the claim.
-The allowlist is not empty today, but it holds one key that this repository controls
-(`0x528581fB…2F9c`), so a bound `witness` row would state "trust CallGuard's own witness" — the
-`PARTIAL` this layer already carries in `docs/SLA_COVERAGE.md`. An adapter would make that
-sentence checkable on chain; it would not make it independent.
+Re-open condition: deploying the adapter and wiring it. The allowlist is not empty today, but it
+holds one key that this repository controls (`0x528581fB…2F9c`), so a bound `witness` row would
+state "trust CallGuard's own witness" — the `PARTIAL` this layer already carries in
+`docs/SLA_COVERAGE.md`. The adapter makes that sentence checkable on chain; it does not make it
+independent. A second, independent attestor is what would.
 
 ### `tee-attestation` — blocked twice
 

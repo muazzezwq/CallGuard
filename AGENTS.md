@@ -91,7 +91,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
-- Test counts drift fast. Measured 28 Oct 2026: `forge test` **606 tests / 28 suites**,
+- Test counts drift fast. Measured 28 Oct 2026: `forge test` **617 tests / 29 suites**,
   `bun test tests/` **557 tests / 52 files** (550 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
   the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
@@ -173,7 +173,12 @@ the call's `responseHash` — but for lack of a **proof adapter**: `DisputeV4` b
 and a signature key reaches mode `1`, which it records as `ModeIsSignature`. With mode `0`,
 `anchor()` reverts `NoVerifierForKind()`, so their rows cannot exist at all and the snapshot says
 `present=false, reason=NoVerifier`. Scope and re-open conditions:
-`docs/verification/ATTESTOR_SCOPE.md`.
+`docs/verification/ATTESTOR_SCOPE.md`. The adapter that would close `witness` is written and
+tested but **not deployed**: `contracts/zk/SLAProvenanceAdapter.sol` (11 forge tests in
+`test/SLAProvenanceAdapter.t.sol`, anchor through it costs `206,535` gas). Deploy with
+`script/DeploySLAProvenanceAdapter.s.sol`, then the registry owner calls
+`setProofVerifier(keccak256("witness"), adapter, true)` — an owner-signed transaction, never run
+by an agent.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|
