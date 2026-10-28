@@ -17,17 +17,27 @@ Read from Arc Testnet on 28 Oct 2026. Evidence registry `0x64872c29A19dF8E471103
 
 | Kind | `keccak256` | `modeOf` | `bindsResponse` | `anchor()` with any proof |
 |---|---|---|---|---|
-| `witness` | `0xe55f8707…53c5` | `0` | `false` | reverts `NoVerifierForKind()` (`0xd4f78146`) |
+| `witness` | `0xe55f8707…53c5` | `2` | `true` | checked by `0x046d715D…0498` (`SLAProvenanceAdapter`, wired 28 Oct) |
 | `tee-attestation` | `0x31d95559…67eb` | `0` | `false` | reverts `NoVerifierForKind()` (`0xd4f78146`) |
 | `zk-constraint` | `0x12b89b11…531e` | `2` | `true` | reaches the adapter; a junk proof answers `ProofRejected()` (`0xc3b0d8cd`) |
 | `zk-execution` | `0x1543345a…9031` | `2` | `true` | reaches the adapter; a junk proof answers `ProofRejected()` (`0xc3b0d8cd`) |
 
-The last column is the one that matters. For the two zk kinds the call gets as far as the
-verifier and is judged. For the two unverified kinds there is no path to judge — the registry
-refuses before reading the proof, so no claim of any strength can exist for them.
+This table was measured before the `witness` adapter was wired, when that row read mode `0` and
+`NoVerifierForKind()`. It is kept as the record of that state:
 
-`DisputeV4` snapshots all four kinds at `openDispute` and records `present = false, reason = NoVerifier`
-for the pair, which is the honest answer: nothing was anchored and nothing could be.
+| Kind | `modeOf` before wiring | `anchor()` |
+|---|---|---|
+| `witness` | `0` | reverts `NoVerifierForKind()` (`0xd4f78146`) |
+| `tee-attestation` | `0` | reverts `NoVerifierForKind()` (`0xd4f78146`) |
+
+The distinction that matters: a kind with a verifier gets as far as the verifier and is judged,
+even when the proof is junk (`ProofRejected`). A kind without one is refused before the proof is
+read, so no claim of any strength can exist for it — which is still true of `tee-attestation`.
+
+`DisputeV4` snapshots all four kinds at `openDispute`. Before the wiring it recorded
+`present = false, reason = NoVerifier` for the pair; `witness` can now be anchored, and a snapshot
+taken without an anchor records `NoAnchor` for it instead — a different sentence, because now the
+absence is the caller's omission rather than the registry's refusal.
 
 No dispute has been opened on `DisputeV4` yet (`getDispute(1..3)` returns an empty record and
 `evidenceOf(1..3)` an empty array), so no snapshot on chain carries either sentence. The
@@ -100,7 +110,7 @@ Measured on call `0x8cfa1821…fb265` (28 Oct 2026):
 So the missing pieces for `witness` are the adapter contract and the owner transaction that
 points the kind at it — not the evidence.
 
-**Built 28 Oct 2026, not deployed.** `contracts/zk/SLAProvenanceAdapter.sol` implements
+**Built, deployed and wired 28 Oct 2026.** `contracts/zk/SLAProvenanceAdapter.sol` implements
 `verify(proof, callId, claimHash, responseHash)` as: the provenance address has code, the record
 exists, `record.payloadHash == responseHash`, and `isAttestor(record.attestor)` — the allowlist
 read *now*, so a revoked key cannot anchor new claims while its old records stay readable. It
@@ -116,6 +126,20 @@ not `VerifierFailed`.
 Deploy script: `script/DeploySLAProvenanceAdapter.s.sol` (deploy only; it prints the wiring
 command and deliberately does not send it).
 
+| Step | Tx / value | Block | Gas |
+|---|---|---|---|
+| deploy `SLAProvenanceAdapter` → `0x046d715D28143e45E38f1a1114A0462898630498` | `0x965576ce…4f38` | `69493246` | `221,813` |
+| `setProofVerifier(keccak256("witness"), adapter, true)` | `0xd5499453…6f81` | `69494118` | `93,512` |
+
+Read back after wiring: `modeOf = 2`, `bindsResponse = true`, `proofVerifier = 0x046d715D…0498`.
+The adapter answers `true` for the live call `0x8cfa1821…` and `false` for a wrong response hash
+or an unknown call, so the wiring points at a contract that already agrees with the chain.
+
+Wiring `witness` does not create a claim. Someone still has to call
+`anchor(callId, keccak256("witness"), claimHash, responseHash, statementHash, assumptionHash, "")`.
+Until that happens the Verify panel shows no witness row, and a dispute snapshot records
+`NoAnchor`.
+
 An adapter would be small: implement
 `verify(bytes proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash) external view returns (bool)`,
 read `getProvenance(callId)`, and answer `recordedAt != 0 && payloadHash == responseHash && isAttestor[attestor]`.
@@ -129,9 +153,9 @@ What it still would not prove: that the response body came from the provider's e
 attestor sees what it fetched, and it is the attestor's log that is trusted), and never that the
 answer is correct.
 
-Re-open condition: deploying the adapter and wiring it. The allowlist is not empty today, but it
-holds one key that this repository controls (`0x528581fB…2F9c`), so a bound `witness` row would
-state "trust CallGuard's own witness" — the `PARTIAL` this layer already carries in
+Re-open condition, met on 28 Oct 2026: the adapter is deployed and the kind is wired. The allowlist
+is not empty, but it holds one key that this repository controls (`0x528581fB…2F9c`), so a bound
+`witness` row states "trust CallGuard's own witness" — the `PARTIAL` this layer already carries in
 `docs/SLA_COVERAGE.md`. The adapter makes that sentence checkable on chain; it does not make it
 independent. A second, independent attestor is what would.
 
@@ -155,8 +179,10 @@ this repository.
 
 ## 5. Decision
 
-- Both kinds stay at mode `0`. Neither gets a signature verifier, because that changes nothing
-  for `bound` and would let a key anchor a claim the dispute cannot use.
+- `witness` is wired to `SLAProvenanceAdapter` in proof mode with `bindsResponse = true`. It was
+  never a candidate for a signature verifier: that changes nothing for `bound`, and it would let a
+  key anchor a claim the dispute cannot use. `tee-attestation` stays at mode `0` for the missing
+  artifact, not for a missing decision.
 - The panels state the absence rather than hiding it: `DisputesV8` renders reason `NoVerifier`
   as "no verifier is wired for this kind on the evidence registry", and `Verify` labels mode `0`
   as "no verifier".
@@ -166,6 +192,8 @@ this repository.
 
 ## 6. What a reader should not conclude
 
-Four kinds in `evidenceKinds()` is not four claims per dispute. Today two of the four answer a
-sentence, and two answer nothing. Count `bound = true` rows when judging a dispute snapshot, not
-rows.
+Four kinds in `evidenceKinds()` is not four claims per dispute, and a wired kind is not an anchored
+one. Three kinds now have a verifier (`witness`, `zk-constraint`, `zk-execution`) and `witness` has
+no claim anchored yet, so its row would read `NoAnchor`; `tee-attestation` cannot be anchored at all
+and reads `NoVerifier`. Count `bound = true` rows when judging a dispute snapshot, not rows, and
+read the reason on each unbound one — the reasons are different sentences for a reason.

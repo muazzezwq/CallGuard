@@ -167,18 +167,17 @@ is `true` and `authorizedSlashers(DisputeV3)` is `false`. V3 is closed: `finaliz
 (tx `0xbdaf9525…f6167`, block `69473913`, `85048` gas) and released `3.481864 USDC`; `settled(4)` is
 `true`, `heldSlash(4)` is `0`, and V3 holds no USDC in either representation. The live zk-execution
 fixture is anchored on the new registry.
-`witness` and `tee-attestation` stay `NoVerifier` (`modeOf` = `0`). Not for lack of an attestor —
-`SLAProvenance` has one allowlisted (`0x528581fB…2F9c`) and a live record whose `payloadHash` is
-the call's `responseHash` — but for lack of a **proof adapter**: `DisputeV4` binds only mode `2`,
-and a signature key reaches mode `1`, which it records as `ModeIsSignature`. With mode `0`,
-`anchor()` reverts `NoVerifierForKind()`, so their rows cannot exist at all and the snapshot says
-`present=false, reason=NoVerifier`. Scope and re-open conditions:
-`docs/verification/ATTESTOR_SCOPE.md`. The adapter that would close `witness` is written and
-tested but **not deployed**: `contracts/zk/SLAProvenanceAdapter.sol` (11 forge tests in
-`test/SLAProvenanceAdapter.t.sol`, anchor through it costs `206,535` gas). Deploy with
-`script/DeploySLAProvenanceAdapter.s.sol`, then the registry owner calls
-`setProofVerifier(keccak256("witness"), adapter, true)` — an owner-signed transaction, never run
-by an agent.
+`tee-attestation` is still `NoVerifier` (`modeOf` = `0`) and will stay there until an enclave
+produces a quote; at mode `0` `anchor()` reverts `NoVerifierForKind()`, so its row cannot exist at
+all. `witness` used to be in the same state for a different reason — `DisputeV4` binds only mode
+`2`, and a signature key reaches mode `1`, which it records as `ModeIsSignature`, so an attestor
+key was never enough. It now has a proof adapter and is wired (below). Scope and re-open conditions:
+`docs/verification/ATTESTOR_SCOPE.md`. `witness` was wired on 28 Oct 2026 to
+`SLAProvenanceAdapter` **`0x046d715D28143e45E38f1a1114A0462898630498`**
+(`contracts/zk/SLAProvenanceAdapter.sol`, 11 forge tests; anchor through it costs `206,535` gas).
+Wiring tx `0xd5499453…6f81` (block `69494118`, `93,512` gas) ran `setProofVerifier` from the owner,
+so `modeOf(witness)` is `2` and `bindsResponse` is `true`. `tee-attestation` stays at `0` for a
+missing quote. A wired kind still has no claim until someone anchors one.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|

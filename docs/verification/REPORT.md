@@ -146,11 +146,12 @@ renders `No claim anchored for this call` — both branches checked in the dev s
    come from an image the repository can rebuild. Until then the correct label is
    `PARTIAL`, and the envelope says exactly what is assumed.
 4. **Wire the tier you intend to rely on.** A tier that can be described but not wired is not
-   evidence: `witness` and `tee-attestation` are at registry mode `0` on
-   `SLAEvidenceRegistryV2`, so `anchor()` reverts `NoVerifierForKind()` and no dispute can
-   bind them. `witness` is one adapter away (the provenance record already matches a live
-   call); the TEE tier is blocked by a missing quote. Per-kind status and re-open conditions:
-   `docs/verification/ATTESTOR_SCOPE.md`.
+   evidence: `anchor()` reverts `NoVerifierForKind()` at mode `0`, and no dispute can bind the
+   kind. `witness` was wired on 28 Oct 2026 — `SLAProvenanceAdapter`
+   `0x046d715D…0498` in proof mode, `bindsResponse = true` — because the provenance record
+   already matched a live call. `tee-attestation` stays at mode `0`, blocked by a missing quote.
+   Wiring is not anchoring: a kind with a verifier still carries no claim until someone anchors
+   one. Per-kind status and re-open conditions: `docs/verification/ATTESTOR_SCOPE.md`.
 
 ## 4. What would have to change for production
 
