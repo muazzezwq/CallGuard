@@ -100,6 +100,10 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 
 ## Core Contracts — legacy v7 (13 Oct 2026; read-only since the v8 cutover)
 
+Panels that still hardcode `CONFIG.<address>` keep reading v7. The audit, the per-panel
+verdicts, and the phased fix live in `docs/V7_V8_PANEL_MIGRATION.md`; `V7Cleanup.tsx` is
+the only intentional v7 write path.
+
 | Contract | Address |
 |---|---|
 | `ServiceRegistry` (v7) | `0x9ca97010464e8e6de6e27cf25eae9b939fbd7333` |
