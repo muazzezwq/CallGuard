@@ -3,7 +3,7 @@ import {
   SquareTerminal, Layers, ListChecks, ArrowLeftRight, ReceiptText,
   Gauge, Repeat, Landmark, TrendingUp, Coins, Link2, Wallet,
   Scale, ShieldAlert, ShieldCheck, Send, BarChart3, Briefcase,
-  Boxes, FileText, Webhook, Workflow, Bot, KeyRound,
+  Boxes, FileText, Webhook, Bot, KeyRound,
   ScrollText, Settings, UserPlus, EyeOff, SlidersHorizontal, Activity,
   House, Zap,
 } from "lucide-react";
@@ -93,7 +93,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "mcp",          simple: "API / MCP",     pro: "API / MCP",     icon: Boxes },
       { id: "apidocs",      simple: "API Docs",      pro: "API Docs",      icon: FileText },
       { id: "webhooks",     simple: "Webhooks",      pro: "Webhooks",      icon: Webhook },
-      { id: "pipelinehook", simple: "Pipeline Hook", pro: "Pipeline Hook", icon: Workflow },
     ],
   },
   {

@@ -51,7 +51,6 @@ const panels = {
   bridge:        lazy(() => import("../panels/Bridge")),
   passkey:       lazy(() => import("../PasskeyWallet")),
   balance:       lazy(() => import("../UnifiedBalance")),
-  pipelinehook:  lazy(() => import("../panels/PipelineHook")),
 } as const;
 
 function PanelLoader() {
@@ -83,7 +82,11 @@ export default function AppShell() {
   const mainRef = useRef<HTMLElement | null>(null);
   const mountedRef = useRef(false);
 
-  const ActivePanel = panels[activePanel as keyof typeof panels] as React.LazyExoticComponent<() => JSX.Element>;
+  /* A panel can be retired. The store persists `activePanel`, so a session saved
+     before the removal would otherwise hand us an undefined component and take
+     the whole shell down. Fall back to Overview instead of crashing. */
+  type PanelComponent = React.LazyExoticComponent<() => JSX.Element>;
+  const ActivePanel = (panels[activePanel as keyof typeof panels] ?? panels.overview) as PanelComponent;
   const activeGroup = groupOfPanel(activePanel);
 
   useApplyMotionPreference();

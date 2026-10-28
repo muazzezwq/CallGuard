@@ -5,7 +5,7 @@ import { useModal } from "connectkit";
 import { Moon, Sun, Menu } from "lucide-react";
 import { Mark } from "../ui";
 import { useAppStore } from "../store/useAppStore";
-import { CONFIG } from "../lib/config";
+import { ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG } from "../lib/config";
 
 const NAV: { href: string; label: string; anchor?: boolean }[] = [
   { href: "/", label: "Home" },
@@ -122,8 +122,8 @@ export default function MarketingLayout() {
             </div>
             <div className="mk-footer__col">
               <h4>Contracts</h4>
-              <a href={CONFIG.explorerAddr(CONFIG.registry)} target="_blank" rel="noreferrer">ServiceRegistry</a>
-              <a href={CONFIG.explorerAddr(CONFIG.payPerCall)} target="_blank" rel="noreferrer">PayPerCall</a>
+              <a href={CONFIG.explorerAddr(ACTIVE_REGISTRY_ADDRESS)} target="_blank" rel="noreferrer">ServiceRegistry</a>
+              <a href={CONFIG.explorerAddr(ACTIVE_PPC_ADDRESS)} target="_blank" rel="noreferrer">PayPerCall</a>
               <a href={CONFIG.explorerAddr(CONFIG.usdc)} target="_blank" rel="noreferrer">USDC</a>
               <a href={CONFIG.explorerAddr(CONFIG.agentWallet)} target="_blank" rel="noreferrer">AgentWallet</a>
             </div>

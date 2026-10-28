@@ -49,7 +49,7 @@ live v8 stack, not about code style.
 | Panel | v7 refs | Calls it makes | v8 state | Verdict |
 |---|---|---|---|---|
 | `AdminPanel.tsx` | 14 | `owner`, `payPerCall`, `pendingPayPerCall`, `payPerCallChangeAt`, `setPayPerCall`, `proposePayPerCall`, `executePayPerCall` | 1 of 4 reads valid; 3 reads and all 3 writes dead | **PASS** (P3, 28 Oct) — rewritten as a read-only wiring card: `admin()`, `payPerCall()`, the reverse `payPerCall.registry()` check, `authorizedSlashers(DisputeV4)`, `keeperBountyBps`, `SUBMIT_GRACE`, `nextProviderId`. No write form |
-| `PipelineHook.tsx` | 6 | `pipelineHook`, `setPipelineHook` | absent in v8 | **FAIL** — feature retired; panel must go or say so |
+| `PipelineHook.tsx` | 6 | `pipelineHook`, `setPipelineHook` | absent in v8 | **REMOVED** (P4, 28 Oct) — no v8 counterpart exists, so the panel left the nav, palette, lazy map and `PanelId` union |
 | `Notifications.tsx` | 3 | 3 `useWatchContractEvent` on the v7 PPC | events exist in v8, address does not | **FAIL** — silently receives nothing |
 | `Payments.tsx` | 2 | `claimable`, `claim` (+ USDC `balanceOf`) | both exist in v8 | **FAIL** — 17.527733 USDC claimable is not shown |
 | `Requests.tsx` | 2 | `claimTimeout(bytes32)` | exists, same signature | **FAIL** — address/ABI only; arg is already `bytes32` |
@@ -61,7 +61,7 @@ live v8 stack, not about code style.
 | `Uptime.tsx` | 2 | `V8_CONFIG.registryAddress` + `REGISTRY_ABI_V8` | v8 | **PASS** |
 | `DisputesV8.tsx` | 2 | `DISPUTE_V3_ADDRESS`/V4 switch, `PPC_ABI_V8` | v4 | **PASS** |
 | `V7Cleanup.tsx` | 1 | v7 admin writes | intentional | **PASS** — the deliberate v7 write path |
-| `MarketingLayout.tsx` | 2 | `CONFIG.explorerAddr(CONFIG.registry / payPerCall)` | links open v7 on the explorer | **PARTIAL** — links point at retired contracts |
+| `MarketingLayout.tsx` | 2 | `CONFIG.explorerAddr(ACTIVE_*)` | resolves to the wired stack | **PASS** (P4, 28 Oct) — the footer follows `ACTIVE_REGISTRY_ADDRESS`/`ACTIVE_PPC_ADDRESS` |
 
 `src/hooks/useOnchain.ts` already handles this: `useProviderScore` calls
 `getReputationScore` but is gated `enabled: !V8_ENABLED` and carries a comment saying v8 has
@@ -128,9 +128,9 @@ call left in the panel.
 `admin()`, `payPerCall()`, `payPerCall.registry()`, `authorizedSlashers(DisputeV4)`, plus a
 note that the wire-up is one-time. The three write forms are gone.
 
-**P4 — `PipelineHook` retirement and `MarketingLayout` links.**
-Delete the panel or gate it with a stated reason; point the footer links at the v8
-addresses. Acceptance: no route to a panel that cannot work; footer opens v8.
+**P4 — `PipelineHook` retirement and `MarketingLayout` links.** Done 28 Oct 2026; gates clean.
+The panel is deleted rather than hidden, because hiding it would leave dead code that still
+reads a function the contract does not have. `docs/decisions.md` records the removal.
 
 **P5 — `Providers` integration snippets.**
 The panel's reads are already v8; its code samples are not. Snippets must emit
@@ -151,8 +151,8 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 | B2 | `ProviderProfile` computes the score, no `getReputationScore` call | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI, named fields only, counters from the record, `maxResponseTime`/`slashBps` from `getTerms(1, latestTermsVersion)`, score `floor((completed+2)*100/(completed+slashed+3))`. The v7 `getReputationScore` read survives only through `useProviderScore`, gated `enabled: !V8_ENABLED`. Provider `1` resolves to stake `16.044435`, price `1`, `active`, `4` completed, `7` slashed, score `42`, terms v1 window `120`, slash `2000` |
 | C1 | `AdminPanel` shows `admin()` and `payPerCall()` | **PASS** — reads `0xfbac99E6…06Da` and `0xedce61eF…a7EF`; the reverse read `payPerCall.registry()` returns `0x793028B6…12A3`, so the pair matches both ways. `authorizedSlashers(DisputeV4)` is `true`, `keeperBountyBps` `500`, `SUBMIT_GRACE` `5`, `nextProviderId` `3` |
 | C2 | `AdminPanel` has no one-time write form | **PASS** — `grep -rn "setPayPerCall\|proposePayPerCall\|executePayPerCall" src/` returns only the explanatory prose in the panel; no `useWriteContract` in the file |
-| D1 | `PipelineHook` cannot be reached, or states why it is gone | UNVERIFIED |
-| D2 | `MarketingLayout` footer links point at v8 | UNVERIFIED |
+| D1 | `PipelineHook` cannot be reached, or states why it is gone | **PASS** — file deleted; `grep -rn "pipelinehook\|PipelineHook" src/` returns nothing. `AppShell` falls back to Overview for a stale persisted `activePanel` |
+| D2 | `MarketingLayout` footer links point at v8 | **PASS** — both contract links resolve through `ACTIVE_*`, which is `0x793028B6…12A3` / `0xedce61eF…a7EF` with the checked-in env |
 | F1 | `Providers` snippets print v8 addresses and an 11-field reply | UNVERIFIED |
 | E1 | `bun run check` clean | UNVERIFIED |
 | E2 | `bun test tests/` no new failures | UNVERIFIED |

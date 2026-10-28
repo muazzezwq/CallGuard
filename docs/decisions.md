@@ -404,3 +404,6 @@ Conservative choices made without stopping. Format: decision + reason.
   letting "MATCH" read as "the proof attested the words"; closing the gap needs a verifier that
   commits `statementHash` in its journal, which the deploy runbook lists as future work rather than
   a wiring task.
+- **v7→v8 panels — `PipelineHook` removed from the app instead of repointed.** `PayPerCallV8` has no `pipelineHook`/`setPipelineHook` pair (grep over `contracts/PayPerCallV8.sol`: no match), so the panel could only fail. The panel id is gone from `navConfig`, `CommandPalette`, the lazy map and the `PanelId` union, and the file is deleted; `AppShell` now falls back to Overview when a persisted `activePanel` no longer resolves, because the store rehydrates from `localStorage` and a stale id would otherwise render an undefined component.
+
+- **v7→v8 panels — marketing footer points at `ACTIVE_*` addresses.** The footer linked the retired v7 registry and escrow; it now resolves through the same `ACTIVE_REGISTRY_ADDRESS`/`ACTIVE_PPC_ADDRESS` the app uses, so the footer cannot drift from the wired stack again.

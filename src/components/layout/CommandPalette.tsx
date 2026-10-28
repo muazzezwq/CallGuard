@@ -35,7 +35,6 @@ const ALL_COMMANDS: { id: PanelId; icon: string; label: string; keywords: string
   { id: "provprofile",   icon: "👤", label: "Provider Profile", keywords: "profile provider view stats" },
   { id: "passkey",       icon: "🔑", label: "Passkey Wallet",   keywords: "passkey wallet webauthn" },
   { id: "balance",       icon: "👛", label: "Unified Balance",  keywords: "balance unified funds" },
-  { id: "pipelinehook",  icon: "🪝", label: "Pipeline Hook",    keywords: "pipeline hook webhook erc8183" },
 ];
 
 interface Props {
