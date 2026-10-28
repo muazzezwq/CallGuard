@@ -92,7 +92,8 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
 - Test counts drift fast. Measured 28 Oct 2026: `forge test` **617 tests / 29 suites**,
-  `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
+  `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip). Fork suite added the same day:
+  `forge test` **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents
   the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
@@ -193,6 +194,15 @@ The first `witness` claim was anchored on 28 Oct 2026: tx `0x5c4d8deb…ba2d`, b
 gas `206,535`, `claimHash` `0x3e1dc967…2514` for call `0x8cfa1821…`, verifier `0x046d715D…0498`.
 `getEvidence` returns the row and `/api/evidence?callId=0x8cfa1821…&kind=witness` answers
 `match: true`, so `witness` is no longer a wired-but-empty kind.
+
+**On `SLAEvidenceRegistryV2` only `witness` and `zk-execution` hold a claim for that call.** The
+`zk-constraint` anchor from B3d (`tx 0xe8f6b0c5…3732`, block `69092517`) is on the **v1** registry
+`0x7d643B2b…` — `DisputeV4` reads `V2` (`0x64872c29…11FC`), so its row says `NoAnchor` (mode `2`),
+not `NoVerifier`. A snapshot therefore mixes three different sentences and
+`test/DisputeV4ForkEvidence.t.sol` asserts all three against the deployed contracts.
+No dispute has ever been opened on `DisputeV4`: all four completed V8 calls already carry a V3
+dispute id, so `openDispute` answers `AlreadyDisputedElsewhere` — correct double-slash behaviour,
+not a bug. The fork test forces that one V3 read to zero and is the only way to see the snapshot.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|

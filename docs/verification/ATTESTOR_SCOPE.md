@@ -217,6 +217,24 @@ this repository.
   `DisputeV4` reads the snapshot in `openDispute` only; `resolve`, `resolveAppeal`, `finalize`
   and `reclaimExpiredBond` never read it.
 
+## 5a. What a dispute snapshot actually said
+
+`DisputeV4.openDispute` was never sent on Arc: every completed V8 call (four of them) already has a
+V3 dispute id, and V4 refuses those with `AlreadyDisputedElsewhere` so the same stake cannot be
+slashed twice. `test/DisputeV4ForkEvidence.t.sol` clears that single legacy read and opens a real
+dispute against the deployed contracts at block `69498000`; the four rows it wrote read:
+
+| Kind | mode | present | bound | reason |
+|---|---|---|---|---|
+| `witness` | `2` | true | **true** | `None` — adapter `0x046d715D…0498`, claim `0x3e1dc967…2514` |
+| `tee-attestation` | `0` | false | false | `NoVerifier` — the registry refuses the kind before reading a proof |
+| `zk-constraint` | `2` | false | false | `NoAnchor` — its live claim is on the **v1** registry `0x7d643B2b…`, which V4 does not read |
+| `zk-execution` | `2` | true | **true** | `None` — claim `0xe3baff68…419c`, verifier `0xD804F2E0…1a21` |
+
+Three different sentences in one table, which is why the reason is stored rather than inferred: a
+`NoAnchor` row means the kind is checkable and nobody anchored a claim *there*, a `NoVerifier` row
+means no claim of any strength can exist at all.
+
 ## 6. What a reader should not conclude
 
 Four kinds in `evidenceKinds()` is not four claims per dispute, and a wired kind is not an anchored
