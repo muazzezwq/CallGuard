@@ -285,6 +285,16 @@ function EvidenceBlock({ id }: { id: number }) {
       <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 12 }}>
         This snapshot was recorded when the dispute opened; it changes neither the bond, the slash, nor the verdict.
       </p>
+      {/* A mode-0 kind is not "pending": the registry refuses to anchor it at all,
+          so the refusal is the whole story and a reader should not wait for a row
+          that will never fill. The scope behind it is
+          docs/verification/ATTESTOR_SCOPE.md. */}
+      {rows.some((row) => row.mode === 0) && (
+        <p style={{ margin: "4px 0 0", color: "var(--text-dim)", fontSize: 12 }}>
+          A kind with no verifier cannot be anchored at all — the registry reverts
+          <code> NoVerifierForKind </code> — so the rows above carry no claim in either direction.
+        </p>
+      )}
     </StatusNotice>
   );
 }

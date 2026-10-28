@@ -92,7 +92,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
 - Test counts drift fast. Measured 28 Oct 2026: `forge test` **606 tests / 28 suites**,
-  `bun test tests/` **556 tests / 52 files** (549 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
+  `bun test tests/` **557 tests / 52 files** (550 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
   the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
@@ -167,8 +167,13 @@ is `true` and `authorizedSlashers(DisputeV3)` is `false`. V3 is closed: `finaliz
 (tx `0xbdaf9525…f6167`, block `69473913`, `85048` gas) and released `3.481864 USDC`; `settled(4)` is
 `true`, `heldSlash(4)` is `0`, and V3 holds no USDC in either representation. The live zk-execution
 fixture is anchored on the new registry.
-`witness` and `tee-attestation` stay `NoVerifier` (`modeOf` = `0`) because no attestor exists; their
-rows answer `present=false, reason=NoVerifier`.
+`witness` and `tee-attestation` stay `NoVerifier` (`modeOf` = `0`). Not for lack of an attestor —
+`SLAProvenance` has one allowlisted (`0x528581fB…2F9c`) and a live record whose `payloadHash` is
+the call's `responseHash` — but for lack of a **proof adapter**: `DisputeV4` binds only mode `2`,
+and a signature key reaches mode `1`, which it records as `ModeIsSignature`. With mode `0`,
+`anchor()` reverts `NoVerifierForKind()`, so their rows cannot exist at all and the snapshot says
+`present=false, reason=NoVerifier`. Scope and re-open conditions:
+`docs/verification/ATTESTOR_SCOPE.md`.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|

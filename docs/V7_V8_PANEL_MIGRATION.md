@@ -111,7 +111,7 @@ in the checklist are `PASS`.
 
 **P1 — address and ABI swap on panels with a 1:1 counterpart.** Done 28 Oct 2026
 (`Payments`, `Notifications`, `Requests`, `BulkCall`, `PasskeyWallet`); gates clean
-(`bun run typecheck`, `bun run lint`, `bun test tests/` 549 pass / 7 skip / 0 fail).
+(`bun run typecheck`, `bun run lint`, `bun test tests/` 550 pass / 7 skip / 0 fail).
 `Notifications`, `Payments`, `Requests`, `BulkCall`, `PasskeyWallet`.
 Change `CONFIG.<addr>` → `ACTIVE_PPC_ADDRESS` / `ACTIVE_REGISTRY_ADDRESS` and
 `PPC_ABI`/`REGISTRY_ABI` → `PPC_ABI_V8_ACTIVE`/`REGISTRY_ABI_V8_ACTIVE`.
@@ -159,7 +159,7 @@ the two fields that come from `getTerms`, because v8 keeps them out of the provi
 | D2 | `MarketingLayout` footer links point at v8 | **PASS** — both contract links resolve through `ACTIVE_*`, which is `0x793028B6…12A3` / `0xedce61eF…a7EF` with the checked-in env |
 | F1 | `Providers` snippets print v8 addresses and an 11-field reply | **PASS** — `grep -n "CONFIG\.ppcAddress\|CONFIG\.registryAddress\|9-field"` over the panel returns nothing; the curl sample executed as printed returns 11 words: owner/signer `0xfbac99E6…06Da`, stake `16044435`, price `1000000`, terms version `1`, `active`, pending `0`, completed `4`, slashed `7`, max concurrent `10`, zkTier `0`. `getProvider` selector `0x5c42d079`, `getTerms` selector `0x84cec799` |
 | E1 | `bun run check` clean | **PASS** — `tsc -p tsconfig.json --noEmit` and `eslint src --max-warnings=0` both exit 0 after P5 |
-| E2 | `bun test tests/` no new failures | **PASS** — `556 tests / 52 files`, `549 pass`, `7 skip`, `0 fail` |
+| E2 | `bun test tests/` no new failures | **PASS** — `557 tests / 52 files`, `550 pass`, `7 skip`, `0 fail` |
 | E3 | no panel reads a bare v7 address | **PASS** — the grep returns five files: `config.ts` (the `ACTIVE_*` fallbacks), `V7Cleanup.tsx` (the sanctioned v7 write path), `AdminPanel.tsx` (two v7 rows in the address book, labelled `read-only`), and `DisputesV8.tsx`/`Uptime.tsx`, where every hit is `V8_CONFIG.registryAddress`/`V8_CONFIG.ppcAddress` rather than `CONFIG`. `MarketingLayout.tsx` no longer appears |
 
 ## Known constraints
@@ -210,7 +210,7 @@ which is the deliberate v7 write path, and the two labelled `read-only` v7 rows 
 migrated too.
 
 Gates at close: `tsc -p tsconfig.json --noEmit` clean, `eslint src --max-warnings=0` clean,
-`bun test tests/` `556 tests / 52 files`, `549 pass`, `7 skip`, `0 fail`.
+`bun test tests/` `557 tests / 52 files`, `550 pass`, `7 skip`, `0 fail`.
 
 Open, out of scope here: the attestor decision for `witness` and `tee-attestation`
 (`modeOf = 0`). That is a contract-and-runbook question, not a panel one, and it is recorded

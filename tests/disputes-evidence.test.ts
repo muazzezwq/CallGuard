@@ -53,6 +53,15 @@ describe("dispute evidence snapshot", () => {
     expect(src).toContain("changes neither the bond, the slash, nor the verdict");
   });
 
+  test("a mode-0 kind reads as unanchorable, not as pending", async () => {
+    const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
+    // The registry reverts `NoVerifierForKind` before reading a proof, so an
+    // absent row of this kind is a refusal, not a check that has not run yet.
+    expect(src).toMatch(/cannot be anchored at all/);
+    expect(src).toContain("NoVerifierForKind");
+    expect(src).toMatch(/row\.mode === 0/);
+  });
+
   test("the legacy finalize button is gated on V3's own appeal window", async () => {
     const src = await readFile("src/components/panels/DisputesV8.tsx", "utf8");
     // `legacyCanFinalize` reads the window resolved per record (V3 layout), so

@@ -145,6 +145,12 @@ renders `No claim anchored for this call` — both branches checked in the dev s
 3. **Do not deploy the TEE tier as "verified"** until a real enclave exists and PCR0 values
    come from an image the repository can rebuild. Until then the correct label is
    `PARTIAL`, and the envelope says exactly what is assumed.
+4. **Wire the tier you intend to rely on.** A tier that can be described but not wired is not
+   evidence: `witness` and `tee-attestation` are at registry mode `0` on
+   `SLAEvidenceRegistryV2`, so `anchor()` reverts `NoVerifierForKind()` and no dispute can
+   bind them. `witness` is one adapter away (the provenance record already matches a live
+   call); the TEE tier is blocked by a missing quote. Per-kind status and re-open conditions:
+   `docs/verification/ATTESTOR_SCOPE.md`.
 
 ## 4. What would have to change for production
 
