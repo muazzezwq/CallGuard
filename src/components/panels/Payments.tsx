@@ -2,7 +2,9 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from "
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { formatUnits, parseUnits } from "viem";
 import { useState } from "react";
-import { CONFIG, USDC_ABI, PPC_ABI, arcTestnet } from "../../lib/config";
+import {
+  CONFIG, USDC_ABI, PPC_ABI_V8_ACTIVE, ACTIVE_PPC_ADDRESS, arcTestnet,
+} from "../../lib/config";
 import { friendlyError } from "../../lib/utils";
 import {
   checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
@@ -35,8 +37,8 @@ export default function Payments() {
 
   // CRITICAL-06: claimable balance from PayPerCall pull settlement model
   const { data: claimableData, refetch: refetchClaimable } = useReadContract({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     functionName: "claimable",
     args: [address as `0x${string}`],
     chainId: arcTestnet.id,
@@ -62,8 +64,8 @@ export default function Payments() {
     try {
       setStatus("Claiming...");
       await writeContractAsync({
-        address: CONFIG.ppcAddress as `0x${string}`,
-        abi: PPC_ABI,
+        address: ACTIVE_PPC_ADDRESS,
+        abi: PPC_ABI_V8_ACTIVE,
         functionName: "claim",
         chainId: arcTestnet.id,
       });

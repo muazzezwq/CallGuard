@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useWatchContractEvent } from "wagmi";
-import { CONFIG, PPC_ABI, arcTestnet } from "../../lib/config";
+import { CONFIG, PPC_ABI_V8_ACTIVE, ACTIVE_PPC_ADDRESS, arcTestnet } from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import {
   mergeNotifications,
@@ -91,8 +91,8 @@ export default function Notifications() {
   }, []);
 
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "CallStarted",
     chainId: arcTestnet.id,
     onError,
@@ -117,8 +117,8 @@ export default function Notifications() {
      mined by definition, so the event is confirmed — it says nothing about the
      provider's answer beyond the signature the contract accepted. */
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "ReceiptSubmitted",
     chainId: arcTestnet.id,
     onError,
@@ -142,8 +142,8 @@ export default function Notifications() {
      caller was refunded and the provider's stake was cut. Both amounts come
      from the event. */
   useWatchContractEvent({
-    address: CONFIG.ppcAddress as `0x${string}`,
-    abi: PPC_ABI,
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_V8_ACTIVE,
     eventName: "CallSlashed",
     chainId: arcTestnet.id,
     onError,

@@ -10,13 +10,13 @@
 
 import { useState } from "react";
 import { usePasskeyWallet } from "../hooks/usePasskeyWallet";
-import { CONFIG } from "../lib/config";
+import { ACTIVE_PPC_ADDRESS } from "../lib/config";
 import { PageHeader, Button, Badge, Field, Input } from "../ui";
 import {
   KeyValue, PanelShell, PanelSource, PanelSplit, StatusNotice,
 } from "./panel/PanelUi";
 
-const PAY_PER_CALL_ADDR = ((import.meta.env.VITE_PAY_PER_CALL as string | undefined) ?? CONFIG.payPerCall) as `0x${string}`;
+const PAY_PER_CALL_ADDR = ((import.meta.env.VITE_PAY_PER_CALL as string | undefined) ?? ACTIVE_PPC_ADDRESS) as `0x${string}`;
 
 const PAY_PER_CALL_ABI: unknown[] = [
   {

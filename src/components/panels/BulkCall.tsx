@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
 import { stringToBytes, keccak256 } from 'viem'
-import { CONFIG, PPC_ABI } from '../../lib/config'
+import { PPC_ABI_V8_ACTIVE, ACTIVE_PPC_ADDRESS } from '../../lib/config'
 import { friendlyError } from '../../lib/utils'
 import {
   checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation,
 } from '../../lib/paymentGate'
 
-const ADDR = CONFIG.ppcAddress as `0x${string}`
+const ADDR = ACTIVE_PPC_ADDRESS
 const S = {
   wrap: { padding: '24px', maxWidth: '640px', margin: '0 auto' },
   h1: { fontSize: '22px', fontWeight: 700, marginBottom: '4px', color: 'var(--text)' },
@@ -42,7 +42,7 @@ export default function BulkCall() {
     const gate = checkPaymentStart({ storage: storage(), operation: 'bulk' })
     if (!gate.ok) return { error: gate.message }
     try {
-      const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI, functionName: 'callService', args: [BigInt(provider), requestHash] })
+      const hash = await writeContractAsync({ address: ADDR, abi: PPC_ABI_V8_ACTIVE, functionName: 'callService', args: [BigInt(provider), requestHash] })
       if (!recordSubmittedTx(hash, storage()).persisted) {
         return { hash, error: `Submitted ${hash}, but its pending marker could not be saved. The tab stays blocked; check the explorer before retrying.` }
       }

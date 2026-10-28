@@ -3,7 +3,7 @@ import { useAccount, useChainId, usePublicClient, useSwitchChain, useWriteContra
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubgraph } from "../../hooks/useSubgraph";
 // MEDIUM-09: import canonical ABI from config (was local duplicate)
-import { arcTestnet, CONFIG, PPC_ABI } from "../../lib/config";
+import { arcTestnet, CONFIG, PPC_ABI_V8_ACTIVE, ACTIVE_PPC_ADDRESS } from "../../lib/config";
 import { callStatusLabel, csvCell, normalizeCalls, usdcAmount } from "../../lib/activity";
 import { friendlyError } from "../../lib/utils";
 import { checkPaymentStart, recordSubmittedTx, resolvePendingTx, beginOperation, endOperation } from "../../lib/paymentGate";
@@ -138,8 +138,8 @@ export default function Requests() {
       }
       setTimeoutStatus("⏳ Checking whether this call can be claimed...");
       await publicClient.simulateContract({
-        address: CONFIG.payPerCall as `0x${string}`,
-        abi: PPC_ABI,
+        address: ACTIVE_PPC_ADDRESS,
+        abi: PPC_ABI_V8_ACTIVE,
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
         account: address as `0x${string}`,
@@ -156,8 +156,8 @@ export default function Requests() {
 
       setTimeoutStatus("⏳ Submitting...");
       writeContract({
-        address: CONFIG.payPerCall as `0x${string}`,
-        abi: PPC_ABI,
+        address: ACTIVE_PPC_ADDRESS,
+        abi: PPC_ABI_V8_ACTIVE,
         functionName: "claimTimeout",
         args: [id as `0x${string}`],
         chainId: arcTestnet.id,

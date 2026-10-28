@@ -86,15 +86,23 @@ no stored score. `ProviderProfile` is the only remaining direct caller.
    write path, and nothing else should.
 5. `PipelineHook` has no v8 counterpart. Removing the panel requires a route/entry and
    subgraph-side check; hiding it behind a flag leaves dead code that still reads.
-6. `ADMIN_PANEL`'s `owner()` → `admin()` rename is not cosmetic: `Ownable` is not used by
+6. `AdminPanel`'s `owner()` → `admin()` rename is not cosmetic: `Ownable` is not used by
    `ServiceRegistryV8`, so any generic ownership UI must not assume it.
+7. The v8 events are **not** the v7 events with a new address. `CallStarted` carries eight
+   fields (adds `termsVersion` and `termsHash` before `requestHash`), `ReceiptSubmitted`
+   carries four (adds `termsVersion`), and `CallSlashed` carries four (adds
+   `keeperBounty`). An address-only swap keeps the v7 topic filter and receives nothing,
+   silently. `PPC_ABI_V8` already declares the right shapes; `Notifications` needed the ABI
+   swap as much as the address swap.
 
 ## Phases
 
 Each phase is independently shippable and verifiable. A phase is done only when its rows
 in the checklist are `PASS`.
 
-**P1 — address and ABI swap on panels with a 1:1 counterpart.**
+**P1 — address and ABI swap on panels with a 1:1 counterpart.** Done 28 Oct 2026
+(`Payments`, `Notifications`, `Requests`, `BulkCall`, `PasskeyWallet`); gates clean
+(`bun run typecheck`, `bun run lint`, `bun test tests/` 549 pass / 7 skip / 0 fail).
 `Notifications`, `Payments`, `Requests`, `BulkCall`, `PasskeyWallet`.
 Change `CONFIG.<addr>` → `ACTIVE_PPC_ADDRESS` / `ACTIVE_REGISTRY_ADDRESS` and
 `PPC_ABI`/`REGISTRY_ABI` → `PPC_ABI_V8_ACTIVE`/`REGISTRY_ABI_V8_ACTIVE`.
@@ -128,11 +136,11 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 
 | # | Item | Status |
 |---|---|---|
-| A1 | `Payments` reads `claimable` from v8 PPC | UNVERIFIED |
-| A2 | `Notifications` watches v8 PPC events | UNVERIFIED |
-| A3 | `Requests` `claimTimeout` targets v8 PPC | UNVERIFIED |
-| A4 | `BulkCall` `callService` targets v8 PPC | UNVERIFIED |
-| A5 | `PasskeyWallet` has no silent v7 fallback | UNVERIFIED |
+| A1 | `Payments` reads `claimable` from v8 PPC | **PASS** — `ACTIVE_PPC_ADDRESS` resolves to `0xedce61eF…a7EF` with the checked-in env (`V8_ENABLED=true`); `claimable(0xfbac99E6…06Da)` reads `17527733` (`17.527733 USDC`) on chain |
+| A2 | `Notifications` watches v8 PPC events | **PASS** — watch targets `ACTIVE_PPC_ADDRESS` with `PPC_ABI_V8_ACTIVE`; the ABI's `CallStarted`/`ReceiptSubmitted`/`CallSlashed` carry 8/4/4 fields, matching `IPayPerCallV8.sol`, and the v8 subgraph indexes `termsVersion` from that event. No live call was made during the phase, so no event was observed in a browser |
+| A3 | `Requests` `claimTimeout` targets v8 PPC | **PASS** — same address/ABI pair; the argument was already `bytes32`, which is the v8 signature |
+| A4 | `BulkCall` `callService` targets v8 PPC | **PASS** — same address/ABI pair; the call ignores the return value, so the `uint256`→`bytes32` change cannot be misread |
+| A5 | `PasskeyWallet` has no silent v7 fallback | **PASS** — the fallback is `ACTIVE_PPC_ADDRESS`, and the inline ABI already declares `callService` returning `bytes32` |
 | B1 | `Nano` uses named `getProvider` fields only | UNVERIFIED |
 | B2 | `ProviderProfile` computes the score, no `getReputationScore` call | UNVERIFIED |
 | C1 | `AdminPanel` shows `admin()` and `payPerCall()` | UNVERIFIED |
