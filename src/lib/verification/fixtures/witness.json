@@ -1,0 +1,19 @@
+{
+  "callId": "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265",
+  "providerId": 1,
+  "termsHash": "0xbe8c8cd7ff8e85af17a1ccdba790eb1dae47a008d61feccdd682559d8d099fcf",
+  "responseHash": "0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d",
+  "attestor": "0x528581fB8E66186Ba14650a1bD0bbd88DBC82F9c",
+  "originHash": "0x0533755f352233ad0fe3675873655f9a13056f080bed0f759461613b00f6a78b",
+  "observedAt": 1792955719,
+  "recordedAt": 1792955722,
+  "issuedAt": 1792955722,
+  "claimKind": "witness",
+  "statement": "An allowlisted attestor 0x528581fB8E66186Ba14650a1bD0bbd88DBC82F9c recorded on chain that it saw this call's payload 0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d at origin 0x0533755f352233ad0fe3675873655f9a13056f080bed0f759461613b00f6a78b, observed at 1792955719 and recorded at 1792955722.",
+  "assumptions": [
+    "the attestor key is independent of the provider: a key this repository controls makes this claim \"trust CallGuard's witness\", not an independent one",
+    "the attestor's own log is honest about the bytes it fetched and the origin it fetched them from",
+    "this claim records provenance, not correctness: it does not say the answer is correct"
+  ],
+  "claimHash": "0x3e1dc9675007287b4fd1cb85351d59adee256375a64a3d984b454ce1a10b2514"
+}

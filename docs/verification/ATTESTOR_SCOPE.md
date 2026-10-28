@@ -140,6 +140,20 @@ Wiring `witness` does not create a claim. Someone still has to call
 Until that happens the Verify panel shows no witness row, and a dispute snapshot records
 `NoAnchor`.
 
+### Anchoring one
+
+The three hashes are derived, never typed. `bun scripts/witness-anchor.ts --call <callId>` reads
+`getCall` from `PayPerCallV8` and `getProvenance` from `SLAProvenance`, refuses to build an
+envelope when the record's `payloadHash` is not the call's `responseHash`, and prints the
+`cast send … anchor(...)` line for a human to sign. `--emit-fixture` writes
+`src/lib/verification/fixtures/witness.json` from the same builder `/api/evidence` uses, so the
+served statement cannot drift from the anchored one; `--send` takes `PRIVATE_KEY` and is opt-in.
+
+The anchor for the live call `0x8cfa1821…` is prepared but **not sent**: `claimHash`
+`0x3e1dc967…2514`, `statementHash` `0x7050a35c…9be5`, `assumptionHash` `0x7d9b9f5b…6a4a`. Until it
+lands, `/api/evidence?callId=0x8cfa1821…&kind=witness` answers with the envelope and
+`anchored: false`, and a dispute snapshot reads `NoAnchor` for `witness`.
+
 An adapter would be small: implement
 `verify(bytes proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash) external view returns (bool)`,
 read `getProvenance(callId)`, and answer `recordedAt != 0 && payloadHash == responseHash && isAttestor[attestor]`.

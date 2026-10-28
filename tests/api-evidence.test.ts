@@ -6,7 +6,7 @@ import { keccak256, toBytes } from "viem";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes";
 import { envelopeDigest, type EvidenceEnvelope } from "../src/lib/verification/schema";
 
-// The committed zk-execution fixture is the only bundled envelope.
+// The committed zk-execution fixture is one of two bundled envelopes.
 const fixture = JSON.parse(
   readFileSync("src/lib/verification/fixtures/zk-execution.json", "utf8"),
 ) as {
@@ -161,6 +161,156 @@ describe("GET /api/evidence (handle)", () => {
     expect(res.digest).toBeNull();
     expect(res.match).toBe(false);
     if (res.source === "fixture") throw new Error("fixture served for a call it does not describe");
+  });
+});
+
+// The witness fixture describes the same live call as the zk-execution one: the
+// payload was both witnessed by an attestor and executed inside a guest. Two kinds,
+// one call, two claims — which is why the bundle lookup has to be keyed by kind and
+// not by callId.
+const witnessFixture = JSON.parse(
+  readFileSync("src/lib/verification/fixtures/witness.json", "utf8"),
+) as {
+  callId: `0x${string}`;
+  responseHash: `0x${string}`;
+  claimHash: `0x${string}`;
+  statement: string;
+  assumptions: string[];
+};
+
+function witnessRow(overrides: Record<string, string> = {}) {
+  return {
+    kind: keccak256(toBytes("witness")),
+    claimHash: witnessFixture.claimHash,
+    responseHash: witnessFixture.responseHash,
+    statementHash: statementHash(witnessFixture.statement),
+    assumptionHash: assumptionHash(witnessFixture.assumptions),
+    verifier: "0x046d715D28143e45E38f1a1114A0462898630498",
+    anchoredAt: 1793020800,
+    ...overrides,
+  };
+}
+
+describe("GET /api/evidence: the witness bundle", () => {
+  test("serves the witness envelope for kind=witness, not the zk one", async () => {
+    const { handle } = await import("../api/_evidence.js");
+    const res = await handle(
+      { callId: witnessFixture.callId, kind: "witness" },
+      { readAnchored: async () => witnessRow() },
+    );
+    const envelope = res.envelope as EvidenceEnvelope;
+    expect(envelope.claim.kind).toBe("witness");
+    expect(envelope.proof.type).toBe("sla-provenance-record");
+    expect(res.match).toBe(true);
+    expect(res.digest).toBe(witnessFixture.claimHash);
+    expect(res.source).toBe("fixture");
+    // Same callId as the zk-execution fixture, different claim: a bundle lookup that
+    // matched on callId alone would hand a reader the wrong statement.
+    expect(res.digest).not.toBe(LIVE_CLAIM_HASH);
+  });
+
+  test("serving it does not disturb the zk-execution bundle", async () => {
+    const { handle } = await import("../api/_evidence.js");
+    const res = await handle(
+      { callId: LIVE_CALL, kind: "zk-execution" },
+      { readAnchored: async () => anchoredRow() },
+    );
+    expect((res.envelope as EvidenceEnvelope).claim.kind).toBe("zk-execution");
+    expect(res.digest).toBe(LIVE_CLAIM_HASH);
+    expect(res.match).toBe(true);
+  });
+
+  test("no fixture exists for zk-constraint, so nothing is invented for it", async () => {
+    const { handle } = await import("../api/_evidence.js");
+    const res = await handle(
+      { callId: LIVE_CALL, kind: "zk-constraint" },
+      { readAnchored: async () => null },
+    );
+    expect(res.envelope).toBeNull();
+    expect(res.source).toBeNull();
+    expect(res.digest).toBeNull();
+  });
+
+  test("a witness row that disagrees with the fixture is carried, not matched", async () => {
+    const { handle } = await import("../api/_evidence.js");
+    const res = await handle(
+      { callId: witnessFixture.callId, kind: "witness" },
+      { readAnchored: async () => witnessRow({ claimHash: "0x" + "33".repeat(32) }) },
+    );
+    expect(res.claimHash).toBe("0x" + "33".repeat(32));
+    expect(res.digest).toBe(witnessFixture.claimHash);
+    expect(res.match).toBe(false);
+  });
+
+  test("answers 200 for the witness bundle", async () => {
+    const { sendEvidence: handler } = await import("../api/_evidence.js");
+    const rows = { statusCode: 0, body: undefined as unknown };
+    const res = {
+      setHeader() {
+        return this;
+      },
+      status(code: number) {
+        rows.statusCode = code;
+        return this;
+      },
+      json(body: unknown) {
+        rows.body = body;
+        return this;
+      },
+      end() {
+        return this;
+      },
+    };
+    // Both a registry and an RPC URL, so the answer is a read that succeeded rather
+    // than `no-registry`/`rpc-error` — those two turn the status into 502 by design.
+    process.env.SLA_EVIDENCE_V2 = "0x64872c29A19dF8E471103d0708397BAb96A311FC";
+    process.env.ARC_RPC_URL = "https://rpc.testnet.arc.io";
+    const savedFetch = globalThis.fetch;
+    globalThis.fetch = (async (_url: string | URL | Request, _init?: RequestInit) => {
+      // Answer with the witness row encoded exactly as the registry returns it.
+      const { encodeAbiParameters } = await import("viem");
+      const row = witnessRow();
+      const data = encodeAbiParameters(
+        [
+          {
+            type: "tuple",
+            components: [
+              { name: "kind", type: "bytes32" },
+              { name: "claimHash", type: "bytes32" },
+              { name: "responseHash", type: "bytes32" },
+              { name: "statementHash", type: "bytes32" },
+              { name: "assumptionHash", type: "bytes32" },
+              { name: "verifier", type: "address" },
+              { name: "anchoredAt", type: "uint64" },
+            ],
+          },
+        ],
+        [row as never],
+      );
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: data }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof fetch;
+    try {
+      await handler(
+        {
+          method: "GET",
+          query: { callId: witnessFixture.callId, kind: "witness" },
+          headers: {},
+          url: "/api/evidence",
+        },
+        res,
+      );
+    } finally {
+      globalThis.fetch = savedFetch;
+      delete process.env.SLA_EVIDENCE_V2;
+      delete process.env.ARC_RPC_URL;
+    }
+    expect(rows.statusCode).toBe(200);
+    const body = rows.body as { match: boolean; source: string; kind: string };
+    expect(body.kind).toBe("witness");
+    expect(body.source).toBe("fixture");
+    expect(body.match).toBe(true);
   });
 });
 

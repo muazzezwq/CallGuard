@@ -92,7 +92,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
 - Test counts drift fast. Measured 28 Oct 2026: `forge test` **617 tests / 29 suites**,
-  `bun test tests/` **557 tests / 52 files** (550 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
+  `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
   the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
@@ -178,6 +178,16 @@ key was never enough. It now has a proof adapter and is wired (below). Scope and
 Wiring tx `0xd5499453…6f81` (block `69494118`, `93,512` gas) ran `setProofVerifier` from the owner,
 so `modeOf(witness)` is `2` and `bindsResponse` is `true`. `tee-attestation` stays at `0` for a
 missing quote. A wired kind still has no claim until someone anchors one.
+
+Anchoring the first `witness` claim has a dedicated path, because the three hashes must come
+from the provenance record and not from a hand-typed sentence:
+`bun scripts/witness-anchor.ts --call <callId>` reads `getCall` + `getProvenance`, refuses a call
+whose record's `payloadHash` is not its `responseHash`, builds the envelope through
+`src/lib/verification/witnessClaim.ts`, and prints the `cast send … anchor(...)` line. `--emit-fixture`
+rewrites `src/lib/verification/fixtures/witness.json` (the builder's own output, so the served
+hashes cannot drift from the anchored ones); `--send` needs `PRIVATE_KEY` and is opt-in.
+`/api/evidence` now bundles two envelopes and looks them up by `(kind, callId)`: `zk-execution`
+and `witness` describe the same live call, so a call alone does not name a claim.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|

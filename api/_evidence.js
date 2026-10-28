@@ -15,9 +15,11 @@
  *   - note: "rpc-error"   — the chain read threw (or answered with an RPC error)
  *   - note: null          — the read was attempted and answered, anchored or not.
  *
- * The only bundled envelope is the committed zk-execution fixture. For any other
- * `(callId, kind)` the endpoint reports what the chain anchored and nothing else;
- * it never invents an envelope the caller did not ask for.
+ * Two envelopes are bundled: the committed zk-execution fixture and the committed
+ * witness fixture. Both describe the same live call, so the lookup is keyed by
+ * `(kind, callId)` — a call alone does not name a claim. For any other pair the
+ * endpoint reports what the chain anchored and nothing else; it never invents an
+ * envelope the caller did not ask for.
  */
 
 // The deploy runtime (nodejs24.x, ESM) rejects a bare JSON import with
@@ -26,8 +28,13 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const fixture = require("../src/lib/verification/fixtures/zk-execution.json");
+const witnessFixture = require("../src/lib/verification/fixtures/witness.json");
 import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
+// The witness envelope is built by the same function the anchor script used, so the
+// hashes served here are the hashes that were anchored. Re-formatting the sentence
+// locally is what would let the two drift apart without any test noticing.
+import { buildWitnessEnvelope } from "../src/lib/verification/witnessClaim.js";
 import { encodeFunctionData, decodeFunctionResult, keccak256, toBytes } from "viem";
 import { getRpcUrl } from "./_rpc.js";
 
@@ -87,6 +94,16 @@ function envelopeFromFixture(f) {
     issuedAt: f.issuedAt,
   };
 }
+
+/**
+ * The bundled envelopes, keyed by the kind they claim. A bundle answers only for the
+ * `callId` its own fixture names: the two fixtures happen to describe the same call,
+ * and a reader asking for `zk-execution` must not be handed the witness statement.
+ */
+const BUNDLES = {
+  "zk-execution": { fixture, envelope: () => envelopeFromFixture(fixture) },
+  witness: { fixture: witnessFixture, envelope: () => buildWitnessEnvelope(witnessFixture) },
+};
 
 const EMPTY = Object.freeze({
   anchored: false,
@@ -192,9 +209,10 @@ export async function handle(query, deps = {}) {
   }
 
   // Never return a fixture envelope for a callId/kind the fixture does not
-  // describe: a miss stays null instead of an envelope about another call.
-  const bundles = kind === "zk-execution" && callId === fixture.callId.toLowerCase();
-  const envelope = bundles ? envelopeFromFixture(fixture) : null;
+  // describe: a miss stays null instead of an envelope about another claim.
+  const bundle = BUNDLES[kind];
+  const envelope =
+    bundle && callId === String(bundle.fixture.callId).toLowerCase() ? bundle.envelope() : null;
   const digest = envelope ? envelopeDigest(envelope) : null;
 
   const statementHashEnvelope = envelope ? statementHash(envelope.claim.statement) : null;
