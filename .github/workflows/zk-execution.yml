@@ -34,14 +34,14 @@ env:
   # exist there — 1.88.0 is the one risc0 v3.0.6 pins. `risc0-build` points RUSTC at it.
   RISC0_RUST_VERSION: "1.88.0"
   # abi.encode(callId, requestHash, responseHash, handlerId) for
-  # 0x8cfa…b265 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
+  # 0xf68c…b488 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
   # Pinned from the first reproducible build. A drift fails the job instead of
   # producing a proof the deployed adapter would reject.
   EXPECTED_IMAGE_ID: "0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa"
   # Dispatching this workflow needs a token, so a Groth16 run can also be requested
   # by putting `[prove]` in the commit message of a push that touches this workflow.
   PROVE_REQUESTED: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[prove]')) || inputs.mode == 'groth16' }}
-  EXPECTED_JOURNAL: "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
+  EXPECTED_JOURNAL: "0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7"
 
 jobs:
   prove:
