@@ -157,8 +157,10 @@ order: `docs/V8_DEPLOYMENT.md` §7.
 `SLAEvidenceRegistryV2` and `DisputeV4` are deployed on Arc Testnet and **wired**: `zk-constraint`
 and `zk-execution` are in `Proof` mode (`modeOf` = `2`) with `bindsResponse` `true`,
 `DisputeV4.evidenceKinds()` holds all four kinds, `ServiceRegistryV8.authorizedSlashers(DisputeV4)`
-is `true` and `authorizedSlashers(DisputeV3)` is `false` (V3 is retired; it keeps dispute #4's
-escrow until `finalize(4)`), and the live zk-execution fixture is anchored on the new registry.
+is `true` and `authorizedSlashers(DisputeV3)` is `false`. V3 is closed: `finalize(4)` ran on 28 Oct
+(tx `0xbdaf9525…f6167`, block `69473913`, `85048` gas) and released `3.481864 USDC`; `settled(4)` is
+`true`, `heldSlash(4)` is `0`, and V3 holds no USDC in either representation. The live zk-execution
+fixture is anchored on the new registry.
 `witness` and `tee-attestation` stay `NoVerifier` (`modeOf` = `0`) because no attestor exists; their
 rows answer `present=false, reason=NoVerifier`.
 
@@ -166,7 +168,7 @@ rows answer `present=false, reason=NoVerifier`.
 |---|---|---|
 | `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` | `0x2df3be0f…26941` (block 69401608, 765735 gas) |
 | `DisputeV4` | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` | `0x8ebe9986…2fd8f` (block 69401608, 2752305 gas) |
-| `DisputeV3` (retired 28 Oct; still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` | — |
+| `DisputeV3` (retired 28 Oct; dispute #4 finalized, no funds held) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` | — |
 
 Wiring txs, all signed by the owner wallet: `setProofVerifier(zk-constraint)` `0x19ac4811…f77cd`,
 `setProofVerifier(zk-execution)` `0x5b9addae…ed0fad`, `setEvidenceKinds` `0x44b6701e…7bf1e`,

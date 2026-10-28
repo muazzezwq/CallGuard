@@ -890,6 +890,14 @@ Two failures showed up only in production, after the wiring was green on chain:
    object, and `tests/api-evidence.test.ts` pins the decode against the recorded chain result from
    block `69469682` — the stub-injected tests could not see this, because they never decode.
 
+### 14.3d DisputeV3 is closed
+
+`finalize(4)` ran on 28 Oct 2026 (tx `0xbdaf9525…f6167`, block `69473913`, `85048` gas): it released
+`3.481864 USDC` and left `settled(4) = true`, `heldSlash(4) = 0`, and no USDC balance in V3 in
+either representation (6-decimal `0x3600…0000` and the 18-decimal system contract). `finalize` is
+permissionless; the owner wallet signed it and received the escrow because it was the caller on that
+call. Nothing further is pending on V3.
+
 Smoke result after the fix: `/api/evidence?callId=0x8cfa1821…fb265&kind=zk-execution` →
 `200 {anchored:true, match:true, source:"fixture", note:null}`; an unwired kind → `404` with
 `note:null`; `/api/attestation?callId=…` still answers `verdict:"COMPLETED"`.
