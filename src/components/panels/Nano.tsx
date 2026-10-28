@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
 import { encodeFunctionData, keccak256, toBytes } from 'viem'
 // MEDIUM-09: import canonical ABIs from config
-import { CONFIG, PPC_ABI, USDC_ABI, REGISTRY_ABI } from '../../lib/config'
+import {
+  ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG, PPC_ABI_V8_ACTIVE, REGISTRY_ABI,
+  REGISTRY_ABI_V8, USDC_ABI, V8_ENABLED,
+} from '../../lib/config'
 import { Button, Input, PageHeader, Stat, Textarea } from '../../ui'
 import {
   CodeSurface, KeyValue, Ledger, LedgerRow, PanelShell, PanelSource,
@@ -98,16 +101,22 @@ export default function Nano() {
       const requestHash = keccak256(toBytes(multiPayload || 'ping'))
       const MULTICALL3 = CONFIG.multicall3From as `0x${string}`
       const USDC = CONFIG.usdc as `0x${string}`
-      const PPC = CONFIG.payPerCall as `0x${string}`
+      const PPC = ACTIVE_PPC_ADDRESS
 
       // Get provider prices
       let total = 0n
       for (const id of ids) {
         try {
-          // getProvider decodes to a named tuple object in viem; positional indexes are the fallback.
-          const p = await publicClient.readContract({ address: CONFIG.registry as `0x${string}`, abi: REGISTRY_ABI, functionName: 'getProvider', args: [BigInt(id)] }) as Record<string | number, unknown> | undefined
-          const isActive = p?.active ?? p?.[6]
-          const callPrice = (p?.pricePerCall ?? p?.[3] ?? 0n) as bigint
+          /* Named fields only: `getProvider` is 9 words on v7 and 11 on v8, so a
+             positional read would return the wrong column after a cutover. */
+          const p = await publicClient.readContract({
+            address: ACTIVE_REGISTRY_ADDRESS,
+            abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
+            functionName: 'getProvider',
+            args: [BigInt(id)],
+          }) as Record<string, unknown> | undefined
+          const isActive = Boolean(p?.active)
+          const callPrice = (p?.pricePerCall ?? 0n) as bigint
           if (isActive) total += (callPrice ?? 0n) // active → add pricePerCall
         } catch { /* skip */ }
       }
@@ -115,10 +124,14 @@ export default function Nano() {
       // Approve if needed
       if (total > 0n) {
         setMultiResult('⏳ Checking USDC allowance...')
-        const allowance = await publicClient.readContract({ address: USDC, abi: USDC_ABI, functionName: 'allowance', args: [address as `0x${string}`, MULTICALL3] })
+        /* Multicall3From routes each subcall through the callFrom precompile, so
+           PayPerCall sees the wallet as `msg.sender` and pulls the fee from the
+           wallet's allowance to PayPerCall. Approving the batch router would leave
+           PayPerCall with a zero allowance and every subcall would fail. */
+        const allowance = await publicClient.readContract({ address: USDC, abi: USDC_ABI, functionName: 'allowance', args: [address as `0x${string}`, PPC] })
         if (allowance < total) {
-          setMultiResult('⏳ Approving USDC...')
-          const approveTx = await walletClient.writeContract({ address: USDC, abi: USDC_ABI, functionName: 'approve', args: [MULTICALL3, total] })
+          setMultiResult('⏳ Approving USDC to PayPerCall...')
+          const approveTx = await walletClient.writeContract({ address: USDC, abi: USDC_ABI, functionName: 'approve', args: [PPC, total] })
           await publicClient.waitForTransactionReceipt({ hash: approveTx })
         }
       }
@@ -128,7 +141,7 @@ export default function Nano() {
       const calls = ids.map(id => ({
         target: PPC,
         allowFailure: true,
-        callData: encodeFunctionData({ abi: PPC_ABI, functionName: 'callService', args: [BigInt(id), requestHash] })
+        callData: encodeFunctionData({ abi: PPC_ABI_V8_ACTIVE, functionName: 'callService', args: [BigInt(id), requestHash] })
       }))
 
       const hash = await walletClient.writeContract({ address: MULTICALL3, abi: MULTICALL3_ABI, functionName: 'aggregate3', args: [calls] })

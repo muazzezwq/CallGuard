@@ -146,7 +146,7 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 | A3 | `Requests` `claimTimeout` targets v8 PPC | **PASS** — same address/ABI pair; the argument was already `bytes32`, which is the v8 signature |
 | A4 | `BulkCall` `callService` targets v8 PPC | **PASS** — same address/ABI pair; the call ignores the return value, so the `uint256`→`bytes32` change cannot be misread |
 | A5 | `PasskeyWallet` has no silent v7 fallback | **PASS** — the fallback is `ACTIVE_PPC_ADDRESS`, and the inline ABI already declares `callService` returning `bytes32` |
-| B1 | `Nano` uses named `getProvider` fields only | UNVERIFIED |
+| B1 | `Nano` uses named `getProvider` fields only | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI and no positional index. The batch approves **PayPerCall**, not the batch router (see the helper finding) |
 | B2 | `ProviderProfile` computes the score, no `getReputationScore` call | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI, named fields only, counters from the record, `maxResponseTime`/`slashBps` from `getTerms(1, latestTermsVersion)`, score `floor((completed+2)*100/(completed+slashed+3))`. The v7 `getReputationScore` read survives only through `useProviderScore`, gated `enabled: !V8_ENABLED`. Provider `1` resolves to stake `16.044435`, price `1`, `active`, `4` completed, `7` slashed, score `42`, terms v1 window `120`, slash `2000` |
 | C1 | `AdminPanel` shows `admin()` and `payPerCall()` | UNVERIFIED |
 | C2 | `AdminPanel` has no one-time write form | UNVERIFIED |
@@ -165,29 +165,33 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 - The 17.527733 USDC claimable balance is owner-wallet money. Fixing `Payments` makes it
   discoverable; withdrawing it is a separate, owner-signed action.
 
-## Open finding — the Nano batch helper
+## Resolved finding — the Nano batch helper
 
-`Nano.tsx` batches calls through `CONFIG.multicall3From` = `0x522fAf9A91c41c443c66765030741e4AaCe147D0`,
-a contract with no source, no documentation, and no deploy record in this repository.
-Measured 28 Oct 2026:
+`Nano.tsx` batches calls through `CONFIG.multicall3From` =
+`0x522fAf9A91c41c443c66765030741e4AaCe147D0`. The explorer publishes verified source:
+Circle's **`Multicall3From`** (compiler `v0.8.29`, optimization on, not a proxy). It is a
+sender-preserving batch contract: `aggregate3` routes every subcall through the `callFrom`
+precompile with `sender = msg.sender`, so the target sees the **original wallet** as
+`msg.sender`, not the helper.
+
+That makes the panel's original approval target wrong. Measured 28 Oct 2026:
 
 | Probe | Result |
 |---|---|
-| `eth_getCode` | ~3.1 KB, so it is a contract |
-| `owner()` | revert — no Ownable interface |
-| `aggregate3((address,bool,bytes)[])` with an empty list | returns an empty array, so the selector exists |
-| USDC `balanceOf(helper)` | `6173464` — **6.173464 USDC parked there** |
-| USDC `allowance(helper → PayPerCall v7)` | `0` |
-| USDC `allowance(helper → PayPerCall v8)` | `0` |
-| Calls on the v8 subgraph with `caller = helper` | none (11 calls, callers `0xfbac99E6…` and `0x3c9c471d…`) |
+| `USDC.allowance(owner → helper)` | `3000000` — the panel's `approve` went to the helper and was never spent |
+| `USDC.allowance(owner → PayPerCall v8)` | `max` — an old unlimited approval, which is the only reason any batch ever worked |
+| `aggregate3([PPC.callService(1, …)], allowFailure=false)` simulated from the owner | succeeds and returns a `bytes32` callId — the subcall runs as the owner |
+| `USDC.balanceOf(helper)` | `6173464` (6.173464 USDC) |
 
-The panel flow is `approve(USDC → helper, total)` then `aggregate3(target = PayPerCall,
-callService)`. Inside that call `msg.sender` is the helper, and both `PayPerCall` versions
-pull the fee from `msg.sender`, which the helper has no allowance to pay. Either the path
-never worked or it moved user USDC into the helper. Until that is proven, the Nano write
-path must not be repointed at v8 — a blind port is how a wiring fix turns into a transfer
-to an unverified contract.
+Consequences:
 
-Options, in order of preference: (1) drop the helper and send one `callService` per
-provider from the user's own wallet; (2) prove the helper with a fork test before any port;
-(3) disable the batch action and state why.
+1. PayPerCall pulls the fee from the **wallet's** allowance to PayPerCall. A user who
+   approved the helper had a zero allowance to PayPerCall, so every subcall reverted; with
+   `allowFailure: true` the panel reported "❌ failed" per provider and no funds moved.
+   Fixed: the panel now approves and checks allowance against `ACTIVE_PPC_ADDRESS`.
+2. The helper holds `6.173464 USDC`. Its source has no `receive`, no `fallback`, no
+   withdraw and no ERC-20 call path, so tokens sent to it cannot be moved by anyone. Treat
+   that balance as burned; it is not a pool for future calls.
+3. The stale allowance the panel left on the helper is harmless (the contract cannot pull
+   ERC-20), but a wallet that ran the old flow still carries it. Revoking is optional and
+   cheap; nothing else depends on it.
