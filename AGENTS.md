@@ -181,7 +181,14 @@ malformed blob, the adapter returns `false` instead of reverting, and the regist
 128-byte journal.
 
 Env: `SLA_EVIDENCE_V2` / `VITE_SLA_EVIDENCE_V2` = the new registry, `VITE_DISPUTE_V4` = DisputeV4.
-Runbook and per-step read-backs: `docs/V8_DEPLOYMENT.md` §14.
+All three are set in Vercel for production **and** preview (28 Oct 2026).
+
+`/api/evidence` has no function file of its own: the Hobby plan caps a deployment at 12 Serverless
+Functions and the API already had 12, so the handler lives in `api/_evidence.js` and
+`vercel.json` rewrites `/api/evidence` onto `/api/attestation?evidence=1`, which dispatches to it
+before the RPC guard. Adding a 13th `api/*.js` fails the deploy with
+`No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan`. The path and
+payload are unchanged. Runbook and per-step read-backs: `docs/V8_DEPLOYMENT.md` §14.
 
 ## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — additive, no v8 contract changed
 

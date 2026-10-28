@@ -875,6 +875,25 @@ cast call $ADAPTER 'verify(bytes,bytes32,bytes32,bytes32)(bool)' "$PROOF" "$CALL
 `journal.bin` is the 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`); the
 seal is `260` bytes. `xxd` is not installed on this box, so `od -An -v -tx1` is the portable form.
 
+### 14.3c Production: the 12-function cap and the tuple decode
+
+Two failures showed up only in production, after the wiring was green on chain:
+
+1. **Deploy rejected.** Hobby caps a deployment at 12 Serverless Functions; `api/` had 12 and
+   `api/evidence.js` made 13. `/api/evidence` is now `api/_evidence.js` (a `_`-prefixed module is
+   not a function) dispatched from `/api/attestation?evidence=1` through a `vercel.json` rewrite.
+   The public URL and payload are unchanged; `attestation.js` dispatches before its RPC guard so
+   the evidence route keeps its own status codes.
+2. **`note: "rpc-error"` with a good RPC.** viem decodes a single tuple output into an object keyed
+   by component name, so `const [row] = decodeFunctionResult(...)` throws `TypeError: {} is not
+   iterable` and every read answered 502. `decodeEvidenceRow` in `api/_evidence.js` now returns the
+   object, and `tests/api-evidence.test.ts` pins the decode against the recorded chain result from
+   block `69469682` — the stub-injected tests could not see this, because they never decode.
+
+Smoke result after the fix: `/api/evidence?callId=0x8cfa1821…fb265&kind=zk-execution` →
+`200 {anchored:true, match:true, source:"fixture", note:null}`; an unwired kind → `404` with
+`note:null`; `/api/attestation?callId=…` still answers `verdict:"COMPLETED"`.
+
 ### 14.4 Post-deploy smoke test
 
 The route's module loading was fixed once already (`api/evidence.js` imports compiled specifiers
