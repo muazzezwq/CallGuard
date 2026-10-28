@@ -768,3 +768,168 @@ Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkv
 `r0vm 3.0.6`, `cargo-risczero 3.0.6`, host Rust `1.91.0`, guest Rust `1.88.0` via
 `rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
 4.3.0`) because the guest toolchain resolves differently from the host.
+
+## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
+
+`DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
+snapshot of every configured evidence kind for that call. `SLAEvidenceRegistryV2` is the v1
+registry plus two hashes (the claim's statement and its assumptions) and one wiring flag
+(`bindsResponse`). Evidence never changes `disputeBond`, `appealBond`, `disputeSlashBps`, a
+window, or a verdict — `test_balancesAreIdenticalWithAndWithoutEvidence` asserts the caller,
+provider and treasury deltas are exactly equal with and without a bound claim, for both
+verdicts.
+
+Status: **deployed and wired 28 Oct 2026**. The agent did not broadcast anything; the owner ran
+`script/DeployEvidenceV2.s.sol` and every wiring call from their own TTY with the `owner` keystore.
+
+| Item | Value |
+|---|---|
+| `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` (tx `0x2df3be0f…26941`, block `69401608`, `765735` gas) |
+| `DisputeV4` | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` (tx `0x8ebe9986…2fd8f`, block `69401608`, `2752305` gas) |
+| Gas paid by the owner | `0.076077615 USDC` for both deploys |
+
+Read back after the deploy, all matching the script's pin: `owner()` = the owner wallet, arbiter /
+appeal arbiter / treasury = the owner wallet, `disputeBond` `2000000`, `appealBond` `3000000`,
+`disputeWindow`/`resolutionWindow` `604800`, `appealWindow` `172800`, `disputeSlashBps` `1000`,
+`legacyDispute()` = `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec`, `evidence()` = the new registry.
+Read back after the wiring, all matching the runbook: `modeOf(zk-constraint)` = `2`,
+`modeOf(zk-execution)` = `2`, `bindsResponse(zk-execution)` = `true`, `evidenceKinds()` = the four
+kinds, `authorizedSlashers(DisputeV3)` = `false`, `authorizedSlashers(DisputeV4)` = `true`,
+`isAnchored(callId, zk-execution, claim)` = `true`. `modeOf(witness)` and `modeOf(tee-attestation)`
+are `0` (`NoVerifier`) because no attestor exists, so those rows answer `present=false,
+reason=NoVerifier`; that is the wiring's honest state, not a gap in the snapshot.
+
+| Wiring call | Tx |
+|---|---|
+| `setProofVerifier(zk-constraint, ZkClaimAdapter, true)` | `0x19ac4811…f77cd` (block `69469204`, `93512` gas) |
+| `setProofVerifier(zk-execution, Risc0ExecutionAdapter, true)` | `0x5b9addae…ed0fad` (block `69469218`, `93512` gas) |
+| `DisputeV4.setEvidenceKinds([4 kinds])` | `0x44b6701e…7bf1e` (block `69469236`, `142806` gas) |
+| `ServiceRegistryV8.revokeSlasher(DisputeV3)` | `0xfc9579c2…729f7cd` (block `69469252`, `25604` gas) |
+| `ServiceRegistryV8.authorizeSlasher(DisputeV4)` | `0x5b30dded…bc85507` (block `69469274`, `47502` gas) |
+| `anchor(zk-execution fixture)` | `0x5f57a56e…702a013e` (block `69469682`, `450278` gas) |
+
+Everything after this table is the historical procedure plus the limits; the agent does not
+broadcast an owner-wallet transaction.
+
+### 14.1 What the script does
+
+```bash
+forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet            # dry run
+forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet --broadcast # two deploys
+```
+
+It deploys `SLAEvidenceRegistryV2` (owner = `EVIDENCE_OWNER_ADDRESS`, default the live owner
+`0xfbac99E6…06Da`) and `DisputeV4` with the live parameters, checks each constructor argument
+back on chain, and then prints the seven owner calls with exact arguments. It refuses to
+continue if any read-back disagrees. Live defaults it pins:
+`DISPUTE_BOND=2000000`, `APPEAL_BOND=3000000`, `DISPUTE_WINDOW=604800`,
+`APPEAL_WINDOW=172800`, `RESOLUTION_WINDOW=604800`, `DISPUTE_SLASH_BPS=1000`,
+`LEGACY_DISPUTE=0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec`.
+`test/DisputeV4.t.sol::test_deployScriptLiveDefaultsMatchTheControllerValues` fails if one drifts.
+
+### 14.2 The seven owner calls, and what "wrong" looks like
+
+Run them in this order. Each read-back is the gate for the next one.
+
+| # | Call | Read-back | What wrong looks like |
+|---|---|---|---|
+| 1 | `registryV2.setProofVerifier(keccak256("zk-constraint"), 0x8bD4fB9F…664E, true)` | `modeOf(kind) == 2`, `bindsResponse(kind) == true` | `bindsResponse` false → every `zk-constraint` row reads `VerifierNotBinding` and never binds |
+| 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
+| 3 | `registryV2.setSignatureVerifier(keccak256("witness"), <attestor>, true)` — optional | `signatureVerifier(kind, attestor) == true` | skipped when no attestor exists; `witness` rows then read `NoVerifier`, which is visible on chain and silent in the money paths |
+| 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
+| 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | **do not skip and do not reorder**: the V4 guard is one-directional — V4 asks V3 whether it already holds a call, V3 has no reciprocal check. While V3 stays a slasher, a caller can open a second dispute on a call V4 already escrowed and cut the same stake twice. The script prints an ORDERING GATE line while `authorizedSlashers(V3)` is still true |
+| 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |
+| 7 | `registryV2.anchor(<fixture callId>, keccak256("zk-execution"), …)` with the fixture's four hashes and `` `0x$(xxd -p test/fixtures/zk-execution/seal.bin)` `` | `isAnchored(callId, kind, claimHash) == true`, `modeOf(kind) == 2` | the live UI row disappears; the v1 anchor on the old registry still stands, so the panel would read the v1 row and say the registry predates statement hashing |
+
+Order matters twice, and only one of the two is negotiable. Steps 1-2 must precede step 7: an
+unwired kind rejects the anchor. Step 6 must follow step 5 — that is a hard gate, not a
+convention. The overlap where both contracts are authorised is the dangerous direction: V3 can
+open a dispute on a call V4 already escrowed, because the guard in V4 covers only V3→V4. The gap
+where neither is authorised is harmless — no dispute can open for a few minutes.
+
+### 14.3 Env after signing
+
+```bash
+SLA_EVIDENCE_V2=<registryV2>      # server: /api/evidence reads it
+VITE_SLA_EVIDENCE_V2=<registryV2> # browser: dual v1/v2 read in Verify
+VITE_DISPUTE_V4=<disputeV4>       # dispute write path; DisputeV3 stays readable
+```
+
+`/api/evidence` answers `anchored: false, note: "no-registry"` until `SLA_EVIDENCE_V2` is set, so
+an unconfigured deployment says so instead of pretending nothing is anchored.
+
+### 14.3b Anchor proof packaging (the failure that looks like a bad proof)
+
+`Risc0ExecutionAdapter.verify` expects `proof = abi.encode(bytes seal, bytes journal)`. Passing
+`test/fixtures/zk-execution/seal.bin` on its own makes `abi.decode` fail inside the adapter, which
+returns `false` rather than reverting; the registry turns that into `ProofRejected` (`0xc3b0d8cd`),
+so the message reads like a rejected proof when the bytes were simply wrapped wrong. Build the blob:
+
+```bash
+SEAL="0x$(od -An -v -tx1 test/fixtures/zk-execution/seal.bin | tr -d ' \n')"
+JOURNAL="0x$(od -An -v -tx1 test/fixtures/zk-execution/journal.bin | tr -d ' \n')"
+PROOF="$(cast abi-encode 'f(bytes,bytes)' "$SEAL" "$JOURNAL")"
+cast call $ADAPTER 'verify(bytes,bytes32,bytes32,bytes32)(bool)' "$PROOF" "$CALL_ID" "$CLAIM" "$RESPONSE" --rpc-url https://rpc.testnet.arc.io  # true before spending gas
+```
+
+`journal.bin` is the 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`); the
+seal is `260` bytes. `xxd` is not installed on this box, so `od -An -v -tx1` is the portable form.
+
+### 14.3c Production: the 12-function cap and the tuple decode
+
+Two failures showed up only in production, after the wiring was green on chain:
+
+1. **Deploy rejected.** Hobby caps a deployment at 12 Serverless Functions; `api/` had 12 and
+   `api/evidence.js` made 13. `/api/evidence` is now `api/_evidence.js` (a `_`-prefixed module is
+   not a function) dispatched from `/api/attestation?evidence=1` through a `vercel.json` rewrite.
+   The public URL and payload are unchanged; `attestation.js` dispatches before its RPC guard so
+   the evidence route keeps its own status codes.
+2. **`note: "rpc-error"` with a good RPC.** viem decodes a single tuple output into an object keyed
+   by component name, so `const [row] = decodeFunctionResult(...)` throws `TypeError: {} is not
+   iterable` and every read answered 502. `decodeEvidenceRow` in `api/_evidence.js` now returns the
+   object, and `tests/api-evidence.test.ts` pins the decode against the recorded chain result from
+   block `69469682` — the stub-injected tests could not see this, because they never decode.
+
+Smoke result after the fix: `/api/evidence?callId=0x8cfa1821…fb265&kind=zk-execution` →
+`200 {anchored:true, match:true, source:"fixture", note:null}`; an unwired kind → `404` with
+`note:null`; `/api/attestation?callId=…` still answers `verdict:"COMPLETED"`.
+
+### 14.4 Post-deploy smoke test
+
+The route's module loading was fixed once already (`api/evidence.js` imports compiled specifiers
+and loads its fixture through `createRequire`); a green `bun test` only proves bun resolves it.
+After the deploy, against production:
+
+```bash
+curl -s "https://arcsla.vercel.app/api/evidence?callId=0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265&kind=zk-execution"
+# expect: "anchored": true, "match": true, "source": "fixture", "note": null
+```
+
+`match: false` with `note: null` means the anchored hashes disagree with the served envelope —
+stop and compare `statementHash` and `assumptionHash` with the values in
+`test/ClaimHashes.t.sol`. A 500 means the function did not load; rebuild and check
+`.vercel/output/functions/api/evidence.func/api/evidence.js` for a `.ts` specifier.
+
+### 14.5 What this does not claim
+
+A bound claim means the anchored `responseHash` equals the call's and the kind's verifier was
+recorded as binding the response. It does not mean the answer is correct, and it does not move
+money. The four claim kinds keep their scopes: `witness` (a key saw the bytes),
+`tee-attestation` (synthetic evidence only, §12), `zk-constraint` (the committed hash has a
+preimage meeting a stated predicate), `zk-execution` (a guest with the published image id ran and
+committed these four words).
+
+### 14.6 Limits this feature does not close
+
+- **The verifier does not attest the statement.** `IEvidenceVerifier.verify` receives
+  `(proof, callId, claimHash, responseHash)` and the deployed adapters check the proof's journal
+  against `callId` and `responseHash`; `Risc0ExecutionAdapter` discards `claimHash`. So a bound row
+  means "the anchored response hash equals the call's, and this kind's verifier was recorded as
+  binding the response" — it does not mean the proof covered the statement text next to it.
+- **Anchoring is permissionless and first-come.** `anchor` is keyed on `(callId, kind)` with
+  `AlreadyAnchored` guarding a second write, so whoever anchors first owns that row for that kind.
+  With the current adapters, a holder of a valid seal can anchor it with statement text of their
+  choosing; the honest attestor is then locked out for that pair. The snapshot shows the digest the
+  chain holds and the Verify panel recomputes it from the served words, so tampering is visible —
+  but the words themselves are not attributable. Closing this needs a verifier that commits
+  `statementHash` in its journal, which is a new adapter, not a wiring change.

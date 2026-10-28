@@ -10,6 +10,7 @@
 import { V7, ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
+import { sendEvidence } from "./_evidence.js";
 
 const BYTES32_RE = /^0x[0-9a-fA-F]{64}$/;
 const DECIMAL_RE = /^(0|[1-9][0-9]*)$/;
@@ -112,6 +113,13 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // `/api/evidence` is rewritten here to stay inside the 12-function cap; the
+  // public URL and payload are unchanged, and the evidence route keeps its own
+  // CORS headers and status codes.
+  if (req.query?.evidence === "1") {
+    return sendEvidence(req, res);
+  }
 
   const rpcUrl = getRpcUrl();
   if (!rpcUrl) {

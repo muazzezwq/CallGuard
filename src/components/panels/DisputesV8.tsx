@@ -7,6 +7,7 @@
 // (dispute, resolution, appeal) and gates every action on the same conditions
 // the contract checks, so a click cannot waste gas on a guaranteed revert.
 import { useEffect, useMemo, useState } from "react";
+import { BaseError, ContractFunctionRevertedError } from "viem";
 import {
   useAccount,
   useChainId,
@@ -18,7 +19,9 @@ import {
 import {
   CONFIG,
   DISPUTE_V2_ABI,
+  DISPUTE_V3_ADDRESS,
   DISPUTE_V3_ENABLED,
+  DISPUTE_V4_ENABLED,
   PPC_ABI_V8,
   REGISTRY_ABI_V8,
   USDC_ABI,
@@ -26,6 +29,7 @@ import {
   V8_ENABLED,
   arcTestnet,
 } from "../../lib/config";
+import { EVIDENCE_KINDS, EVIDENCE_MODES } from "../../lib/verification/evidenceRecord";
 import { formatUsdc, friendlyError, shortAddr } from "../../lib/utils";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
@@ -43,6 +47,8 @@ import {
 
 const DISPUTE_ADDRESS = (V8_CONFIG.dispute || "") as `0x${string}`;
 const LIVE = V8_ENABLED && DISPUTE_ADDRESS.length === 42;
+// The snapshot is a DisputeV4 feature.
+const SNAPSHOT_LIVE = LIVE && DISPUTE_V4_ENABLED;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // IDisputeV2.Status. The enum order matters: a wrong name would relabel a
@@ -150,6 +156,137 @@ function normalizeDispute(raw: unknown): DisputeRecord | undefined {
 
 function same(a?: string, b?: string) {
   return Boolean(a && b) && a!.toLowerCase() === b!.toLowerCase();
+}
+
+/// True only when the contract itself answered `DisputeNotFound()`. Every other
+/// failure — an RPC timeout, a decode error, a wrong address — means the read did
+/// not happen, and the caller must not be told the call has no dispute.
+function isDisputeNotFound(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
+  return revert instanceof ContractFunctionRevertedError && revert.data?.errorName === "DisputeNotFound";
+}
+
+/// DisputeV4.AbsentReason enum order: None, NoVerifier, NoAnchor, WrongResponse,
+/// ModeIsSignature, VerifierNotBinding. Index aligns with the ordinal the
+/// contract stores in `reason` (0 when `bound` is true).
+const ABSENT_REASONS = [
+  "",
+  "no verifier is wired for this kind on the evidence registry",
+  "nothing anchored for this call",
+  "anchored, but for a different response than the one this call committed",
+  "signed by a key; a signature cannot bind a response on chain",
+  "the wired verifier does not bind the call's response",
+] as const;
+
+/// DisputeV4.LinkedEvidence order: kind, claimHash, responseHash,
+/// statementHash, assumptionHash, verifier, anchoredAt, mode, bound, present,
+/// reason. viem can hand back named or numeric fields, so both are tried.
+function normalizeEvidenceRow(raw: unknown) {
+  if (raw == null) return undefined;
+  return {
+    kind: String(field(raw, "kind", 0) ?? "0x"),
+    claimHash: String(field(raw, "claimHash", 1) ?? "0x"),
+    anchoredAt: Number(asBigInt(field(raw, "anchoredAt", 6))),
+    mode: Number(asBigInt(field(raw, "mode", 7))),
+    bound: Boolean(field(raw, "bound", 8)),
+    present: Boolean(field(raw, "present", 9)),
+    reason: Number(asBigInt(field(raw, "reason", 10))),
+  };
+}
+
+/// One snapshot row's words: the bound/reason sentence, plus the claim hash and
+/// anchor time when a claim exists. Present-but-unbound rows keep the hash so
+/// the reader can see what was recorded, never a score.
+function evidenceRowValue(row: { bound: boolean; present: boolean; reason: number; claimHash: string; anchoredAt: number }): string {
+  let text: string;
+  if (row.bound && row.present) {
+    text = "bound — this claim's response matches the call's";
+  } else if (row.bound && !row.present) {
+    // Contract-impossible today (bound implies present), so no AbsentReason
+    // names it: an explicit contradiction sentence instead of rendering the
+    // empty `None` label and looking absent.
+    text = "the snapshot says this claim is bound but carries no anchor — read the dispute on chain before relying on it";
+  } else if (!row.bound && row.present && row.reason === 0) {
+    // The same empty-`None` sharp edge on the inverse combination a contract
+    // cannot produce today: present, unbound, and no reason recorded.
+    text = "the snapshot records a present claim with no binding outcome and no stated reason — read the dispute on chain before relying on it";
+  } else {
+    text = reasonSentence(row.reason);
+  }
+  if (!/^0x0{64}$/.test(row.claimHash)) {
+    text += ` · claim ${shortAddr(row.claimHash, 10)}`;
+  }
+  if (row.anchoredAt > 0) {
+    text += ` · anchored ${stamp(row.anchoredAt)}`;
+  }
+  return text;
+}
+
+/// Kind label from the shared EVIDENCE_KINDS table; an unknown-but-anchored
+/// kind shows as a truncated hash instead of a made-up name.
+function evidenceKindLabel(kind: string): string {
+  const hit = EVIDENCE_KINDS.find((k) => k.kind.toLowerCase() === kind.toLowerCase());
+  if (hit) return hit.label;
+  if (/^0x0{64}$/.test(kind)) return "unset";
+  return shortAddr(kind as `0x${string}`, 10);
+}
+
+function reasonSentence(reason: number): string {
+  return ABSENT_REASONS[reason] ?? "the registry answered with a state this panel does not know";
+}
+
+// The block states the read-only nature once, in visible copy: bound means the
+// row's response hash equals the call's — it never means the dispute is decided.
+function EvidenceBlock({ id }: { id: number }) {
+  const { data: snapshot, isLoading, isError, error } = useReadContract({
+    address: DISPUTE_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "evidenceOf",
+    args: [BigInt(id)],
+    query: { enabled: SNAPSHOT_LIVE, refetchInterval: 30_000 },
+  });
+  // A failed read is not an answer either: the absent sentence may only be
+  // rendered when the contract answered with an empty array.
+  if (SNAPSHOT_LIVE && isError) {
+    return (
+      <StatusNotice tone="danger" title="Could not read the evidence snapshot">
+        {friendlyError(error)}
+      </StatusNotice>
+    );
+  }
+  // A read still in flight is not an answer: the absent sentence may only be
+  // rendered after the call answered, never while it is loading.
+  if (SNAPSHOT_LIVE && isLoading) {
+    return (
+      <StatusNotice tone="info" title="reading the evidence snapshot…" />
+    );
+  }
+  if (!Array.isArray(snapshot) || snapshot.length === 0) {
+    if (!SNAPSHOT_LIVE) return null;
+    return (
+      <StatusNotice tone="info" title="No evidence snapshot recorded for this dispute" />
+    );
+  }
+  const rows = snapshot
+    .map((raw) => normalizeEvidenceRow(raw))
+    .filter(Boolean) as NonNullable<ReturnType<typeof normalizeEvidenceRow>>[];
+  if (rows.length === 0) return null;
+
+  return (
+    <StatusNotice tone="info" title="Anchored evidence recorded when the dispute opened">
+      <KeyValue
+        rows={rows.map((row) => ({
+          label: `${evidenceKindLabel(row.kind)} · ${EVIDENCE_MODES[row.mode] ?? "unknown mode"}`,
+          value: evidenceRowValue(row),
+          mono: false,
+        }))}
+      />
+      <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 12 }}>
+        This snapshot was recorded when the dispute opened; it changes neither the bond, the slash, nor the verdict.
+      </p>
+    </StatusNotice>
+  );
 }
 
 function isCallId(raw: string): boolean {
@@ -401,15 +538,158 @@ function DisputeEntry({
   }
 
   return (
+    <>
+      <LedgerRow
+        tone={isSettled ? "muted" : d.status === PENDING ? "warn" : "neutral"}
+        lead={`Dispute #${id}`}
+        meta={(
+          <>
+            provider {d.providerId.toString()} · {shortAddr(d.caller)} ·{" "}
+            {STATUS_LABELS[d.status] ?? `status ${d.status}`} · opened {stamp(d.openedAt)}
+            {d.resolvedAt > 0n ? ` · resolved ${stamp(d.resolvedAt)}` : ""}
+            {d.appealAt > 0n ? ` · appealed ${stamp(d.appealAt)}` : ""}
+            {held > 0n ? ` · holding ${formatUsdc(held)} USDC` : ""}
+            {isSettled ? " · settled" : ""}
+          </>
+        )}
+        trailing={(
+          <span style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+            <Badge tone={statusTone(d.status)} dot>{STATUS_LABELS[d.status] ?? d.status}</Badge>
+            {buttons}
+          </span>
+        )}
+      />
+      {SNAPSHOT_LIVE && <EvidenceBlock id={id} />}
+    </>
+  );
+}
+
+// The retired DisputeV3 escrow (dispute #4 releases 3.481864 USDC) must stay
+// reachable after the env moves to V4: `DISPUTE_V3_ADDRESS` is pinned in config,
+// and `finalize(id)` reappears only once V3's own `appealWindow` has closed.
+function LegacyV3Section({ now }: { now: number }) {
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const {
+    data: count,
+    isError: countFailed,
+    error: countError,
+  } = useReadContract({
+    address: DISPUTE_V3_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "disputeCount",
+    query: { refetchInterval: 30_000 },
+  });
+  const { data: legacyAppealWindow } = useReadContract({
+    address: DISPUTE_V3_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "appealWindow",
+    query: { refetchInterval: 60_000 },
+  });
+  const ids = useMemo(() => {
+    const c = Number(count ?? 0n);
+    const out: number[] = [];
+    for (let id = c; id >= 1 && out.length < RECENT_LIMIT; id -= 1) out.push(id);
+    return out;
+  }, [count]);
+
+  async function finalize(id: number) {
+    if (!publicClient) {
+      setStatus("No RPC client available. Reconnect your wallet and retry.");
+      return;
+    }
+    setBusy(`legacy-${id}`);
+    setStatus(`Confirm finalize(${id}) on the retired DisputeV3 in your wallet…`);
+    try {
+      const hash = await writeContractAsync({
+        address: DISPUTE_V3_ADDRESS,
+        abi: DISPUTE_V2_ABI,
+        functionName: "finalize",
+        args: [BigInt(id)],
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      setStatus(receipt.status === "success" ? `✅ Finalize(${id}) confirmed on DisputeV3.` : `❌ Finalize(${id}) reverted on-chain.`);
+    } catch (e) {
+      setStatus(`❌ ${friendlyError(e)}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // The retired contract holds real money, so a failed read must not read as
+  // "nothing here": an unreadable V3 renders an error, never an empty section.
+  if (countFailed) {
+    return (
+      <StatusNotice tone="danger" title="Could not read the retired DisputeV3">
+        {friendlyError(countError)}
+      </StatusNotice>
+    );
+  }
+  if (count === undefined) {
+    return (
+      <StatusNotice tone="info" title="reading the retired DisputeV3…" />
+    );
+  }
+  if (!Number(count)) return null;
+
+  return (
+    <Ledger label="Retired DisputeV3 — escrow still held" empty="No disputes recorded on the retired contract.">
+      {ids.map((id) => (
+        <LegacyV3Entry key={id} id={id} now={now} legacyAppealWindow={Number(legacyAppealWindow ?? 0)} busy={busy} onFinalize={finalize} />
+      ))}
+      {status && <p className="pg-hint">{status}</p>}
+    </Ledger>
+  );
+}
+
+// One row of the legacy list. `legacyCanFinalize` reads resolvedAt and the
+// window resolved per record, so both named fields and positional indices work,
+// and it reuses the shared Status/STATUS_LABELS table — statuses are the same
+// enum across V2/V3.
+function LegacyV3Entry({ id, now, legacyAppealWindow, busy, onFinalize }: {
+  id: number;
+  now: number;
+  legacyAppealWindow: number;
+  busy: string | null;
+  onFinalize: (id: number) => void;
+}) {
+  const { data: record } = useReadContract({
+    address: DISPUTE_V3_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "getDispute",
+    args: [BigInt(id)],
+    query: { refetchInterval: 30_000 },
+  });
+  const { data: settled } = useReadContract({
+    address: DISPUTE_V3_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "settled",
+    args: [BigInt(id)],
+    query: { refetchInterval: 30_000 },
+  });
+  const { data: heldSlashRaw } = useReadContract({
+    address: DISPUTE_V3_ADDRESS,
+    abi: DISPUTE_V2_ABI,
+    functionName: "heldSlash",
+    args: [BigInt(id)],
+    query: { refetchInterval: 30_000 },
+  });
+  const d = normalizeDispute(record);
+  if (!d || d.openedAt === 0n) return null;
+  const isSettled = Boolean(settled);
+  const held = (heldSlashRaw as bigint | undefined) ?? 0n;
+  const legacyCanFinalize = !isSettled && (d.status === UPHELD || d.status === REJECTED)
+    && now > Number(d.resolvedAt) + legacyAppealWindow;
+  return (
     <LedgerRow
-      tone={isSettled ? "muted" : d.status === PENDING ? "warn" : "neutral"}
+      tone={isSettled ? "muted" : "neutral"}
       lead={`Dispute #${id}`}
       meta={(
         <>
-          provider {d.providerId.toString()} · {shortAddr(d.caller)} ·{" "}
           {STATUS_LABELS[d.status] ?? `status ${d.status}`} · opened {stamp(d.openedAt)}
           {d.resolvedAt > 0n ? ` · resolved ${stamp(d.resolvedAt)}` : ""}
-          {d.appealAt > 0n ? ` · appealed ${stamp(d.appealAt)}` : ""}
           {held > 0n ? ` · holding ${formatUsdc(held)} USDC` : ""}
           {isSettled ? " · settled" : ""}
         </>
@@ -417,7 +697,11 @@ function DisputeEntry({
       trailing={(
         <span style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
           <Badge tone={statusTone(d.status)} dot>{STATUS_LABELS[d.status] ?? d.status}</Badge>
-          {buttons}
+          {legacyCanFinalize && (
+            <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => onFinalize(id)}>
+              {d.status === UPHELD && held > 0n ? `Finalize (release ${formatUsdc(held)})` : "Finalize"}
+            </Button>
+          )}
         </span>
       )}
     />
@@ -485,7 +769,12 @@ export default function DisputesV8() {
     query: { enabled: LIVE && callReady },
   });
 
-  const { data: existingDispute, refetch: refetchExisting, isError: noExistingDispute } = useReadContract({
+  const {
+    data: existingDispute,
+    refetch: refetchExisting,
+    isError: existingDisputeFailed,
+    error: existingDisputeError,
+  } = useReadContract({
     address: DISPUTE_ADDRESS,
     abi: DISPUTE_V2_ABI,
     functionName: "getDisputeByCallId",
@@ -521,7 +810,7 @@ export default function DisputesV8() {
     abi: DISPUTE_V2_ABI,
     functionName: "previewSlash",
     args: previewProviderId !== undefined ? [previewProviderId] : undefined,
-    query: { enabled: LIVE && DISPUTE_V3_ENABLED, refetchInterval: 30_000 },
+    query: { enabled: LIVE, refetchInterval: 30_000 },
   });
   const slashPreview = typeof slashPreviewRaw === "bigint" ? slashPreviewRaw : null;
 
@@ -586,10 +875,15 @@ export default function DisputesV8() {
 
   const disputeDeadline = callRecord ? Number(callRecord.completedAt) + params.disputeWindow : 0;
   const callCompleted = callRecord?.status === 2 && Number(callRecord.completedAt) > 0;
-  const alreadyDisputed = !noExistingDispute && existingDispute !== undefined;
+  // `getDisputeByCallId` reverts `DisputeNotFound` for a call this contract does
+  // not hold. That revert is the only reading that may be treated as "no
+  // dispute": a transport or decode failure is unknown, and the button stays
+  // disabled while it is unknown. A guard that fails open is not a guard.
+  const existingDisputeUnknown = existingDisputeFailed && !isDisputeNotFound(existingDisputeError);
+  const alreadyDisputed = !existingDisputeUnknown && existingDispute !== undefined;
   const canOpenNow = Boolean(
     callRecord && callCompleted && same(address, callRecord.caller)
-      && now <= disputeDeadline && !alreadyDisputed,
+      && now <= disputeDeadline && !alreadyDisputed && !existingDisputeUnknown,
   );
 
   async function run(label: string, send: () => Promise<`0x${string}`>) {
@@ -688,6 +982,7 @@ export default function DisputesV8() {
     callRecord && callCompleted && now > disputeDeadline && "The dispute window has closed for that call.",
     callRecord && address && !same(address, callRecord.caller) && "The connected wallet is not the call's caller.",
     alreadyDisputed && "That call already has a dispute.",
+    existingDisputeUnknown && "Could not check whether this call already has a dispute. Retry before opening.",
     !providerValid && "Set the provider id to a nonzero number.",
     evidenceMissing && "Add an Evidence URI (IPFS CID or HTTPS URL).",
   ].filter(Boolean) as string[];
@@ -695,7 +990,7 @@ export default function DisputesV8() {
   return (
     <PanelShell>
       <PanelSource
-        label={DISPUTE_V3_ENABLED ? "DisputeV3" : "DisputeV2"}
+        label={DISPUTE_V4_ENABLED ? "DisputeV4" : DISPUTE_V3_ENABLED ? "DisputeV3" : "DisputeV2"}
         value={shortAddr(DISPUTE_ADDRESS)}
         hint="call-bound arbitration on ServiceRegistryV8 + PayPerCallV8"
         state="live"
@@ -927,6 +1222,8 @@ export default function DisputesV8() {
           />
         )}
       />
+
+      <LegacyV3Section now={now} />
     </PanelShell>
   );
 }

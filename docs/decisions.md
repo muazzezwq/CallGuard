@@ -352,3 +352,55 @@ Conservative choices made without stopping. Format: decision + reason.
   (measured: 1 against 2), and its bulk-call write targeted v7. Reason: a label naming a contract the
   app does not use is worse than no label. `tests/active-contracts.test.ts` pins those surfaces and
   keeps `V7Cleanup` on the retired registry, which is what that panel exists for.
+- **A second dispute on the same call is refused, not merged.** `DisputeV4` takes the retiring
+  `DisputeV3` address in its constructor and reverts `AlreadyDisputedElsewhere` when V3 already
+  holds the call. It reads V3's public `disputeIdByCallId` mapping rather than
+  `getDisputeByCallId`, because the record getter reverts for the common case (a call V3 never
+  saw) and a guard wrapped in `try/catch` fails open on any other error — a guard that silently
+  disappears is worse than none. Reason: the same stake cannot be slashable twice, and this
+  project has already fixed two versions of that escape (`DisputeV2`'s unstake-before-resolution,
+  `DisputeV3`'s escrow-at-open). A third instance would be an unforced regression.
+- **`bound` rests on a recorded fact, not a convention.** `SLAEvidenceRegistryV2.setProofVerifier`
+  takes a `bindsResponse` flag, stored per kind, and `DisputeV4` sets `bound` only when the mode
+  is `Proof`, the flag is true, and the anchored `responseHash` equals the call's. The NatSpec
+  says plainly that the flag is the owner's assertion after reading the adapter's `verify`, not
+  something the registry derives. Reason: "the fields happened to match" is a silent convention,
+  and this project's rule is a claim on screen must be a claim someone can check.
+- **The statement text is content, not a link.** The canonical copy of a claim is whatever hashes
+  to the anchored `claimHash`; `GET /api/evidence` and the Verify panel recompute
+  `envelopeDigest` and the two word hashes and show MATCH or MISMATCH next to the text and its
+  assumptions. The endpoint is a convenience, never a trust root: an unavailable or wrong envelope
+  shows as MISMATCH and the anchored hash still stands alone. Reason: a reader must be able to
+  check the words without trusting the server that served them.
+- **The retiring contract keeps a labelled read path.** `DisputesV8` gained a legacy section that
+  reads `DisputeV3` — including `finalize` gated on V3's own `appealWindow` — because dispute #4's
+  `3.481864 USDC` escrow lives there. `V7Cleanup` set the precedent: a retired deployment stays
+  reachable through an explicit surface instead of disappearing with the money inside it.
+- **The reason a claim is unbound is data, not a sentence.** `AbsentReason` gained a sixth value,
+  `VerifierNotBinding`, and the snapshot stores `reason` on the row. The five planned values could
+  not describe a `Proof`-mode kind whose wiring recorded `bindsResponse = false`: that row would
+  have read "present, not bound, reason None", which tells a reader nothing. Reason: the UI must
+  render one value to one sentence instead of re-deriving the contract's precedence chain, where
+  any drift would put a wrong sentence in front of a disputing party.
+- **`api/evidence.js` imports compiled specifiers and loads its fixture through `createRequire`.**
+  A local `vercel build` proved the first version could not load on the deploy runtime: Vercel
+  compiles the TypeScript it reaches but does not rewrite import specifiers, so `schema.ts` stayed
+  `.ts`, and a bare ESM JSON import needs an import attribute on `nodejs24.x`. Reason: a green
+  `bun test` proved only that bun resolves both. The test suite now asserts in source text that
+  the route carries no `.ts` specifier, so the class of failure cannot return quietly.
+- **A failed read renders; it never becomes an empty list.** `DisputesV8`'s retired-V3 section now
+  shows a danger notice when `disputeCount` errors and an info notice while it is in flight; the
+  evidence snapshot block does the same for `evidenceOf`. Reason: `DISPUTE_V3_ADDRESS` shipped
+  with one wrong capital in its checksum, viem refused the address, and the section that holds
+  dispute #4's `3.481864 USDC` rendered as if the contract had no disputes — with `forge test`,
+  `bun test`, `tsc`, ESLint and `vite build` all green. `if (!Number(count ?? 0n)) return null;`
+  turned an error into a fact about the chain. `tests/address-literal.test.ts` now fails on any
+  mixed-case literal in `src/` or `api/` that `isAddress(address, { strict: true })` rejects.
+- **The anchored statement is content the anchoring party chose, not something the proof covers.**
+  The registry stores `statementHash` and `assumptionHash` next to the claim, and `anchor` is
+  permissionless and first-come per `(callId, kind)`. Neither deployed adapter (B3c/B3d/B3e) covers
+  the statement in what it verifies, so a bound row is evidence about the *response*, never about
+  the words beside it. The Verify panel states this in the card copy and in a footnote instead of
+  letting "MATCH" read as "the proof attested the words"; closing the gap needs a verifier that
+  commits `statementHash` in its journal, which the deploy runbook lists as future work rather than
+  a wiring task.
