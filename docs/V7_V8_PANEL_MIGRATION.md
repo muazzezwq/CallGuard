@@ -88,7 +88,11 @@ no stored score. `ProviderProfile` is the only remaining direct caller.
    subgraph-side check; hiding it behind a flag leaves dead code that still reads.
 6. `AdminPanel`'s `owner()` → `admin()` rename is not cosmetic: `Ownable` is not used by
    `ServiceRegistryV8`, so any generic ownership UI must not assume it.
-7. The v8 events are **not** the v7 events with a new address. `CallStarted` carries eight
+7. The response window and the slash ratio left the provider record in v8: `getTerms(id,
+   version)` now carries `maxResponseTime` and `slashBps` alongside
+   `availabilityTargetBps`, and the record only carries `latestTermsVersion`. A panel that
+   reads them straight off `getProvider` shows `0 s` and `0 bps` without any error.
+8. The v8 events are **not** the v7 events with a new address. `CallStarted` carries eight
    fields (adds `termsVersion` and `termsHash` before `requestHash`), `ReceiptSubmitted`
    carries four (adds `termsVersion`), and `CallSlashed` carries four (adds
    `keeperBounty`). An address-only swap keeps the v7 topic filter and receives nothing,
@@ -109,7 +113,8 @@ Change `CONFIG.<addr>` → `ACTIVE_PPC_ADDRESS` / `ACTIVE_REGISTRY_ADDRESS` and
 Acceptance: Payments shows `claimable(owner) = 17.527733 USDC`; Notifications receives a
 fresh `CallStarted` after a live call; `claimTimeout` simulate passes for a pending call.
 
-**P2 — `Nano.tsx` positional indices + `ProviderProfile` score.**
+**P2 — `Nano.tsx` positional indices + `ProviderProfile` score.** `ProviderProfile` done
+28 Oct 2026 (gates clean). `Nano` is blocked: see the helper-contract finding below.
 Replace positional reads with named fields; compute the score locally from the counters.
 Measured target: provider `1` is `stake 16.044435 USDC`, `pricePerCall 1 USDC`, `active`,
 `completedCalls 4`, `slashedCalls 7`, so `floor((4+2)*100/(4+7+3)) = 42`.
@@ -142,7 +147,7 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 | A4 | `BulkCall` `callService` targets v8 PPC | **PASS** — same address/ABI pair; the call ignores the return value, so the `uint256`→`bytes32` change cannot be misread |
 | A5 | `PasskeyWallet` has no silent v7 fallback | **PASS** — the fallback is `ACTIVE_PPC_ADDRESS`, and the inline ABI already declares `callService` returning `bytes32` |
 | B1 | `Nano` uses named `getProvider` fields only | UNVERIFIED |
-| B2 | `ProviderProfile` computes the score, no `getReputationScore` call | UNVERIFIED |
+| B2 | `ProviderProfile` computes the score, no `getReputationScore` call | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI, named fields only, counters from the record, `maxResponseTime`/`slashBps` from `getTerms(1, latestTermsVersion)`, score `floor((completed+2)*100/(completed+slashed+3))`. The v7 `getReputationScore` read survives only through `useProviderScore`, gated `enabled: !V8_ENABLED`. Provider `1` resolves to stake `16.044435`, price `1`, `active`, `4` completed, `7` slashed, score `42`, terms v1 window `120`, slash `2000` |
 | C1 | `AdminPanel` shows `admin()` and `payPerCall()` | UNVERIFIED |
 | C2 | `AdminPanel` has no one-time write form | UNVERIFIED |
 | D1 | `PipelineHook` cannot be reached, or states why it is gone | UNVERIFIED |
@@ -159,3 +164,30 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
   subgraph stops at the cutover. Panels that fall back to the subgraph must read v8.
 - The 17.527733 USDC claimable balance is owner-wallet money. Fixing `Payments` makes it
   discoverable; withdrawing it is a separate, owner-signed action.
+
+## Open finding — the Nano batch helper
+
+`Nano.tsx` batches calls through `CONFIG.multicall3From` = `0x522fAf9A91c41c443c66765030741e4AaCe147D0`,
+a contract with no source, no documentation, and no deploy record in this repository.
+Measured 28 Oct 2026:
+
+| Probe | Result |
+|---|---|
+| `eth_getCode` | ~3.1 KB, so it is a contract |
+| `owner()` | revert — no Ownable interface |
+| `aggregate3((address,bool,bytes)[])` with an empty list | returns an empty array, so the selector exists |
+| USDC `balanceOf(helper)` | `6173464` — **6.173464 USDC parked there** |
+| USDC `allowance(helper → PayPerCall v7)` | `0` |
+| USDC `allowance(helper → PayPerCall v8)` | `0` |
+| Calls on the v8 subgraph with `caller = helper` | none (11 calls, callers `0xfbac99E6…` and `0x3c9c471d…`) |
+
+The panel flow is `approve(USDC → helper, total)` then `aggregate3(target = PayPerCall,
+callService)`. Inside that call `msg.sender` is the helper, and both `PayPerCall` versions
+pull the fee from `msg.sender`, which the helper has no allowance to pay. Either the path
+never worked or it moved user USDC into the helper. Until that is proven, the Nano write
+path must not be repointed at v8 — a blind port is how a wiring fix turns into a transfer
+to an unverified contract.
+
+Options, in order of preference: (1) drop the helper and send one `callService` per
+provider from the user's own wallet; (2) prove the helper with a fork test before any port;
+(3) disable the batch action and state why.

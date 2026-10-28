@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useReadContract, useReadContracts } from "wagmi";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
+import { useReadContract } from "wagmi";
+import {
+  ACTIVE_REGISTRY_ADDRESS, CONFIG, REGISTRY_ABI, REGISTRY_ABI_V8, V8_ENABLED,
+} from "../../lib/config";
+import { useProviderScore } from "../../hooks/useOnchain";
 import { useSubgraph } from "../../hooks/useSubgraph";
 import { useAppStore } from "../../store/useAppStore";
 import {
@@ -12,7 +15,11 @@ import {
 } from "./providerMetrics";
 import { endpointHref, endpointState } from "./endpointUrl";
 
-const REGISTRY = CONFIG.registryAddress as `0x${string}`;
+/* The profile reads whichever stack is wired. Field access below is by name
+   only: `getProvider` is 9 words on v7 and 11 on v8, so a positional read
+   would silently return the wrong column after a cutover. */
+const REGISTRY = ACTIVE_REGISTRY_ADDRESS;
+const REGISTRY_ABI_ACTIVE = V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI;
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
 /* The subgraph is a second source, not a replacement for the registry: the
@@ -76,34 +83,41 @@ export default function ProviderProfile() {
 
   const validId = /^[1-9]\d*$/.test(queriedId);
 
-  /* One batched multicall: the record, the registry's score and the two
-     counters. Four separate hooks would give four independent states for one
-     provider. */
-  const { data, isLoading, isError, error, refetch, isFetching } = useReadContracts({
-    contracts: [
-      { address: REGISTRY, abi: REGISTRY_ABI, functionName: "getProvider" as const, args: [BigInt(validId ? queriedId : "0")] as const },
-      { address: REGISTRY, abi: REGISTRY_ABI, functionName: "getReputationScore" as const, args: [BigInt(validId ? queriedId : "0")] as const },
-      { address: REGISTRY, abi: REGISTRY_ABI, functionName: "completedCalls" as const, args: [BigInt(validId ? queriedId : "0")] as const },
-      { address: REGISTRY, abi: REGISTRY_ABI, functionName: "slashedCalls" as const, args: [BigInt(validId ? queriedId : "0")] as const },
-    ],
+  /* The provider record is one read. The counters it needs live inside it on
+     v8; v7 exposed them as separate getters, so those two are asked for only
+     when v7 is the wired stack. */
+  const { data: recordRes, isLoading, isError, error, refetch, isFetching } = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI_ACTIVE,
+    functionName: "getProvider",
+    args: [BigInt(validId ? queriedId : "0")],
     query: { enabled: validId },
   });
 
-  const [recordRes, scoreRes, completedRes, slashedRes] = (data ?? []) as {
-    status?: string; result?: unknown;
-  }[];
+  const r = recordRes as Record<string, unknown> | undefined;
+  const owner = r?.owner as string | undefined;
+  const signer = r?.signer as string | undefined;
+  const stake = r?.stake as bigint | undefined;
+  const price = r?.pricePerCall as bigint | undefined;
+  const isActive = Boolean(r?.active);
+  const maxConcurrent = Number(r?.maxConcurrentCalls ?? 0);
+  const zkTier = Number(r?.zkTier ?? 0);
 
-  const record = recordRes?.status === "success" ? recordRes.result : undefined;
-  const r = record as Record<string | number, unknown> | undefined;
-  const owner = (r?.owner ?? r?.[0]) as string | undefined;
-  const signer = (r?.signer ?? r?.[1]) as string | undefined;
-  const stake = (r?.stake ?? r?.[2]) as bigint | undefined;
-  const price = (r?.pricePerCall ?? r?.[3]) as bigint | undefined;
-  const maxResponseTime = Number(r?.maxResponseTime ?? r?.[4] ?? 0);
-  const slashBps = Number(r?.slashBps ?? r?.[5] ?? 0);
-  const isActive = Boolean(r?.active ?? r?.[6]);
-  const maxConcurrent = Number(r?.maxConcurrentCalls ?? r?.[7] ?? 0);
-  const zkTier = Number(r?.zkTier ?? r?.[8] ?? 0);
+  /* v8 moved the response window and the slash ratio out of the provider
+     record and into the terms version the call snapshots. */
+  const latestTermsVersion = Number(r?.latestTermsVersion ?? 0);
+  const termsQuery = useReadContract({
+    address: REGISTRY,
+    abi: REGISTRY_ABI_V8,
+    functionName: "getTerms",
+    args: [BigInt(validId ? queriedId : "0"), latestTermsVersion],
+    query: { enabled: V8_ENABLED && validId && latestTermsVersion > 0, staleTime: 15_000 },
+  });
+  const terms = termsQuery.data as { maxResponseTime?: number; slashBps?: number } | undefined;
+  const maxResponseTime = V8_ENABLED
+    ? Number(terms?.maxResponseTime ?? 0)
+    : Number(r?.maxResponseTime ?? 0);
+  const slashBps = V8_ENABLED ? Number(terms?.slashBps ?? 0) : Number(r?.slashBps ?? 0);
 
   const registered = Boolean(owner) && owner !== ZERO_ADDR;
 
@@ -121,11 +135,26 @@ export default function ProviderProfile() {
   /* Only a usable endpoint becomes a link; a placeholder or free text stays
      inert text, so nothing here can ping an endpoint by accident. */
   const endpointLink = endpointHref(endpoint);
-  const completed = completedRes?.status === "success" ? Number(completedRes.result ?? 0) : 0;
-  const slashed = slashedRes?.status === "success" ? Number(slashedRes.result ?? 0) : 0;
+  /* v7 keeps two standalone counters; v8 folded both into the record. */
+  const { data: v7Completed } = useReadContract({
+    address: REGISTRY, abi: REGISTRY_ABI, functionName: "completedCalls",
+    args: [BigInt(validId ? queriedId : "0")],
+    query: { enabled: !V8_ENABLED && validId },
+  });
+  const { data: v7Slashed } = useReadContract({
+    address: REGISTRY, abi: REGISTRY_ABI, functionName: "slashedCalls",
+    args: [BigInt(validId ? queriedId : "0")],
+    query: { enabled: !V8_ENABLED && validId },
+  });
+  const completed = V8_ENABLED ? Number(r?.completedCalls ?? 0) : Number(v7Completed ?? 0);
+  const slashed = V8_ENABLED ? Number(r?.slashedCalls ?? 0) : Number(v7Slashed ?? 0);
+
   const counts = callOutcomes(completed, slashed);
   const computedScore = reputationScore(completed, slashed);
-  const chainScore = scoreRes?.status === "success" ? Number(scoreRes.result) : null;
+  /* `getReputationScore` does not exist on v8; the hook it lives in is gated
+     there, so v8 always answers from the counters with the same formula. */
+  const { data: chainScoreRaw } = useProviderScore(validId ? Number(queriedId) : 0);
+  const chainScore = !V8_ENABLED && chainScoreRaw !== undefined ? Number(chainScoreRaw) : null;
   const score = chainScore ?? computedScore;
   const honor = honorRate(completed, slashed);
 
