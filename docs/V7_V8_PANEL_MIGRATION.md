@@ -1,6 +1,8 @@
 # v7 → v8 panel migration
 
-Audit date: 28 October 2026. Read-only pass; no production code changed.
+Audit date: 28 October 2026 (read-only pass). The migration it plans then ran as phases P1–P5
+on the same day: every row below carries the verdict **after** its phase, and the checklist at
+the end records the evidence. No contract was changed — this is a frontend-only migration.
 
 `src/lib/config.ts` exposes both stacks:
 
@@ -50,13 +52,13 @@ live v8 stack, not about code style.
 |---|---|---|---|---|
 | `AdminPanel.tsx` | 14 | `owner`, `payPerCall`, `pendingPayPerCall`, `payPerCallChangeAt`, `setPayPerCall`, `proposePayPerCall`, `executePayPerCall` | 1 of 4 reads valid; 3 reads and all 3 writes dead | **PASS** (P3, 28 Oct) — rewritten as a read-only wiring card: `admin()`, `payPerCall()`, the reverse `payPerCall.registry()` check, `authorizedSlashers(DisputeV4)`, `keeperBountyBps`, `SUBMIT_GRACE`, `nextProviderId`. No write form |
 | `PipelineHook.tsx` | 6 | `pipelineHook`, `setPipelineHook` | absent in v8 | **REMOVED** (P4, 28 Oct) — no v8 counterpart exists, so the panel left the nav, palette, lazy map and `PanelId` union |
-| `Notifications.tsx` | 3 | 3 `useWatchContractEvent` on the v7 PPC | events exist in v8, address does not | **FAIL** — silently receives nothing |
-| `Payments.tsx` | 2 | `claimable`, `claim` (+ USDC `balanceOf`) | both exist in v8 | **FAIL** — 17.527733 USDC claimable is not shown |
-| `Requests.tsx` | 2 | `claimTimeout(bytes32)` | exists, same signature | **FAIL** — address/ABI only; arg is already `bytes32` |
-| `BulkCall.tsx` | 1 | `callService` | exists, returns `bytes32` | **FAIL** — address/ABI only; return value unused |
-| `Nano.tsx` | 2 | `approve` + `callService`, `getProvider` positional `[6]`/`[3]` | exists; **field indices shifted** | **FAIL** — address, ABI *and* the positional `active` index |
-| `ProviderProfile.tsx` | 1 | `getProvider`, `getReputationScore`, `completedCalls`, `slashedCalls`, `getEndpoint` | 2 of 5 revert | **FAIL** — score must be computed from the counters inside `getProvider` |
-| `PasskeyWallet.tsx` | 1 | `callService` via `VITE_PAY_PER_CALL ?? CONFIG.payPerCall` | exists | **PARTIAL** — silent v7 fallback when the env var is unset |
+| `Notifications.tsx` | 3 | 3 `useWatchContractEvent` on the v7 PPC | events exist in v8, address does not | **PASS** (P1, 28 Oct) — watches `ACTIVE_PPC_ADDRESS` with `PPC_ABI_V8_ACTIVE`; the audit's silent-nothing failure is gone |
+| `Payments.tsx` | 2 | `claimable`, `claim` (+ USDC `balanceOf`) | both exist in v8 | **PASS** (P1, 28 Oct) — reads `ACTIVE_PPC_ADDRESS`; `claimable(0xfbac99E6…06Da)` is `17.527733 USDC` and now visible |
+| `Requests.tsx` | 2 | `claimTimeout(bytes32)` | exists, same signature | **PASS** (P1, 28 Oct) — address/ABI swapped; the argument was already `bytes32` |
+| `BulkCall.tsx` | 1 | `callService` | exists, returns `bytes32` | **PASS** (P1, 28 Oct) — address/ABI swapped; the return value is unused, so the `uint256`→`bytes32` change cannot be misread |
+| `Nano.tsx` | 2 | `approve` + `callService`, `getProvider` positional `[6]`/`[3]` | exists; **field indices shifted** | **PASS** (P2, 28 Oct) — named fields only, no positional index, and the batch approves **PayPerCall** instead of the batch helper (see the resolved finding) |
+| `ProviderProfile.tsx` | 1 | `getProvider`, `getReputationScore`, `completedCalls`, `slashedCalls`, `getEndpoint` | 2 of 5 revert | **PASS** (P2, 28 Oct) — counters come from the `getProvider` record, `maxResponseTime`/`slashBps` from `getTerms`, score computed; `getReputationScore` survives only behind `enabled: !V8_ENABLED` |
+| `PasskeyWallet.tsx` | 1 | `callService` via `VITE_PAY_PER_CALL ?? CONFIG.payPerCall` | exists | **PASS** (P1, 28 Oct) — the fallback is `ACTIVE_PPC_ADDRESS`, so an unset env var can no longer mean v7 |
 | `Providers.tsx` | 2 | `getProvider`, `getTerms`, `getEndpoint`; also renders integration snippets | reads are v8-aware (`V8_ENABLED`); snippets now emit the active pair and an 11-field reply | **PASS** (P5, 28 Oct) — the curl sample was executed against Arc and returned 11 words in the documented order |
 | `Uptime.tsx` | 2 | `V8_CONFIG.registryAddress` + `REGISTRY_ABI_V8` | v8 | **PASS** |
 | `DisputesV8.tsx` | 2 | `DISPUTE_V3_ADDRESS`/V4 switch, `PPC_ABI_V8` | v4 | **PASS** |
@@ -198,3 +200,18 @@ Consequences:
 3. The stale allowance the panel left on the helper is harmless (the contract cannot pull
    ERC-20), but a wallet that ran the old flow still carries it. Revoking is optional and
    cheap; nothing else depends on it.
+
+## Status: closed 28 October 2026
+
+All sixteen checklist rows are `PASS`. Every panel now reads `ACTIVE_REGISTRY_ADDRESS` /
+`ACTIVE_PPC_ADDRESS` with an ABI that matches the deployed contract, except `V7Cleanup.tsx`,
+which is the deliberate v7 write path, and the two labelled `read-only` v7 rows in the
+`AdminPanel` address book. The snippets a reader copies are part of the surface, so they were
+migrated too.
+
+Gates at close: `tsc -p tsconfig.json --noEmit` clean, `eslint src --max-warnings=0` clean,
+`bun test tests/` `556 tests / 52 files`, `549 pass`, `7 skip`, `0 fail`.
+
+Open, out of scope here: the attestor decision for `witness` and `tee-attestation`
+(`modeOf = 0`). That is a contract-and-runbook question, not a panel one, and it is recorded
+in `docs/decisions.md` and `docs/verification/REPORT.md`.
