@@ -102,6 +102,21 @@ const EMPTY = Object.freeze({
   note: null,
 });
 
+/**
+ * Decode a raw `getEvidence` `eth_call` result into the row object.
+ *
+ * Exported so the shape can be asserted against a recorded chain result without
+ * a network call. viem returns the single tuple output as an object keyed by
+ * component name — `const [row] = …` is not a valid decode of this ABI.
+ */
+export function decodeEvidenceRow(result) {
+  return decodeFunctionResult({
+    abi: SLA_EVIDENCE_ABI_V2,
+    functionName: "getEvidence",
+    data: result,
+  });
+}
+
 async function readAnchoredFromChain(callId, kind32, env) {
   // `{ row: null, note }` — `note: null` when the chain answered (nothing
   // anchored for this pair), `"no-registry"` / `"rpc-error"` when it could not.
@@ -124,11 +139,10 @@ async function readAnchoredFromChain(callId, kind32, env) {
     });
     const body = await response.json();
     if (body?.error) return { row: null, note: "rpc-error" };
-    const [row] = decodeFunctionResult({
-      abi: SLA_EVIDENCE_ABI_V2,
-      functionName: "getEvidence",
-      data: body.result,
-    });
+    // viem decodes a single tuple output into an object keyed by the tuple's
+    // component names, not into a one-element array. Destructuring here threw
+    // and every production read answered 502 until the smoke test caught it.
+    const row = decodeEvidenceRow(body.result);
     // An empty claimHash means "nothing anchored for this pair", not an error.
     if (!row || row.claimHash === `0x${"0".repeat(64)}`) return { row: null, note: null };
     return { row, note: null };

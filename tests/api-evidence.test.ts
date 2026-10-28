@@ -277,6 +277,29 @@ describe("GET /api/evidence wrapper", () => {
   });
 });
 
+describe("getEvidence decode", () => {
+  test("decodes the recorded chain result into a named row", async () => {
+    // Proof, not a guess: this is the real `eth_call` result for the live fixture
+    // on SLAEvidenceRegistryV2 (block 69469682). viem returns one tuple output as
+    // an object, so `const [row] = decode…` throws and the route answers 502 —
+    // which is exactly what production did before this test existed.
+    const recorded =
+      "0x1543345ab2c7d9f20f0ca458172e62bb9c41a1746258195a37a403fef58c9031" +
+      "e3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c" +
+      "188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d" +
+      "f638c765d435690aa9da23cf4ab8d3e58f5b29ea8f7ee90d85829f583cd510f9" +
+      "a007194563d9649410719f9f3ba3daf8a8ccefb11c70a25d51be40753d91fef9" +
+      "000000000000000000000000d804f2e0efb3d8c470d60942643b71ea5b271a21" +
+      "000000000000000000000000000000000000000000000000000000006ae1ad5f";
+    const { decodeEvidenceRow } = await import("../api/_evidence.js");
+    const row = decodeEvidenceRow(recorded);
+    expect(row.claimHash).toBe(LIVE_CLAIM_HASH);
+    expect(row.statementHash).toBe("0xf638c765d435690aa9da23cf4ab8d3e58f5b29ea8f7ee90d85829f583cd510f9");
+    expect(row.verifier).toBe("0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21");
+    expect(Number(row.anchoredAt)).toBe(1793174879);
+  });
+});
+
 describe("/api/evidence rewrite target", () => {
   test("attestation?evidence=1 serves the evidence payload", async () => {
     // The Hobby plan caps a deployment at 12 Serverless Functions, so the public
