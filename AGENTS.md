@@ -152,21 +152,23 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
-## Dispute evidence binding (branch `feat/dispute-evidence`) — PENDING, NOT DEPLOYED
+## Dispute evidence binding (deployed 28 Oct 2026) — DEPLOYED, WIRING INCOMPLETE
 
-`SLAEvidenceRegistryV2` and `DisputeV4` are implemented, tested on branch `feat/dispute-evidence`,
-and **not deployed**. Nothing in this section is live; do not point the app, the API or a reader at
-an address from here until the owner has signed the transactions and the addresses are read back
-from chain.
+`SLAEvidenceRegistryV2` and `DisputeV4` are deployed on Arc Testnet and read back correct: owner,
+arbiter, appeal arbiter, treasury, bonds (`2000000` / `3000000`), windows (`604800` / `172800` /
+`604800`), `disputeSlashBps` `1000`, `legacyDispute()` = V3, `evidence()` = the new registry. They
+are **not active**: no kind is wired, `evidenceKinds()` is empty, and neither contract has slash
+authority yet. The app, the API and the dispute write path still point at V3 until the seven owner
+calls below land and the env vars move.
 
-| Artifact | Address |
-|---|---|
-| `SLAEvidenceRegistryV2` | pending user signature — `script/DeployEvidenceV2.s.sol` prints it |
-| `DisputeV4` | pending user signature — same script |
-| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` |
+| Artifact | Address | Deploy tx |
+|---|---|---|
+| `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` | `0x2df3be0f…26941` (block 69401608, 765735 gas) |
+| `DisputeV4` | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` | `0x8ebe9986…2fd8f` (block 69401608, 2752305 gas) |
+| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` | — |
 
 Seven owner calls remain, in this order, each printed with exact arguments by
-`forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account deployer --rpc-url arc_testnet`:
+`forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account owner --sender 0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da --rpc-url https://rpc.testnet.arc.io`:
 two `setProofVerifier(..., true)` calls on the new registry, `setSignatureVerifier` for `witness`
 (when an attestor exists), `DisputeV4.setEvidenceKinds([...4 kinds...])` — **required**, since an
 empty allowlist makes `openDispute` snapshot nothing and the feature ships silently doing nothing —

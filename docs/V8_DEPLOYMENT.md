@@ -779,8 +779,26 @@ window, or a verdict — `test_balancesAreIdenticalWithAndWithoutEvidence` asser
 provider and treasury deltas are exactly equal with and without a bound claim, for both
 verdicts.
 
-Status: **not deployed**. Everything below is what the owner runs; the agent does not broadcast
-an owner-wallet transaction.
+Status: **deployed 28 Oct 2026, wiring incomplete**. The agent did not broadcast anything; the
+owner ran `script/DeployEvidenceV2.s.sol` at their own TTY.
+
+| Item | Value |
+|---|---|
+| `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` (tx `0x2df3be0f…26941`, block `69401608`, `765735` gas) |
+| `DisputeV4` | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` (tx `0x8ebe9986…2fd8f`, block `69401608`, `2752305` gas) |
+| Gas paid by the owner | `0.076077615 USDC` for both deploys |
+
+Read back after the deploy, all matching the script's pin: `owner()` = the owner wallet, arbiter /
+appeal arbiter / treasury = the owner wallet, `disputeBond` `2000000`, `appealBond` `3000000`,
+`disputeWindow`/`resolutionWindow` `604800`, `appealWindow` `172800`, `disputeSlashBps` `1000`,
+`legacyDispute()` = `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec`, `evidence()` = the new registry.
+Still empty: `evidenceKinds()` returns `[]` and no kind has a verifier, so `openDispute` would
+snapshot nothing. `ServiceRegistryV8.authorizedSlashers(DisputeV4)` is `false` and
+`authorizedSlashers(DisputeV3)` is still `true` — step 5 has not run, which is why the ordering gate
+below is live right now.
+
+Everything after this table is what the owner runs next; the agent does not broadcast an
+owner-wallet transaction.
 
 ### 14.1 What the script does
 
