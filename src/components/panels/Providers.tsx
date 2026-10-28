@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useReadContract } from "wagmi";
-import { CONFIG, ACTIVE_REGISTRY_ADDRESS, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8 } from "../../lib/config";
+import {
+  ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8,
+} from "../../lib/config";
 import { useAppStore } from "../../store/useAppStore";
 import {
   AddressPill, Badge, Button, Copy, EmptyState, ErrorState, Field, Input,
@@ -43,7 +45,10 @@ const SETUP_STEPS = [
 ];
 
 function codeSamples(): Record<string, string> {
-  const ppc = CONFIG.ppcAddress;
+  /* The samples are copied verbatim, so they must name the stack the app is
+     wired to. Hardcoding the legacy pair here is how a working panel teaches a
+     reader to call a retired contract. */
+  const ppc = ACTIVE_PPC_ADDRESS;
   const usdc = CONFIG.usdcAddress;
   return {
     "Browser JS": `// npm i ethers
@@ -130,11 +135,18 @@ w3.eth.wait_for_transaction_receipt(
     w3.eth.send_raw_transaction(acct.sign_transaction(call).raw_transaction))`,
 
     "curl": `# getProvider(uint256) selector: 0x5c42d079, argument left-padded to 32 bytes.
-# The reply is an ABI-encoded 9-field tuple; decode it before displaying values.
+# The reply is an ABI-encoded 11-field tuple, in this order:
+#   owner address, signer address, stake uint256, pricePerCall uint256,
+#   latestTermsVersion uint32, active bool, pendingCalls uint32,
+#   completedCalls uint64, slashedCalls uint64, maxConcurrentCalls uint32,
+#   zkTier uint8
+# The response window and the slash ratio are not in this tuple: read them from
+# getTerms(uint256,uint32), selector 0x84cec799, with the provider's latest
+# terms version as the second argument.
 curl ${CONFIG.rpcUrl} \\
   -X POST -H "Content-Type: application/json" \\
   -d '{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{
-    "to":"${CONFIG.registryAddress}",
+    "to":"${ACTIVE_REGISTRY_ADDRESS}",
     "data":"0x5c42d0790000000000000000000000000000000000000000000000000000000000000001"
   },"latest"]}'`,
   };
@@ -210,6 +222,10 @@ export default function Providers() {
      produces one, so a placeholder can never be clicked or pinged. */
   const endpointLink = endpointHref(endpoint);
 
+  /* v8 keeps the response window and the slash ratio in `getTerms`, so the
+     source column must not claim they came from the provider tuple. */
+  const registryLabel = V8_ENABLED ? "ServiceRegistryV8" : "ServiceRegistry";
+  const termsSource = V8_ENABLED ? "registry terms" : "registry";
   const samples = useMemo(codeSamples, []);
   const concurrency = record
     ? record.maxConcurrentCalls === 0
@@ -240,7 +256,7 @@ export default function Providers() {
 
       <SectionCard
         title="Look up a provider"
-        subtitle="Values come from ServiceRegistry.getProvider and getEndpoint on Arc Testnet. The endpoint is the string recorded at registration; it is not verified."
+        subtitle={`Values come from ${registryLabel}.getProvider and getEndpoint on Arc Testnet. The endpoint is the string recorded at registration; it is not verified.`}
       >
         <div className="pv-lookup">
           <Field
@@ -355,7 +371,7 @@ export default function Providers() {
                 <Tr>
                   <Td>Response window</Td>
                   <Td mono>{record.maxResponseTime}s<span className="pv-hint"> + 5s submit grace</span></Td>
-                  <Td className="pv-src">registry</Td>
+                  <Td className="pv-src">{termsSource}</Td>
                 </Tr>
                 <Tr>
                   <Td>Slash on a missed deadline</Td>
@@ -363,7 +379,7 @@ export default function Providers() {
                     {(record.slashBps / 100).toFixed(2)}% of stake
                     <span className="pv-hint"> · {usdcCompact(slashAmount) ?? "—"} USDC per slashed call</span>
                   </Td>
-                  <Td className="pv-src">registry + computed</Td>
+                  <Td className="pv-src">{termsSource} + computed</Td>
                 </Tr>
                 <Tr>
                   <Td>Stake</Td>

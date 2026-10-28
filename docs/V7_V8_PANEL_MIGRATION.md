@@ -57,7 +57,7 @@ live v8 stack, not about code style.
 | `Nano.tsx` | 2 | `approve` + `callService`, `getProvider` positional `[6]`/`[3]` | exists; **field indices shifted** | **FAIL** — address, ABI *and* the positional `active` index |
 | `ProviderProfile.tsx` | 1 | `getProvider`, `getReputationScore`, `completedCalls`, `slashedCalls`, `getEndpoint` | 2 of 5 revert | **FAIL** — score must be computed from the counters inside `getProvider` |
 | `PasskeyWallet.tsx` | 1 | `callService` via `VITE_PAY_PER_CALL ?? CONFIG.payPerCall` | exists | **PARTIAL** — silent v7 fallback when the env var is unset |
-| `Providers.tsx` | 2 | `getProvider`, `getTerms`, `getEndpoint`; also renders integration snippets | reads are v8-aware (`V8_ENABLED`), but the snippets still print the v7 PPC/registry addresses and tell the reader the reply is a "9-field tuple" | **PARTIAL** — the panel is right, the copy-paste text is wrong |
+| `Providers.tsx` | 2 | `getProvider`, `getTerms`, `getEndpoint`; also renders integration snippets | reads are v8-aware (`V8_ENABLED`); snippets now emit the active pair and an 11-field reply | **PASS** (P5, 28 Oct) — the curl sample was executed against Arc and returned 11 words in the documented order |
 | `Uptime.tsx` | 2 | `V8_CONFIG.registryAddress` + `REGISTRY_ABI_V8` | v8 | **PASS** |
 | `DisputesV8.tsx` | 2 | `DISPUTE_V3_ADDRESS`/V4 switch, `PPC_ABI_V8` | v4 | **PASS** |
 | `V7Cleanup.tsx` | 1 | v7 admin writes | intentional | **PASS** — the deliberate v7 write path |
@@ -132,11 +132,13 @@ note that the wire-up is one-time. The three write forms are gone.
 The panel is deleted rather than hidden, because hiding it would leave dead code that still
 reads a function the contract does not have. `docs/decisions.md` records the removal.
 
-**P5 — `Providers` integration snippets.**
-The panel's reads are already v8; its code samples are not. Snippets must emit
-`ACTIVE_PPC_ADDRESS`/`ACTIVE_REGISTRY_ADDRESS`, describe an 11-field `getProvider` reply,
-and mention the `bytes32` `callId` where a sample shows the result. Acceptance: `grep` over
-`Providers.tsx` finds no v7 literal, and the tuple text matches `ProviderView`.
+**P5 — `Providers` integration snippets.** Done 28 Oct 2026; gates clean.
+All four samples (Browser JS, Node.js, Python, curl) resolve through `ACTIVE_PPC_ADDRESS` and
+`ACTIVE_REGISTRY_ADDRESS`, so a copied snippet cannot point at the retired pair. The curl
+sample names the 11 fields in order and states where the response window and slash ratio live
+(`getTerms`, selector `0x84cec799`). The `callId` the samples log is the `CallStarted` arg,
+which is `bytes32` on v8. The source column of the record table now says `registry terms` for
+the two fields that come from `getTerms`, because v8 keeps them out of the provider tuple.
 
 ## Checklist
 
@@ -153,10 +155,10 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 | C2 | `AdminPanel` has no one-time write form | **PASS** — `grep -rn "setPayPerCall\|proposePayPerCall\|executePayPerCall" src/` returns only the explanatory prose in the panel; no `useWriteContract` in the file |
 | D1 | `PipelineHook` cannot be reached, or states why it is gone | **PASS** — file deleted; `grep -rn "pipelinehook\|PipelineHook" src/` returns nothing. `AppShell` falls back to Overview for a stale persisted `activePanel` |
 | D2 | `MarketingLayout` footer links point at v8 | **PASS** — both contract links resolve through `ACTIVE_*`, which is `0x793028B6…12A3` / `0xedce61eF…a7EF` with the checked-in env |
-| F1 | `Providers` snippets print v8 addresses and an 11-field reply | UNVERIFIED |
-| E1 | `bun run check` clean | UNVERIFIED |
-| E2 | `bun test tests/` no new failures | UNVERIFIED |
-| E3 | `grep -rln "CONFIG\.\(registry\|payPerCall\|ppcAddress\|registryAddress\)" src/` returns only `config.ts` (the `ACTIVE_*` fallbacks), `V7Cleanup.tsx`, `MarketingLayout.tsx` | UNVERIFIED |
+| F1 | `Providers` snippets print v8 addresses and an 11-field reply | **PASS** — `grep -n "CONFIG\.ppcAddress\|CONFIG\.registryAddress\|9-field"` over the panel returns nothing; the curl sample executed as printed returns 11 words: owner/signer `0xfbac99E6…06Da`, stake `16044435`, price `1000000`, terms version `1`, `active`, pending `0`, completed `4`, slashed `7`, max concurrent `10`, zkTier `0`. `getProvider` selector `0x5c42d079`, `getTerms` selector `0x84cec799` |
+| E1 | `bun run check` clean | **PASS** — `tsc -p tsconfig.json --noEmit` and `eslint src --max-warnings=0` both exit 0 after P5 |
+| E2 | `bun test tests/` no new failures | **PASS** — `556 tests / 52 files`, `549 pass`, `7 skip`, `0 fail` |
+| E3 | no panel reads a bare v7 address | **PASS** — the grep returns five files: `config.ts` (the `ACTIVE_*` fallbacks), `V7Cleanup.tsx` (the sanctioned v7 write path), `AdminPanel.tsx` (two v7 rows in the address book, labelled `read-only`), and `DisputesV8.tsx`/`Uptime.tsx`, where every hit is `V8_CONFIG.registryAddress`/`V8_CONFIG.ppcAddress` rather than `CONFIG`. `MarketingLayout.tsx` no longer appears |
 
 ## Known constraints
 
