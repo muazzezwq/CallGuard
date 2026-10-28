@@ -149,10 +149,23 @@ envelope when the record's `payloadHash` is not the call's `responseHash`, and p
 `src/lib/verification/fixtures/witness.json` from the same builder `/api/evidence` uses, so the
 served statement cannot drift from the anchored one; `--send` takes `PRIVATE_KEY` and is opt-in.
 
-The anchor for the live call `0x8cfa1821…` is prepared but **not sent**: `claimHash`
-`0x3e1dc967…2514`, `statementHash` `0x7050a35c…9be5`, `assumptionHash` `0x7d9b9f5b…6a4a`. Until it
-lands, `/api/evidence?callId=0x8cfa1821…&kind=witness` answers with the envelope and
-`anchored: false`, and a dispute snapshot reads `NoAnchor` for `witness`.
+The first claim is anchored, for the live call `0x8cfa1821…`:
+
+| Field | Value |
+|---|---|
+| tx | `0x5c4d8deb947105f7d5240fcb54881487f877e2b80f51ab65416bb131eafaba2d` |
+| block / gas | `69497159` / `206,535` (the adapter figure predicted before the send) |
+| `claimHash` | `0x3e1dc967…2514` |
+| `responseHash` | `0x188fcd5c…6e8d` (the call's own commitment, equal to the provenance `payloadHash`) |
+| `statementHash` | `0x7050a35c…9be5` |
+| `assumptionHash` | `0x7d9b9f5b…6a4a` |
+| `verifier` | `0x046d715D…0498` |
+
+`getEvidence` reads the row back with all five hashes and `anchoredAt = 1793188858`, and
+`/api/evidence?callId=0x8cfa1821…&kind=witness` answers `anchored: true, match: true` — the served
+envelope digests to the anchored claim, so the page and the chain agree on every byte. `zk-constraint`
+and `tee-attestation` still answer `anchored: false` for the same call, which is the expected
+asymmetry: three kinds have a verifier, one has a claim.
 
 An adapter would be small: implement
 `verify(bytes proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash) external view returns (bool)`,

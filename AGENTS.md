@@ -189,6 +189,11 @@ hashes cannot drift from the anchored ones); `--send` needs `PRIVATE_KEY` and is
 `/api/evidence` now bundles two envelopes and looks them up by `(kind, callId)`: `zk-execution`
 and `witness` describe the same live call, so a call alone does not name a claim.
 
+The first `witness` claim was anchored on 28 Oct 2026: tx `0x5c4d8deb…ba2d`, block `69497159`,
+gas `206,535`, `claimHash` `0x3e1dc967…2514` for call `0x8cfa1821…`, verifier `0x046d715D…0498`.
+`getEvidence` returns the row and `/api/evidence?callId=0x8cfa1821…&kind=witness` answers
+`match: true`, so `witness` is no longer a wired-but-empty kind.
+
 | Artifact | Address | Deploy tx |
 |---|---|---|
 | `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` | `0x2df3be0f…26941` (block 69401608, 765735 gas) |
