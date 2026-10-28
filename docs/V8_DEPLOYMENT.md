@@ -908,9 +908,15 @@ Smoke result after the fix: `/api/evidence?callId=0x8cfa1821…fb265&kind=zk-exe
 
 ### 14.4 Post-deploy smoke test
 
-The route's module loading was fixed once already (`api/evidence.js` imports compiled specifiers
-and loads its fixture through `createRequire`); a green `bun test` only proves bun resolves it.
-After the deploy, against production:
+The route's module loading has now been wrong twice, and both times `bun test` was green while
+production answered `500 FUNCTION_INVOCATION_FAILED` on **every** request, including ones that never
+reach the evidence code — a module-load failure, not a handler error. The first cause was a `.ts`
+specifier; the second was `createRequire(import.meta.url)` around the fixtures. A bundler keeps that
+call, so the function needed JSON files that were not traced into its directory, and the import threw
+before any code ran. The fixtures are now static `import … with { type: "json" }` declarations, which
+the bundler inlines, and `tests/api-bundle-load.test.ts` bundles the entry, copies it alone into an
+empty directory and imports it under `node`, so the suite proves the artifact loads rather than that
+bun does. After the deploy, against production:
 
 ```bash
 curl -s "https://arcsla.vercel.app/api/evidence?callId=0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265&kind=zk-execution"
@@ -919,8 +925,9 @@ curl -s "https://arcsla.vercel.app/api/evidence?callId=0x8cfa18217dfaa18bb7edc27
 
 `match: false` with `note: null` means the anchored hashes disagree with the served envelope —
 stop and compare `statementHash` and `assumptionHash` with the values in
-`test/ClaimHashes.t.sol`. A 500 means the function did not load; rebuild and check
-`.vercel/output/functions/api/evidence.func/api/evidence.js` for a `.ts` specifier.
+`test/ClaimHashes.t.sol`. A 500 means the function did not load: check for a specifier or a
+`require` the runtime cannot resolve, and run `bun test tests/api-bundle-load.test.ts` first — it
+reproduces the deployed artifact locally.
 
 ### 14.5 What this does not claim
 

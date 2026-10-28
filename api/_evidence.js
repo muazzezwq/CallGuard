@@ -23,15 +23,15 @@
  */
 
 // The deploy runtime (nodejs24.x, ESM) rejects a bare JSON import with
-// `needs an import attribute of "type: json"`; createRequire loads it under both
-// bun and node and keeps the fixture traced into the function bundle on every runtime.
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const fixture = require("../src/lib/verification/fixtures/zk-execution.json");
+// `needs an import attribute of "type: json"`. Declaring the attribute lets the
+// bundler inline the fixture instead of leaving a runtime `require` that depends on
+// the file being traced into the function directory — that trace is what broke the
+// deployed route: every request to this module answered 500 while `bun test` passed.
+import fixture from "../src/lib/verification/fixtures/zk-execution.json" with { type: "json" };
 // A second execution claim, for the call a live dispute is about. Two calls, two
 // envelopes, one kind — which is why the bundle list is a list.
-const executionFixtureSecond = require("../src/lib/verification/fixtures/zk-execution-f68c0c62.json");
-const witnessFixture = require("../src/lib/verification/fixtures/witness.json");
+import executionFixtureSecond from "../src/lib/verification/fixtures/zk-execution-f68c0c62.json" with { type: "json" };
+import witnessFixture from "../src/lib/verification/fixtures/witness.json" with { type: "json" };
 import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
 // The witness envelope is built by the same function the anchor script used, so the

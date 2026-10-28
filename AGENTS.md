@@ -193,25 +193,44 @@ and `witness` describe the same live call, so a call alone does not name a claim
 
 The first `witness` claim was anchored on 28 Oct 2026: tx `0x5c4d8deb…ba2d`, block `69497159`,
 gas `206,535`, `claimHash` `0x3e1dc967…2514` for call `0x8cfa1821…`, verifier `0x046d715D…0498`.
-`getEvidence` returns the row and `/api/evidence?callId=0x8cfa1821…&kind=witness` answers
-`match: true`, so `witness` is no longer a wired-but-empty kind.
+`getEvidence` returns the row, so `witness` is no longer a wired-but-empty kind.
+
+**`/api/evidence` was answering `500 FUNCTION_INVOCATION_FAILED` for every request**, including
+requests that never touch evidence, and `/api/attestation` with it. The cause is module load, not
+the handler: `api/_evidence.js` pulled its fixtures in with `createRequire(import.meta.url)`, a
+bundler leaves that call in place, and the deployed function directory did not carry the JSON
+files, so the import threw before any code ran. `bun test` passed the whole time because bun
+resolves both the `.js`→`.ts` specifiers and the JSON. The fixtures are now static
+`import … with { type: "json" }` declarations, which the bundler inlines, and
+`tests/api-bundle-load.test.ts` loads the production artifact shape (bundle it, copy one file into
+an empty directory, import it under `node`) so a green suite can no longer prove only that bun
+works. The route serves the fixed build after the next deploy; until then production still answers
+500.
 
 **On `SLAEvidenceRegistryV2` only `witness` and `zk-execution` hold a claim for that call.** The
 `zk-constraint` anchor from B3d (`tx 0xe8f6b0c5…3732`, block `69092517`) is on the **v1** registry
 `0x7d643B2b…` — `DisputeV4` reads `V2` (`0x64872c29…11FC`), so its row says `NoAnchor` (mode `2`),
 not `NoVerifier`. A snapshot therefore mixes three different sentences and
 `test/DisputeV4ForkEvidence.t.sol` asserts all three against the deployed contracts.
-**DisputeV4 has exactly one dispute: `1`.** It was opened on 28 Oct 2026 for call
+**DisputeV4 has two disputes.** Dispute `1` was opened on 28 Oct 2026 for call
 `0x5ca2100b…b9ed1` (tx `0x3ce4abe3…aed1`, block `69537552`, gas `775,507`), with bond
 `2,000,000` and `heldSlash` `1,283,554` (10% of stake `12,835,548`). It needed a *new* call
 because all four earlier completed V8 calls already carry a V3 dispute id and `openDispute`
 answers `AlreadyDisputedElsewhere` for them — the double-slash guard working, not a defect.
 Its snapshot is four `EvidenceAbsent` events and four unbound rows: `witness`, `zk-constraint`
 and `zk-execution` read `NoAnchor` (the anchored claims belong to call `0x8cfa1821…`), and
-`tee-attestation` reads `NoVerifier`. `test/DisputeV4ForkEvidence.t.sol` supplies the rows the
-live chain cannot show: on the call that has claims it asserts `witness` and `zk-execution`
-`bound`, `zk-constraint` `NoAnchor` (claim on the v1 registry) and `tee-attestation`
-`NoVerifier`.
+`tee-attestation` reads `NoVerifier`.
+
+Dispute `2` is the one that binds something. Its call is `0xf68c0c62…b488`, its `zk-execution`
+claim was anchored first (tx `0x7ef31f30…2cbcf3`, block `69548388`) because `openDispute`
+snapshots the rows in its own transaction, and the dispute followed (tx `0xf607faf0…033b`, block
+`69548457`, gas `730,827`, `openedAt` `1793214948`, bond `2,000,000`, `heldSlash` `924,159` —
+10% of stake `9,241,596`). `evidenceOf(2)` reads `zk-execution` `mode=2 present=true
+bound=true reason=None` (claim `0xd0b03a84…64bc2`), `witness` and `zk-constraint` `NoAnchor`, and
+`tee-attestation` `NoVerifier`. Both disputes are `Pending`; `reclaimExpiredBond` opens at
+`openedAt + disputeWindow` (`179380…` for `1`, `1793815694` for `2`).
+`test/DisputeV4ForkEvidence.t.sol` still supplies what no single dispute can show: two bound rows
+at once, and a `zk-constraint` claim that lives on the **v1** registry.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|

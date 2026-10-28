@@ -212,7 +212,7 @@ this repository.
 
 ## 5a. What a dispute snapshot actually said
 
-### The real dispute
+### The first dispute, on a call nothing was anchored for
 
 `DisputeV4` dispute `1` is open on Arc Testnet, and it is the first one this contract has ever
 held. Opening it needed a call with no V3 record: all four earlier completed V8 calls already carry
@@ -245,12 +245,45 @@ exist — `witness` and `zk-execution` — belong to call `0x8cfa1821…`, so th
 offered here. That is the sentence a snapshot has to get right: evidence for another call must never
 read as evidence for this one.
 
-### The bound rows, which the real chain cannot show
+### The second dispute, where the chain shows a bound row
 
-No live call carries an anchored claim *and* lacks a V3 dispute id, so a real dispute cannot show a
-`bound = true` row yet. `test/DisputeV4ForkEvidence.t.sol` supplies the missing case: it clears the
-single V3 read with `vm.mockCall` and opens a dispute against the deployed contracts at block
-`69498000`, on the call that does have claims.
+Dispute `2` was opened for exactly this reason: a `bound = true` row had only ever existed in a fork
+test, and a mechanism whose only evidence is a test is not evidence that the deployment works. The
+call is `0xf68c0c62…b488`, completed inside its window on 28 Oct, and its `zk-execution` claim was
+anchored in the transaction before the dispute — `openDispute` snapshots the rows in its own
+transaction, so anchoring afterwards would leave the row empty for ever.
+
+| Field | Value |
+|---|---|
+| call | `0xf68c0c62…b488` (provider `1`, `1.000000` USDC, `Completed` at `1793210915`) |
+| anchor tx | `0x7ef31f301229f6194363a3e420d8d71e6ae4f2b1f77e1a17f6b0e73da02cbcf3`, block `69548388` |
+| dispute tx | `0xf607faf05159e6ebdbfce645675e785dffe70951d6371f7a5e252bea7436033b`, block `69548457`, gas `730,827` |
+| `openedAt` | `1793214948` (2026-10-28 19:15:48 UTC) |
+| bond | `2,000,000` (2 USDC, pulled from the caller) |
+| `heldSlash` | `924,159` — `10%` of stake `9,241,596`, escrowed, not moved |
+| events | `DisputeOpened`, `SlashHeld`, `EvidenceLinked` for `zk-execution`, `EvidenceAbsent` three times |
+
+The four rows it wrote, read back with `evidenceOf(2)`:
+
+| Kind | mode | present | bound | reason |
+|---|---|---|---|---|
+| `witness` | `2` | false | false | `NoAnchor` |
+| `tee-attestation` | `0` | false | false | `NoVerifier` |
+| `zk-constraint` | `2` | false | false | `NoAnchor` |
+| `zk-execution` | `2` | true | **true** | `None` — claim `0xd0b03a84…64bc2`, verifier `0xD804F2E0…1a21` |
+
+This is the same snapshot vocabulary as dispute `1` plus the one row it could not have: a present
+claim whose response hash equals the call's, recorded as binding by the kind's verifier. The other
+three rows keep their distinct sentences, so "bound", "nobody anchored one", and "this kind has no
+verifier at all" are three different reads of live state.
+
+### The bound rows a fork still has to supply
+
+Dispute `2` binds one kind on a call that carries one claim. It cannot show two bound rows at once,
+and it cannot show a `zk-constraint` anchor that exists on the **v1** registry, because those claims
+belong to other calls. `test/DisputeV4ForkEvidence.t.sol` supplies those cases: it clears the single
+V3 read with `vm.mockCall` and opens a dispute against the deployed contracts at block `69498000`, on
+the call that has both `witness` and `zk-execution` claims.
 
 | Kind | mode | present | bound | reason |
 |---|---|---|---|---|
@@ -269,7 +302,9 @@ token movement is covered by `test/DisputeV4.t.sol` and by the live transactions
 
 Four kinds in `evidenceKinds()` is not four claims per dispute, and a wired kind is not an anchored
 one. Three kinds have a verifier (`witness`, `zk-constraint`, `zk-execution`) and only one call has
-claims, so a dispute on any other call reads `NoAnchor` on all three of them; `tee-attestation`
+claims, so a dispute on any other call reads `NoAnchor` on all three of them; two calls carry claims —
+`0x8cfa1821…` (`witness`, `zk-execution`) and `0xf68c0c62…` (`zk-execution`, bound in dispute `2`) —
+and the rest do not; `tee-attestation`
 cannot be anchored at all and reads `NoVerifier`. Count `bound = true` rows when judging a dispute
 snapshot, not rows, and read the reason on each unbound one — the reasons are different sentences
 for a reason. A bound row also never decides the dispute by itself: `DisputeV4` writes the snapshot
