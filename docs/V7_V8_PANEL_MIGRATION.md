@@ -48,7 +48,7 @@ live v8 stack, not about code style.
 
 | Panel | v7 refs | Calls it makes | v8 state | Verdict |
 |---|---|---|---|---|
-| `AdminPanel.tsx` | 14 | `owner`, `payPerCall`, `pendingPayPerCall`, `payPerCallChangeAt`, `setPayPerCall`, `proposePayPerCall`, `executePayPerCall` | 1 of 4 reads valid; 3 reads and all 3 writes dead | **FAIL** — needs redesign, not a port |
+| `AdminPanel.tsx` | 14 | `owner`, `payPerCall`, `pendingPayPerCall`, `payPerCallChangeAt`, `setPayPerCall`, `proposePayPerCall`, `executePayPerCall` | 1 of 4 reads valid; 3 reads and all 3 writes dead | **PASS** (P3, 28 Oct) — rewritten as a read-only wiring card: `admin()`, `payPerCall()`, the reverse `payPerCall.registry()` check, `authorizedSlashers(DisputeV4)`, `keeperBountyBps`, `SUBMIT_GRACE`, `nextProviderId`. No write form |
 | `PipelineHook.tsx` | 6 | `pipelineHook`, `setPipelineHook` | absent in v8 | **FAIL** — feature retired; panel must go or say so |
 | `Notifications.tsx` | 3 | 3 `useWatchContractEvent` on the v7 PPC | events exist in v8, address does not | **FAIL** — silently receives nothing |
 | `Payments.tsx` | 2 | `claimable`, `claim` (+ USDC `balanceOf`) | both exist in v8 | **FAIL** — 17.527733 USDC claimable is not shown |
@@ -92,7 +92,10 @@ no stored score. `ProviderProfile` is the only remaining direct caller.
    version)` now carries `maxResponseTime` and `slashBps` alongside
    `availabilityTargetBps`, and the record only carries `latestTermsVersion`. A panel that
    reads them straight off `getProvider` shows `0 s` and `0 bps` without any error.
-8. The v8 events are **not** the v7 events with a new address. `CallStarted` carries eight
+8. `REGISTRY_ABI_V8` was a partial ABI: it had no `admin`, `payPerCall` or
+   `authorizedSlashers`, and `PPC_ABI_V8` had no `registry()`. Those four read-only entries
+   were added to `config.ts`, because a panel that cannot name a getter cannot show it.
+9. The v8 events are **not** the v7 events with a new address. `CallStarted` carries eight
    fields (adds `termsVersion` and `termsHash` before `requestHash`), `ReceiptSubmitted`
    carries four (adds `termsVersion`), and `CallSlashed` carries four (adds
    `keeperBounty`). An address-only swap keeps the v7 topic filter and receives nothing,
@@ -121,11 +124,9 @@ Measured target: provider `1` is `stake 16.044435 USDC`, `pricePerCall 1 USDC`, 
 Acceptance: the panel renders those values and a score of `42`, with no `getReputationScore`
 call left in the panel.
 
-**P3 — `AdminPanel` redesign as read-only wiring card.**
-`admin()`, `payPerCall()`, `authorizedSlashers` for `DisputeV4`, and a text note that the
-wire-up is one-time. Remove the three write forms.
-Acceptance: no `setPayPerCall`/`proposePayPerCall`/`executePayPerCall` reference remains in
-`src/`; the panel renders the live `admin` and `payPerCall` values.
+**P3 — `AdminPanel` redesign as read-only wiring card.** Done 28 Oct 2026; gates clean.
+`admin()`, `payPerCall()`, `payPerCall.registry()`, `authorizedSlashers(DisputeV4)`, plus a
+note that the wire-up is one-time. The three write forms are gone.
 
 **P4 — `PipelineHook` retirement and `MarketingLayout` links.**
 Delete the panel or gate it with a stated reason; point the footer links at the v8
@@ -148,8 +149,8 @@ and mention the `bytes32` `callId` where a sample shows the result. Acceptance: 
 | A5 | `PasskeyWallet` has no silent v7 fallback | **PASS** — the fallback is `ACTIVE_PPC_ADDRESS`, and the inline ABI already declares `callService` returning `bytes32` |
 | B1 | `Nano` uses named `getProvider` fields only | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI and no positional index. The batch approves **PayPerCall**, not the batch router (see the helper finding) |
 | B2 | `ProviderProfile` computes the score, no `getReputationScore` call | **PASS** — reads `ACTIVE_REGISTRY_ADDRESS` with the v8-aware ABI, named fields only, counters from the record, `maxResponseTime`/`slashBps` from `getTerms(1, latestTermsVersion)`, score `floor((completed+2)*100/(completed+slashed+3))`. The v7 `getReputationScore` read survives only through `useProviderScore`, gated `enabled: !V8_ENABLED`. Provider `1` resolves to stake `16.044435`, price `1`, `active`, `4` completed, `7` slashed, score `42`, terms v1 window `120`, slash `2000` |
-| C1 | `AdminPanel` shows `admin()` and `payPerCall()` | UNVERIFIED |
-| C2 | `AdminPanel` has no one-time write form | UNVERIFIED |
+| C1 | `AdminPanel` shows `admin()` and `payPerCall()` | **PASS** — reads `0xfbac99E6…06Da` and `0xedce61eF…a7EF`; the reverse read `payPerCall.registry()` returns `0x793028B6…12A3`, so the pair matches both ways. `authorizedSlashers(DisputeV4)` is `true`, `keeperBountyBps` `500`, `SUBMIT_GRACE` `5`, `nextProviderId` `3` |
+| C2 | `AdminPanel` has no one-time write form | **PASS** — `grep -rn "setPayPerCall\|proposePayPerCall\|executePayPerCall" src/` returns only the explanatory prose in the panel; no `useWriteContract` in the file |
 | D1 | `PipelineHook` cannot be reached, or states why it is gone | UNVERIFIED |
 | D2 | `MarketingLayout` footer links point at v8 | UNVERIFIED |
 | F1 | `Providers` snippets print v8 addresses and an 11-field reply | UNVERIFIED |

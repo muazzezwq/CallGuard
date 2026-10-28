@@ -264,6 +264,7 @@ export const PPC_ABI_V8 = [
       {name:"slashed",type:"uint256",indexed:false},
       {name:"keeperBounty",type:"uint256",indexed:false},
     ] },
+  { name: "registry", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
 ] as const;
 
 export const PPC_ABI_V8_ACTIVE = V8_ENABLED ? PPC_ABI_V8 : PPC_ABI;
@@ -506,6 +507,12 @@ export const REGISTRY_ABI_V8 = [
   { name: "minStake", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint256"}] },
   { name: "MIN_RESPONSE_TIME", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint32"}] },
   { name: "MAX_SLASH_BPS", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"uint16"}] },
+  // Wiring views. v8 names the admin `admin`, not `owner`: the contract does not
+  // inherit Ownable, so a generic ownership read reverts here.
+  { name: "admin", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "payPerCall", type: "function", stateMutability: "view", inputs: [], outputs: [{type:"address"}] },
+  { name: "authorizedSlashers", type: "function", stateMutability: "view",
+    inputs: [{name:"",type:"address"}], outputs: [{type:"bool"}] },
 ] as const;
 
 export const REGISTRY_ABI_V8_ACTIVE = V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI;

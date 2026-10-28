@@ -1,364 +1,266 @@
-import { useState } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { CONFIG, REGISTRY_ABI } from "../../lib/config";
-import { Badge, Button, Copy, Input, PageHeader, Stat } from "../../ui";
+import { useReadContract } from "wagmi";
+import {
+  ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG, DISPUTE_V4_ENABLED, PPC_ABI_V8,
+  REGISTRY_ABI, REGISTRY_ABI_V8, SLA_EVIDENCE_V2_ADDRESS, SLA_EVIDENCE_V2_ENABLED,
+  V8_CONFIG, V8_ENABLED,
+} from "../../lib/config";
+import { Copy, PageHeader, Stat } from "../../ui";
 import {
   Ledger, LedgerRow, PanelShell, PanelSource, PanelSplit, SignalRow, StatusNotice,
 } from "../panel/PanelUi";
 
-const REGISTRY_ADMIN_ABI = [
-  { name: "owner",        type: "function", stateMutability: "view",        inputs: [],                              outputs: [{type:"address"}] },
-  { name: "payPerCall",   type: "function", stateMutability: "view",        inputs: [],                              outputs: [{type:"address"}] },
-  { name: "setPayPerCall", type: "function", stateMutability: "nonpayable", inputs: [{name:"_payPerCall",type:"address"}], outputs: [] },
+/* The admin surface is a wiring view, not a control panel. `ServiceRegistryV8`
+   exposes `setPayPerCall` once, and reverts with `PayPerCallAlreadySet`
+   afterwards, because a registry is bound to one escrow contract for its life.
+   The v7 panel offered a one-time setter plus a two-step timelock that v8 never
+   had; both buttons could only fail, so they are gone. Changing the wiring means
+   deploying a new registry, and that is not something a browser button should
+   pretend to do. */
+
+/* v7 names its admin `owner`; v8 names it `admin` and does not inherit Ownable.
+   One extra ABI entry covers the v7 branch without a second registry ABI. */
+const REGISTRY_ABI_V7_ADMIN = [
+  { name: "owner", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { name: "payPerCall", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   ...REGISTRY_ABI,
 ] as const;
+const REGISTRY_ABI_ACTIVE = V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI_V7_ADMIN;
+/* Both stages expose these reads; the v8 ABI is the one with `registry()`. */
+const PPC_ABI_ACTIVE = PPC_ABI_V8;
 
-type TxStatus = "idle" | "pending" | "mining" | "success" | "error";
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
-function StatusBadge({ status, error }: { status: TxStatus; error?: string }) {
-  if (status === "idle") return null;
-  if (status === "error") {
-    return (
-      <span className="pg-testline is-err" role="alert">
-        {error ?? "Error"}
-      </span>
-    );
-  }
-
-  const tone = status === "pending" ? "pending" : status === "mining" ? "info" : "guard";
-  const text = status === "pending"
-    ? "Waiting..."
-    : status === "mining"
-      ? "Writing to chain..."
-      : "Success!";
-
-  return (
-    <span role="status" aria-live="polite">
-      <Badge tone={tone}>{text}</Badge>
-    </span>
-  );
+function sameAddress(a?: string, b?: string): boolean | undefined {
+  if (!a || !b) return undefined;
+  return a.toLowerCase() === b.toLowerCase();
 }
 
-function AdminAction({
-  label, description, buttonLabel, buttonVariant = "primary",
-  onAction, status, error, children,
+function WiringRow({
+  lead, value, expected, ok, tone, note,
 }: {
-  label: string;
-  description: string;
-  buttonLabel: string;
-  buttonVariant?: "primary" | "secondary" | "outline";
-  onAction: () => void;
-  status: TxStatus;
-  error?: string;
-  children?: React.ReactNode;
+  lead: string;
+  value?: string;
+  expected?: string;
+  ok?: boolean;
+  tone?: "guard" | "danger" | "neutral" | "muted";
+  note?: string;
 }) {
-  const busy = status === "pending" || status === "mining";
   return (
-    <div className={`pg-action${children ? "" : " pg-action--tight"}`}>
-      <div className="pg-action__info">
-        <code className="pg-endpoint">{label}</code>
-        <span className="pg-action__desc">{description}</span>
-      </div>
-      {children && <div className="pg-action__field">{children}</div>}
-      <div className="pg-action__actions">
-        <Button
-          variant={buttonVariant}
-          onClick={onAction}
-          disabled={busy}
-          loading={busy}
-        >
-          {buttonLabel}
-        </Button>
-        <StatusBadge status={status} error={error} />
-      </div>
-    </div>
+    <LedgerRow
+      tone={tone ?? (ok === undefined ? "neutral" : ok ? "guard" : "danger")}
+      lead={lead}
+      meta={(
+        <span className="pg-address">
+          {value ?? "—"}
+          {expected && !ok ? <> <span className="pp-muted">expected {expected.slice(0, 10)}…</span></> : null}
+        </span>
+      )}
+      trailing={
+        <span className="pg-mono">
+          {ok === undefined ? "reading…" : ok ? "ok" : "mismatch"}
+          {note ? ` · ${note}` : ""}
+        </span>
+      }
+    />
   );
 }
 
 export default function AdminPanel() {
-  const { address, isConnected } = useAccount();
+  const registryLabel = V8_ENABLED ? "ServiceRegistryV8" : "ServiceRegistry v7";
 
-  // ── contract reads ──────────────────────────────────────────────────────────
-  const { data: registryOwner } = useReadContract({
-    address: CONFIG.registryAddress,
-    abi: REGISTRY_ADMIN_ABI,
-    functionName: "owner",
+  /* Registry side of the wiring. `admin` on v8, `owner` on v7 — the v8 registry
+     does not inherit Ownable, so asking it for `owner` reverts. */
+  const { data: registryAdmin } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_ACTIVE,
+    functionName: V8_ENABLED ? "admin" : "owner",
   });
 
-  const { data: currentPPC, refetch: refetchPPC } = useReadContract({
-    address: CONFIG.registryAddress,
-    abi: REGISTRY_ADMIN_ABI,
+  const { data: wiredPpc } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_ACTIVE,
     functionName: "payPerCall",
   });
 
-  const { data: pendingPPC } = useReadContract({
-    address: CONFIG.registryAddress,
-    abi: REGISTRY_ADMIN_ABI,
-    functionName: "pendingPayPerCall",
+  const { data: nextProviderId } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_ACTIVE,
+    functionName: "nextProviderId",
   });
 
-  const { data: changeAt } = useReadContract({
-    address: CONFIG.registryAddress,
-    abi: REGISTRY_ADMIN_ABI,
-    functionName: "payPerCallChangeAt",
+  /* Escrow side: it stores the registry it was deployed against, so the pair can
+     be checked in both directions. A one-way match would hide a registry that
+     points at a stale escrow. */
+  const { data: wiredRegistry } = useReadContract({
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_ACTIVE,
+    functionName: "registry",
+    query: { enabled: V8_ENABLED },
   });
 
-  // ── setPayPerCall ────────────────────────────────────────────────────────────
-  const [setPPCStatus, setSetPPCStatus] = useState<TxStatus>("idle");
-  const [setPPCError,  setSetPPCError]  = useState<string>();
-  const [setPPCInput,  setSetPPCInput]  = useState(CONFIG.payPerCall);
-  const { writeContract: writePPC, data: setPPCHash } = useWriteContract();
-
-  useWaitForTransactionReceipt({
-    hash: setPPCHash,
-    query: {
-      enabled: !!setPPCHash,
-      select: (r) => {
-        if (r.status === "success") { setSetPPCStatus("success"); refetchPPC(); }
-        else setSetPPCStatus("error");
-        return r;
-      },
-    },
+  const { data: keeperBountyBps } = useReadContract({
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_ACTIVE,
+    functionName: "keeperBountyBps",
   });
 
-  function doSetPayPerCall() {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(setPPCInput)) {
-      setSetPPCError("Invalid address"); setSetPPCStatus("error"); return;
-    }
-    setSetPPCStatus("pending");
-    setSetPPCError(undefined);
-    writePPC({
-      address: CONFIG.registryAddress,
-      abi: REGISTRY_ADMIN_ABI,
-      functionName: "setPayPerCall",
-      args: [setPPCInput as `0x${string}`],
-    }, {
-      onSuccess: () => setSetPPCStatus("mining"),
-      onError: (e) => { setSetPPCStatus("error"); setSetPPCError(e.message.slice(0, 80)); },
-    });
-  }
-
-  // ── proposePayPerCall (timelock) ─────────────────────────────────────────────
-  const [proposeStatus, setProposeStatus] = useState<TxStatus>("idle");
-  const [proposeError,  setProposeError]  = useState<string>();
-  const [proposeInput,  setProposeInput]  = useState(CONFIG.payPerCall);
-  const { writeContract: writePropose, data: proposeHash } = useWriteContract();
-
-  useWaitForTransactionReceipt({
-    hash: proposeHash,
-    query: { enabled: !!proposeHash },
+  const { data: graceSeconds } = useReadContract({
+    address: ACTIVE_PPC_ADDRESS,
+    abi: PPC_ABI_ACTIVE,
+    functionName: "SUBMIT_GRACE",
   });
 
-  function doPropose() {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(proposeInput)) {
-      setProposeError("Invalid address"); setProposeStatus("error"); return;
-    }
-    setProposeStatus("pending"); setProposeError(undefined);
-    writePropose({
-      address: CONFIG.registryAddress,
-      abi: REGISTRY_ADMIN_ABI,
-      functionName: "proposePayPerCall",
-      args: [proposeInput as `0x${string}`],
-    }, {
-      onSuccess: () => setProposeStatus("mining"),
-      onError: (e) => { setProposeStatus("error"); setProposeError(e.message.slice(0, 80)); },
-    });
-  }
-
-  // ── executePayPerCall ────────────────────────────────────────────────────────
-  const [execStatus, setExecStatus] = useState<TxStatus>("idle");
-  const [execError,  setExecError]  = useState<string>();
-  const { writeContract: writeExec, data: execHash } = useWriteContract();
-
-  useWaitForTransactionReceipt({
-    hash: execHash,
-    query: { enabled: !!execHash, select: (r) => {
-      if (r.status === "success") { setExecStatus("success"); refetchPPC(); }
-      else setExecStatus("error");
-      return r;
-    }},
+  /* DisputeV4 is the only contract that may slash in addition to the escrow. The
+     registry stores that permission as a flag, so it is worth showing: a false
+     here means a dispute can be opened but its slash will not stick. */
+  const disputeAddr = V8_CONFIG.dispute;
+  const { data: disputeIsSlasher } = useReadContract({
+    address: ACTIVE_REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI_V8,
+    functionName: "authorizedSlashers",
+    args: [disputeAddr],
+    query: { enabled: V8_ENABLED && DISPUTE_V4_ENABLED },
   });
 
-  function doExecute() {
-    setExecStatus("pending"); setExecError(undefined);
-    writeExec({
-      address: CONFIG.registryAddress,
-      abi: REGISTRY_ADMIN_ABI,
-      functionName: "executePayPerCall",
-    }, {
-      onSuccess: () => setExecStatus("mining"),
-      onError: (e) => { setExecStatus("error"); setExecError(e.message.slice(0, 80)); },
-    });
-  }
+  const forwardOk = sameAddress(wiredPpc as string | undefined, ACTIVE_PPC_ADDRESS);
+  const backwardOk = V8_ENABLED
+    ? sameAddress(wiredRegistry as string | undefined, ACTIVE_REGISTRY_ADDRESS)
+    : undefined;
 
-  // ── guard ────────────────────────────────────────────────────────────────────
-  const isOwner = address && registryOwner &&
-    address.toLowerCase() === (registryOwner as string).toLowerCase();
+  const wired = forwardOk === true && (backwardOk === true || backwardOk === undefined);
 
-  const changeAtNum = changeAt !== undefined ? Number(changeAt) : 0;
-  const timelockReady = changeAtNum > 0 && Date.now() / 1000 >= changeAtNum;
-  const timelockStr = changeAtNum > 0
-    ? new Date(changeAtNum * 1000).toLocaleString()
-    : "—";
-
-  const currentCorrect = currentPPC !== undefined &&
-    (currentPPC as string).toLowerCase() === CONFIG.payPerCall.toLowerCase();
-  const sourceState = registryOwner === undefined ? "idle" : isOwner ? "live" : "unavailable";
-
-  if (!isConnected) {
-    return (
-      <PanelShell>
-        <PageHeader title="Admin Panel" subtitle="ServiceRegistry v7 admin operations" />
-        <StatusNotice tone="info" title="Please connect your wallet." />
-      </PanelShell>
-    );
-  }
-
-  const addresses: [string, string][] = [
-    ["ServiceRegistry v7", CONFIG.registry],
-    ["PayPerCall v7.1",    CONFIG.payPerCall],
-    ["DisputeQuality v2 (retired)", CONFIG.disputeQuality],
-    ["SLAFutures v3",      CONFIG.slaFutures],
-    ["ReputationLoan v3",  CONFIG.reputationLoan],
-    ["CrossChainReceiver v2", CONFIG.crossChainReceiver],
+  const addresses: { name: string; addr: string; tone?: "neutral" | "muted" }[] = [
+    { name: "ServiceRegistryV8", addr: V8_CONFIG.registryAddress },
+    { name: "PayPerCallV8", addr: V8_CONFIG.ppcAddress },
+    { name: "SLAKeeper", addr: V8_CONFIG.keeperAddress },
+    { name: "DisputeV4", addr: disputeAddr },
+    { name: "Authority (admin)", addr: (registryAdmin as string) ?? "" },
+    { name: "USDC", addr: CONFIG.usdc },
+    { name: "ServiceRegistry v7 (read-only)", addr: CONFIG.registry, tone: "muted" },
+    { name: "PayPerCall v7.1 (read-only)", addr: CONFIG.payPerCall, tone: "muted" },
   ];
+  if (SLA_EVIDENCE_V2_ENABLED) {
+    addresses.splice(4, 0, { name: "SLAEvidenceRegistryV2", addr: SLA_EVIDENCE_V2_ADDRESS });
+  }
 
   return (
     <PanelShell>
-      <PageHeader title="Admin Panel" subtitle="ServiceRegistry v7 admin operations" />
+      <PageHeader
+        title="Wiring"
+        subtitle={`${registryLabel} — who is bound to what, read from the contracts`}
+      />
       <PanelSource
-        label="ServiceRegistry v7"
-        value={CONFIG.registry.slice(0,10) + "…"}
-        hint={registryOwner === undefined ? "reading owner" : isOwner ? "owner connected" : "read-only"}
-        state={sourceState}
+        label={registryLabel}
+        value={`${ACTIVE_REGISTRY_ADDRESS.slice(0, 10)}…`}
+        hint={wired ? "wired in both directions" : "check the rows below"}
+        state={wiredPpc === undefined ? "idle" : wired ? "live" : "unavailable"}
       />
 
-      {/* Status cards */}
-      <SignalRow label="ServiceRegistry state">
+      <SignalRow label="Current binding">
         <Stat
           label="Registry"
-          value={<span className="pg-address">{CONFIG.registry.slice(0,10)}…</span>}
-          hint="ServiceRegistry v7"
+          value={<span className="pg-address">{ACTIVE_REGISTRY_ADDRESS.slice(0, 10)}…</span>}
+          hint={registryLabel}
         />
         <Stat
-          label="Current PayPerCall"
-          value={(
-            <span className="pg-address">
-              {currentPPC ? (currentPPC as string).slice(0,10) + "…" : "—"}
-            </span>
-          )}
-          hint={currentPPC === undefined ? "Reading…" : currentCorrect ? "Correct address" : "v7 address not set"}
-          tone={currentPPC === undefined ? undefined : currentCorrect ? "guard" : "slash"}
+          label="Escrow (payPerCall)"
+          value={<span className="pg-address">{(wiredPpc as string | undefined)?.slice(0, 10) ?? "—"}…</span>}
+          hint={forwardOk === undefined ? "Reading…" : forwardOk ? "Matches the wired escrow" : "Points somewhere else"}
+          tone={forwardOk === undefined ? undefined : forwardOk ? "guard" : "slash"}
         />
         <Stat
-          label="Owner"
-          value={(
-            <span className="pg-address">
-              {registryOwner ? (registryOwner as string).slice(0,10) + "…" : "—"}
-            </span>
-          )}
-          hint={registryOwner === undefined ? "Reading…" : isOwner ? "Connected wallet is owner" : "Not owner"}
-          tone={registryOwner === undefined ? undefined : isOwner ? "guard" : "slash"}
+          label={V8_ENABLED ? "Admin" : "Owner"}
+          value={<span className="pg-address">{(registryAdmin as string | undefined)?.slice(0, 10) ?? "—"}…</span>}
+          hint={registryAdmin === undefined ? "Reading…" : "Signs registry administration"}
         />
       </SignalRow>
 
-      {registryOwner !== undefined && !isOwner && (
-        <StatusNotice tone="warn" title="Connect with the ServiceRegistry owner wallet to perform these operations.">
-          Owner: <span className="pg-mono">{registryOwner as string}</span>
-        </StatusNotice>
-      )}
+      <StatusNotice tone="info" title="The binding is set once, at deploy.">
+        A registry is attached to one escrow contract for its lifetime. On v8,
+        <span className="pg-mono"> setPayPerCall </span>
+        reverts with <span className="pg-mono">PayPerCallAlreadySet</span> after the first call, and
+        there is no timelock or propose step. Re-pointing the pair means deploying a new registry, so
+        this screen only reads the state back.
+      </StatusNotice>
 
       <PanelSplit
         main={(
           <>
             <section className="ui-section">
               <div className="ui-section__head">
-                <h2 className="ui-section__title">Initial Setup — setPayPerCall</h2>
+                <h2 className="ui-section__title">Binding check</h2>
               </div>
               <div className="ui-section__body">
                 <p className="pg-copy pg-copy--tight">
-                  Wires the PayPerCall v7.1 address into the newly deployed ServiceRegistry v7, one time only.
-                  Use this path if it has never been called before.
+                  Both contracts store the other's address. A match in one direction only would leave a
+                  registry pointing at an escrow that has moved on, so both are shown.
                 </p>
-                <AdminAction
-                  label="setPayPerCall"
-                  description="Only works when payPerCall = address(0)."
-                  buttonLabel="Call"
-                  onAction={doSetPayPerCall}
-                  status={setPPCStatus}
-                  error={setPPCError}
-                >
-                  <Input
-                    value={setPPCInput}
-                    onChange={e => setSetPPCInput(e.target.value)}
-                    placeholder="0x..."
-                    spellCheck={false}
-                    aria-label="PayPerCall address for setPayPerCall"
+                <Ledger label="Registry → escrow">
+                  <WiringRow
+                    lead="registry.payPerCall()"
+                    value={wiredPpc as string | undefined}
+                    expected={ACTIVE_PPC_ADDRESS}
+                    ok={forwardOk}
                   />
-                </AdminAction>
+                </Ledger>
+                {V8_ENABLED && (
+                  <Ledger label="Escrow → registry">
+                    <WiringRow
+                      lead="payPerCall.registry()"
+                      value={wiredRegistry as string | undefined}
+                      expected={ACTIVE_REGISTRY_ADDRESS}
+                      ok={backwardOk}
+                    />
+                  </Ledger>
+                )}
               </div>
             </section>
 
             <section className="ui-section pg-section--spaced">
               <div className="ui-section__head">
-                <h2 className="ui-section__title">Update via Timelock (2 days)</h2>
+                <h2 className="ui-section__title">Slashing authority</h2>
               </div>
               <div className="ui-section__body">
                 <p className="pg-copy pg-copy--tight">
-                  To change the PayPerCall address, propose first, then execute after 2 days.
+                  The escrow contract can always claim a timeout. A dispute contract slashes only while
+                  the registry has it authorised; a revoked contract keeps its records but cannot move
+                  stake.
                 </p>
-                <AdminAction
-                  label="proposePayPerCall"
-                  description="Propose the new address — starts the 2-day timelock."
-                  buttonLabel="Propose"
-                  buttonVariant="secondary"
-                  onAction={doPropose}
-                  status={proposeStatus}
-                  error={proposeError}
-                >
-                  <Input
-                    value={proposeInput}
-                    onChange={e => setProposeInput(e.target.value)}
-                    placeholder="0x..."
-                    spellCheck={false}
-                    aria-label="PayPerCall address for proposePayPerCall"
+                <Ledger label="authorizedSlashers">
+                  <WiringRow
+                    lead={DISPUTE_V4_ENABLED ? "DisputeV4" : "Dispute (unconfigured)"}
+                    value={disputeAddr || ZERO_ADDR}
+                    ok={V8_ENABLED && DISPUTE_V4_ENABLED ? disputeIsSlasher === true : undefined}
+                    note={V8_ENABLED && DISPUTE_V4_ENABLED ? undefined : "needs VITE_DISPUTE_V4"}
                   />
-                </AdminAction>
-
-                <dl className="pg-meta">
-                  <div>
-                    <dt>Pending address</dt>
-                    <dd className="pg-address">{pendingPPC ? (pendingPPC as string) : "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>Executable at</dt>
-                    <dd className="pg-mono">{timelockStr}</dd>
-                  </div>
-                </dl>
-
-                {timelockReady && (
-                  <StatusNotice tone="success" title="Timelock elapsed — execute can be called." />
-                )}
-
-                <AdminAction
-                  label="executePayPerCall"
-                  description="Apply the change after the timelock period expires."
-                  buttonLabel="Apply"
-                  buttonVariant="outline"
-                  onAction={doExecute}
-                  status={execStatus}
-                  error={execError}
-                />
+                </Ledger>
+                <Ledger label="Escrow timings">
+                  <LedgerRow
+                    tone="neutral"
+                    lead="keeperBountyBps"
+                    meta={<span className="pg-mono">{keeperBountyBps === undefined ? "—" : `${Number(keeperBountyBps)} bps`}</span>}
+                  />
+                  <LedgerRow
+                    tone="neutral"
+                    lead="SUBMIT_GRACE"
+                    meta={<span className="pg-mono">{graceSeconds === undefined ? "—" : `${Number(graceSeconds)} s`}</span>}
+                  />
+                  <LedgerRow
+                    tone="neutral"
+                    lead="nextProviderId"
+                    meta={<span className="pg-mono">{nextProviderId === undefined ? "—" : String(nextProviderId)}</span>}
+                  />
+                </Ledger>
               </div>
             </section>
           </>
         )}
         rail={(
-          <Ledger label="Correct Addresses">
-            {addresses.map(([name, addr]) => (
+          <Ledger label="Address book">
+            {addresses.filter(a => a.addr).map(({ name, addr, tone }) => (
               <LedgerRow
-                key={addr}
-                tone={name.includes("retired") ? "muted" : "neutral"}
+                key={`${name}-${addr}`}
+                tone={tone ?? "neutral"}
                 lead={name}
                 meta={<span className="pg-address">{addr}</span>}
                 trailing={<Copy value={addr} label={`Copy ${name} address`} />}
