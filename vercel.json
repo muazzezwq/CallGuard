@@ -15,7 +15,6 @@
     "api/ping-provider.js":     { "maxDuration": 10 },
     "api/premium-report.js":    { "maxDuration": 15 },
     "api/provider-page.js":     { "maxDuration": 15 },
-    "api/evidence.js":          { "maxDuration": 10 },
     "api/widget.js":            { "maxDuration": 10 }
   },
   "rewrites": [
@@ -24,6 +23,7 @@
     { "source": "/nano/balance",      "destination": "/api/nano-call?balance=1" },
     { "source": "/sitemap.xml",       "destination": "/api/provider-page?sitemap=1" },
     { "source": "/providers/:id",     "destination": "/api/provider-page?id=:id" },
+    { "source": "/api/evidence",      "destination": "/api/attestation?evidence=1" },
     { "source": "/api/marketplace/health", "destination": "/api/marketplace?health=1" },
     { "source": "/api/auto-receipt/health", "destination": "/api/auto-receipt" },
     { "source": "/(.*)",              "destination": "/index.html" }

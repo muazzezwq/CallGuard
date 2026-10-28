@@ -49,7 +49,7 @@ afterEach(() => {
 
 describe("GET /api/evidence (handle)", () => {
   test("returns the fixture envelope and says the hash matches", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: LIVE_CALL, kind: "zk-execution" },
       { readAnchored: async () => anchoredRow() },
@@ -70,7 +70,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("unknown call is a 404-shaped answer, not an empty 200", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: "0x" + "11".repeat(32), kind: "zk-execution" },
       { readAnchored: async () => anchoredRow() },
@@ -81,7 +81,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("a mismatched on-chain claim is carried, not turned into a match", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: LIVE_CALL, kind: "zk-execution" },
       { readAnchored: async () => anchoredRow({ claimHash: "0x" + "22".repeat(32) }) },
@@ -92,7 +92,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("a reordered statement the chain never anchored is not a match", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: LIVE_CALL, kind: "zk-execution" },
       {
@@ -105,7 +105,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("a reordered assumption list is not a match", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: LIVE_CALL, kind: "zk-execution" },
       {
@@ -118,7 +118,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("with no registry configured nothing on chain is claimed, and the fixture still answers", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     let fetchCalls = 0;
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () => {
@@ -141,7 +141,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("an injected read that throws reports a failed look, not an absence", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: LIVE_CALL, kind: "zk-execution" },
       { readAnchored: async () => { throw new Error("rpc failed"); } },
@@ -152,7 +152,7 @@ describe("GET /api/evidence (handle)", () => {
   });
 
   test("the fixture is withheld for a call it does not describe, even with an anchored row", async () => {
-    const { handle } = await import("../api/evidence.js");
+    const { handle } = await import("../api/_evidence.js");
     const res = await handle(
       { callId: "0x" + "aa".repeat(32), kind: "zk-execution" },
       { readAnchored: async () => anchoredRow() },
@@ -166,7 +166,7 @@ describe("GET /api/evidence (handle)", () => {
 
 describe("GET /api/evidence wrapper", () => {
   test("answers 200 with JSON content type and CORS for the live call", async () => {
-    const { default: handler } = await import("../api/evidence.js");
+    const { sendEvidence: handler } = await import("../api/_evidence.js");
     const rows = { headers: {} as Record<string, string>, statusCode: 0, body: undefined as unknown };
     const res = {
       setHeader(key: string, value: string) {
@@ -199,7 +199,7 @@ describe("GET /api/evidence wrapper", () => {
     // A status-only caller cannot see `note`. The status code itself has to carry
     // "the look failed" — 404 would say "nothing is anchored", which is a claim
     // the endpoint could not make.
-    const { default: handler } = await import("../api/evidence.js");
+    const { sendEvidence: handler } = await import("../api/_evidence.js");
     const saved = {
       registry: process.env.SLA_EVIDENCE_V2,
       vregistry: process.env.VITE_SLA_EVIDENCE_V2,
@@ -250,7 +250,7 @@ describe("GET /api/evidence wrapper", () => {
   });
 
   test("answers 404 for the unknown call", async () => {
-    const { default: handler } = await import("../api/evidence.js");
+    const { sendEvidence: handler } = await import("../api/_evidence.js");
     const rows = { statusCode: 0, body: undefined as unknown };
     const res = {
       setHeader() {
@@ -277,14 +277,55 @@ describe("GET /api/evidence wrapper", () => {
   });
 });
 
-describe("api/evidence.js source discipline", () => {
+describe("/api/evidence rewrite target", () => {
+  test("attestation?evidence=1 serves the evidence payload", async () => {
+    // The Hobby plan caps a deployment at 12 Serverless Functions, so the public
+    // `/api/evidence` path is a rewrite onto `/api/attestation?evidence=1`. If that
+    // dispatch is lost, the UI's statement mirror silently answers with a verdict
+    // body instead of an evidence body.
+    const { default: attestation } = await import("../api/attestation.js");
+    const rows = { statusCode: 0, body: undefined as unknown };
+    const res = {
+      setHeader() {
+        return this;
+      },
+      status(code: number) {
+        rows.statusCode = code;
+        return this;
+      },
+      json(body: unknown) {
+        rows.body = body;
+        return this;
+      },
+      end() {
+        return this;
+      },
+    };
+    await attestation(
+      {
+        method: "GET",
+        query: { evidence: "1", callId: "0x" + "11".repeat(32), kind: "zk-execution" },
+        headers: {},
+        url: "/api/attestation?evidence=1",
+      },
+      res,
+    );
+    const body = rows.body as { kind?: string; anchored?: boolean; match?: boolean };
+    expect(body.kind).toBe("zk-execution");
+    expect(body.anchored).toBe(false);
+    expect(body.match).toBe(false);
+    expect(rows.statusCode).toBe(404);
+  });
+});
+
+describe("api/_evidence.js source discipline", () => {
   test("imports no specifier ending in .ts", () => {
     // Vercel's Node builder compiles the TypeScript it reaches but does not rewrite
     // import specifiers: the emitter sits next to the handler as schema.js, while the
     // handler keeps asking for schema.ts — which resolves to nothing on the deploy
     // runtime. A green bun test hides that failure (bun happily resolves .ts), so the
-    // guard is on the source text: no specifier in api/evidence.js may end in ".ts".
-    const source = readFileSync("api/evidence.js", "utf8");
+    // guard is on the source text: no specifier in api/_evidence.js may end in ".ts".
+    const source = readFileSync("api/_evidence.js", "utf8");
     const tsSpecifier = /(?:from|import)\s+["'][^"']+\.ts["']/;
     expect(tsSpecifier.test(source)).toBe(false);
   });

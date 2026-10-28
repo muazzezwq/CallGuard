@@ -212,7 +212,13 @@ export async function handle(query, deps = {}) {
   };
 }
 
-export default async function handler(req, res) {
+/**
+ * Transport for `/api/evidence`. It lives here, in a `_`-prefixed module, because
+ * the Hobby plan caps a deployment at 12 Serverless Functions and this route is
+ * served through `/api/attestation?evidence=1` (see the rewrite in `vercel.json`).
+ * The public URL is unchanged.
+ */
+export async function sendEvidence(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
