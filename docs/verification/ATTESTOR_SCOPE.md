@@ -29,6 +29,11 @@ refuses before reading the proof, so no claim of any strength can exist for them
 `DisputeV4` snapshots all four kinds at `openDispute` and records `present = false, reason = NoVerifier`
 for the pair, which is the honest answer: nothing was anchored and nothing could be.
 
+No dispute has been opened on `DisputeV4` yet (`getDispute(1..3)` returns an empty record and
+`evidenceOf(1..3)` an empty array), so no snapshot on chain carries either sentence. The
+four-kind wiring has therefore been read back but never exercised end to end; the first real
+dispute will be the first snapshot with rows in it.
+
 ## 2. What each kind claims
 
 None of the four says "the answer is correct". The statements are narrower:
