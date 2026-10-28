@@ -5,6 +5,8 @@ import { useReveal } from "./useReveal";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { NetworkGraph } from "../components/viz/NetworkGraph";
 import { ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG } from "../lib/config";
+import { INTEGRATIONS, badgeTone } from "../lib/landing/claims";
+import { CALL_WINDOW, landingStats, type CallRow, type ProviderRow } from "../lib/landing/stats";
 import {
   Lock, FileCheck2, ShieldCheck, Zap, Terminal, Webhook, Workflow, BadgeCheck,
   Check, Copy, Coins, Boxes, Clock, ChevronDown, ExternalLink,
@@ -58,8 +60,8 @@ const PRIMITIVES = [
     Icon: ShieldCheck,
   },
   {
-    t: "x402 Payments",
-    d: "Per-call escrow, or batched Circle Gateway nanopayments of 0.001 USDC for high-frequency agent traffic.",
+    t: "x402 + Gateway",
+    d: "x402 per-call escrow is the SLA path. Circle Gateway nanopayments of 0.001 USDC move plain USDC outside it — no call, no receipt, no slash.",
     Icon: Zap,
   },
 ];
@@ -80,7 +82,7 @@ const OUTCOMES = [
     items: [
       "Signature must match the provider's registered signer",
       "Escrow is released to the provider",
-      "A reputation event is written, best-effort",
+      "The completion is recorded on-chain and read by the subgraph",
     ],
   },
   {
@@ -99,12 +101,12 @@ const OUTCOMES = [
 const DEVELOPERS = [
   {
     t: "REST API",
-    d: "POST /callService takes a signed EIP-3009 authorization and starts the call in one transaction.",
+    d: "POST /callService answers 402 with the provider's terms, then calls callServiceWithAuthorization with the signed EIP-3009 authorization.",
     Icon: Terminal,
   },
   {
-    t: "MCP server",
-    d: "A CallGuard MCP server exposes tools such as list_providers so agents can discover and pay providers.",
+    t: "MCP server (self-hosted)",
+    d: "Three MCP servers live in the repository under x402-facilitator/. None is deployed on arcsla.vercel.app, so you run one yourself against the subgraph.",
     Icon: Workflow,
   },
   {
@@ -113,36 +115,24 @@ const DEVELOPERS = [
     Icon: Webhook,
   },
   {
-    t: "Pipeline hook",
-    d: "The ERC-8183 hook fires before and after each call, wiring SLA calls into agentic commerce flows.",
+    t: "Pipeline hook — not wired",
+    d: "PayPerCallV8 has no ERC-8183 hook. The ERC-8183 reference contract is reachable as a separate job flow; it is not wired into the call lifecycle.",
     Icon: BadgeCheck,
   },
-];
-
-const INTEGRATIONS = [
-  { n: "x402 / X402Middleware", s: "Implemented", k: "impl" },
-  { n: "MCP server",            s: "Implemented", k: "impl" },
-  { n: "REST + auto-receipt",   s: "Implemented", k: "impl" },
-  { n: "ERC-8004 reputation",   s: "Opt-in",      k: "opt" },
-  { n: "ERC-8183 hook",         s: "Opt-in",      k: "opt" },
-  { n: "Circle Gateway",        s: "Available",   k: "opt" },
-  { n: "CCTP bridging",         s: "Testnet",     k: "test" },
 ];
 
 const ECOSYSTEM = [
   { n: "Arc",            role: "Settlement network — chain 5042002, USDC-native gas", s: "Live",     k: "impl" },
   { n: "Circle USDC",    role: "The settlement asset, 6 decimals",                     s: "Live",     k: "impl" },
-  { n: "Circle Gateway", role: "Batched nanopayments for high-frequency calls",        s: "Available", k: "opt" },
-  { n: "CCTP",           role: "Burn-and-mint USDC from Base and Sepolia testnets",    s: "Testnet",  k: "test" },
+  { n: "Circle Gateway", role: "0.001 USDC nanopayments, settled as plain USDC outside the SLA", s: "Outside SLA", k: "opt" },
+  { n: "CCTP",           role: "Burn-and-mint USDC from Sepolia, Base Sepolia and Polygon Amoy",   s: "Testnet",  k: "test" },
   { n: "Ethereum",       role: "EIP-712 typed receipts and EVM tooling",               s: "Standard", k: "opt" },
-  { n: "ERC-8004 / 8183", role: "Optional reputation and pipeline hooks",              s: "Opt-in",   k: "opt" },
+  { n: "ERC-8004 / 8183", role: "Reference contracts; not wired into the SLA call path", s: "Not wired", k: "opt" },
 ];
 
 const CONTRACTS = [
   { name: "ServiceRegistry", role: "Providers, stakes and SLA terms", addr: ACTIVE_REGISTRY_ADDRESS },
   { name: "PayPerCall",      role: "Escrow, receipts and settlement", addr: ACTIVE_PPC_ADDRESS },
-  { name: "AgentWallet",     role: "Policy-limited agent spending",   addr: CONFIG.agentWallet },
-  { name: "Subscription",    role: "Recurring access to providers",   addr: CONFIG.subscriptionAddress },
   { name: "USDC",            role: "Settlement token and gas",        addr: CONFIG.usdcAddress },
 ];
 
@@ -165,15 +155,19 @@ const FAQ = [
   },
   {
     q: "How does settlement work?",
-    a: "On a valid receipt, escrow is released to the provider. On a missed deadline, the caller is refunded and the provider is slashed. High-frequency calls can settle in batches through Circle Gateway.",
+    a: "On a valid receipt, escrow is released to the provider. On a missed deadline, the caller is refunded and the provider is slashed. Circle Gateway nanopayments are separate: they move 0.001 USDC as a plain transfer, with no call and no SLA.",
   },
   {
     q: "Which network is supported?",
     a: "Arc Testnet, chain ID 5042002, where USDC is also the gas token. CCTP bridging is wired for testnets.",
   },
   {
+    q: "What can be disputed?",
+    a: "A completed call can be disputed in DisputeV4 (0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B), which escrows a bond and reads evidence from SLAEvidenceRegistryV2 (0x64872c29A19dF8E471103d0708397BAb96A311FC). Two kinds are anchored today: zk-execution, a RISC Zero receipt binding the committed response to the call, and witness, a provenance record of the bytes a key saw. Evidence never changes a bond, a window or a verdict.",
+  },
+  {
     q: "How do developers integrate?",
-    a: "Send a request to the REST API, use the MCP server, or hook into the ERC-8183 pipeline. Every path ends in the same on-chain lifecycle.",
+    a: "POST /callService with a signed EIP-3009 authorization, or run the self-hosted MCP server from the repository. Both paths end in the same on-chain lifecycle.",
   },
 ];
 
@@ -181,19 +175,24 @@ const CODE = `POST /callService
 {
   "providerId": 1,
   "requestHash": "0x…keccak256(payload)",
-  "authorization": { "from": "0x…", "value": "1000", "…": "…" },
+  "authorization": {
+    "from": "0x…",
+    "to": "0x3600…0000",
+    "value": "1000000",
+    "validAfter": "0",
+    "validBefore": "1790000000",
+    "nonce": "0x…"
+  },
   "signature": "0x…"
 }
 
 -> { "success": true, "callId": "0x…", "txHash": "0x…" }`;
 
-const OPEN_STATES = new Set(["STARTED", "OPEN", "PENDING"]);
-
-type Call = { id: string; status: string; amount: string; providerId: string };
-type Prov = { id: string; active: boolean; completedCalls: string; slashedCalls: string };
+type Call = CallRow;
+type Prov = ProviderRow;
 
 const Q = `{
-  calls(first:120,orderBy:createdAt,orderDirection:desc){id status amount providerId}
+  calls(first:${CALL_WINDOW},orderBy:createdAt,orderDirection:desc){id status amount providerId}
   providers(first:60,orderBy:completedCalls,orderDirection:desc){id active completedCalls slashedCalls}
 }`;
 
@@ -287,23 +286,10 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   useReveal([data]);
 
-  const stats = useMemo(() => {
-    const calls = data?.calls ?? [];
-    const provs = data?.providers ?? [];
-    const completed = provs.reduce((s, p) => s + Number(p.completedCalls || 0), 0);
-    const slashed = provs.reduce((s, p) => s + Number(p.slashedCalls || 0), 0);
-    const total = completed + slashed;
-    const escrowRaw = calls
-      .filter((c) => OPEN_STATES.has(c.status))
-      .reduce((sum, c) => sum + Number(c.amount || 0), 0);
-    return {
-      hasData: calls.length > 0 || provs.length > 0,
-      totalCalls: total || calls.length,
-      activeProviders: provs.filter((p) => p.active).length || provs.length,
-      escrow: escrowRaw / 1e6,
-      honor: total > 0 ? Math.round(((completed + 2) / (total + 3)) * 100) : null,
-    };
-  }, [data]);
+  const stats = useMemo(
+    () => landingStats(data?.calls ?? [], data?.providers ?? []),
+    [data],
+  );
 
   const copy = () => {
     navigator.clipboard?.writeText(CODE).then(() => {
@@ -465,12 +451,12 @@ export default function Landing() {
           <div className="mk-head mk-reveal">
             <h2 className="mk-h2">Built to be verified.</h2>
             <p className="mk-lead">
-              Read straight from the live CallGuard subgraph on Arc Testnet. No dashboards, no rounding.
+              Read straight from the live CallGuard subgraph on Arc Testnet. Values are rounded for display.
             </p>
           </div>
           <div className="mk-band mk-reveal">
             <div className="mk-band__cell">
-              <div className="mk-band__v">{stats.hasData ? <Num value={stats.totalCalls} /> : "—"}</div>
+              <div className="mk-band__v">{stats.hasData ? <Num value={stats.settledOrSlashed} /> : "—"}</div>
               <div className="mk-band__l">Calls settled or slashed</div>
             </div>
             <div className="mk-band__cell">
@@ -479,17 +465,24 @@ export default function Landing() {
             </div>
             <div className="mk-band__cell">
               <div className="mk-band__v">
-                {stats.hasData ? stats.escrow.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
+                {stats.hasData
+                  ? `${stats.escrowCapped ? "≥ " : ""}${stats.escrow.toLocaleString("en-US", { maximumFractionDigits: 2 })}`
+                  : "—"}
               </div>
-              <div className="mk-band__l">USDC in open escrow</div>
+              <div className="mk-band__l">USDC in open escrow · newest {CALL_WINDOW} calls</div>
             </div>
             <div className="mk-band__cell">
-              <div className="mk-band__v mk-band__v--guard">{stats.honor === null ? "—" : `${stats.honor}%`}</div>
-              <div className="mk-band__l">SLA success rate</div>
+              <div className="mk-band__v mk-band__v--guard">
+                {stats.reputationScore === null ? "—" : `${stats.reputationScore}%`}
+              </div>
+              <div className="mk-band__l">Bayesian reputation score</div>
             </div>
           </div>
           <p className="mk-note mk-reveal">
-            Source: CallGuard subgraph · refreshed every 30 seconds.{" "}
+            The score is <span className="mk-mono">(completed + 2) / (completed + slashed + 3)</span>, so it
+            starts at 67% and never reaches 100%. Escrow covers the open calls inside the newest{" "}
+            {CALL_WINDOW}, which is why it can read as a floor. Source: CallGuard subgraph · refreshed every
+            30 seconds.{" "}
             <a className="mk-link" href={CONFIG.subgraphUrl} target="_blank" rel="noopener noreferrer">
               Inspect the subgraph<ExternalLink size={12} strokeWidth={2.4} />
             </a>
@@ -519,10 +512,10 @@ export default function Landing() {
 
           <ul className="mk-pills mk-reveal">
             {INTEGRATIONS.map((it) => (
-              <li className={`mk-pill mk-pill--${it.k}`} key={it.n}>
+              <li className={`mk-pill mk-pill--${badgeTone(it.state)}`} key={it.name} title={it.detail}>
                 <span className="mk-pill__dot" aria-hidden="true" />
-                <span className="mk-pill__n">{it.n}</span>
-                <span className="mk-pill__s">{it.s}</span>
+                <span className="mk-pill__n">{it.name}</span>
+                <span className="mk-pill__s">{it.status}</span>
               </li>
             ))}
           </ul>

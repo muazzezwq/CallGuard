@@ -11,22 +11,25 @@ import {
 
 const QUERY = `{ providers(first:5 orderBy:completedCalls orderDirection:desc) { id pricePerCall completedCalls slashedCalls } }`
 
-const INSTALL_CMD = 'npm install @callguard/mcp-server'
+// The MCP servers in this repository run from a checkout. Nothing on
+// arcsla.vercel.app serves them: `/api/mcp-server` is not a function, it falls through
+// to the SPA catch-all and answers with HTML. The install line is therefore a clone,
+// not a package — `@callguard/mcp-server` returns 404 on the npm registry.
+const INSTALL_CMD = 'git clone https://github.com/muazzezwq/CallGuard && node x402-facilitator/mcp-server.js'
 const CLAUDE_CONFIG = `{
   "mcpServers": {
     "callguard": {
-      "command": "npx",
-      "args": ["@callguard/mcp-server"],
+      "command": "node",
+      "args": ["/absolute/path/to/CallGuard/x402-facilitator/mcp-server.js"],
       "env": {
-        "CALLGUARD_URL": "https://arcsla.vercel.app",
+        "SUBGRAPH_URL": "${CONFIG.subgraphUrl}",
         "CHAIN_ID": "5042002"
       }
     }
   }
 }`
-const CLAUDE_CONFIG_COMPACT = `{"mcpServers":{"callguard":{"command":"npx","args":["@callguard/mcp-server"],"env":{"CALLGUARD_URL":"https://arcsla.vercel.app","CHAIN_ID":"5042002"}}}}`
+const CLAUDE_CONFIG_COMPACT = `{"mcpServers":{"callguard":{"command":"node","args":["/absolute/path/to/CallGuard/x402-facilitator/mcp-server.js"],"env":{"SUBGRAPH_URL":"${CONFIG.subgraphUrl}","CHAIN_ID":"5042002"}}}}`
 const REST_BASE = 'https://arcsla.vercel.app/api'
-const SSE_ENDPOINT = 'https://arcsla.vercel.app/api/mcp-server'
 
 type Tab = 'tools'|'x402'|'test'|'config'
 type StatusTone = 'success' | 'danger' | 'info'
@@ -161,8 +164,8 @@ export default function Mcp() {
       />
       <PanelSource
         label="MCP server"
-        value="REST + remote SSE"
-        hint="Reference surface; requests run only from the test tabs"
+        value="self-hosted · stdio"
+        hint="Runs from a checkout — this host serves no MCP endpoint"
         state="idle"
       />
 
@@ -257,7 +260,7 @@ export default function Mcp() {
             {tab === 'test' && (
               <>
                 <Ledger
-                  label="Live Providers (Goldsky)"
+                  label="Live Providers (subgraph)"
                   empty={<span>{loading ? 'Loading…' : 'No providers indexed yet.'}</span>}
                 >
                   {providers.length > 0 && providers.map(p => (
@@ -318,7 +321,15 @@ export default function Mcp() {
                     className="pg-section--spaced"
                   />
                   <CodeSurface label="REST Base URL" code={REST_BASE} className="pg-section--spaced" />
-                  <CodeSurface label="Remote SSE Endpoint" code={SSE_ENDPOINT} className="pg-section--spaced" />
+
+                  <StatusNotice
+                    tone="info"
+                    title="No hosted MCP endpoint"
+                    className="pg-section--spaced"
+                  >
+                    The three servers in <code>x402-facilitator/</code> are stdio processes you run
+                    yourself. arcsla.vercel.app answers no MCP request.
+                  </StatusNotice>
 
                   <StatusNotice
                     tone="success"
@@ -335,7 +346,7 @@ export default function Mcp() {
             <KeyValue
               label="Server"
               rows={[
-                { label: 'Remote SSE', value: SSE_ENDPOINT, mono: true },
+                { label: 'Hosting', value: 'Local stdio (self-hosted)', mono: false },
                 { label: 'REST base', value: REST_BASE, mono: true },
                 { label: 'Chain ID', value: '5042002', mono: true },
                 { label: 'Protocol', value: 'MCP v1.0+' },
@@ -352,7 +363,7 @@ export default function Mcp() {
 
             {tab === 'test' && (
               <StatusNotice tone="info" title="Live read">
-                Providers come from the Goldsky subgraph. The test calls the public attestation endpoint.
+                Providers come from the public subgraph. The test calls the public attestation endpoint.
               </StatusNotice>
             )}
 

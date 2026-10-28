@@ -22,7 +22,7 @@ export default function Security() {
 
         <h2>What it does not</h2>
         <ul>
-          <li><strong>Correctness.</strong> A receipt proves a response happened, not that it was good. Quality is handled by a separate arbitration path.</li>
+          <li><strong>Correctness.</strong> A receipt proves a response happened, not that it was good. A dispute can bind evidence about a call, but the verdict is the arbiter&apos;s, not the contract&apos;s.</li>
           <li><strong>Custody.</strong> CallGuard never holds keys. Escrow is a contract; funds move only by the rules above.</li>
           <li><strong>Mainnet safety.</strong> This deployment is on Arc <em>Testnet</em>. Treat it as adversarial practice, not production value.</li>
         </ul>
@@ -35,17 +35,35 @@ export default function Security() {
           mid-flight.
         </p>
 
-        <h2>Best-effort integrations</h2>
+        <h2>Integrations that are not wired</h2>
         <p>
-          Writes to the ERC-8004 reputation registry and the ERC-8183 agentic-commerce hook are
-          best-effort: a revert there does not fail a <code>submitReceipt</code> or an{" "}
-          <code>agentCall</code>. The core settlement path stays intact even if those systems degrade.
+          This page used to describe ERC-8004 reputation writes and an ERC-8183 hook around
+          settlement. Neither runs on the v8 contracts: <code>PayPerCallV8</code> exposes no setter
+          for either, and the v7 addresses those calls used read back as the zero address, so no
+          ERC-8004 record is ever written and no ERC-8183 hook is ever called from the call
+          lifecycle.
+        </p>
+        <p>
+          The ERC-8183 reference contract is deployed and a panel in the app drives it directly,
+          but it is a separate job flow with its own escrow. It is not part of how a CallGuard call
+          is bought, settled or slashed — nothing here depends on it.
+        </p>
+
+        <h2>Disputes and evidence</h2>
+        <p>
+          A completed call can be disputed in <code>DisputeV4</code>, which escrows a bond and reads
+          the evidence anchored in <code>SLAEvidenceRegistryV2</code>. Two kinds are anchored today:
+          <code>zk-execution</code>, a RISC Zero receipt that binds the committed response to the
+          call, and <code>witness</code>, a provenance record of the bytes a key saw. Evidence is
+          additive: it never changes a bond, a window, <code>disputeSlashBps</code> or a verdict.
+          The <code>tee-attestation</code> kind has no verifier configured, so it cannot be anchored
+          at all.
         </p>
 
         <h2>Verify it yourself</h2>
         <p>
-          Every contract address on this site links to ArcScan. The subgraph is public. There is no
-          hidden state — if this page claims something, you can check it on-chain.
+          Every contract address on this site links to the Arc explorer. The subgraph is public.
+          There is no hidden state — if this page claims something, you can check it on-chain.
         </p>
       </div>
     </div>

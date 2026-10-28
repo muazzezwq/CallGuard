@@ -15,7 +15,6 @@ const JOBS_ABI = [
   { name: "submit", type: "function", inputs: [{ name: "jobId", type: "uint256" }, { name: "deliverableHash", type: "bytes32" }, { name: "data", type: "bytes" }], outputs: [], stateMutability: "nonpayable" },
   { name: "complete", type: "function", inputs: [{ name: "jobId", type: "uint256" }, { name: "reasonHash", type: "bytes32" }, { name: "data", type: "bytes" }], outputs: [], stateMutability: "nonpayable" },
   { name: "cancel", type: "function", inputs: [{ name: "jobId", type: "uint256" }, { name: "data", type: "bytes" }], outputs: [], stateMutability: "nonpayable" },
-  { name: "doCheckJob", type: "function", inputs: [{ name: "jobId", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "provider", type: "address" }, { name: "client", type: "address" }, { name: "budget", type: "uint256" }, { name: "status", type: "uint8" }] }], stateMutability: "view" },
   { name: "getJob", type: "function", inputs: [{ name: "jobId", type: "uint256" }], outputs: [{ name: "", type: "tuple", components: [{ name: "provider", type: "address" }, { name: "client", type: "address" }, { name: "budget", type: "uint256" }, { name: "status", type: "uint8" }] }], stateMutability: "view" },
   { name: "approve", type: "function", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ name: "", type: "bool" }], stateMutability: "nonpayable" },
   { name: "allowance", type: "function", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
@@ -193,13 +192,16 @@ export default function Jobs() {
     setLoading(false);
   }
 
-  async function doCheckJob() {
+  // `getJob(uint256)` is the reader the deployed ERC-8183 reference contract actually
+  // answers; `doCheckJob(uint256)` reverts on Arc Testnet, so the panel used to show
+  // "Check failed" for every job that existed.
+  async function doReadJob() {
     if (!publicClient || !checkId) { setCheckResult({ error: "Enter a job ID" }); return; }
     try {
       const result = await publicClient.readContract({
         address: CONFIG.agenticCommerce as `0x${string}`,
         abi: JOBS_ABI,
-        functionName: "doCheckJob",
+        functionName: "getJob",
         args: [BigInt(checkId)],
       }) as { provider?: string; client?: string; budget?: bigint | string; status?: bigint | number };
       const statusNames = ["NONE", "CREATED", "FUNDED", "SUBMITTED", "COMPLETED", "CANCELLED"];
@@ -314,6 +316,10 @@ export default function Jobs() {
         title="ERC-8183 Agentic Commerce"
         subtitle="Trustless job settlement — client locks USDC, provider delivers, evaluator approves, contract pays automatically."
       />
+      <StatusNotice tone="info" title="Separate from the SLA lifecycle">
+        This drives the ERC-8183 reference contract directly. It does not open a PayPerCall call,
+        and no SLA, receipt or slash applies to a job here.
+      </StatusNotice>
       <PanelSource
         label="AgenticCommerce"
         value="reads on demand"
@@ -363,7 +369,7 @@ export default function Jobs() {
                   <Field className="pg-inline-form__field" label="Job ID" htmlFor="jb-check">
                     <Input id="jb-check" placeholder="Job ID" value={checkId} onChange={e => setCheckId(e.target.value)} />
                   </Field>
-                  <Button variant="primary" onClick={doCheckJob}>Check →</Button>
+                  <Button variant="primary" onClick={doReadJob}>Check →</Button>
                 </div>
                 {checkResult && (
                   checkResult.error ? (

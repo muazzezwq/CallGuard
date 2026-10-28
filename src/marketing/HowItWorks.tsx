@@ -18,14 +18,16 @@ export default function HowItWorks() {
       <div className="mk-prose mk-section mk-section--tight">
         <h2>The lifecycle of a call</h2>
         <p>
-          A caller invokes <code>callService(providerId, amount, requestHash, deadline)</code>. The fee
-          is transferred into escrow and a unique <code>bytes32</code> callId is derived from the
-          provider, caller, nonce, timestamp, request hash and chain id — so it can never collide.
+          A caller invokes <code>callService(uint256 providerId, bytes32 requestHash)</code>. The
+          provider&apos;s price is escrowed and the deadline is the call&apos;s start plus the
+          provider&apos;s committed <code>maxResponseTime</code>. The call returns a unique{" "}
+          <code>bytes32</code> callId derived from the provider, caller, nonce, timestamp, request
+          hash and chain id — so it can never collide.
         </p>
         <p>
           The provider performs the work off-chain and, within the SLA window, signs an EIP-712 receipt
           over the response hash and the response timestamp. Submitting that receipt releases the
-          escrow to the provider and increments their reputation.
+          escrow to the provider and updates the provider&apos;s on-chain counters.
         </p>
 
         <h3>If the deadline passes</h3>
@@ -40,7 +42,8 @@ export default function HowItWorks() {
           The receipt domain is <code>ArcSLA / 2</code>, bound to the chain id and the PayPerCall
           contract, and includes <code>respondedAt</code> plus the call&apos;s terms version. It proves
           that a response existed at a specific time. It enforces <strong>timeliness</strong>, not
-          correctness — quality is the job of the separate arbitration path.
+          correctness — a dispute can bind evidence about the call, but a verdict is the
+          arbiter&apos;s, not the contract&apos;s.
         </p>
 
         <h3>Reputation</h3>
