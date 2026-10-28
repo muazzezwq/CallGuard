@@ -45,7 +45,7 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 472 tests, 18 test suites
+forge test -vv       # 606 tests, 28 test suites
 forge build
 forge script script/Deploy.s.sol:Deploy --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -91,12 +91,14 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
-- README says "229 tests"; actual is **472** (18 test suites). AGENTS.md used to say 300/407 — stale.
+- Test counts drift fast. Measured 28 Oct 2026: `forge test` **606 tests / 28 suites**,
+  `bun test tests/` **556 tests / 52 files** (549 pass, 7 skip). `ARCHITECTURE.md` §4 now documents
+  the EIP-712 `ArcSLA/1` scheme correctly; the older `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which
   matches the canonical query URL in `src/lib/config.ts`. (The old `arcsla/1.1.7` script and
   the `callguard-v7/1.0.0` deploy were stale — they indexed the retired v3 registry.)
 
-## Core Contracts — ACTIVE (v7, 13 Oct 2026; admin = owner wallet)
+## Core Contracts — legacy v7 (13 Oct 2026; read-only since the v8 cutover)
 
 | Contract | Address |
 |---|---|
@@ -121,7 +123,7 @@ Dependent: `FACILITATOR_ADDRESS` `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`,
 `0x5a2f5455…`; (7 Oct) `PayPerCall` v3 `0x51bbd776…`, `ServiceRegistry` v3 `0xea00f898…`.
 Also superseded: AgentWallet `0xf73f2Fc5…` (1 Oct).
 
-## SLA P0 v8 — DEPLOYED, NOT ACTIVE (Arc Testnet, 23 Oct 2026)
+## SLA P0 v8 — ACTIVE (Arc Testnet, 23 Oct 2026)
 
 | Contract | Address |
 |---|---|

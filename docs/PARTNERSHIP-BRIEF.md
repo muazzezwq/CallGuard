@@ -31,13 +31,13 @@ Arkreen DePIN Node          TLAY BoAT Machine         CallGuard (this project)
 
 | Component              | Status | URL / Address |
 |------------------------|--------|---------------|
-| Arc Testnet RPC        | ✅ Live | `https://rpc.testnet.arc.io` (block ~64M) |
-| PayPerCall Contract    | ✅ Live | `0x10387347678d9f7106D5625bE0BD6C915158B130` |
-| ServiceRegistry        | ✅ Live | `0xea00f898C0eA249de7226b283e93C13eFa7BbcFF` |
-| Dispute Contract       | ✅ Live | `0xa47162d8e4785d867f05800f35a334fd78575e56` |
-| Subscription Contract  | ✅ Live | `0xef7d56390f86a5cecc05f75e265859a1c79cefe6` |
-| x402 endpoint          | ✅ Live | `https://arcsla.vercel.app/api/service` |
-| Energy data endpoint   | ✅ Live | `https://arcsla.vercel.app/api/energy-data` |
+| Arc Testnet RPC        | ✅ Live | `https://rpc.testnet.arc.io` (block ~69.5M) |
+| PayPerCallV8           | ✅ Live | `0xedce61eF5be31DC22cEfE342692622A26919a7EF` |
+| ServiceRegistryV8      | ✅ Live | `0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3` |
+| DisputeV4              | ✅ Live | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` |
+| Evidence registry v2   | ✅ Live | `0x64872c29A19dF8E471103d0708397BAb96A311FC` |
+| x402 call endpoint     | ✅ Live | `https://arcsla.vercel.app/callService` |
+| Energy data endpoint   | ✅ Live | `https://arcsla.vercel.app/api/energy-data` (402 without payment) |
 | CallGuard app          | ✅ Live | `https://arcsla.vercel.app/` |
 
 ---
@@ -137,7 +137,7 @@ This creates the first **Physical AI × DePIN × SLA** loop on Arc:
 
 - CallGuard: https://github.com/muazzezwq/CallGuard
 - App: https://arcsla.vercel.app/
-- Contract explorer: https://testnet.arcscan.net/address/0x10387347678d9f7106D5625bE0BD6C915158B130
+- Contract explorer: https://explorer.testnet.arc.io/address/0xedce61eF5be31DC22cEfE342692622A26919a7EF (`PayPerCallV8`)
 
 ---
 

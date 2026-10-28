@@ -58,9 +58,11 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 | `ServiceRegistryV8` | [`0x793028B6...`](https://explorer.testnet.arc.io/address/0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3) | Providers, stake, terms versions, call counters |
 | `PayPerCallV8` | [`0xedce61eF...`](https://explorer.testnet.arc.io/address/0xedce61eF5be31DC22cEfE342692622A26919a7EF) | Escrow, receipts, timeout claims |
 | `SLAKeeper` | [`0xBe897043...`](https://explorer.testnet.arc.io/address/0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7) | Permissionless batch timeout claims + bounty withdrawal |
-| `DisputeV3` | [`0xEf9f21E...`](https://explorer.testnet.arc.io/address/0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec) | Disputes with the slash escrowed at open |
+| `DisputeV4` | [`0xECDb019F...`](https://explorer.testnet.arc.io/address/0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B) | Active dispute path: slash escrowed at open, plus an evidence snapshot per call |
+| `SLAEvidenceRegistryV2` | [`0x64872c29...`](https://explorer.testnet.arc.io/address/0x64872c29A19dF8E471103d0708397BAb96A311FC) | Anchored claims about a call: what was proven, what it assumes |
 | `SLAUptime` | [`0x6916997D...`](https://explorer.testnet.arc.io/address/0x6916997DEFe98819176F66867fD5B356C284e89f) | Rolling-uptime verdict against `availabilityTargetBps` |
 | `SLAProvenance` | [`0xa74D1A80...`](https://explorer.testnet.arc.io/address/0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb) | Allowlisted attestor records *who* witnessed a call's payload |
+| `DisputeV3` | [`0xEf9f21E...`](https://explorer.testnet.arc.io/address/0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec) | Superseded by `DisputeV4` on 28 Oct 2026; no slash authority, no funds held |
 | `DisputeV2` | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, open disputes only |
 | `USDC` | [`0x36000000...`](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) | Native gas token, ERC-20 `decimals() = 6` |
 
@@ -76,7 +78,7 @@ retired — the frontend and API read only the v8 pair (`src/lib/config.ts` is t
 | `Subscription` v2 | `0xc090ff2b...` | Pre-paid call bundles + StreamEscrow |
 | `AgentWallet` v2 | `0x6a7a4148...` | Smart wallet with daily spend limits + ERC-8183 Pipeline Hook |
 | `SLAAttestationBridge` | `0x62a63a94...` | Cross-protocol SLA oracle — onchain attestations |
-| `Dispute` (legacy) | `0xa47162d8...` | Superseded by `DisputeV3` for quality disputes |
+| `Dispute` (legacy) | `0xa47162d8...` | Superseded by `DisputeV4` for quality disputes |
 | `AgenticCommerce` | `0x0747EEf0...` | ERC-8183 Jobs — full agentic job lifecycle (third-party) |
 | `RegisterWithNFT` | `0x0aBC4333...` | Mint ERC-8004 NFT + register in one transaction |
 
@@ -146,7 +148,7 @@ Three promises, three mechanisms. Full table with per-row evidence: [`docs/SLA_C
 
 **B — Quality.** A receipt is an EIP-712 signature over `(callId, responseHash, respondedAt, termsVersion)` in the `ArcSLA/1` domain, so replay, wrong signer, wrong terms version and back-dated `respondedAt` all fail. The delivered body is then checked against the committed `responseHash` locally in `Verify Receipt` (`src/lib/responseProof.ts`): a match proves the payload was not swapped after delivery, and a mismatch becomes dispute evidence an arbiter can recompute. `SLAProvenance` adds the next layer: an allowlisted attestor signs `(callId, payloadHash, originHash, observedAt)`, so the caller can see *who* witnessed the body — with the caveat that the contract verifies the witness, not the answer. Only the call's caller can open a dispute, only inside the 7-day `disputeWindow`, only on a `Completed` call, and only once.
 
-**C — Money.** `DisputeV3` slashes and **escrows at `openDispute`** — the old "serve, unstake, dodge the slash" escape is closed. Outcomes: `resolve(true)` → bond back to the caller, escrow held; `resolve(false)` → bond to the treasury; `finalize` after the 48 h appeal window pays the escrow to the winner; and if the arbiter never answers, `reclaimExpiredBond` after 7 days returns the bond to the caller and the escrow to the provider, so silence costs neither party.
+**C — Money.** `DisputeV4` (the active dispute contract; `DisputeV3` is retired and holds no funds) slashes and **escrows at `openDispute`** — the old "serve, unstake, dodge the slash" escape is closed. Outcomes: `resolve(true)` → bond back to the caller, escrow held; `resolve(false)` → bond to the treasury; `finalize` after the 48 h appeal window pays the escrow to the winner; and if the arbiter never answers, `reclaimExpiredBond` after 7 days returns the bond to the caller and the escrow to the provider, so silence costs neither party.
 
 ### Keeper automation
 
@@ -378,7 +380,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 
 ### v2 Protocol Features
 
-- **Quality Disputes (`DisputeV3`)** — slash escrowed at `openDispute` so the provider cannot unstake out of it; 2 USDC caller bond, arbiter decision, one 3 USDC appeal, `finalize` after the 48 h window, `reclaimExpiredBond` if the arbiter stays silent
+- **Quality Disputes (`DisputeV4`)** — slash escrowed at `openDispute` so the provider cannot unstake out of it; 2 USDC caller bond, arbiter decision, one 3 USDC appeal, `finalize` after the 48 h window, `reclaimExpiredBond` if the arbiter stays silent. `openDispute` also snapshots every configured evidence kind for that call (`SLAEvidenceRegistryV2`): a proof can be shown, it can never move money
 - **SLA Futures (SLAFutures)** — providers tokenize capacity as ERC-1155 NFTs; callers buy priority slots
 - **RepFi Lending (ReputationLoan)** — honor rate > 90%: borrow USDC against reputation; pool LPs earn APY
 - **Agent Loop (AgentWallet)** — smart wallet with daily spend limit; ERC-8183 pipeline hook; any AI calls services via MCP + x402 autonomously
@@ -388,7 +390,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 
 - **Transaction History** — full call/receipt/slash/timeout history from the v8 Studio subgraph
 - **Receipt verification** — verify on-chain without a wallet; `?verify=0x...` deep link from Receipts panel; the panel also hashes a pasted payload and compares it with the committed `responseHash`, with one click to hand a mismatch to the dispute form
-- **Disputes panel** (`DisputesV8`) — live `DisputeV3` state: bond, appeal bond, slash preview, disputeable calls with their remaining window, and what each escrow does next
+- **Disputes panel** (`DisputesV8`) — live `DisputeV4` state: bond, appeal bond, slash preview, disputeable calls with their remaining window, what each escrow does next, and the evidence rows captured at open
 - **Availability panel** (`Uptime`) — published target vs observed rate, sample count, cooldown countdown, slash/bounty preview before an `SLAUptime` claim
 - **My Calls / Receipts / Payments** — per-wallet history panels
 - **Claims & Jobs (ERC-8183)** — 5-step lifecycle: Create → Set Budget → Fund → Submit → Complete
@@ -548,7 +550,7 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: **472 tests passed, 0 failed** across 18 suites (`forge test`).
+Expected: **606 tests passed, 0 failed** across 28 suites (`forge test`).
 
 ### Try the demo
 
@@ -618,7 +620,7 @@ CallGuard/
 │   └── components/
 │       ├── Architecture.tsx          # architecture diagram panel
 │       └── CgLanding.tsx             # landing page (disconnected view)
-├── test/                             # 472 Foundry tests, 18 suites
+├── test/                             # 606 Foundry tests, 28 suites
 ├── script/                           # deploy scripts
 ├── api/                              # Vercel serverless functions
 │   ├── marketplace.js                # x402 Bazaar discovery endpoint (NEW)
@@ -666,7 +668,7 @@ CallGuard/
 - x402 HTTP payment protocol — full EIP-3009 authorization flow, gasless for the caller
 - Circle Gateway Nanopayments — gasless micro-payments, server-side settlement
 - ERC-8183 Jobs — full 5-step lifecycle with role badges
-- 223/223 Foundry tests passing (at the time; the suite is 472 today)
+- 223/223 Foundry tests passing (at the time; the suite is 606 today)
 
 **v2 Protocol (Oct 2026)**
 - DisputeQuality — verifiable AI output, community stake-weighted arbitration
@@ -682,7 +684,7 @@ CallGuard/
 - Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute; `api/auto-receipt` relay
 - ERC-8004 ReputationRegistry writes — `+1` on receipt, `-1` on slash, best-effort
 - ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call
-- 472/472 Foundry tests passing (18 suites)
+- 606/606 Foundry tests passing (28 suites)
 
 **Frontend Migration (Oct 2026)**
 - React 18 + Vite + TypeScript — migrated from single-file HTML/ethers.js

@@ -255,7 +255,11 @@ before writing, so a wallet on another chain failed `approve` with
 `Requested resource not available`. It now calls `switchChainAsync`, matching `Verify.tsx` and
 `Requests.tsx`.
 
-## 8. DisputeV3 (quality-slash escrow) — ready to deploy
+## 8. DisputeV3 (quality-slash escrow) — historical; superseded by §14
+
+> `DisputeV3` is retired as of 28 Oct 2026: slash authority revoked, dispute #4 finalized, no funds
+> held. The section below is the deploy record for that contract, kept for the procedure and the
+> evidence it cites. The active dispute contract is `DisputeV4` (§14).
 
 `DisputeV2` computed the quality slash at `resolve` time, so a provider could
 `deactivate`, wait the 1 hour `UNSTAKE_COOLDOWN`, `unstake`, and leave nothing to
