@@ -152,30 +152,36 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
-## Dispute evidence binding (deployed 28 Oct 2026) — DEPLOYED, WIRING INCOMPLETE
+## Dispute evidence binding (deployed + wired 28 Oct 2026) — ACTIVE
 
-`SLAEvidenceRegistryV2` and `DisputeV4` are deployed on Arc Testnet and read back correct: owner,
-arbiter, appeal arbiter, treasury, bonds (`2000000` / `3000000`), windows (`604800` / `172800` /
-`604800`), `disputeSlashBps` `1000`, `legacyDispute()` = V3, `evidence()` = the new registry. They
-are **not active**: no kind is wired, `evidenceKinds()` is empty, and neither contract has slash
-authority yet. The app, the API and the dispute write path still point at V3 until the seven owner
-calls below land and the env vars move.
+`SLAEvidenceRegistryV2` and `DisputeV4` are deployed on Arc Testnet and **wired**: `zk-constraint`
+and `zk-execution` are in `Proof` mode (`modeOf` = `2`) with `bindsResponse` `true`,
+`DisputeV4.evidenceKinds()` holds all four kinds, `ServiceRegistryV8.authorizedSlashers(DisputeV4)`
+is `true` and `authorizedSlashers(DisputeV3)` is `false` (V3 is retired; it keeps dispute #4's
+escrow until `finalize(4)`), and the live zk-execution fixture is anchored on the new registry.
+`witness` and `tee-attestation` stay `NoVerifier` (`modeOf` = `0`) because no attestor exists; their
+rows answer `present=false, reason=NoVerifier`.
 
 | Artifact | Address | Deploy tx |
 |---|---|---|
 | `SLAEvidenceRegistryV2` | `0x64872c29A19dF8E471103d0708397BAb96A311FC` | `0x2df3be0f…26941` (block 69401608, 765735 gas) |
 | `DisputeV4` | `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B` | `0x8ebe9986…2fd8f` (block 69401608, 2752305 gas) |
-| `DisputeV3` (retiring, still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` | — |
+| `DisputeV3` (retired 28 Oct; still holds dispute #4's escrow) | `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec` | — |
 
-Seven owner calls remain, in this order, each printed with exact arguments by
-`forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 --account owner --sender 0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da --rpc-url https://rpc.testnet.arc.io`:
-two `setProofVerifier(..., true)` calls on the new registry, `setSignatureVerifier` for `witness`
-(when an attestor exists), `DisputeV4.setEvidenceKinds([...4 kinds...])` — **required**, since an
-empty allowlist makes `openDispute` snapshot nothing and the feature ships silently doing nothing —
-then `revokeSlasher(DisputeV3)` and `authorizeSlasher(DisputeV4)` on `ServiceRegistryV8`, then the
-re-anchor of the live zk-execution fixture. Env after signing: `SLA_EVIDENCE_V2`,
-`VITE_SLA_EVIDENCE_V2`, `VITE_DISPUTE_V4`. Runbook and per-step read-backs:
-`docs/V8_DEPLOYMENT.md` §14.
+Wiring txs, all signed by the owner wallet: `setProofVerifier(zk-constraint)` `0x19ac4811…f77cd`,
+`setProofVerifier(zk-execution)` `0x5b9addae…ed0fad`, `setEvidenceKinds` `0x44b6701e…7bf1e`,
+`revokeSlasher(V3)` `0xfc9579c2…729f7cd`, `authorizeSlasher(V4)` `0x5b30dded…bc85507`,
+`anchor(zk-execution fixture)` `0x5f57a56e…702a013e` (block 69469682, 450278 gas).
+
+**Anchor packaging gotcha:** `Risc0ExecutionAdapter.verify` takes
+`proof = abi.encode(bytes seal, bytes journal)`, not the raw `seal.bin`. A bare seal decodes as a
+malformed blob, the adapter returns `false` instead of reverting, and the registry answers
+`ProofRejected` — which reads like a bad proof but is a packaging mistake. Build it with
+`cast abi-encode 'f(bytes,bytes)' $SEAL $JOURNAL`; `test/fixtures/zk-execution/journal.bin` is the
+128-byte journal.
+
+Env: `SLA_EVIDENCE_V2` / `VITE_SLA_EVIDENCE_V2` = the new registry, `VITE_DISPUTE_V4` = DisputeV4.
+Runbook and per-step read-backs: `docs/V8_DEPLOYMENT.md` §14.
 
 ## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — additive, no v8 contract changed
 

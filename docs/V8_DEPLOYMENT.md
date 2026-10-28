@@ -769,7 +769,7 @@ Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkv
 `rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
 4.3.0`) because the guest toolchain resolves differently from the host.
 
-## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — ready to deploy
+## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
 
 `DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
 snapshot of every configured evidence kind for that call. `SLAEvidenceRegistryV2` is the v1
@@ -779,8 +779,8 @@ window, or a verdict — `test_balancesAreIdenticalWithAndWithoutEvidence` asser
 provider and treasury deltas are exactly equal with and without a bound claim, for both
 verdicts.
 
-Status: **deployed 28 Oct 2026, wiring incomplete**. The agent did not broadcast anything; the
-owner ran `script/DeployEvidenceV2.s.sol` at their own TTY.
+Status: **deployed and wired 28 Oct 2026**. The agent did not broadcast anything; the owner ran
+`script/DeployEvidenceV2.s.sol` and every wiring call from their own TTY with the `owner` keystore.
 
 | Item | Value |
 |---|---|
@@ -792,13 +792,24 @@ Read back after the deploy, all matching the script's pin: `owner()` = the owner
 appeal arbiter / treasury = the owner wallet, `disputeBond` `2000000`, `appealBond` `3000000`,
 `disputeWindow`/`resolutionWindow` `604800`, `appealWindow` `172800`, `disputeSlashBps` `1000`,
 `legacyDispute()` = `0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec`, `evidence()` = the new registry.
-Still empty: `evidenceKinds()` returns `[]` and no kind has a verifier, so `openDispute` would
-snapshot nothing. `ServiceRegistryV8.authorizedSlashers(DisputeV4)` is `false` and
-`authorizedSlashers(DisputeV3)` is still `true` — step 5 has not run, which is why the ordering gate
-below is live right now.
+Read back after the wiring, all matching the runbook: `modeOf(zk-constraint)` = `2`,
+`modeOf(zk-execution)` = `2`, `bindsResponse(zk-execution)` = `true`, `evidenceKinds()` = the four
+kinds, `authorizedSlashers(DisputeV3)` = `false`, `authorizedSlashers(DisputeV4)` = `true`,
+`isAnchored(callId, zk-execution, claim)` = `true`. `modeOf(witness)` and `modeOf(tee-attestation)`
+are `0` (`NoVerifier`) because no attestor exists, so those rows answer `present=false,
+reason=NoVerifier`; that is the wiring's honest state, not a gap in the snapshot.
 
-Everything after this table is what the owner runs next; the agent does not broadcast an
-owner-wallet transaction.
+| Wiring call | Tx |
+|---|---|
+| `setProofVerifier(zk-constraint, ZkClaimAdapter, true)` | `0x19ac4811…f77cd` (block `69469204`, `93512` gas) |
+| `setProofVerifier(zk-execution, Risc0ExecutionAdapter, true)` | `0x5b9addae…ed0fad` (block `69469218`, `93512` gas) |
+| `DisputeV4.setEvidenceKinds([4 kinds])` | `0x44b6701e…7bf1e` (block `69469236`, `142806` gas) |
+| `ServiceRegistryV8.revokeSlasher(DisputeV3)` | `0xfc9579c2…729f7cd` (block `69469252`, `25604` gas) |
+| `ServiceRegistryV8.authorizeSlasher(DisputeV4)` | `0x5b30dded…bc85507` (block `69469274`, `47502` gas) |
+| `anchor(zk-execution fixture)` | `0x5f57a56e…702a013e` (block `69469682`, `450278` gas) |
+
+Everything after this table is the historical procedure plus the limits; the agent does not
+broadcast an owner-wallet transaction.
 
 ### 14.1 What the script does
 
@@ -846,6 +857,23 @@ VITE_DISPUTE_V4=<disputeV4>       # dispute write path; DisputeV3 stays readable
 
 `/api/evidence` answers `anchored: false, note: "no-registry"` until `SLA_EVIDENCE_V2` is set, so
 an unconfigured deployment says so instead of pretending nothing is anchored.
+
+### 14.3b Anchor proof packaging (the failure that looks like a bad proof)
+
+`Risc0ExecutionAdapter.verify` expects `proof = abi.encode(bytes seal, bytes journal)`. Passing
+`test/fixtures/zk-execution/seal.bin` on its own makes `abi.decode` fail inside the adapter, which
+returns `false` rather than reverting; the registry turns that into `ProofRejected` (`0xc3b0d8cd`),
+so the message reads like a rejected proof when the bytes were simply wrapped wrong. Build the blob:
+
+```bash
+SEAL="0x$(od -An -v -tx1 test/fixtures/zk-execution/seal.bin | tr -d ' \n')"
+JOURNAL="0x$(od -An -v -tx1 test/fixtures/zk-execution/journal.bin | tr -d ' \n')"
+PROOF="$(cast abi-encode 'f(bytes,bytes)' "$SEAL" "$JOURNAL")"
+cast call $ADAPTER 'verify(bytes,bytes32,bytes32,bytes32)(bool)' "$PROOF" "$CALL_ID" "$CLAIM" "$RESPONSE" --rpc-url https://rpc.testnet.arc.io  # true before spending gas
+```
+
+`journal.bin` is the 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`); the
+seal is `260` bytes. `xxd` is not installed on this box, so `od -An -v -tx1` is the portable form.
 
 ### 14.4 Post-deploy smoke test
 
