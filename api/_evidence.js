@@ -28,6 +28,9 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const fixture = require("../src/lib/verification/fixtures/zk-execution.json");
+// A second execution claim, for the call a live dispute is about. Two calls, two
+// envelopes, one kind — which is why the bundle list is a list.
+const executionFixtureSecond = require("../src/lib/verification/fixtures/zk-execution-f68c0c62.json");
 const witnessFixture = require("../src/lib/verification/fixtures/witness.json");
 import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
@@ -101,8 +104,11 @@ function envelopeFromFixture(f) {
  * and a reader asking for `zk-execution` must not be handed the witness statement.
  */
 const BUNDLES = {
-  "zk-execution": { fixture, envelope: () => envelopeFromFixture(fixture) },
-  witness: { fixture: witnessFixture, envelope: () => buildWitnessEnvelope(witnessFixture) },
+  "zk-execution": [
+    { fixture, envelope: () => envelopeFromFixture(fixture) },
+    { fixture: executionFixtureSecond, envelope: () => envelopeFromFixture(executionFixtureSecond) },
+  ],
+  witness: [{ fixture: witnessFixture, envelope: () => buildWitnessEnvelope(witnessFixture) }],
 };
 
 const EMPTY = Object.freeze({
@@ -210,9 +216,9 @@ export async function handle(query, deps = {}) {
 
   // Never return a fixture envelope for a callId/kind the fixture does not
   // describe: a miss stays null instead of an envelope about another claim.
-  const bundle = BUNDLES[kind];
-  const envelope =
-    bundle && callId === String(bundle.fixture.callId).toLowerCase() ? bundle.envelope() : null;
+  const bundles = BUNDLES[kind] ? [].concat(BUNDLES[kind]) : [];
+  const bundle = bundles.find((b) => callId === String(b.fixture.callId).toLowerCase());
+  const envelope = bundle ? bundle.envelope() : null;
   const digest = envelope ? envelopeDigest(envelope) : null;
 
   const statementHashEnvelope = envelope ? statementHash(envelope.claim.statement) : null;

@@ -25,18 +25,24 @@ import { encodeAbiParameters, keccak256, parseAbiParameters, toBytes } from "vie
 import { CG_CLAIM_VERSION, envelopeDigest, type EvidenceEnvelope } from "../src/lib/verification/schema";
 import { decodeJournal } from "../src/lib/verification/risc0";
 
-const FIXTURE_DIR = "test/fixtures/zk-execution";
-const ENVELOPE_PATH = "src/lib/verification/fixtures/zk-execution.json";
+const argv = process.argv.slice(2);
 
-const CALL_ID = "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265";
-const TERMS_HASH = "0xbe8c8cd7ff8e85af17a1ccdba790eb1dae47a008d61feccdd682559d8d099fcf";
-const RESPONSE_HASH = "0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d";
+/** `--name value` or undefined. Every default is the always-committed first proof. */
+function flag(name: string): string | undefined {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+}
+
+const FIXTURE_DIR = flag("--dir") ?? "test/fixtures/zk-execution";
+const ENVELOPE_PATH = flag("--out") ?? "src/lib/verification/fixtures/zk-execution.json";
+
+const CALL_ID = flag("--call") ?? "0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265";
+const TERMS_HASH = flag("--terms") ?? "0xbe8c8cd7ff8e85af17a1ccdba790eb1dae47a008d61feccdd682559d8d099fcf";
+const RESPONSE_HASH = flag("--response") ?? "0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d";
 const HANDLER_ID = keccak256(toBytes("callguard.handler.ping/1"));
 const PROVIDER_ID = 1;
 /** Fixed so the digest can be recomputed; a proof of a past execution does not expire. */
-const ISSUED_AT = 1793020800;
-
-const argv = process.argv.slice(2);
+const ISSUED_AT = Number(flag("--issued-at") ?? 1793020800);
 
 const seal = readFileSync(`${FIXTURE_DIR}/seal.bin`);
 const journal = readFileSync(`${FIXTURE_DIR}/journal.bin`);

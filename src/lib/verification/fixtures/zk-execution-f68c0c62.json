@@ -1,0 +1,19 @@
+{
+  "callId": "0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488",
+  "providerId": 1,
+  "termsHash": "0xbe8c8cd7ff8e85af17a1ccdba790eb1dae47a008d61feccdd682559d8d099fcf",
+  "responseHash": "0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d",
+  "imageId": "0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa",
+  "handlerId": "0xc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7",
+  "journal": "0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488cd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8dc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7",
+  "journalDigest": "0xec2d831d009105b80687b8dda69e7f33eb4125090298fe1ce614c64eb99a1634",
+  "claimHash": "0xd0b03a8444d9d7891db94c9717a76144e4284c3c2877801f940acf9412464bc2",
+  "sealBytes": 260,
+  "statement": "A guest program with the published image id ran on a private request whose keccak256 is the call's committed requestHash and committed this responseHash for this callId",
+  "assumptions": [
+    "the on-chain Groth16 verifier bytecode is the published risc0-ethereum v3.0.1 verifier",
+    "the committed responseHash is the provider's own receipt commitment, not a value the prover chose",
+    "the call's requestHash was read from PayPerCallV8.getCall and is the request the provider committed to"
+  ],
+  "issuedAt": 1793210915
+}

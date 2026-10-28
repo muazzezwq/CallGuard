@@ -20,6 +20,13 @@ contract Risc0ReceiptTest is Test {
     // sha256 of the 128-byte journal committed with the seal.
     bytes32 constant JOURNAL_DIGEST = 0xa86c1ab94f589c55348d7ae47ff9024009fe0d91db100499d0660227c4893694;
 
+    // ── the second committed receipt: call 0xf68c0c62, same guest, same image id ──
+    // A second proof was produced by the same pinned program for the call a live dispute
+    // is about. It has to be checked the same way, so the seal is not trusted because it
+    // is newer: the journal digest is pinned here and the pairing check runs again.
+    bytes32 constant JOURNAL_DIGEST_SECOND = 0xec2d831d009105b80687b8dda69e7f33eb4125090298fe1ce614c64eb99a1634;
+    bytes32 constant SECOND_CALL_ID = 0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488;
+
     function verifier() internal returns (IRiscZeroVerifier) {
         return new RiscZeroGroth16Verifier(CONTROL_ROOT, BN254_CONTROL_ID);
     }
@@ -37,6 +44,41 @@ contract Risc0ReceiptTest is Test {
 
         // Reverts VerificationFailed() when the pairing check fails.
         verifier().verify(seal, IMAGE_ID, JOURNAL_DIGEST);
+    }
+
+    function test_secondCommittedSealVerifiesForItsOwnCall() public {
+        bytes memory seal = vm.readFileBinary("test/fixtures/zk-execution-f68c0c62/seal.bin");
+        bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution-f68c0c62/journal.bin");
+        assertEq(seal.length, 260, "seal is selector + Groth16 proof");
+        assertEq(journal.length, 128, "journal is four 32-byte fields");
+        assertEq(sha256(journal), JOURNAL_DIGEST_SECOND, "journal digest pins the second journal");
+
+        // The same image id as the first proof: the guest did not change, only the
+        // call the journal names. A new image id would need a new adapter.
+        assertEq(
+            vm.trim(vm.readFile("test/fixtures/zk-execution-f68c0c62/image_id.txt")),
+            "0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa",
+            "image id fixture"
+        );
+        verifier().verify(seal, IMAGE_ID, JOURNAL_DIGEST_SECOND);
+    }
+
+    function test_secondJournalDiffersFromTheFirstOnlyInTheCallId() public {
+        bytes memory first = vm.readFileBinary("test/fixtures/zk-execution/journal.bin");
+        bytes memory second = vm.readFileBinary("test/fixtures/zk-execution-f68c0c62/journal.bin");
+        assertEq(first.length, 128, "first journal length");
+        assertEq(second.length, 128, "second journal length");
+
+        // Words 1..3 (request, response, handler) are the same program inputs, so a
+        // reader comparing the two proofs learns that only the binding moved.
+        for (uint256 i = 32; i < 128; ++i) {
+            assertEq(first[i], second[i], "the journals differ outside the call id");
+        }
+        bytes32 callId;
+        assembly {
+            callId := mload(add(second, 32))
+        }
+        assertEq(callId, SECOND_CALL_ID, "second journal names another call");
     }
 
     function test_selectorMatchesTheSeal() public {
