@@ -28,7 +28,20 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bun run check
-      - run: bun test tests/
+      - name: bun test
+        shell: bash
+        # A red run has to name its tests. The raw job log needs repository admin
+        # rights, so a failure that only exists on the runner used to be unreadable
+        # from outside: these annotations arrive on the check run itself.
+        run: |
+          bun test tests/ 2>&1 | tee /tmp/bun-test.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            grep -E "^\(fail\)" /tmp/bun-test.log | head -15 | while IFS= read -r line; do
+              echo "::error title=failing test::${line//\%/%25}"
+            done
+          fi
+          exit "$status"
 
   contracts:
     runs-on: ubuntu-latest
