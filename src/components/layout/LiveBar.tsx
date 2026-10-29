@@ -39,9 +39,13 @@ export default function LiveBar() {
 
   useEffect(() => {
     if (!data?.calls?.length) return;
-    const total = data.calls.length;
-    const completed = data.calls.filter(c => c.status === "COMPLETED").length;
-    const rate = Math.round((completed + 2) / (total + 3) * 100);
+    /* Observed rate over settled calls, the same definition the Call Builder prints
+       per provider. The (completed + 2) / (n + 3) smoothing is the registry score's,
+       and using it here made the strip disagree with the panel below it. */
+    const settled = data.calls.filter(c => c.status === "COMPLETED" || c.status === "SLASHED");
+    if (settled.length === 0) { setHonorRate(null); return; }
+    const completed = settled.filter(c => c.status === "COMPLETED").length;
+    const rate = Math.round((completed / settled.length) * 100);
     setHonorRate(rate);
     // gauge: 157px arc = 100%; offset = 157 - (rate/100)*157
     setGaugeOffset(Math.round(157 - (rate / 100) * 157));
@@ -59,7 +63,7 @@ export default function LiveBar() {
         </div>
         <div className="live-bar-right" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {honorRate !== null && (
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
+            <span title="Completed calls out of settled calls, across all providers" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
               Honor <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{honorRate}%</span>
             </span>
           )}

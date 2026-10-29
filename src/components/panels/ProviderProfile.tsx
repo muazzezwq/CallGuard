@@ -367,7 +367,7 @@ export default function ProviderProfile() {
               </p>
             </SectionCard>
 
-            <SectionCard title="Recent calls" subtitle="Goldsky subgraph · last 10 by start time">
+            <SectionCard title="Recent calls" subtitle="The Graph subgraph · last 10 by start time">
               {indexLoading ? (
                 <div className="pp-calls-skel" aria-busy="true">
                   <Skeleton width="100%" height={14} />

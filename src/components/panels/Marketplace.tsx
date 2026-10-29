@@ -322,7 +322,7 @@ export default function Marketplace() {
     <div className="mp-root">
       <PageHeader
         title="Marketplace"
-        subtitle="Registered SLA providers on Arc Testnet. Prices, stakes and call counts come from the Goldsky subgraph; response windows and slash terms from the registry."
+        subtitle="Registered SLA providers on Arc Testnet. Prices, stakes and call counts come from The Graph Studio subgraph; response windows and slash terms from the registry."
         actions={
           <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={isFetching}>
             {isFetching ? "Refreshing…" : "Refresh"}
@@ -497,7 +497,7 @@ export default function Marketplace() {
         ) : isError ? (
           <ErrorState
             title="The provider index could not be loaded."
-            description="The Marketplace reads the Goldsky subgraph. The list below is unavailable until that request succeeds."
+            description="The Marketplace reads The Graph Studio subgraph. The list below is unavailable until that request succeeds."
             detail={error instanceof Error ? error.message : undefined}
             action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
           />
@@ -539,7 +539,7 @@ export default function Marketplace() {
               : `${filtered.length} of ${providers.length} providers`}
           </span>
           <span className="mp-sep" aria-hidden="true">·</span>
-          <span>Goldsky subgraph + registry</span>
+          <span>The Graph subgraph + registry</span>
           <span className="mp-sep" aria-hidden="true">·</span>
           <span>updated {updatedLabel}</span>
           {isFetching && <><span className="mp-sep" aria-hidden="true">·</span><span>refreshing…</span></>}

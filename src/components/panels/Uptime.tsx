@@ -325,15 +325,19 @@ function ProviderClaimRow({
   const target = preview?.targetBps ?? 0;
   const observed = preview?.availabilityBps;
   const samples = preview?.samples ?? 0n;
-  const belowTarget = target > 0 && observed !== undefined && observed < BigInt(target);
+  /* The contract reports `availabilityBps = 0` while the sample window is empty, so
+     reading it without checking `samples` both prints "observed 0.00%" and colours
+     the row as below target. Neither is a measurement. */
+  const hasSamples = samples > 0n;
+  const belowTarget = target > 0 && hasSamples && observed !== undefined && observed < BigInt(target);
   const noTarget = target === 0;
 
   const tone = noTarget ? "neutral" : belowTarget ? "warn" : "neutral";
   const state = noTarget
     ? "No availability target"
-    : belowTarget
-      ? samples === 0n ? "Below target · no samples yet" : "Below target"
-      : "Meeting target";
+    : !hasSamples
+      ? "No samples yet"
+      : belowTarget ? "Below target" : "Meeting target";
 
   return (
     <LedgerRow
@@ -344,7 +348,7 @@ function ProviderClaimRow({
           {shortAddr(provider.owner)} · stake {formatUsdc(provider.stake)} USDC ·{" "}
           {provider.completedCalls.toString()} completed / {provider.slashedCalls.toString()} timed out ·{" "}
           target {noTarget ? "—" : bpsToPct(target)} · observed{" "}
-          {observed === undefined ? "—" : bpsToPct(observed)} · {samples.toString()} sample(s)
+          {observed === undefined || !hasSamples ? "—" : bpsToPct(observed)} · {samples.toString()} sample(s)
           {preview?.cooldownEndsAt && preview.cooldownEndsAt > 0n ? ` · next claim ${stamp(preview.cooldownEndsAt)}` : ""}
         </>
       )}

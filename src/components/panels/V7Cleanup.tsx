@@ -135,6 +135,11 @@ export default function V7CleanupCard() {
   const pending = Number(pendingCalls ?? 0);
   const cooldownSec = Number(cooldown ?? 3600);
 
+  /* Nothing left to clean up: deactivated with the stake withdrawn. The card used
+     to say the stake "stays locked" above a 0 USDC figure and offer an unstake of
+     nothing, which reads as an unfinished cleanup that is in fact finished. */
+  if (!active && stake === 0n) return null;
+
   const waitMs = deactivatedAtMs === null ? null : deactivatedAtMs + cooldownSec * 1000;
   const remainingMs = waitMs === null ? 0 : Math.max(0, waitMs - Date.now());
   const cooldownDone = deactivatedAtMs !== null && remainingMs === 0;

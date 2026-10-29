@@ -46,7 +46,7 @@ export default function Subscriptions() {
       />
 
       <PanelSource
-        label="Goldsky subgraph"
+        label="The Graph subgraph"
         value={sourceValue}
         hint="active providers · 20 provider cap"
         state={loading && providers.length === 0 ? 'idle' : providers.length > 0 ? 'live' : 'idle'}
@@ -65,7 +65,7 @@ export default function Subscriptions() {
         <Stat
           label="Active providers"
           value={loading && providers.length === 0 ? '—' : providers.length}
-          hint="Indexed by Goldsky"
+          hint="Indexed by The Graph"
         />
         <Stat
           label="Protocol state"
@@ -166,7 +166,7 @@ export default function Subscriptions() {
                 { label: 'State', value: 'Not live' },
                 { label: 'Pre-buy range', value: '1–100 calls', mono: true },
                 { label: 'Pricing', value: 'Provider price × calls' },
-                { label: 'Source', value: 'Goldsky subgraph' },
+                { label: 'Source', value: 'The Graph subgraph' },
                 { label: 'Provider cap', value: '20 active providers', mono: true },
               ]}
             />

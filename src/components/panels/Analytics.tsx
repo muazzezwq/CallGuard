@@ -152,7 +152,7 @@ export default function Analytics() {
     <PanelShell>
       <PageHeader
         title="Network Analytics"
-        subtitle={`Live on-chain metrics via Goldsky subgraph${data ? ` · updated ${data.updatedAt}` : ""}`}
+        subtitle={`Live on-chain metrics via The Graph subgraph${data ? ` · updated ${data.updatedAt}` : ""}`}
         actions={
           <Button
             variant="secondary"
@@ -168,7 +168,7 @@ export default function Analytics() {
       />
 
       <PanelSource
-        label="Goldsky subgraph"
+        label="The Graph subgraph"
         value={data ? `updated ${data.updatedAt}` : "waiting for first response"}
         hint="30 s refresh · 1,000-row caps"
         state={sourceState}
@@ -269,7 +269,7 @@ export default function Analytics() {
             </Ledger>
 
             {loading && !data && (
-              <p className="pg-loading">Loading analytics from Goldsky…</p>
+              <p className="pg-loading">Loading analytics from The Graph…</p>
             )}
           </>
         }
@@ -278,7 +278,7 @@ export default function Analytics() {
             <KeyValue
               label="Source & limits"
               rows={[
-                { label: "Indexer", value: "Goldsky subgraph" },
+                { label: "Indexer", value: "The Graph subgraph" },
                 { label: "Call cap", value: "1,000 latest calls", mono: true },
                 { label: "Provider cap", value: "1,000 providers", mono: true },
                 { label: "Auto-refresh", value: "Every 30 seconds" },

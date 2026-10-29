@@ -1,6 +1,6 @@
 import { CONFIG } from "./config";
 
-// ── Real Goldsky schema types ────────────────────────────────
+// ── Real The Graph schema types ──────────────────────────────
 export interface Provider {
   id: string;           // BigInt as string (provider numeric id)
   owner: string;        // Bytes (address) — confirmed in subgraph 3.0.0

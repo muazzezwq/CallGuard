@@ -209,7 +209,7 @@ export default function Leaderboard() {
       ) : isError ? (
         <ErrorState
           title="The ranking data could not be loaded."
-          description="Rankings read the Goldsky subgraph. Until that request succeeds the list is unavailable, which is not the same as an empty ranking."
+          description="Rankings read The Graph Studio subgraph. Until that request succeeds the list is unavailable, which is not the same as an empty ranking."
           detail={error instanceof Error ? error.message : undefined}
           action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
         />
@@ -326,7 +326,7 @@ export default function Leaderboard() {
         <div className="mp-footer">
           <span>{providers.length} {providers.length === 1 ? "provider" : "providers"} indexed</span>
           <span className="mp-sep" aria-hidden="true">·</span>
-          <span>Goldsky subgraph</span>
+          <span>The Graph subgraph</span>
           <span className="mp-sep" aria-hidden="true">·</span>
           <span>updated {updated}</span>
         </div>
