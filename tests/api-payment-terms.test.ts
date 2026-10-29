@@ -54,6 +54,10 @@ beforeAll(async () => {
   process.env.SERVICE_REGISTRY = LEGACY_SERVICE_REGISTRY;
   process.env.FACILITATOR_ADDRESS = FACILITATOR;
   process.env.USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
+  // The health route below needs an RPC URL to report `status: "ok"`; it used to
+  // inherit one from whichever file ran before it, so the suite's result depended
+  // on file order.
+  process.env.ARC_RPC_URL = "https://rpc.invalid";
 
   marketplace = (await import("../api/marketplace.js")).default as Handler;
   premiumReport = (await import("../api/premium-report.js")).default as Handler;
@@ -64,6 +68,7 @@ afterAll(() => {
   delete process.env.SERVICE_REGISTRY;
   delete process.env.FACILITATOR_ADDRESS;
   delete process.env.USDC_ADDRESS;
+  delete process.env.ARC_RPC_URL;
 });
 
 describe("marketplace payment metadata", () => {
