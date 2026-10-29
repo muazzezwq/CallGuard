@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { ChangeEvent } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, usePublicClient, useChainId, useSwitchChain } from "wagmi";
-import { formatUnits, maxUint256, keccak256, toBytes } from "viem";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId, useSwitchChain } from "wagmi";
+import { formatUnits, keccak256, toBytes } from "viem";
 import {
   CONFIG, USDC_ABI, V8_ENABLED, ACTIVE_REGISTRY_ADDRESS, REGISTRY_ABI, REGISTRY_ABI_V8, arcTestnet,
 } from "../../lib/config";
@@ -13,21 +13,6 @@ import { CheckCircle, AlertTriangle, Info } from "lucide-react";
 import ArcFeeNotice from "../ArcFeeNotice";
 import V7CleanupCard from "./V7Cleanup";
 import StakeTopUpCard from "./StakeTopUp";
-
-const IDENTITY_REGISTRY_ABI = [
-  { name: "register", type: "function", stateMutability: "nonpayable",
-    inputs: [{ name: "agentURI", type: "string" }], outputs: [{ name: "", type: "uint256" }] },
-] as const;
-
-const REGISTRY_V2_ABI = [
-  { name: "registerV2", type: "function", stateMutability: "nonpayable",
-    inputs: [
-      { name: "erc8004TokenId", type: "uint256" }, { name: "signer", type: "address" },
-      { name: "stakeAmount", type: "uint256" }, { name: "pricePerCall", type: "uint256" },
-      { name: "maxResponseTime", type: "uint32" }, { name: "slashBps", type: "uint32" },
-      { name: "maxConcurrentCalls", type: "uint32" }, { name: "endpoint", type: "string" },
-    ], outputs: [{ name: "", type: "uint256" }] },
-] as const;
 
 // ServiceRegistry constants + immutable bounds, read on-chain (never hardcoded).
 // minStake            — ServiceRegistry.sol:100 (immutable, constructor arg)
@@ -142,7 +127,6 @@ const busyKinds: TxState["kind"][] = ["approve-signing","approve-pending","regis
 
 export default function Register() {
   const { address } = useAccount();
-  const identityAddr = CONFIG.identityRegistryAddress as `0x${string}` | undefined;
   const walletChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const [signerAddr, setSignerAddr] = useState("");
@@ -155,16 +139,11 @@ export default function Register() {
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [txState, setTxState] = useState<TxState>({ kind: "idle" });
   const [endpoint, setEndpoint] = useState("https://your-provider-endpoint.com/api");
-  const [v2Step, setV2Step] = useState<"idle"|"minting"|"approving"|"registering"|"done">("idle");
-  const [v2Status, setV2Status] = useState<string | null>(null);
-  const [nftId, setNftId] = useState<string | null>(() => localStorage.getItem("cgAgentNftId"));
-  const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const [registeredHash, setRegisteredHash] = useState<`0x${string}` | undefined>();
   const [unstakeStatus, setUnstakeStatus] = useState<string | null>(null);
   const [unstakeHash, setUnstakeHash] = useState<`0x${string}` | undefined>();
   const inFlightRef = useRef(false);
-  const v2BusyRef = useRef(false);
 
   useEffect(() => { if (address) setSignerAddr(address); }, [address]);
 
@@ -346,10 +325,9 @@ export default function Register() {
   // One submit per parameter set while a write is in flight. Released on
   // rejection, revert or failure (the finally block always clears the guard).
   const busy = busyKinds.includes(txState.kind);
-  const v2Busy = v2Step === "minting" || v2Step === "approving" || v2Step === "registering";
 
   async function runFlow() {
-    if (inFlightRef.current || v2BusyRef.current) return;
+    if (inFlightRef.current) return;
     const p = collectParams();
     if (!p) return;
     if (!publicClient) { setTxState({ kind: "error", message: "No RPC client available. Reconnect your wallet and retry." }); return; }
@@ -412,83 +390,6 @@ export default function Register() {
       inFlightRef.current = false;
     }
   }
-
-  const handleRegisterV2 = async () => {
-    if (v2BusyRef.current || inFlightRef.current) return;
-    if (V8_ENABLED) {
-      setV2Status("v8 uses the standard versioned-terms register flow; ERC-8004 binding is not part of P0.");
-      return;
-    }
-    if (!walletClient || !publicClient || !address) { setV2Status("❌ Connect wallet first"); return; }
-    if (alreadyRegistered) { setV2Status(`❌ Already registered as provider #${String(providerId)}`); return; }
-    /* Parsed once, before any wallet prompt: a second parse after the NFT mint
-       could fail and yank the review UI mid-flow. */
-    const params = collectParams();
-    if (!params) { setV2Status("❌ Fix the highlighted fields before registering."); return; }
-    v2BusyRef.current = true;
-    setV2Step("minting");
-    setV2Status("⏳ Step 1/3 — Minting ERC-8004 identity NFT…");
-    try {
-      const identity = CONFIG.identityRegistryAddress;
-      if (!identity) { setV2Status("❌ Identity registry address not configured (identityRegistryAddress in config)"); setV2Step("idle"); return; }
-      const mintHash = await walletClient.writeContract({ address: identity, abi: IDENTITY_REGISTRY_ABI, functionName: "register", args: [endpoint || "https://callguard.vercel.app/provider"] });
-      setV2Status("⏳ Step 1/3 — Waiting for NFT confirmation…");
-      let tokenId: bigint | null = null;
-      try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: mintHash, timeout: 60_000 });
-        for (const log of (receipt.logs || [])) {
-          // ERC-721 Transfer: topics[1] = from (0x0 for mint), topics[3] = tokenId
-          if (log.topics?.length === 4 && log.topics[1] === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-            tokenId = BigInt(log.topics[3]);
-            break;
-          }
-          // Registered(uint256 indexed agentId, ...) — topics[1] = agentId
-          if (log.topics?.length >= 2 && tokenId === null) {
-            try { const t = log.topics[1]; if (t) tokenId = BigInt(t); } catch { /* topic is not a tokenId */ }
-          }
-        }
-        if (!tokenId) tokenId = BigInt(1); // fallback
-      } catch {
-        setV2Status("❌ Timed out waiting for NFT mint TX. Check explorer."); setV2Step("idle"); return;
-      }
-      if (!tokenId) { setV2Status("❌ Could not read NFT tokenId from logs"); setV2Step("idle"); return; }
-      localStorage.setItem("cgAgentNftId", tokenId.toString());
-      setNftId(tokenId.toString());
-      setV2Step("approving");
-      setV2Status(`✅ NFT minted #${tokenId} — Step 2/3 Approving USDC…`);
-      const approveHash = await walletClient.writeContract({ address: CONFIG.usdcAddress as `0x${string}`, abi: USDC_ABI, functionName: "approve", args: [ACTIVE_REGISTRY_ADDRESS, maxUint256] });
-      setV2Status(`⏳ Step 2/3 — approval submitted (${shortHash(approveHash)}). Waiting for confirmation…`);
-      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 });
-      if (approveReceipt.status !== "success") { setV2Status("❌ The USDC approval reverted on-chain."); setV2Step("idle"); return; }
-      refetchAllowance();
-      setV2Step("registering");
-      setV2Status("✅ USDC approved — Step 3/3 Registering provider with NFT…");
-      const p = params;
-      const regHash = await walletClient.writeContract({
-        address: ACTIVE_REGISTRY_ADDRESS,
-        abi: REGISTRY_V2_ABI,
-        functionName: "registerV2",
-        args: [tokenId, p.signer, p.stakeAmount, p.priceAmount, p.maxResponseTime, p.slashBps, p.maxConcurrentCalls, p.endpoint],
-      });
-      setV2Status(`⏳ Step 3/3 — registerV2 submitted (${shortHash(regHash)}). Waiting for confirmation…`);
-      const regReceipt = await publicClient.waitForTransactionReceipt({ hash: regHash, timeout: 60_000 });
-      if (regReceipt.status === "success") {
-        setV2Status(`✅ Registered with NFT #${tokenId}! TX: ${regHash.slice(0, 14)}…`);
-        setV2Step("done");
-        setRegisteredHash(regHash);
-        refetchProvider();
-        setPhase("done");
-      } else {
-        setV2Status("❌ The registerV2 transaction reverted on-chain.");
-        setV2Step("idle");
-      }
-    } catch (e: unknown) {
-      setV2Status(`❌ ${txFailure(e).kind === "rejected" ? "Rejected in your wallet — nothing was submitted." : failureText(e)}`);
-      setV2Step("idle");
-    } finally {
-      v2BusyRef.current = false;
-    }
-  };
 
   if (phase === "done") return (
     <div style={s.page}>
@@ -675,20 +576,7 @@ export default function Register() {
             )}
           </div>
 
-          {/* ERC-8004 identity — informational on this step; the button is on review */}
-          <div style={s.section}>
-            <div style={s.sectionTitle}>ERC-8004 IDENTITY — RECOMMENDED</div>
-            <div style={{ ...s.info, marginBottom: nftId ? 10 : 0 }}>
-              <Info size={14} style={{ flexShrink:0,marginTop:1 }} />
-              <span>Registers an AgentIdentity NFT first, then calls <code>registerV2()</code> binding your on-chain identity to the provider. Unlocks agent marketplace discovery, ERC-8004 compatible wallet, and higher trust score.</span>
-            </div>
-            {nftId && <div style={{ ...s.success, marginBottom:0 }}><CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} /><span>Identity NFT #{nftId} already minted — will be reused.</span></div>}
-            <p style={s.hint}>Choose this option on the review step.</p>
-          </div>
-
-          {/* Review entry point — the wallet is not asked to sign here. The title is
-              the original section's copy, kept verbatim: the default path is the
-              basic (no-NFT) register; the NFT path is opt-in on the review step. */}
+          {/* Review entry point — the wallet is not asked to sign here. */}
           <div style={s.section}>
             <div style={s.sectionTitle}>REGISTER (basic — no NFT)</div>
             {!address ? (
@@ -746,9 +634,9 @@ export default function Register() {
           )}
 
           <button
-            style={s.btn("primary", busy || v2Busy)}
+            style={s.btn("primary", busy)}
             onClick={runFlow}
-            aria-disabled={busy || v2Busy}
+            aria-disabled={busy}
             aria-describedby="rg-flow-note"
           >
             {txState.kind === "approve-signing" || txState.kind === "approve-pending"
@@ -757,7 +645,7 @@ export default function Register() {
                 ? "Registering…"
                 : needsApproval ? `Approve ${stake} USDC` : "Register as Provider"}
           </button>
-          {(busy || v2Busy) && <p style={s.hint}>The form is locked until this transaction confirms, is rejected, or fails.</p>}
+          {busy && <p style={s.hint}>The form is locked until this transaction confirms, is rejected, or fails.</p>}
 
           <ArcFeeNotice
             address={CONFIG.usdcAddress as `0x${string}`}
@@ -792,42 +680,10 @@ export default function Register() {
             </div>
           )}
 
-          {/* ERC-8004 alternative — also gated behind review */}
-          <div style={{ marginTop:16, borderTop:"1px solid var(--border)", paddingTop:14 }}>
-            <div style={s.sectionTitle}>ERC-8004 IDENTITY — RECOMMENDED</div>
-            {nftId && (
-              <div style={s.success}>
-                <CheckCircle size={14} style={{ flexShrink:0,marginTop:1 }} />
-                <span>Identity NFT #{nftId} already minted — will be reused.</span>
-              </div>
-            )}
-            <button
-              style={s.btn("secondary", v2Busy || busy || alreadyRegistered || !address)}
-              onClick={handleRegisterV2}
-              aria-disabled={v2Busy || busy || alreadyRegistered || !address}
-            >
-              {v2Busy ? `${v2Step.charAt(0).toUpperCase()}${v2Step.slice(1)}…` : "🔐 Register with NFT — Recommended"}
-            </button>
-            {identityAddr && (
-              <ArcFeeNotice
-                address={identityAddr}
-                abi={IDENTITY_REGISTRY_ABI}
-                functionName="register"
-                args={[endpoint || "https://callguard.vercel.app/provider"]}
-                enabled={!!address && !alreadyRegistered && v2Step === "idle" && !busy}
-              />
-            )}
-            {v2Status && (
-              <div style={{ marginTop: 10, fontSize: 12, fontFamily: "var(--font-mono)", padding: "8px 10px", borderRadius: 6, background: v2Status.startsWith("✅") ? "rgba(25,209,134,0.08)" : v2Status.startsWith("❌") ? "rgba(238,69,57,0.08)" : "var(--bg-3)", color: v2Status.startsWith("✅") ? "var(--accent-ink)" : v2Status.startsWith("❌") ? "var(--danger)" : "var(--text-dim)", border: `1px solid ${v2Status.startsWith("✅") ? "rgba(25,209,134,0.2)" : v2Status.startsWith("❌") ? "rgba(238,69,57,0.2)" : "var(--border)"}` }} role="status" aria-live="polite">
-                {v2Status}
-              </div>
-            )}
-          </div>
-
           <button
-            style={{ ...s.btn("secondary", busy || v2Busy), marginTop: 12 }}
-            onClick={() => { if (busy || v2Busy) return; setPhase("edit"); }}
-            aria-disabled={busy || v2Busy}
+            style={{ ...s.btn("secondary", busy), marginTop: 12 }}
+            onClick={() => { if (busy) return; setPhase("edit"); }}
+            aria-disabled={busy}
           >
             ← Back to editing
           </button>
