@@ -908,20 +908,46 @@ Smoke result after the fix: `/api/evidence?callId=0x8cfa1821…fb265&kind=zk-exe
 
 ### 14.4 Post-deploy smoke test
 
-The route's module loading has now been wrong twice, and both times `bun test` was green while
+The route's module loading has now been wrong three times, and every time `bun test` was green while
 production answered `500 FUNCTION_INVOCATION_FAILED` on **every** request, including ones that never
-reach the evidence code — a module-load failure, not a handler error. The first cause was a `.ts`
-specifier; the second was `createRequire(import.meta.url)` around the fixtures. A bundler keeps that
-call, so the function needed JSON files that were not traced into its directory, and the import threw
-before any code ran. The fixtures are now static `import … with { type: "json" }` declarations, which
-the bundler inlines, and `tests/api-bundle-load.test.ts` bundles the entry, copies it alone into an
-empty directory and imports it under `node`, so the suite proves the artifact loads rather than that
-bun does. After the deploy, against production:
+reach the evidence code — a module-load failure, not a handler error.
+
+1. A `.ts` specifier. 2. `createRequire(import.meta.url)` around the fixtures: a bundler keeps that
+call, so the function needed JSON files that were not traced into its directory. The fixtures are now
+static `import … with { type: "json" }` declarations. 3. **An extensionless relative specifier.**
+Vercel does not bundle an ESM function's import graph: it compiles each file and copies it beside its
+neighbours, where node's ESM resolver needs the exact file name. The deployment log said it plainly:
+
+```
+Cannot find module '/var/task/src/lib/verification/schema'
+  imported from /var/task/src/lib/verification/witnessClaim.js
+```
+
+`bun test` and `esbuild` both guess the extension, which is why the first two fixes looked complete.
+Every relative import under `src/lib/verification/` now states `.js`, and
+`tests/api-bundle-load.test.ts` fails on an extensionless specifier in that directory, plus it
+bundles the entry and imports the artifact alone under `node`. To read the deployed error instead of
+guessing:
+
+```bash
+vercel ls --yes                                   # newest Ready production deployment
+vercel logs --deployment <deployment-url>         # the cold-start stack trace
+curl -s -o /dev/null -w "%{http_code}\n" "https://arcsla.vercel.app/api/attestation?providerId=1"
+```
+
+`x-vercel-error: FUNCTION_INVOCATION_FAILED` with a runtime `nodejs24.x` trace naming a module means
+load, not handler. After the deploy, against production:
 
 ```bash
 curl -s "https://arcsla.vercel.app/api/evidence?callId=0x8cfa18217dfaa18bb7edc27102e29b9adf83abe5f100a5d2912ac6fbbedfb265&kind=zk-execution"
 # expect: "anchored": true, "match": true, "source": "fixture", "note": null
+curl -s "https://arcsla.vercel.app/api/evidence?callId=0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488&kind=zk-execution"
+# expect: "anchored": true, "match": true  (the claim dispute 2 binds)
+curl -s "https://arcsla.vercel.app/api/attestation?providerId=1"
+# expect: score 44, completedCalls 6, slashedCalls 9, proof.contract = ServiceRegistryV8
 ```
+
+All four were read back on 29 Oct 2026 after `2104de6` was deployed.
 
 `match: false` with `note: null` means the anchored hashes disagree with the served envelope —
 stop and compare `statementHash` and `assumptionHash` with the values in

@@ -196,16 +196,22 @@ gas `206,535`, `claimHash` `0x3e1dc967…2514` for call `0x8cfa1821…`, verifie
 `getEvidence` returns the row, so `witness` is no longer a wired-but-empty kind.
 
 **`/api/evidence` was answering `500 FUNCTION_INVOCATION_FAILED` for every request**, including
-requests that never touch evidence, and `/api/attestation` with it. The cause is module load, not
-the handler: `api/_evidence.js` pulled its fixtures in with `createRequire(import.meta.url)`, a
-bundler leaves that call in place, and the deployed function directory did not carry the JSON
-files, so the import threw before any code ran. `bun test` passed the whole time because bun
-resolves both the `.js`→`.ts` specifiers and the JSON. The fixtures are now static
-`import … with { type: "json" }` declarations, which the bundler inlines, and
-`tests/api-bundle-load.test.ts` loads the production artifact shape (bundle it, copy one file into
-an empty directory, import it under `node`) so a green suite can no longer prove only that bun
-works. The route serves the fixed build after the next deploy; until then production still answers
-500.
+requests that never touch evidence, and `/api/attestation` with it. The cause was module load, not
+the handler, and it had **two** causes in a row. First: `api/_evidence.js` pulled its fixtures in with
+`createRequire(import.meta.url)`, a bundler leaves that call in place, and the deployed function
+directory did not carry the JSON files. Fixing that was not enough — the deployment log then named
+the second: `Cannot find module '/var/task/src/lib/verification/schema' imported from
+/var/task/src/lib/verification/witnessClaim.js`. Vercel does **not** bundle an ESM function's
+import graph; it compiles each file and copies it beside its neighbours, where node's ESM resolver
+wants the exact file name. `witnessClaim.ts` imported `./schema` and `./claimHashes` without an
+extension, so the function threw while loading. Bun and esbuild both guess the extension, which is
+why every local gate stayed green through two failed deploys. Every relative import under
+`src/lib/verification/` now states `.js`, and `tests/api-bundle-load.test.ts` fails on an
+extensionless specifier there. Verified live after deploy `dpl_…` for `2104de6`:
+`/api/attestation?providerId=1` → `200 {score:44, completedCalls:6, slashedCalls:9,
+proof.contract: ServiceRegistryV8}`, `/api/evidence?callId=0xf68c0c62…&kind=zk-execution` →
+`{anchored:true, match:true, source:"fixture", note:null}`, and the same for `witness` on
+`0x8cfa1821…` (`claimHash 0x3e1dc967…2514`).
 
 **On `SLAEvidenceRegistryV2` only `witness` and `zk-execution` hold a claim for that call.** The
 `zk-constraint` anchor from B3d (`tx 0xe8f6b0c5…3732`, block `69092517`) is on the **v1** registry
