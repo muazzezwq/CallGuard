@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,6 +48,24 @@ describe("the API function loads the way it is deployed", () => {
     expect(stderr, stderr).not.toContain("Cannot find module");
     expect(stdout, stderr).toBe("function");
   }, 60_000);
+
+  test("the shared verification modules import each other with an extension", () => {
+    // The deployment does not bundle these files: it compiles each one and copies it
+    // to /var/task beside its neighbours, where node's ESM resolver wants the exact
+    // file name. An extensionless specifier is `ERR_MODULE_NOT_FOUND` at cold start —
+    // that is how `/api/attestation` kept answering 500 after the fixtures were
+    // inlined, while bun and esbuild both guessed the extension and loaded fine.
+    const dir = "src/lib/verification";
+    const offenders: string[] = [];
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".ts")) continue;
+      const source = readFileSync(join(dir, name), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const match of source.matchAll(/from "(\.\.?\/[^"]+)"/g)) {
+        if (!/\.[a-z]+$/.test(match[1])) offenders.push(`${name}: ${match[1]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 
   test("the fixtures are inlined, not required at runtime", () => {
     const source = readFileSync(EVIDENCE, "utf8");

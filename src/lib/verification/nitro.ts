@@ -1,6 +1,6 @@
 import { verify as verifySignature, X509Certificate } from "node:crypto";
-import { decodeCbor, encodeCbor, type CborValue } from "./cbor";
-import { subjectUserData, type ClaimSubject, type ValidationResult } from "./schema";
+import { decodeCbor, encodeCbor, type CborValue } from "./cbor.js";
+import { subjectUserData, type ClaimSubject, type ValidationResult } from "./schema.js";
 
 /**
  * AWS Nitro Enclave attestation verification, off chain.

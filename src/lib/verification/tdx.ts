@@ -7,7 +7,7 @@ import {
   type TDReport10,
   type TcbStatus,
 } from "@phala/dcap-qvl";
-import { subjectUserData, type ClaimSubject, type ValidationResult } from "./schema";
+import { subjectUserData, type ClaimSubject, type ValidationResult } from "./schema.js";
 
 /**
  * Intel TDX attestation verification, off chain.

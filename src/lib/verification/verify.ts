@@ -5,16 +5,16 @@ import {
   type ClaimKind,
   type ClaimSubject,
   type EvidenceEnvelope,
-} from "./schema";
-import { checkNitroBinding, verifyNitroDoc, type NitroOptions, type NitroResult } from "./nitro";
+} from "./schema.js";
+import { checkNitroBinding, verifyNitroDoc, type NitroOptions, type NitroResult } from "./nitro.js";
 import {
   checkTdxBinding,
   verifyTdxQuote,
   type TdxEvent,
   type TdxOptions,
   type TdxResult,
-} from "./tdx";
-import { checkRisc0Binding, decodeJournal, type Risc0Journal } from "./risc0";
+} from "./tdx.js";
+import { checkRisc0Binding, decodeJournal, type Risc0Journal } from "./risc0.js";
 
 /**
  * Envelope-level verification: pick the verifier the proof names, run it, and

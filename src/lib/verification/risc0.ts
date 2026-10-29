@@ -1,6 +1,6 @@
 import { decodeAbiParameters, parseAbiParameters } from "viem";
 
-import type { ClaimSubject } from "./schema";
+import type { ClaimSubject } from "./schema.js";
 
 /**
  * RISC Zero execution receipts, off chain.

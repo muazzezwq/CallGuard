@@ -1,5 +1,5 @@
-import { envelopeDigest, type EvidenceEnvelope } from "./schema";
-import { assumptionHash, statementHash } from "./claimHashes";
+import { envelopeDigest, type EvidenceEnvelope } from "./schema.js";
+import { assumptionHash, statementHash } from "./claimHashes.js";
 
 /**
  * The `witness` claim as data.
