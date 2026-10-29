@@ -1,0 +1,41 @@
+name: checks
+
+# The three gates every commit is supposed to pass, run on GitHub instead of in
+# someone's terminal. They are cheap: `bun run check` is tsc + eslint, `bun test`
+# needs no network, and `forge test` runs offline (the fork suites skip without an
+# `ARC_RPC_URL`, which is why this job is safe on a stock runner).
+#
+# Deliberately not included: `vercel build`, deploys, and anything that needs a
+# private key. A red run here means a commit is broken, nothing else.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun test tests/
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      # `lib/` holds git submodules (openzeppelin-contracts, forge-std).
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test
