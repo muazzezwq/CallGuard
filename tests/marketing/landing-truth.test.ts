@@ -16,7 +16,7 @@ import { INTEGRATIONS, badgeTone } from "../../src/lib/landing/claims";
  * full-line `//` comments and block comments.
  */
 const code = (path: string) =>
-  read(path)
+  readFileSync(path, "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
 
