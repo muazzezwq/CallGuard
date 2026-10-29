@@ -24,5 +24,20 @@ npm run deploy:studio:v8
 
 The development query URL is
 `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. It is limited to 3,000
-queries per day. The frontend only switches its indexer when `VITE_SUBGRAPH_URL`
-points at that endpoint; until then it keeps the v7 endpoint.
+queries per day. `src/lib/config.ts` defaults `subgraphUrl` to it, and
+`VITE_SUBGRAPH_URL` overrides the default — an unset variable no longer falls back
+to the retired v7 Goldsky endpoint.
+
+## What this indexer cannot answer
+
+- **`Provider.maxConcurrentCalls` is `0` for every provider.** `ProviderRegistered`
+  does not carry the cap, and the contract's initial cap is written at registration
+  without an event. Only `MaxConcurrentCallsUpdated` sets the field, so a provider
+  whose cap was never changed reads `0` here while `getProvider` on chain answers the
+  real value (`10` for provider 1). Panels that need it read the chain.
+- **`nftBound` is always `false` and `nftTokenId` always `null`.** v8's
+  `ServiceRegistryV8` has no ERC-8004 binding and emits no NFT event; the fields are
+  hardcoded in `handleProviderRegistered` so the entity keeps its shape.
+- **`DisputeRecord` only holds DisputeV2 disputes.** The manifest indexes
+  `DisputeV2`; disputes opened on V3 or V4 are not here. Read `DisputeV4` directly
+  for current disputes.

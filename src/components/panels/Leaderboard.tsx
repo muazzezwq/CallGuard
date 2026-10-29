@@ -19,7 +19,7 @@ const REGISTRY = ACTIVE_REGISTRY_ADDRESS;
 const QUERY = `{
   providers(first: 1000) {
     id owner signer stake pricePerCall active
-    completedCalls slashedCalls nftBound nftTokenId
+    completedCalls slashedCalls
   }
 }`;
 
@@ -251,7 +251,6 @@ export default function Leaderboard() {
                     </button>
                     {isSelf && <Badge tone="guard">You</Badge>}
                     {!p.active && <Badge tone="neutral">Inactive</Badge>}
-                    {p.nftBound && <Badge tone="info">NFT</Badge>}
                   </div>
                   <div className="lb-owner">
                     <AddressPill value={p.owner ?? ""} href={p.owner ? CONFIG.explorerAddr(p.owner) : undefined} />

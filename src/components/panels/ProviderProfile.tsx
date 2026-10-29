@@ -29,7 +29,6 @@ type IndexedProvider = {
   stake?: string; pricePerCall?: string; active?: boolean;
   completedCalls?: string | number; slashedCalls?: string | number;
   totalSlashed?: string; totalUnstaked?: string;
-  nftTokenId?: string | null; nftBound?: boolean;
   createdAt?: string; updatedAt?: string;
 };
 type IndexedCall = {
@@ -41,7 +40,7 @@ function indexedQuery(id: string) {
     provider(id: "${id}") {
       id owner signer stake pricePerCall active
       completedCalls slashedCalls totalSlashed totalUnstaked
-      nftTokenId nftBound createdAt updatedAt
+      createdAt updatedAt
     }
     calls(first: 10, where: {providerId: "${id}"}, orderBy: createdAt, orderDirection: desc) {
       id caller amount status createdAt
@@ -272,14 +271,6 @@ export default function ProviderProfile() {
                 <div><dt>Provider</dt><dd className="mono">#{queriedId}</dd></div>
                 <div><dt>Owner</dt><dd><AddressPill value={owner ?? ""} href={CONFIG.explorerAddr(owner ?? "")} /></dd></div>
                 <div><dt>Signer</dt><dd><AddressPill value={signer ?? ""} href={signer ? CONFIG.explorerAddr(signer) : undefined} /></dd></div>
-                <div>
-                  <dt>Registration NFT</dt>
-                  <dd>
-                    {ip?.nftTokenId
-                      ? <>#{ip.nftTokenId} <span className="pp-src">indexed</span></>
-                      : ip ? "No NFT record" : <span className="pp-muted">not available</span>}
-                  </dd>
-                </div>
                 <div><dt>Registered</dt><dd>{timestamp(ip?.createdAt)} <span className="pp-src">indexed</span></dd></div>
               </dl>
             </SectionCard>

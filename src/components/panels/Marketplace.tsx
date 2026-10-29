@@ -142,7 +142,6 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare }: {
         <div className="mp-card-id-row">
           <span className={`mp-dot${p.active ? " mp-dot-on" : ""}`} aria-hidden="true" />
           <Badge tone={p.active ? "guard" : "neutral"} dot>{p.active ? "Active" : "Inactive"}</Badge>
-          {p.nftBound && <Badge tone="info">NFT #{p.nftTokenId ?? "?"}</Badge>}
         </div>
         <span className={`mp-score mp-score--${band.key}`} title="Registry score: ((completed + 2) × 100) / (completed + slashed + 3), the same formula as getReputationScore">
           {score}
@@ -220,7 +219,8 @@ export default function Marketplace() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [activeOnly, setActiveOnly] = useState(false);
-  const [nftOnly, setNftOnly] = useState(false);
+  // No NFT-bound filter: v8 has no ERC-8004 binding, so the subgraph answers
+  // `nftBound: false` for every provider and the chip could only ever empty the list.
   const [maxPrice, setMaxPrice] = useState("");
   const [minStake, setMinStake] = useState("");
   const [minReputation, setMinReputation] = useState<"" | 70 | 80 | 90>("");
@@ -266,12 +266,11 @@ export default function Marketplace() {
   const filters = useMemo(() => ({
     search: deferredSearch,
     activeOnly,
-    nftOnly,
     maxPrice,
     minStake,
     minReputation: minReputation === "" ? null : minReputation,
     maxResponseTime: maxResponse === "" ? null : maxResponse,
-  }), [deferredSearch, activeOnly, nftOnly, maxPrice, minStake, minReputation, maxResponse]);
+  }), [deferredSearch, activeOnly, maxPrice, minStake, minReputation, maxResponse]);
   const narrowed = isFilterActive(filters);
   const filtered = useMemo(
     () => sortProviders(filterProviders(rows, filters), sortKey, sortDir),
@@ -284,7 +283,7 @@ export default function Marketplace() {
     ? "Enter an amount with up to 6 decimals." : null;
 
   const reset = useCallback(() => {
-    setSearch(""); setActiveOnly(false); setNftOnly(false);
+    setSearch(""); setActiveOnly(false);
     setMaxPrice(""); setMinStake(""); setMinReputation(""); setMaxResponse("");
     setSortKey("reputation"); setSortDir("desc");
   }, []);
@@ -352,7 +351,6 @@ export default function Marketplace() {
         <ChipRow>
           <Chip active={!narrowed} onClick={reset}>All</Chip>
           <Chip active={activeOnly} onClick={() => setActiveOnly(v => !v)}>Active only</Chip>
-          <Chip active={nftOnly} onClick={() => setNftOnly(v => !v)}>NFT-bound</Chip>
         </ChipRow>
 
         <div className="mp-ctrl-right">
