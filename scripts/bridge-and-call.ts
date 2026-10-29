@@ -20,8 +20,14 @@ import { argv } from "process";
 
 dotenv.config();
 
-// MEDIUM-08: use deployed addresses from AGENTS.md
-const PAY_PER_CALL_ADDRESS = (process.env.VITE_PAY_PER_CALL ?? "0x5e6b2621a25497d9a1d16a342f592332f11abed5") as `0x${string}`;
+// Server-side scripts read the unprefixed variable first; `VITE_*` is the
+// browser bundle's copy. There is no default: a fallback address here pointed at
+// `0x5e6b2621…`, a PayPerCall that no longer exists in the deployment table, so
+// a forgotten env var silently called a retired contract instead of failing.
+const PAY_PER_CALL_ADDRESS = (process.env.PAY_PER_CALL_V8 ?? process.env.VITE_PAY_PER_CALL) as `0x${string}` | undefined;
+if (!PAY_PER_CALL_ADDRESS) {
+  throw new Error("Set PAY_PER_CALL_V8 (or VITE_PAY_PER_CALL) to the active PayPerCall before running this script.");
+}
 const USDC_DECIMALS = 6;
 // CCTP v2 MessageTransmitter on Arc Testnet
 export const ARC_MESSAGE_TRANSMITTER = "0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275";

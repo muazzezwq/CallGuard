@@ -69,9 +69,10 @@ export const CONFIG = {
   facilitatorUrl: typeof window !== "undefined" ? window.location.origin : "https://callguard.vercel.app",
 };
 
-// ─── v8 availability core (optional until the deployment is wired) ──────────
-// Keep v7 as the default so an env-less build still reads the live legacy pair.
-// Set both VITE_SERVICE_REGISTRY_V8 and VITE_PAY_PER_CALL_V8 to enable v8.
+// ─── v8 availability core ───────────────────────────────────────────────────
+// v7 is retired and read-only (its provider 1 was unstaked on 24 Oct), so an
+// env-less build reads zeroes from it rather than live data. Both variables are
+// set in the Vercel project; a local build without them has no active pair.
 const V8_REGISTRY_ENV = (import.meta.env.VITE_SERVICE_REGISTRY_V8 as string | undefined) ?? "";
 const V8_PAY_PER_CALL_ENV = (import.meta.env.VITE_PAY_PER_CALL_V8 as string | undefined) ?? "";
 
