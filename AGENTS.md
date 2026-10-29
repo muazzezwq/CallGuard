@@ -34,6 +34,11 @@ one phase into another. Process details: `design/PHASE_PROCESS.md`; UI rules: `d
 
 ## Commands
 
+CI runs the same three gates on every push to `main` and every pull request
+(`.github/workflows/checks.yml`): `bun run check`, `bun test tests/`, `forge test`.
+A red run posts the failing test names as annotations, because the job log needs
+repository admin rights — read the annotation before rerunning.
+
 Frontend (from repo root; uses bun on Vercel):
 ```bash
 bun run dev          # vite dev server, port 5173
