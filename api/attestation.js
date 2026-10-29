@@ -7,7 +7,7 @@
  * POST /api/attestation  body:{callId}|{providerId,type}  → issue on-chain attestation
  */
 
-import { V7, ACTIVE, V8_ACTIVE } from "./_contracts.js";
+import { activeContracts } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
 import { sendEvidence } from "./_evidence.js";
@@ -87,13 +87,43 @@ async function peekScoreDirect(rpcUrl, registry, providerId) {
     ethCall(rpcUrl, registry, "0x70e4a3a5" + arg), // slashedCalls(uint256)
   ]);
 
+  return scorePayload(registry, providerId, {
+    score: decodeUint(scoreHex),
+    completed: decodeUint(completedHex),
+    slashed: decodeUint(slashedHex),
+  });
+}
+
+// ServiceRegistryV8 has no `getReputationScore`: the counters live in the
+// `ProviderView` tuple, so one `getProvider(uint256)` read replaces the three v7
+// calls. Public provider 1 on v8 has completed 6 / slashed 9; the v7 registry
+// answers 0/0 with score 66 for the same id because that deployment was retired.
+const GET_PROVIDER = "0x5c42d079"; // getProvider(uint256)
+
+async function peekScoreV8(rpcUrl, registry, providerId) {
+  const hex = await ethCall(rpcUrl, registry, GET_PROVIDER + encodeUint256(providerId));
+  const words = hex.replace(/^0x/, "").match(/.{64}/g) ?? [];
+  if (words.length < 11) throw new Error("getProvider answered with a short tuple");
+
+  const completed = Number(BigInt(`0x${words[7]}`));
+  const slashed = Number(BigInt(`0x${words[8]}`));
+
+  // The same formula the v7 contract applies on chain: (completed + 2) * 100 /
+  // (completed + slashed + 3), integer division. The site labels it a Bayesian
+  // reputation score, not a success rate.
+  const score = Math.floor(((completed + 2) * 100) / (completed + slashed + 3));
+
+  return scorePayload(registry, providerId, { score, completed, slashed });
+}
+
+function scorePayload(registry, providerId, { score, completed, slashed }) {
   return {
     ok: true,
     source: "direct-registry",
     providerId: Number(providerId),
-    score: decodeUint(scoreHex),
-    completedCalls: decodeUint(completedHex),
-    slashedCalls: decodeUint(slashedHex),
+    score,
+    completedCalls: completed,
+    slashedCalls: slashed,
     attestedAt: Date.now(),
     proof: {
       contract: registry,
@@ -131,11 +161,14 @@ export default async function handler(req, res) {
 
   // LOW-02: prefer unprefixed env vars server-side
   const BRIDGE   = process.env.SLA_ATTESTATION_BRIDGE || process.env.VITE_SLA_ATTESTATION_BRIDGE;
-  const REGISTRY = V7.SERVICE_REGISTRY;
+  // Resolve the pair per request: the module-level ACTIVE is frozen when the
+  // module is evaluated, and a warm instance outlives an env change.
+  const chain    = activeContracts();
+  const REGISTRY = chain.registry;
   // Call verdicts must read the PayPerCall that actually holds the call. The v7
   // contract still answers, but every call after the migration lives on v8, so
   // reading v7 returned providerId 0 / UNKNOWN for a valid Completed call.
-  const PPC      = ACTIVE.PAY_PER_CALL;
+  const PPC      = chain.payPerCall;
 
   try {
     if (req.method === "GET") {
@@ -150,7 +183,9 @@ export default async function handler(req, res) {
         if (parsedProviderId === null) {
           return res.status(400).json({ ok: false, error: "invalid providerId" });
         }
-        const result = await peekScoreDirect(rpcUrl, REGISTRY, parsedProviderId);
+        const result = chain.isV8
+          ? await peekScoreV8(rpcUrl, REGISTRY, parsedProviderId)
+          : await peekScoreDirect(rpcUrl, REGISTRY, parsedProviderId);
         return res.status(200).json(result);
       }
 
