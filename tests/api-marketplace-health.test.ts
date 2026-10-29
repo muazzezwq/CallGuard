@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 // The health route must list the providers the registry actually holds. It used to
 // read them from `/api/energy-data`, which is an x402-gated route: the internal fetch
@@ -6,15 +6,25 @@ import { afterEach, describe, expect, test } from "bun:test";
 const REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
 const PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
 
-process.env.SERVICE_REGISTRY_V8 = REGISTRY_V8;
-process.env.PAY_PER_CALL_V8 = PAY_PER_CALL_V8;
-process.env.ARC_RPC_URL = "https://rpc.invalid";
-delete process.env.RPC_PROXY_BASE_URL;
+// Set per test, not at module scope: a module-scope assignment stayed in
+// `process.env` for every later file in the same test process, so a clean checkout
+// failed on tests that expect the retired v7 pair while a warm one passed.
+function configureEnv() {
+  process.env.SERVICE_REGISTRY_V8 = REGISTRY_V8;
+  process.env.PAY_PER_CALL_V8 = PAY_PER_CALL_V8;
+  process.env.ARC_RPC_URL = "https://rpc.invalid";
+  delete process.env.RPC_PROXY_BASE_URL;
+}
 
 const originalFetch = globalThis.fetch;
 
+beforeEach(configureEnv);
+
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  delete process.env.SERVICE_REGISTRY_V8;
+  delete process.env.PAY_PER_CALL_V8;
+  delete process.env.ARC_RPC_URL;
 });
 
 function word(value: number | bigint | string): string {
