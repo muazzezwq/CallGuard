@@ -11,6 +11,12 @@ export const arcTestnet = defineChain({
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
   rpcUrls: { default: { http: ["https://rpc.testnet.arc.io"] } },
   blockExplorers: { default: { name: "ArcScan", url: "https://explorer.testnet.arc.io" } },
+  /* Declared so the transport can fold several `eth_call` reads into one
+     `aggregate3` call. The public RPC allows about twenty calls per burst and
+     answers the rest with `-32005 rate limit exceeded`; a panel mount fires more
+     than that on its own. Verified against the deployed contract: 3180 bytes of
+     code at this address and `aggregate3` answers for two registry reads. */
+  contracts: { multicall3: { address: "0x522fAf9A91c41c443c66765030741e4AaCe147D0" } },
 });
 
 export const CONFIG = {
@@ -613,10 +619,19 @@ export const wagmiConfig = createConfig(
     transports: {
       [arcTestnet.id]: http("https://rpc.testnet.arc.io", {
         timeout: 10_000,
-        retryCount: 2,
+        /* The public RPC allows about twenty calls per burst and answers the rest
+           with `-32005 rate limit exceeded`; viem retries that code, so a panel
+           mount that overshoots recovers instead of rendering an error state. */
+        retryCount: 4,
         retryDelay: 1_000,
       }),
     },
+    /* Polling interval for every hook without an explicit refetchInterval. The
+       default is 4 s, and each mounted `useWatchContractEvent` turns into its own
+       `eth_getLogs` poll on top of every `useReadContract` refetch; the public RPC
+       allows about twenty calls per burst, so the busiest panels tripped it. 10 s
+       keeps the reads fresh enough (panels that need faster set it themselves). */
+    pollingInterval: 10_000,
     walletConnectProjectId: "2f05ae7f1116030fde2d36508f472bfb",
     appName: "CallGuard",
     appDescription: "On-chain SLA marketplace · Arc Testnet",
