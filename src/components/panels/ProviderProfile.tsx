@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useReadContracts } from "wagmi";
 import {
   ACTIVE_REGISTRY_ADDRESS, CONFIG, REGISTRY_ABI, REGISTRY_ABI_V8, V8_ENABLED,
 } from "../../lib/config";
@@ -85,13 +85,27 @@ export default function ProviderProfile() {
   /* The provider record is one read. The counters it needs live inside it on
      v8; v7 exposed them as separate getters, so those two are asked for only
      when v7 is the wired stack. */
-  const { data: recordRes, isLoading, isError, error, refetch, isFetching } = useReadContract({
-    address: REGISTRY,
-    abi: REGISTRY_ABI_ACTIVE,
-    functionName: "getProvider",
-    args: [BigInt(validId ? queriedId : "0")],
+  /* The record and its endpoint answer for the same id on the same registry, so
+     one multicall returns both and the public RPC sees one request. */
+  const recordRead = useReadContracts({
+    contracts: [
+      {
+        address: REGISTRY,
+        abi: REGISTRY_ABI_ACTIVE,
+        functionName: "getProvider" as const,
+        args: [BigInt(validId ? queriedId : "0")] as const,
+      },
+      {
+        address: REGISTRY,
+        abi: REGISTRY_ABI,
+        functionName: "getEndpoint" as const,
+        args: [BigInt(validId ? queriedId : "0")] as const,
+      },
+    ],
     query: { enabled: validId },
   });
+  const { isLoading, isError, error, refetch, isFetching } = recordRead;
+  const recordRes = recordRead.data?.[0]?.result;
 
   const r = recordRes as Record<string, unknown> | undefined;
   const owner = r?.owner as string | undefined;
@@ -120,17 +134,13 @@ export default function ProviderProfile() {
 
   const registered = Boolean(owner) && owner !== ZERO_ADDR;
 
-  /* getProvider does not carry the endpoint, so it is a second read against the
-     same registry. It waits for a valid id and a registered record, so an unset
-     id never triggers a call. */
-  const endpointQuery = useReadContract({
-    address: REGISTRY,
-    abi: REGISTRY_ABI,
-    functionName: "getEndpoint",
-    args: [BigInt(validId ? queriedId : "0")],
-    query: { enabled: validId && registered, staleTime: 15_000 },
+  /* getProvider does not carry the endpoint; it rides along in the same
+     multicall rather than opening a second request. */
+  const endpoint = endpointState({
+    isLoading,
+    isError: isError || recordRead.data?.[1]?.status === "failure",
+    data: recordRead.data?.[1]?.result,
   });
-  const endpoint = endpointState(endpointQuery);
   /* Only a usable endpoint becomes a link; a placeholder or free text stays
      inert text, so nothing here can ping an endpoint by accident. */
   const endpointLink = endpointHref(endpoint);
@@ -193,7 +203,7 @@ export default function ProviderProfile() {
         eyebrow="Discover"
         title="Provider details"
         subtitle="One provider as the registry stores it, next to the history the subgraph indexes. Every value states its source."
-        actions={<Button variant="secondary" size="sm" onClick={() => { refetch(); refetchIndex(); endpointQuery.refetch(); }} disabled={isFetching || indexLoading}>Refresh</Button>}
+        actions={<Button variant="secondary" size="sm" onClick={() => { refetch(); refetchIndex(); }} disabled={isFetching || indexLoading}>Refresh</Button>}
       />
 
       <form className="pp-lookup" onSubmit={submit} noValidate>
@@ -337,7 +347,7 @@ export default function ProviderProfile() {
                     ) : endpoint.kind === "error" ? (
                       <span className="pp-muted">
                         Endpoint read failed.{" "}
-                        <button type="button" className="pp-linkbtn" onClick={() => endpointQuery.refetch()}>Retry</button>
+                        <button type="button" className="pp-linkbtn" onClick={() => refetch()}>Retry</button>
                       </span>
                     ) : endpoint.kind === "empty" ? (
                       <span className="pp-muted">No endpoint recorded at registration.</span>

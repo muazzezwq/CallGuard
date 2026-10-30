@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useReadContracts } from "wagmi";
 import {
   ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS, CONFIG, V8_ENABLED, REGISTRY_ABI, REGISTRY_ABI_V8,
 } from "../../lib/config";
@@ -161,13 +161,27 @@ export default function Providers() {
   const idNum = /^\d+$/.test(trimmed) ? Number(trimmed) : null;
   const idValid = idNum !== null && Number.isSafeInteger(idNum) && idNum >= 1;
 
-  const { data, isLoading, isError, error, refetch, isFetching, isFetched, dataUpdatedAt } = useReadContract({
-    address: REGISTRY,
-    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
-    functionName: "getProvider",
-    args: [BigInt(idValid ? idNum : 1)],
+  /* getProvider and getEndpoint answer for the same registry id, so one
+     multicall returns both and the public RPC sees one request, not two. */
+  const recordRead = useReadContracts({
+    contracts: [
+      {
+        address: REGISTRY,
+        abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
+        functionName: "getProvider" as const,
+        args: [BigInt(idValid ? idNum : 1)] as const,
+      },
+      {
+        address: REGISTRY,
+        abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
+        functionName: "getEndpoint" as const,
+        args: [BigInt(idValid ? idNum : 1)] as const,
+      },
+    ],
     query: { enabled: idValid, staleTime: 15_000 },
   });
+  const { isLoading, isError, error, refetch, isFetching, isFetched, dataUpdatedAt } = recordRead;
+  const data = recordRead.data?.[0]?.result;
 
   const baseRecord = useMemo(() => {
     const t = data as Record<string | number, unknown> | undefined;
@@ -207,17 +221,13 @@ export default function Providers() {
     };
   }, [baseRecord, terms]);
 
-  /* getProvider does not include the endpoint, so it is a separate read. It is
-     only requested once a record exists, to avoid reading unset ids. */
-  const endpointQuery = useReadContract({
-    address: REGISTRY,
-    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
-    functionName: "getEndpoint",
-    args: [BigInt(idValid ? idNum : 1)],
-    query: { enabled: idValid && record !== null, staleTime: 15_000 },
+  /* The endpoint came back in the same multicall as the record, so it has no
+     query of its own: its loading and error states follow that one read. */
+  const endpoint = endpointState({
+    isLoading,
+    isError: isError || recordRead.data?.[1]?.status === "failure",
+    data: recordRead.data?.[1]?.result,
   });
-
-  const endpoint = endpointState(endpointQuery);
   /* The link is the gate, not a formatting detail: only a usable endpoint
      produces one, so a placeholder can never be clicked or pinged. */
   const endpointLink = endpointHref(endpoint);
@@ -279,7 +289,7 @@ export default function Providers() {
               onChange={e => setRawId(e.target.value)}
             />
           </Field>
-          <Button size="sm" onClick={() => { refetch(); endpointQuery.refetch(); }} disabled={!idValid || isFetching}>
+          <Button size="sm" onClick={() => { refetch(); }} disabled={!idValid || isFetching}>
             {isFetching ? "Reading…" : "Read record"}
           </Button>
           {record && idValid && (
@@ -404,7 +414,7 @@ export default function Providers() {
                     ) : endpoint.kind === "error" ? (
                       <span className="pv-hint">
                         Endpoint read failed.{" "}
-                        <button type="button" className="pv-inline-link" onClick={() => endpointQuery.refetch()}>
+                        <button type="button" className="pv-inline-link" onClick={() => refetch()}>
                           Retry
                         </button>
                       </span>

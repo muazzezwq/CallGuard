@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId,
+  useAccount, useReadContract, useReadContracts, useWriteContract, useSwitchChain, useChainId,
   useWalletClient, usePublicClient, useBalance,
 } from "wagmi";
 import { keccak256, stringToBytes, maxUint256, pad, decodeEventLog, createPublicClient, http } from "viem";
@@ -178,14 +178,46 @@ export default function CallBuilder() {
     ? "A call ID is 0x followed by 64 hex characters."
     : null;
 
-  const { data: providerData, isError: providerError, isFetched: providerFetched, isLoading: providerLoading } = useReadContract({
-    address: ACTIVE_REGISTRY_ADDRESS,
-    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
-    functionName: "getProvider",
-    args: [BigInt(providerIdNum || 1)],
-    chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0, refetchInterval: 30_000 },
+  /* Every per-call read this panel needs — the provider record, its endpoint,
+     the caller's allowance and the caller's open calls — answers from the same
+     block, so they share one multicall instead of four requests on four timers. */
+  const callReads = useReadContracts({
+    contracts: [
+      {
+        address: ACTIVE_REGISTRY_ADDRESS,
+        abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
+        functionName: "getProvider" as const,
+        chainId: arcTestnet.id,
+        args: [BigInt(providerIdNum || 1)] as const,
+      },
+      {
+        address: ACTIVE_REGISTRY_ADDRESS,
+        abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
+        functionName: "getEndpoint" as const,
+        chainId: arcTestnet.id,
+        args: [BigInt(providerIdNum || 1)] as const,
+      },
+      {
+        address: CONFIG.usdcAddress as `0x${string}`,
+        abi: USDC_ALLOWANCE_ABI,
+        functionName: "allowance" as const,
+        chainId: arcTestnet.id,
+        args: [address ?? ZERO_ADDRESS, ACTIVE_PPC_ADDRESS] as const,
+      },
+      {
+        address: ACTIVE_PPC_ADDRESS,
+        abi: OPEN_CALLS_ABI,
+        functionName: "openCallsPerCaller" as const,
+        chainId: arcTestnet.id,
+        args: [BigInt(providerIdNum || 1), address ?? ZERO_ADDRESS] as const,
+      },
+    ],
+    query: { enabled: providerIdNum > 0 || !!address, refetchInterval: 30_000 },
   });
+  const providerData = callReads.data?.[0]?.result;
+  const providerError = callReads.isError || callReads.data?.[0]?.status === "failure";
+  const providerFetched = callReads.isFetched;
+  const providerLoading = callReads.isLoading;
 
   // v7 getProvider carries maxResponseTime/slashBps inline. v8 moved them into
   // the versioned terms record, so read the terms version first and then the
@@ -250,16 +282,13 @@ export default function CallBuilder() {
     ? Number(raw?.slashedCalls ?? raw?.[8] ?? 0)
     : slashedCallsRaw ? Number(slashedCallsRaw) : 0;
 
-  /* Endpoint support is part of the registry record; show it only when the record loaded. */
-  const { data: endpointRaw, isLoading: endpointLoading, isError: endpointError } = useReadContract({
-    address: ACTIVE_REGISTRY_ADDRESS,
-    abi: V8_ENABLED ? REGISTRY_ABI_V8 : REGISTRY_ABI,
-    functionName: "getEndpoint",
-    args: [BigInt(providerIdNum || 1)],
-    chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!providerData },
+  /* Endpoint support is part of the registry record and rides in the same
+     multicall, so it cannot disagree with the record about which id it read. */
+  const endpoint = endpointState({
+    isLoading: providerData ? providerLoading : false,
+    isError: callReads.isError || callReads.data?.[1]?.status === "failure",
+    data: callReads.data?.[1]?.result,
   });
-  const endpoint = endpointState({ isLoading: providerData ? endpointLoading : false, isError: endpointError, data: endpointRaw });
   const endpointLink = endpointHref(endpoint);
 
   /* Caller-side balances and limits, all read from the live chain. */
@@ -271,22 +300,12 @@ export default function CallBuilder() {
     address, chainId: arcTestnet.id,
     query: { enabled: !!address, refetchInterval: 30_000 },
   });
-  const { data: allowanceRaw, refetch: refetchAllowance } = useReadContract({
-    address: CONFIG.usdcAddress as `0x${string}`,
-    abi: USDC_ALLOWANCE_ABI,
-    functionName: "allowance",
-    args: [address ?? ZERO_ADDRESS, ACTIVE_PPC_ADDRESS],
-    chainId: arcTestnet.id,
-    query: { enabled: !!address, refetchInterval: 20_000 },
-  });
-  const { data: openCallsRaw, refetch: refetchOpenCalls } = useReadContract({
-    address: ACTIVE_PPC_ADDRESS,
-    abi: OPEN_CALLS_ABI,
-    functionName: "openCallsPerCaller",
-    args: [BigInt(providerIdNum || 1), address ?? ZERO_ADDRESS],
-    chainId: arcTestnet.id,
-    query: { enabled: providerIdNum > 0 && !!address },
-  });
+  /* Allowance and open calls came back in the same multicall; both are
+     re-read by one refetch, which is what the post-transaction paths call. */
+  const allowanceRaw = callReads.data?.[2]?.result;
+  const refetchAllowance = callReads.refetch;
+  const openCallsRaw = callReads.data?.[3]?.result;
+  const refetchOpenCalls = callReads.refetch;
 
   // ── Gas estimator (debounced; an estimate, never a charge) ──────
   const [gasEstimate, setGasEstimate] = useState<bigint | null>(null);
