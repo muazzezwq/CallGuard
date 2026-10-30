@@ -90,76 +90,55 @@ export default function Notifications() {
     setStreamError(String((err as Error)?.message ?? err).slice(0, 220));
   }, []);
 
+  /* One watcher for the three events, same reason as the Overview panel: every
+     `useWatchContractEvent` call opens its own filter and polls it separately. */
   useWatchContractEvent({
     address: ACTIVE_PPC_ADDRESS,
     abi: PPC_ABI_V8_ACTIVE,
-    eventName: "CallStarted",
     chainId: arcTestnet.id,
     onError,
     onLogs: logs => {
       setStreamError(null);
-      logs.forEach(l => {
-        const a = l.args;
-        push({
-          type: "call",
-          msg: `Call started → Provider #${String(a.providerId ?? "unknown")}`,
-          sub: `${usdcAmount(a.amount) ?? "amount unavailable"} USDC escrowed · ${short(a.callId)} · caller ${short(a.caller)}`,
-          id: notificationKey(l.transactionHash, l.logIndex, "call"),
-          txHash: l.transactionHash ?? undefined,
-          callId: a.callId ? String(a.callId) : undefined,
-          caller: a.caller ? String(a.caller) : undefined,
-        });
-      });
-    },
-  });
-
-  /* `ReceiptSubmitted` carries (callId, responseHash, respondedAt); the log is
-     mined by definition, so the event is confirmed — it says nothing about the
-     provider's answer beyond the signature the contract accepted. */
-  useWatchContractEvent({
-    address: ACTIVE_PPC_ADDRESS,
-    abi: PPC_ABI_V8_ACTIVE,
-    eventName: "ReceiptSubmitted",
-    chainId: arcTestnet.id,
-    onError,
-    onLogs: logs => {
-      setStreamError(null);
-      logs.forEach(l => {
-        const a = l.args;
-        push({
-          type: "receipt",
-          msg: "Receipt submitted — the contract accepted the provider signature",
-          sub: `Call ${short(a.callId)}`,
-          id: notificationKey(l.transactionHash, l.logIndex, "receipt"),
-          txHash: l.transactionHash ?? undefined,
-          callId: a.callId ? String(a.callId) : undefined,
-        });
-      });
-    },
-  });
-
-  /* `CallSlashed` is emitted by `claimTimeout` only: the SLA window passed, the
-     caller was refunded and the provider's stake was cut. Both amounts come
-     from the event. */
-  useWatchContractEvent({
-    address: ACTIVE_PPC_ADDRESS,
-    abi: PPC_ABI_V8_ACTIVE,
-    eventName: "CallSlashed",
-    chainId: arcTestnet.id,
-    onError,
-    onLogs: logs => {
-      setStreamError(null);
-      logs.forEach(l => {
-        const a = l.args;
-        push({
-          type: "slash",
-          msg: `Timeout claimed — ${usdcAmount(a.slashed) ?? "slash amount unavailable"} USDC slashed`,
-          sub: `Call ${short(a.callId)} · refund ${usdcAmount(a.refunded) ?? "unavailable"} USDC`,
-          id: notificationKey(l.transactionHash, l.logIndex, "slash"),
-          txHash: l.transactionHash ?? undefined,
-          callId: a.callId ? String(a.callId) : undefined,
-        });
-      });
+      for (const l of logs) {
+        const at = (suffix: string) => notificationKey(l.transactionHash, l.logIndex, suffix);
+        /* `ReceiptSubmitted` carries (callId, responseHash, respondedAt); the log is
+           mined by definition, so the event is confirmed — it says nothing about the
+           provider's answer beyond the signature the contract accepted.
+           `CallSlashed` is emitted by `claimTimeout` only: the SLA window passed, the
+           caller was refunded and the provider's stake was cut. */
+        if (l.eventName === "CallStarted") {
+          const a = l.args as { providerId?: bigint; amount?: bigint; caller?: string; callId?: string };
+          push({
+            type: "call",
+            msg: `Call started → Provider #${String(a.providerId ?? "unknown")}`,
+            sub: `${usdcAmount(a.amount) ?? "amount unavailable"} USDC escrowed · ${short(a.callId)} · caller ${short(a.caller)}`,
+            id: at("call"),
+            txHash: l.transactionHash ?? undefined,
+            callId: a.callId ? String(a.callId) : undefined,
+            caller: a.caller ? String(a.caller) : undefined,
+          });
+        } else if (l.eventName === "ReceiptSubmitted") {
+          const a = l.args as { callId?: string };
+          push({
+            type: "receipt",
+            msg: "Receipt submitted — the contract accepted the provider signature",
+            sub: `Call ${short(a.callId)}`,
+            id: at("receipt"),
+            txHash: l.transactionHash ?? undefined,
+            callId: a.callId ? String(a.callId) : undefined,
+          });
+        } else if (l.eventName === "CallSlashed") {
+          const a = l.args as { slashed?: bigint; refunded?: bigint; callId?: string };
+          push({
+            type: "slash",
+            msg: `Timeout claimed — ${usdcAmount(a.slashed) ?? "slash amount unavailable"} USDC slashed`,
+            sub: `Call ${short(a.callId)} · refund ${usdcAmount(a.refunded) ?? "unavailable"} USDC`,
+            id: at("slash"),
+            txHash: l.transactionHash ?? undefined,
+            callId: a.callId ? String(a.callId) : undefined,
+          });
+        }
+      }
     },
   });
 

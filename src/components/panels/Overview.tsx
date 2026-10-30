@@ -292,56 +292,46 @@ export default function Overview() {
   };
   const liveFailed = (err: unknown) => setLiveError(String((err as Error)?.message ?? err).slice(0, 160));
 
+  /* One watcher for the three events. Each `useWatchContractEvent` call opens its
+     own `eth_newFilter` and polls that filter on its own timer, and the public Arc
+     RPC allows about twenty calls per burst — three watchers here plus three in the
+     notification drawer was six filters for one feed. */
   useWatchContractEvent({
     address: ACTIVE_PPC_ADDRESS,
     abi: PPC_ABI_V8_ACTIVE,
-    eventName: "CallStarted",
     chainId: arcTestnet.id,
     onError: liveFailed,
-    onLogs: (logs) => logs.forEach(l => {
+    onLogs: (logs) => {
       setLiveError(null);
-      const a = l.args;
-      pushEvent(
-        `Call → Provider #${a.providerId ?? "unknown"}`,
-        `${usdcAmount(a.amount) ?? "amount unavailable"} USDC · ${shortId(String(a.callId || ""))}`,
-        `started:${l.transactionHash}:${l.logIndex}`,
-        l.transactionHash,
-      );
-    }),
-  });
-  useWatchContractEvent({
-    address: ACTIVE_PPC_ADDRESS,
-    abi: PPC_ABI_V8_ACTIVE,
-    eventName: "ReceiptSubmitted",
-    chainId: arcTestnet.id,
-    onError: liveFailed,
-    onLogs: (logs) => logs.forEach(l => {
-      setLiveError(null);
-      const a = l.args;
-      pushEvent(
-        "Receipt submitted",
-        `Call ${shortId(String(a.callId || ""))}`,
-        `receipt:${l.transactionHash}:${l.logIndex}`,
-        l.transactionHash,
-      );
-    }),
-  });
-  useWatchContractEvent({
-    address: ACTIVE_PPC_ADDRESS,
-    abi: PPC_ABI_V8_ACTIVE,
-    eventName: "CallSlashed",
-    chainId: arcTestnet.id,
-    onError: liveFailed,
-    onLogs: (logs) => logs.forEach(l => {
-      setLiveError(null);
-      const a = l.args;
-      pushEvent(
-        "Timeout claimed — refund and slash recorded",
-        `${usdcAmount(a.slashed) ?? "slash unavailable"} USDC slashed · refund ${usdcAmount(a.refunded) ?? "unavailable"} USDC`,
-        `slash:${l.transactionHash}:${l.logIndex}`,
-        l.transactionHash,
-      );
-    }),
+      for (const l of logs) {
+        const key = `${l.transactionHash}:${l.logIndex}`;
+        if (l.eventName === "CallStarted") {
+          const a = l.args as { providerId?: bigint; amount?: bigint; callId?: string };
+          pushEvent(
+            `Call → Provider #${a.providerId ?? "unknown"}`,
+            `${usdcAmount(a.amount) ?? "amount unavailable"} USDC · ${shortId(String(a.callId || ""))}`,
+            `started:${key}`,
+            l.transactionHash,
+          );
+        } else if (l.eventName === "ReceiptSubmitted") {
+          const a = l.args as { callId?: string };
+          pushEvent(
+            "Receipt submitted",
+            `Call ${shortId(String(a.callId || ""))}`,
+            `receipt:${key}`,
+            l.transactionHash,
+          );
+        } else if (l.eventName === "CallSlashed") {
+          const a = l.args as { slashed?: bigint; refunded?: bigint };
+          pushEvent(
+            "Timeout claimed — refund and slash recorded",
+            `${usdcAmount(a.slashed) ?? "slash unavailable"} USDC slashed · refund ${usdcAmount(a.refunded) ?? "unavailable"} USDC`,
+            `slash:${key}`,
+            l.transactionHash,
+          );
+        }
+      }
+    },
   });
 
   const runAutoRouter = async () => {
