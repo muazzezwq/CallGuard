@@ -978,3 +978,68 @@ committed these four words).
   chain holds and the Verify panel recomputes it from the served words, so tampering is visible —
   but the words themselves are not attributable. Closing this needs a verifier that commits
   `statementHash` in its journal, which is a new adapter, not a wiring change.
+
+### 14.7 Settling disputes 1 and 2 — `finalize`, not `reclaimExpiredBond`
+
+Both live disputes were **already decided**. `resolve(id, true)` ran on each one on 28 Oct 2026, so
+`status` is `Upheld` (`2`) and only the appeal window stands between them and settlement:
+
+| id | call | `openedAt` | `resolvedAt` | `status` | `settled` | `heldSlash` |
+|---|---|---|---|---|---|---|
+| `1` | `0x5ca2100b…b9ed1` | `1793209403` (28 Oct 17:43:23Z) | `1793216871` (28 Oct 19:47:51Z) | `Upheld` | `false` | `1,283,554` |
+| `2` | `0xf68c0c62…b488` | `1793214948` (28 Oct 19:15:48Z) | `1793216831` (28 Oct 19:47:11Z) | `Upheld` | `false` | `924,159` |
+
+`reclaimExpiredBond` is **not** the call for either id. It requires `status == Pending`, and both
+records answer `AlreadyResolved()` at that guard. It only ever applies to a dispute no arbiter
+touched inside `resolutionWindow` (604,800 s), and that never happened here.
+
+The right call is `finalize(id)`. It is permissionless, needs no arbiter role, and reverts
+`AppealWindowOpen()` until `block.timestamp > resolvedAt + appealWindow` (`172,800` s):
+
+| id | `finalize` opens at | epoch |
+|---|---|---|
+| `1` | 2026-10-30T19:47:51Z | `1793389671` |
+| `2` | 2026-10-30T19:47:11Z | `1793389631` |
+
+Neither side appealed inside that window (`appeal` requires `Upheld`/`Rejected` plus a party, and
+the window has closed on both), so each finalize pays the escrowed slash to the caller. Both
+callers are the owner wallet `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`, and so are `arbiter`,
+`appealArbiter` and `treasury`. Bonds were already returned at resolve time, so finalize moves only
+`heldSlash`. `USDC.balanceOf(DisputeV4)` is `2,207,713` — exactly `1,283,554 + 924,159` — so the
+contract is solvent and both transfers are covered.
+
+Pre-flight, from the repository root (read-only):
+
+```bash
+export RPC=https://rpc.testnet.arc.io
+D=0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B
+cast block latest --rpc-url $RPC -f timestamp        # must exceed 1793389671
+cast call $D "getDispute(uint256)((bytes32,address,uint256,uint64,uint64,uint64,uint256,uint256,uint8,string,string))" 1 --rpc-url $RPC
+cast call $D "settled(uint256)(bool)" 1 --rpc-url $RPC        # expect false
+cast call $D "heldSlash(uint256)(uint256)" 1 --rpc-url $RPC   # expect 1283554
+```
+
+The two writes, signed by the owner in its own terminal (the agent never broadcasts these):
+
+```bash
+cast send $D "finalize(uint256)" 1 --account deployer --rpc-url arc_testnet
+cast send $D "finalize(uint256)" 2 --account deployer --rpc-url arc_testnet
+```
+
+The same two actions exist in the UI: on `/app?nogate` → Disputes, each row shows
+`Finalize (release 1.28 USDC)` / `Finalize (release 0.92 USDC)` once the window closes
+(`canFinalize` in `src/components/panels/DisputesV8.tsx`). The `Reclaim bond` branch there is the
+`Pending` path and stays hidden for these ids.
+
+Read back after each write:
+
+```bash
+cast call $D "settled(uint256)(bool)" 1 --rpc-url $RPC       # true
+cast call $D "heldSlash(uint256)(uint256)" 1 --rpc-url $RPC  # 0
+cast call 0x3600000000000000000000000000000000000000 "balanceOf(address)(uint256)" $D --rpc-url $RPC
+#   expect 924,159 after id 1, 0 after id 2
+```
+
+`DisputeFinalized(id, status, slashAmount)` is the event to expect. A revert before the window
+closes means too early, not a defect: read `block.timestamp` and `resolvedAt` again rather than
+retrying.

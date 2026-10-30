@@ -238,8 +238,10 @@ snapshots the rows in its own transaction, and the dispute followed (tx `0xf607f
 `69548457`, gas `730,827`, `openedAt` `1793214948`, bond `2,000,000`, `heldSlash` `924,159` —
 10% of stake `9,241,596`). `evidenceOf(2)` reads `zk-execution` `mode=2 present=true
 bound=true reason=None` (claim `0xd0b03a84…64bc2`), `witness` and `zk-constraint` `NoAnchor`, and
-`tee-attestation` `NoVerifier`. Both disputes are `Pending`; `reclaimExpiredBond` opens at
-`openedAt + disputeWindow` (`179380…` for `1`, `1793815694` for `2`).
+`tee-attestation` `NoVerifier`. Both disputes are `Upheld` (`resolve(id, true)` ran on 28 Oct) and
+still `settled = false`, so the pending call is `finalize(id)`, not `reclaimExpiredBond`: it opens
+at `resolvedAt + appealWindow` (`1793389671` for `1`, `1793389631` for `2`). Read
+`docs/V8_DEPLOYMENT.md` §14.7 before touching either.
 `test/DisputeV4ForkEvidence.t.sol` still supplies what no single dispute can show: two bound rows
 at once, and a `zk-constraint` claim that lives on the **v1** registry.
 
