@@ -161,6 +161,32 @@ renders `No claim anchored for this call` — both branches checked in the dev s
 | `zk-constraint` | predicates worth proving (schema conformance, SLA thresholds), a circuit registry so `/kind` cannot be claimed by an arbitrary circuit, and a cheap way to bind `claimHash` inside the circuit so the description is constrained too |
 | both | a dispute path that *reads* the anchored evidence. `DisputeV3` deliberately did not; `DisputeV4` snapshots and binds it in `openDispute`, so a bound claim now moves nothing and is read as evidence only |
 
+Status on 31 Oct 2026, stated so no reader mistakes a synthetic pass for hardware:
+
+- `test/fixtures/tdx/` is empty. `tests/verification/tdx-fixture.test.ts` therefore reports a
+  skip, not a pass. Only `tests/verification/tdx.test.ts` runs, and it verifies quotes the test
+  builds itself against a trust root the test injects.
+- `tests/verification/nitro.test.ts` verifies a locally generated P-384 chain with an injected
+  root. No AWS Nitro enclave was reached, and no KMS-attested key exists.
+- `SLAEvidenceRegistryV2.modeOf(keccak256("tee-attestation"))` reads `0` on chain, so
+  `anchor()` reverts `NoVerifierForKind()`: a `tee-attestation` row cannot exist yet, and a
+  `DisputeV4` snapshot records it as `NoVerifier`.
+- What a passing TDX quote *would* prove, and what it still would not: `src/lib/verification/tdx.ts`
+  header and `DESIGN.md` §6. The gap is hardware, not code — the verifier, the binding and the
+  envelope are written and tested.
+
+Minimum evidence that would move this row from PARTIAL to PASS, in order:
+
+1. A quote captured from a CVM whose `app_compose` hash is in the caller's allowlist, written by
+   `bun scripts/tdx-attest.ts --base <cvm> --call <callId> --write`.
+2. The capture's `verifiedAt` inside the DCAP collateral's validity window, with the Intel root
+   chain resolving through `@phala/dcap-qvl` (no injected root).
+3. `report_data` equal to `subjectUserData ‖ nonce` for that call, with the nonce chosen by the
+   caller and echoed by the quote.
+4. A `tee-attestation` verifier wired at mode `2` (`bindsResponse = true`) and one anchored
+   claim, then `evidenceOf(disputeId)` reading `bound = true` for that kind.
+
+
 ## 5. Evidence trail
 
 - `bun test tests/verification/` — 57 tests: envelope validation, digest invariance, strict
