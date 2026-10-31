@@ -55,9 +55,29 @@ type DisputeRecord @entity {
   providerId: BigInt!
   status: String!
   slashAmount: BigInt!
+  # Escrowed at open and paid out at finalize; kept separate from slashAmount
+  # because a verdict can change one without the other.
+  heldSlash: BigInt!
+  bondReclaimedAt: BigInt
   openedAt: BigInt!
   resolvedAt: BigInt
   appealAt: BigInt
+  finalizedAt: BigInt
   evidenceUri: String
   txHash: Bytes!
+  evidence: [DisputeEvidence!]! @derivedFrom(field: "dispute")
+}
+
+type DisputeEvidence @entity {
+  # `${disputeId}-${kind}`
+  id: ID!
+  dispute: DisputeRecord!
+  kind: Bytes!
+  present: Boolean!
+  bound: Boolean!
+  reason: String
+  claimHash: Bytes
+  mode: Int!
+  txHash: Bytes!
+  blockNumber: BigInt!
 }

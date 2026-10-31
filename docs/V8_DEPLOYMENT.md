@@ -331,10 +331,13 @@ authorised slashers move stake.
   `2.576 USDC` (2.00 bond + 0.576 escrow).
 - `logs`/`getDispute`: the record carries the same fields as V2, so the panel
   needs no shape change.
-- The v8 subgraph still points its `DisputeV2` data source at the old address, so
-  the dispute entity stops updating for new disputes. The panel reads disputes
-  from the contract, so this only affects indexer consumers. A Studio key is
-  needed to redeploy the subgraph.
+- The v8 subgraph pointed its `DisputeV2` data source at the old address, so the
+  dispute entity stopped updating for new disputes. **Fixed 31 Oct 2026:** the manifest now
+  indexes `DisputeV4` `0xECDb019F…305B` from block `69401608`, with `SlashHeld`, `BondReclaimed`,
+  `EvidenceLinked` and `EvidenceAbsent` handlers and a new `DisputeEvidence` entity
+  (`subgraph/v8/subgraph.yaml`, `subgraph/v8/schema.graphql`). `graph codegen`/`graph build`
+  pass; publishing it to The Graph Studio still needs a Studio key, and the panel keeps reading
+  disputes from the contract either way.
 
 ### 8.4 Deployment record — 24 Oct 2026
 
