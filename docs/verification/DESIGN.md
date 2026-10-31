@@ -222,6 +222,26 @@ adapter and a new `setProofVerifier`; the registry's `setProofVerifier` is delib
 repeatable so that migration is one owner transaction, and the old claims stay readable because
 each is already labelled with the adapter that vouched for it.
 
+What this path proves, in one sentence: a guest with the published image id executed and
+committed these four words for this call. It does not prove that:
+
+- the answer is correct, or that any model produced it — the guest implements `ping`/`pong`,
+  not the provider's handler;
+- the provider ran this guest, or that the response the provider actually served is the body
+  whose hash is committed;
+- the request bytes came from the caller — only `keccak256(request)` is committed, so any
+  preimage produces the same proof;
+- the envelope's `statement` and `assumptions` are what the proof constrains. `claimHash` is not
+  a circuit input today (see the limitation note below), so the proof is bound to the call and
+  the response, not to the words describing them.
+
+**Known limitation, current state (31 Oct 2026).** `claimHash` and the registry's
+`statementHash`/`assumptionHash` never reach the circuit, so one valid proof can be anchored
+under a different envelope. Closing it means a new guest that commits `claimHash` as a fifth
+journal word plus an adapter that compares it; that changes the image id and therefore needs a
+new adapter and one `setProofVerifier`. Until that deployment, read an anchored `claimHash` as a
+description of the claim, never as something the seal constrains.
+
 `claimHash` is not a circuit input here either. It commits to the envelope (statement,
 assumptions), and the image id is bound by the adapter's immutable field. Neither is a verdict
 about correctness.

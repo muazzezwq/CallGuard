@@ -604,15 +604,15 @@ cast send $SERVICE_REGISTRY "updateMaxConcurrentCalls(uint256,uint32)" \
 
 ```
 CallGuard/
-├── contracts/                        # Solidity source
-│   ├── ServiceRegistry.sol           # provider registry, stake, ERC-8004 NFT, reputation, rate limiting
-│   ├── PayPerCall.sol                # call escrow, EIP-712 receipt, timeout/slash, ERC-8004 writes
-│   ├── DisputeQuality.sol            # verifiable AI output, community vote, Circle Refund Protocol
-│   ├── SLAFutures.sol                # provider capacity tokenized as ERC-1155 NFTs
-│   ├── ReputationLoan.sol            # reputation-as-collateral USDC lending (RepFi)
-│   ├── SLAAttestationBridge.sol      # cross-protocol SLA oracle, REST API
-│   ├── AgentWallet.sol               # smart wallet with daily spend limits + ERC-8183 hook
-│   ├── Subscription.sol              # recurring payment model
+├── contracts/                        # Solidity source (v7 files are legacy but still deployed)
+│   ├── ServiceRegistry.sol           # v7 registry — read-only since the v8 cutover
+│   ├── PayPerCall.sol                # v7 escrow + EIP-712 receipt — read-only, kept for V7Cleanup
+│   ├── DisputeQuality.sol            # retired: Circle Refund Protocol era disputes
+│   ├── SLAFutures.sol                # provider capacity tokenized as ERC-1155 NFTs (v7)
+│   ├── ReputationLoan.sol            # reputation-as-collateral USDC lending (RepFi, v7)
+│   ├── SLAAttestationBridge.sol      # cross-protocol SLA oracle, REST API (v7)
+│   ├── AgentWallet.sol               # smart wallet with daily spend limits + ERC-8183 hook (v7)
+│   ├── Subscription.sol              # recurring payment model (v7)
 │   ├── Dispute.sol                   # dispute resolution with stake slashing
 │   ├── CrossChainReceiver.sol        # CCTP V2 — multi-chain USDC → callService()
 │   ├── RegisterWithNFT.sol           # mint ERC-8004 NFT + registerV2() in one tx
