@@ -2,7 +2,14 @@
  * POST /api/call-service
  *
  * x402 full flow: EIP-3009 signed payment → on-chain callServiceWithAuthorization
- * Body: { providerId, requestHash, authorization, signature }
+ * Body: { providerId, requestHash } (+ { authorization, signature } for the legacy body path)
+ * Payment may also arrive in the standard `PAYMENT-SIGNATURE` header: base64 JSON with
+ * `{authorization, signature}` or the `{payload: {authorization}, signature}` shape.
+ * Sending both carriers with different values is rejected with 400.
+ *
+ * A settled call answers with the x402 `PAYMENT-RESPONSE` header (base64 JSON:
+ * `{success, transaction, network}`) in addition to the JSON body. Demo mode never
+ * emits it, because nothing settled.
  *
  * If FACILITATOR_PRIVATE_KEY is set: real on-chain settlement.
  * Otherwise: demo mode (sig verified, returns mock txHash).
@@ -24,7 +31,7 @@ import {
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,X-Payment",
+  "Access-Control-Allow-Headers": "Content-Type,X-Payment,PAYMENT-SIGNATURE,Payment-Signature,Idempotency-Key",
 };
 
 // Explicit idempotency scope for this endpoint. Never rely on a default in the
@@ -175,12 +182,12 @@ function paymentRequired(priceAtomic, req) {
         inputSchema: {
           $schema: "https://json-schema.org/draft/2020-12/schema",
           type: "object",
-          required: ["providerId", "requestHash", "authorization", "signature"],
+          required: ["providerId", "requestHash"],
           properties: {
             providerId:    { type: "integer" },
             requestHash:   { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" },
-            authorization: { type: "object" },
-            signature:     { type: "string", pattern: "^0x[0-9a-fA-F]{130}$" },
+            authorization: { type: "object", description: "Legacy body carrier. Standard clients send this in the PAYMENT-SIGNATURE header instead." },
+            signature:     { type: "string", pattern: "^0x[0-9a-fA-F]{130}$", description: "Legacy body carrier, see authorization." },
           },
         },
         outputSchema: {
@@ -202,6 +209,69 @@ function paymentRequired(priceAtomic, req) {
 function sendPaymentRequired(res, req, priceAtomic) {
   res.setHeader("Content-Type", "application/json");
   return res.status(402).json(paymentRequired(priceAtomic, req));
+}
+
+/**
+ * The standard x402 client sends the payment in the `PAYMENT-SIGNATURE` header:
+ * base64 JSON carrying the authorization and its signature. Two shapes exist in
+ * the wild — `{authorization, signature}` and `{payload: {authorization}, signature}`
+ * — and both are accepted. Returns `{ present: false }` when the header is absent,
+ * so the body path keeps working unchanged.
+ */
+export function parsePaymentHeader(raw) {
+  if (raw === undefined || raw === null || raw === "") return { present: false };
+  if (typeof raw !== "string") return { present: true, error: "Malformed payment signature" };
+  let parsed;
+  try {
+    parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+  } catch {
+    return { present: true, error: "Malformed payment signature" };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return { present: true, error: "Malformed payment signature" };
+  }
+  const inner = parsed.payload && typeof parsed.payload === "object" ? parsed.payload : parsed;
+  let authorization = inner.authorization;
+  if (!authorization && typeof inner.from === "string") {
+    // Bare authorization object beside the signature: drop the signature key so
+    // the recovered struct is exactly the EIP-3009 fields.
+    authorization = { ...inner };
+    delete authorization.signature;
+  }
+  const signature = parsed.signature ?? inner.signature;
+  if (!authorization || typeof authorization !== "object" || typeof signature !== "string") {
+    return { present: true, error: "Malformed payment signature" };
+  }
+  return { present: true, authorization, signature };
+}
+
+/**
+ * A request that carries the payment twice must not be resolved by guessing which
+ * one the caller meant: identical copies are fine, different ones are rejected.
+ */
+export function mergePaymentSource(bodyAuthorization, bodySignature, header) {
+  if (!header.present) return { authorization: bodyAuthorization, signature: bodySignature };
+  if (!bodyAuthorization && !bodySignature) {
+    return { authorization: header.authorization, signature: header.signature };
+  }
+  const same = JSON.stringify(bodyAuthorization) === JSON.stringify(header.authorization)
+    && bodySignature === header.signature;
+  if (!same) {
+    return { error: "Payment supplied in both the PAYMENT-SIGNATURE header and the body" };
+  }
+  return { authorization: header.authorization, signature: header.signature };
+}
+
+/** Settlement succeeded: answer with the x402 `PAYMENT-RESPONSE` header as well. */
+function sendSettled(res, { callId, txHash, blockNumber }) {
+  if (txHash) {
+    res.setHeader("PAYMENT-RESPONSE", Buffer.from(JSON.stringify({
+      success: true,
+      transaction: txHash,
+      network: ARC_TESTNET_CHAIN_ID,
+    })).toString("base64"));
+  }
+  return res.json({ success: true, callId: callId ?? null, txHash: txHash ?? null, blockNumber: blockNumber ?? null });
 }
 
 function pendingMessage(code) {
@@ -281,11 +351,10 @@ async function readStoreRecord(store, operationId) {
 }
 
 function sendConfirmed(res, record) {
-  return res.json({
-    success: true,
-    callId: record.callId ?? null,
-    txHash: record.txHash ?? null,
-    blockNumber: record.blockNumber ?? null,
+  return sendSettled(res, {
+    callId: record.callId,
+    txHash: record.txHash,
+    blockNumber: record.blockNumber,
   });
 }
 
@@ -481,13 +550,24 @@ export default function defaultHandler(req, res) {
 
 async function handler(req, res, { idempotencyStore = null, readReceipt = null } = {}) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (idempotencyStore) {
-    res.setHeader("Access-Control-Allow-Headers", `${CORS_HEADERS["Access-Control-Allow-Headers"]},Idempotency-Key`);
-  }
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).end();
 
-  const { providerId: rawProviderId, requestHash, authorization, signature } = req.body || {};
+  const body = req.body || {};
+  const { providerId: rawProviderId, requestHash } = body;
+  // `PAYMENT-SIGNATURE` is the standard x402 carrier. The body fields stay
+  // supported so every existing client keeps working; supplying both with
+  // different values is rejected rather than guessed.
+  const headerPayment = parsePaymentHeader(req.headers?.["payment-signature"]);
+  if (headerPayment.error) {
+    return res.status(400).json({ error: headerPayment.error, code: INVALID_REQUEST_CODE });
+  }
+  const merged = mergePaymentSource(body.authorization, body.signature, headerPayment);
+  if (merged.error) {
+    return res.status(400).json({ error: merged.error, code: INVALID_REQUEST_CODE });
+  }
+  const authorization = merged.authorization;
+  const signature = merged.signature;
   const providerId = normalizeProviderId(rawProviderId);
   if (providerId === null) {
     return res.status(400).json({ error: "Invalid providerId", code: INVALID_PROVIDER_ID_CODE });
@@ -897,7 +977,7 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
       });
     }
 
-    return res.json({ success: true, callId, txHash: receipt.hash, blockNumber: receipt.blockNumber });
+    return sendSettled(res, { callId, txHash: receipt.hash, blockNumber: receipt.blockNumber });
 
   } catch (e) {
     // Log only non-sensitive fields — e.message may embed the RPC URL + token.
