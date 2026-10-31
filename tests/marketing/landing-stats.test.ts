@@ -79,7 +79,7 @@ describe("landing stats", () => {
   test("reputation is the Bayesian score, not a success rate", () => {
     // (completed + 2) / (completed + slashed + 3), as HowItWorks documents it.
     const stats = landingStats([], [provider({ completedCalls: "8", slashedCalls: "2" })]);
-    expect(stats.reputationScore).toBe(Math.round((10 / 13) * 100));
+    expect(stats.reputationScore).toBe(Math.floor((10 / 13) * 100));
   });
 
   test("reputation is null when no call has been finished", () => {

@@ -159,7 +159,7 @@ renders `No claim anchored for this call` — both branches checked in the dev s
 |---|---|
 | `tee-attestation` | AWS account, reproducible enclave image, published PCR0, KMS-attested signing key, nonce freshness policy, and an enclave that actually serves the provider's endpoint |
 | `zk-constraint` | predicates worth proving (schema conformance, SLA thresholds), a circuit registry so `/kind` cannot be claimed by an arbitrary circuit, and a cheap way to bind `claimHash` inside the circuit so the description is constrained too |
-| both | a dispute path that *reads* the anchored evidence. `DisputeV3` deliberately does not, so evidence is advisory today |
+| both | a dispute path that *reads* the anchored evidence. `DisputeV3` deliberately did not; `DisputeV4` snapshots and binds it in `openDispute`, so a bound claim now moves nothing and is read as evidence only |
 
 ## 5. Evidence trail
 

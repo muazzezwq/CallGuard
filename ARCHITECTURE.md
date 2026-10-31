@@ -66,20 +66,27 @@ Each is a research project on its own. Faz 1 solves the simpler half of the prob
 
 ```solidity
 struct Provider {
-    address owner;            // receives payouts, controls the provider
-    address signer;           // distinct key used for receipt signing
-    uint256 stake;            // USDC held by the registry on behalf of this provider
-    uint256 pricePerCall;     // amount caller pays per call, in USDC (6 decimals)
-    uint32  maxResponseTime;  // SLA — seconds between call open and receipt deadline
-    uint32  slashBps;         // 0-10000 — stake percentage taken on each violation
-    uint32  deactivatedAt;    // 0 if active; set to block.timestamp on deactivate()
-    uint32  pendingCalls;     // open calls not yet finalized
-    uint32  completedCalls;   // reputation counter
-    uint32  slashedCalls;     // reputation counter
-    string  endpoint;         // discovery URL (not validated on-chain)
+    address owner;                // receives payouts, controls the provider
+    address signer;               // distinct key used for receipt signing
+    uint256 stake;                // USDC held by the registry on behalf of this provider
+    uint256 pricePerCall;         // amount caller pays per call, in USDC (6 decimals)
+    uint32  deactivatedAt;        // 0 if active; set to block.timestamp on deactivate()
+    uint32  pendingCalls;         // open calls not yet finalized
+    uint64  completedCalls;       // reputation counter
+    uint64  slashedCalls;         // reputation counter
+    uint32  maxConcurrentCalls;   // open calls a single caller may hold (0 = default 10)
+    uint8   zkTier;               // verification tier advertised by the provider
+    string  endpoint;             // discovery URL (not validated on-chain)
     bool    active;
 }
 ```
+
+`maxResponseTime`, `slashBps` and `availabilityTargetBps` are not struct fields on v8. They
+live in the versioned SLA terms record (`SLATerms`), read with `getTerms(providerId, version)`;
+the provider's current version is `latestTermsVersion` in the `getProvider` view. `getProvider`
+returns 11 fields (`owner`, `signer`, `stake`, `pricePerCall`, `latestTermsVersion`, `active`,
+`pendingCalls`, `completedCalls`, `slashedCalls`, `maxConcurrentCalls`, `zkTier`), so `endpoint`
+and `deactivatedAt` are read through `getEndpoint(providerId)` and the events instead.
 
 ### Why `owner` and `signer` are separate
 
@@ -154,16 +161,12 @@ If the signature only covered `callId`, a provider could sign once and replay th
 
 ### The formula
 
-```solidity
-function getReputationScore(uint256 providerId) external view returns (uint8) {
-    Provider storage p = _providers[providerId];
-    if (p.owner == address(0)) return 0;
-    uint256 α = 2;  // prior successes
-    uint256 β = 1;  // prior failures
-    uint256 numerator = p.completedCalls + α;
-    uint256 denominator = p.completedCalls + p.slashedCalls + α + β;
-    return uint8((numerator * 100) / denominator);
-}
+The `ServiceRegistryV8` contract does not expose a score view: `getReputationScore` exists
+only on the retired v7 `ServiceRegistry`, so a call to it on v8 reverts. The score is computed
+app-side from the two on-chain counters, in `src/components/panels/providerMetrics.ts`:
+
+```ts
+Math.floor(((completedCalls + 2) * 100) / (completedCalls + slashedCalls + 3))
 ```
 
 This is a Beta-Binomial posterior mean with a `Beta(α=2, β=1)` prior. In plain language: before observing any calls, the system treats every provider as if they had already completed 2 calls and been slashed on 1, giving a baseline score of `2 / (2+1) × 100 = 66`.
@@ -189,7 +192,7 @@ The Bayesian version has three properties the others lack:
 
 The score could have been computed off-chain by indexing `ReceiptSubmitted` and `CallSlashed` events. Two reasons we chose to track it on-chain instead:
 
-1. **Other contracts can read it.** A router contract that picks the best provider for a task needs the score as a view call (`getReputationScore`), not as an off-chain database query. On-chain counters are the only way.
+1. **Other contracts can read the counters.** A router contract that picks the best provider for a task reads `completedCalls`/`slashedCalls` (or `getProvider`) directly and applies the formula itself — no off-chain database, no score view to trust. On-chain counters are the only way.
 2. **Indexer dependency is external risk.** If the indexer is down, every consumer of the reputation is blind. On-chain counters are always available as long as Arc is.
 
 The gas cost is one `SSTORE` per call outcome — about 5,000 gas post-EIP-2929 for a warm storage slot. On Arc that's a fraction of a cent.
@@ -198,17 +201,21 @@ The gas cost is one `SSTORE` per call outcome — about 5,000 gas post-EIP-2929 
 
 ## 6. Gas budget
 
-Measured in the Foundry test suite (averages):
+Measured in the Foundry test suite (averages, gas units):
 
-| Operation | Gas | USDC cost at 40 gwei |
-| --- | ---: | ---: |
-| `register(...)` | ~240k | ≈ 0.01 USDC |
-| `callService(...)` | ~200k | ≈ 0.008 USDC |
-| `submitReceipt(...)` | ~100k | ≈ 0.004 USDC |
-| `claimTimeout(...)` | ~120k | ≈ 0.005 USDC |
-| Full call lifecycle | ~420k | ≈ **0.017 USDC** |
+| Operation | Gas |
+| --- | ---: |
+| `register(...)` | ~240k |
+| `callService(...)` | ~200k |
+| `submitReceipt(...)` | ~100k |
+| `claimTimeout(...)` | ~120k |
+| Full call lifecycle | ~420k |
 
-A full call lifecycle — open, pay, submit receipt, update reputation — costs less than 2 cents at current Arc testnet gas prices. For a 1 USDC call this is 1.7% overhead, comparable to a credit card merchant fee and substantially less than standard payment processors charge for similar transaction sizes.
+Gas on Arc is paid in USDC, so the fiat cost of these units tracks the live base fee and cannot
+be pinned to one number. Recent Arc Testnet transactions carried an `effectiveGasPrice` of
+roughly 533–547 gwei (measured 30 Oct 2026), where a full call lifecycle of ~420k gas costs about
+0.23 USDC. Read the live figure before quoting a price; at a lower base fee the same lifecycle
+costs proportionally less.
 
 ---
 

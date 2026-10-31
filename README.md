@@ -38,9 +38,9 @@ No governance vote, no committee, no support queue. Timeouts settle by contract,
 | **Finality** | Sub-second (Arc) | Minutes | Minutes | Minutes | Minutes |
 | **AI agent native** | Yes (MCP, x402, ERC-8004) | No | Partial | No | No |
 | **Cross-chain** | Yes (CCTP, 5 chains) | Yes | No | Partial | No |
-| **Reputation score** | Onchain (ERC-8004) | No | No | No | No |
+| **Reputation score** | Computed in the app from on-chain counters (no ERC-8004 identity on v8) | No | No | No | No |
 | **SLA futures market** | Yes (ERC-1155) | No | No | No | No |
-| **Circle Refund Protocol** | Yes (DisputeQuality) | No | No | No | No |
+| **Circle Refund Protocol** | Retired with `DisputeQuality`; disputes settle on `DisputeV4` | No | No | No | No |
 | **Per-caller rate limiting** | Yes (DoS protection) | No | No | No | No |
 
 CallGuard's core thesis: **financial skin-in-the-game enforces reliability better than reputation systems or legal contracts**. A provider who misses an SLA loses real money — automatically, trustlessly, instantly.
@@ -63,7 +63,7 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 | `SLAUptime` | [`0x6916997D...`](https://explorer.testnet.arc.io/address/0x6916997DEFe98819176F66867fD5B356C284e89f) | Rolling-uptime verdict against `availabilityTargetBps` |
 | `SLAProvenance` | [`0xa74D1A80...`](https://explorer.testnet.arc.io/address/0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb) | Allowlisted attestor records *who* witnessed a call's payload |
 | `DisputeV3` | [`0xEf9f21E...`](https://explorer.testnet.arc.io/address/0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec) | Superseded by `DisputeV4` on 28 Oct 2026; no slash authority, no funds held |
-| `DisputeV2` | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, open disputes only |
+| `DisputeV2` | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, then V4; no open disputes, no slash authority |
 | `USDC` | [`0x36000000...`](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) | Native gas token, ERC-20 `decimals() = 6` |
 
 `ServiceRegistry` v7 `0x9ca97010…7333` and `PayPerCall` v7.1 `0x5fb41dd2…0540` are still on chain but
@@ -152,13 +152,13 @@ Three promises, three mechanisms. Full table with per-row evidence: [`docs/SLA_C
 
 ### Keeper automation
 
-Timeouts do not wait for a human. `.github/workflows/keeper.yml` runs `scripts/keeper-soak.js` with `ONCE=1` every 15 minutes on a GitHub-hosted runner (no server to keep alive), batches `SLAKeeper.claimBatch`, withdraws the bounty once it clears 1 USDC, and uploads its JSONL evidence as a workflow artifact.
+Timeouts do not wait for a human. `.github/workflows/keeper.yml` asks for a 15-minute cadence (`ONCE=1`) on a GitHub-hosted runner (no server to keep alive), batches `SLAKeeper.claimBatch`, withdraws the bounty once it clears 1 USDC, and uploads its JSONL evidence as a workflow artifact. GitHub throttles scheduled workflows in quiet repositories, so the observed cadence is 3-6 h (`docs/SLA_COVERAGE.md` row A4). A late claim costs the caller time, never funds: `claimTimeout` is permissionless and the Requests panel exposes it.
 
 Live claim (run `40221690767`, tx `0x87fc2941…2d9a`): `requested 2 / claimed 2`, gasUsed `274729`, stake `31.336784 → 20.055543 USDC`, keeper bounty `0.564061 USDC`. One of the two calls had never been touched by anyone after it opened.
 
 ### Coverage, stated honestly
 
-25 SLA behaviours are tracked as PASS / PARTIAL / GAP: **22 PASS** (enforced, covered by a test, demonstrated on the deployed contracts), **3 PARTIAL** — two waiting only on their time windows (`finalize`, `reclaimExpiredBond`) and one on independence (`B3b`: `SLAProvenance` records an allowlisted attestor's observation of the payload, but the only attestor key is one this repository controls, and no hash proves an answer is *correct*). That last step needs attested execution (TEE or zk-proof) and CallGuard does not claim it.
+29 SLA behaviours are tracked as PASS / PARTIAL / GAP: **27 PASS** (enforced, covered by a test, demonstrated on the deployed contracts), **2 PARTIAL** — `B8`, waiting on its 7-day window, and `B3b`, waiting on independence: `SLAProvenance` records an allowlisted attestor's observation of the payload, but the only attestor key is one this repository controls, and no hash proves an answer is *correct*. That last step needs attested execution (TEE or zk-proof) and CallGuard does not claim it. Per-row evidence: `docs/SLA_COVERAGE.md`.
 
 
 
@@ -276,9 +276,11 @@ curl https://arcsla.vercel.app/api/marketplace/health
 | Circle Gateway batching | `GATEWAY_BATCH_URL` env set | Sub-second, off-chain batched |
 | ERC-20 direct transfer | fallback (always available) | On-chain, ~0.5s on Arc |
 
-### Circle Refund Protocol (DisputeQuality)
+### Circle Refund Protocol (retired)
 
-When a dispute resolves `CallerWins`, `DisputeQuality` emits `CircleRefundInitiated(disputeId, callId, caller, amount)`. An off-chain relayer (or `api/auto-receipt` with `event="circle.refund.initiate"`) calls the Circle Refund API to initiate a programmatic refund for the original payment amount.
+`DisputeQuality` is no longer routed and holds no slash authority; disputes settle on `DisputeV4`. The relay described below is kept as history.
+
+When a dispute resolved `CallerWins` on `DisputeQuality`,, `DisputeQuality` emits `CircleRefundInitiated(disputeId, callId, caller, amount)`. An off-chain relayer (or `api/auto-receipt` with `event="circle.refund.initiate"`) calls the Circle Refund API to initiate a programmatic refund for the original payment amount.
 
 ```solidity
 event CircleRefundInitiated(
@@ -351,7 +353,6 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 ### Provider tools
 
 - **Register (v1)** — stake USDC, set price, SLA window, slash percentage, concurrent call cap
-- **Register with NFT (v2)** — mint ERC-8004 AgentIdentity NFT + register in one transaction
 - **Provider dashboard** — live honor rate, recent calls, stake balance, earnings analytics
 - **Provider profile page** — shareable `?provider=N` URL; stats, earnings, call history
 - **Revenue calculator** — estimate monthly earnings based on call volume and price
@@ -404,7 +405,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 - **Webhooks** — configure endpoints; test with real `call.opened` payload
 - **Notifications** — live `CallStarted` + `ReceiptSubmitted` contract event feed
 - **Bridge** — CCTP cross-chain bridge panel
-- **Admin Panel** — contract owner tools
+- **Admin Panel** — read-only wiring card (the three write forms were removed)
 
 ### UX features
 
@@ -550,7 +551,7 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: **606 tests passed, 0 failed** across 28 suites (`forge test`).
+Expected: all tests passing, 0 failed, across 30 suites (`forge test`; 621 passing when last measured on 30 Oct 2026).
 
 ### Try the demo
 
@@ -657,9 +658,9 @@ CallGuard/
 - `DisputeV3` — slashes and escrows at `openDispute`, so unstaking between receipt and verdict no longer dodges a quality slash; `finalize` and `reclaimExpiredBond` settle arbiter silence
 - `SLAUptime` — the published `availabilityTargetBps` is scored against rolling uptime and actually slashed (first live claim: 99.5 % target vs 57.14 % delivered, 5.373248 USDC)
 - `SLAProvenance` — an allowlisted attestor signs `(callId, payloadHash, originHash, observedAt)`; the contract recovers the signer, so a caller can check *who* witnessed the payload (live record for call `0x8cfa1821…`)
-- Keeper automation — `.github/workflows/keeper.yml` runs `ONCE=1` every 15 minutes on a GitHub runner, batches `claimBatch`, withdraws bounties, uploads JSONL evidence
+- Keeper automation — `.github/workflows/keeper.yml` asks for a 15-minute cadence (`ONCE=1`) on a GitHub runner; observed cadence 3-6 h, batches `claimBatch`, withdraws bounties, uploads JSONL evidence
 - Per-caller concurrency caps tested on v8 (`maxConcurrentCalls`, default 10)
-- 491/491 Foundry tests passing (19 suites); coverage table in `docs/SLA_COVERAGE.md`
+- Foundry suite green: 621 passing across 30 suites when last measured on 30 Oct 2026; coverage table in `docs/SLA_COVERAGE.md`
 
 **Core Protocol (v5)**
 - EIP-712 typed receipt signing — structured receipt preview in MetaMask

@@ -146,8 +146,8 @@ contract read on the provider detail view.
 The SSR provider page (`api/provider-page.js`) used to read the retired v7 registry and the
 Goldsky v7 subgraph, so `/providers/1` advertised `10.00 USDC` stake and a default `50%` honor
 rate on 24 Oct 2026 while v8 held `8.00 USDC` and one slashed call. It now reads
-`ACTIVE.SERVICE_REGISTRY` with the v8 layout (active at word 5, `completedCalls` 7,
-`slashedCalls` 8), shows the terms version, and builds `/sitemap.xml` from `nextProviderId()`
+`ACTIVE.SERVICE_REGISTRY`, decodes `getProvider` by named fields (no hardcoded word indices), shows
+the terms version, and builds `/sitemap.xml` from `nextProviderId()`
 instead of an indexer. `src/lib/config.ts` no longer falls back to the retired Goldsky v7 URL.
 
 The Graph Studio deploy key and the old Goldsky token were revoked on 24 Oct 2026. A redeploy of
@@ -224,9 +224,9 @@ The v8 indexer is deployed to The Graph Studio as slug `onur`, version `1.0.0`:
 Goldsky v8 deployment was abandoned because the account hit Starter-plan credit exhaustion;
 the existing v7 Goldsky deployment is unchanged.
 
-Provider migration ran on 23 Oct 2026. `ServiceRegistryV8.nextProviderId()` is `2` and
+Provider migration ran on 23 Oct 2026. `ServiceRegistryV8.nextProviderId()` is `3` and
 `providerIdOf(0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da)` is `1`. Provider `1` holds
-`8 USDC` stake after one timeout drill slashed `2 USDC` from the original `10`, price `1 USDC`,
+`7.485694 USDC` stake after `9` slashed calls (`7485694` in `getProvider`), price `1 USDC`,
 terms v1 (`maxResponseTime 120`, `slashBps 2000`,
 `availabilityTargetBps 9950`, `termsHash 0xbe8c8cd7…`), endpoint
 `https://arcsla.vercel.app/api/auto-receipt`, cap `10`, and is `active`. The Studio subgraph
@@ -428,6 +428,7 @@ First live reading, `previewAvailability(1)` on provider 1:
 - `7` samples (`4` completed, `3` timed out)
 - `slashAmount 5.373248 USDC` (10 % of the `53.732480 USDC` stake), bounty
   `1.074649 USDC`, treasury `4.298599 USDC`
+<!-- unverified: this `53.732480` stake does not reconcile with the 16.04 → 12.84 → 9.24 → 7.49 sequence later read from the same provider; the tx event is the source of the 5373248 slash, not of the 53.732480 base -->
 - `ready = true`
 
 Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`; the deployment
@@ -799,9 +800,11 @@ appeal arbiter / treasury = the owner wallet, `disputeBond` `2000000`, `appealBo
 Read back after the wiring, all matching the runbook: `modeOf(zk-constraint)` = `2`,
 `modeOf(zk-execution)` = `2`, `bindsResponse(zk-execution)` = `true`, `evidenceKinds()` = the four
 kinds, `authorizedSlashers(DisputeV3)` = `false`, `authorizedSlashers(DisputeV4)` = `true`,
-`isAnchored(callId, zk-execution, claim)` = `true`. `modeOf(witness)` and `modeOf(tee-attestation)`
-are `0` (`NoVerifier`) because no attestor exists, so those rows answer `present=false,
-reason=NoVerifier`; that is the wiring's honest state, not a gap in the snapshot.
+`isAnchored(callId, zk-execution, claim)` = `true`. `modeOf(witness)` read `0` (`NoVerifier`) at
+deploy time, before its adapter existed; it was wired to `SLAProvenanceAdapter` later the same
+day (tx `0xd5499453…6f81`, block `69494118`) and now reads `2`. `modeOf(tee-attestation)` is
+still `0`, because no attestor exists, so that row answers `present=false, reason=NoVerifier`;
+that is the wiring's honest state, not a gap in the snapshot.
 
 | Wiring call | Tx |
 |---|---|
@@ -839,7 +842,7 @@ Run them in this order. Each read-back is the gate for the next one.
 |---|---|---|---|
 | 1 | `registryV2.setProofVerifier(keccak256("zk-constraint"), 0x8bD4fB9F…664E, true)` | `modeOf(kind) == 2`, `bindsResponse(kind) == true` | `bindsResponse` false → every `zk-constraint` row reads `VerifierNotBinding` and never binds |
 | 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
-| 3 | `registryV2.setSignatureVerifier(keccak256("witness"), <attestor>, true)` — optional | `signatureVerifier(kind, attestor) == true` | skipped when no attestor exists; `witness` rows then read `NoVerifier`, which is visible on chain and silent in the money paths |
+| 3 | `registryV2.setProofVerifier(keccak256("witness"), 0x046d715D…0498, true)` — the deployed path | `modeOf(kind) == 2`, `bindsResponse(kind) == true`, `proofVerifier(kind) == 0x046d715D…0498` | **do not use `setSignatureVerifier` here.** A signature key reaches mode `1`, `DisputeV4` binds only mode `2`, and the snapshot records a mode-1 row as `ModeIsSignature` — a claim the dispute cannot use, which reads like progress and is not. An unwired kind instead reads `NoVerifier`, which is visible on chain and silent in the money paths |
 | 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
 | 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | **do not skip and do not reorder**: the V4 guard is one-directional — V4 asks V3 whether it already holds a call, V3 has no reciprocal check. While V3 stays a slasher, a caller can open a second dispute on a call V4 already escrowed and cut the same stake twice. The script prints an ORDERING GATE line while `authorizedSlashers(V3)` is still true |
 | 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |

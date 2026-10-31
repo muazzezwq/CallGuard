@@ -40,7 +40,7 @@ Mitigated by: `pendingCalls` counter. `unstake()` reverts while any call is open
 *Not possible.* `claimTimeout` reverts if `submitReceipt` was called first (`status != Pending`). The provider controls the state transition, not the caller. As long as the provider submitted a valid signature before the deadline, the timeout path is closed.
 
 **Attack: Caller spams pending calls to lock up the provider's capacity.**
-*Not prevented in Faz 1.* A caller could open 1,000 calls simultaneously, paying `pricePerCall × 1,000` USDC. The provider must now submit 1,000 receipts within `maxResponseTime` or be slashed on each. The spam costs the caller `N × pricePerCall` up-front, which is a real economic cost — but a motivated attacker with funds could grief a provider.
+*Mitigated on v8.* `PayPerCallV8._createCall` caps the open calls of each `(providerId, caller)` pair at the provider's `maxConcurrentCalls` (10 by default, and `callServiceFor` spends the beneficiary's cap, not the payer's), so a single address cannot open 1,000 calls against one provider. The cap is per caller, so a funded attacker can still spread spam across many keys, and each call still costs `pricePerCall` up-front.
 
 *Mitigation the provider can deploy today:* set `pricePerCall` high enough that spam is uneconomical. For a provider expecting 1 call per second with `maxResponseTime=30`, pricing each call at `0.10 USDC` means 1,000-call spam costs the attacker `100 USDC` up-front for at most `20 USDC` slash potential. Unfavorable arithmetic.
 
@@ -49,7 +49,7 @@ Mitigated by: `pendingCalls` counter. `unstake()` reverts while any call is open
 ### 3. Signature replay
 
 **Attack: Use a valid receipt signature from one call to close a different call.**
-*Mitigated.* The digest is `keccak256(callId, responseHash)`, and `callId` itself includes `(providerId, caller, nonce, block.timestamp, requestHash, block.chainid)`. No two calls share a `callId`, so no signature can be replayed.
+*Mitigated.* Receipts are EIP-712: the digest covers `callId, responseHash, respondedAt` and the call's `termsVersion`, under the `ArcSLA`/`2` domain, and `callId` itself includes `(providerId, caller, nonce, block.timestamp, requestHash, block.chainid)`. No two calls share a `callId`, and `termsVersion` must match the call, so no signature can be replayed or lifted onto another terms version.
 
 **Attack: Use a receipt signature across chains.**
 *Mitigated.* `block.chainid` is in the `callId` preimage. A signature valid on Arc Testnet (chainId 5042002) is invalid on Ethereum Sepolia (chainId 11155111).
@@ -64,7 +64,7 @@ USDC itself is not a reentrancy vector (it's a standard ERC-20), but the pattern
 ### 5. Admin / deployer risk
 
 **Attack: Admin changes PayPerCall to a malicious contract that slashes all providers.**
-*Mitigated.* `setPayPerCall` can only be called once. After the initial wiring, no address in the system has privileged access to slash or mint stake.
+*Partly mitigated.* `setPayPerCall` can only be called once, and only through the 2-day timelock. The registry admin can still `authorizeSlasher` and `revokeSlasher` at will, and today the admin, arbiter, appeal arbiter and treasury are the same wallet — so that key can redirect a slash path, though it cannot mint stake. The wiring history is in `AGENTS.md`.
 
 **Attack: Admin forgets to call `setPayPerCall` and PayPerCall can never call slash.**
 This is a deployment-time bug, not a vulnerability. The deployment script handles wiring automatically; a manual deployment that skipped this step would produce a contract where calls open but receipts and slashes both revert. Providers would observe that no one can use them and stop registering. Funds already staked can still be recovered via `deactivate()` + cooldown + `unstake()`.
@@ -76,7 +76,7 @@ This is a deployment-time bug, not a vulnerability. The deployment script handle
 ### 7. Arithmetic
 
 **Attack: Slash calculation overflows.**
-*Not possible in 0.8.24.* Solidity's built-in overflow checks make arithmetic errors revert rather than silently wrap. The one place we use `unchecked` is `completedCalls += 1`, which can only overflow after `2^32 ≈ 4B` calls for a single provider.
+*Not possible.* The compiler is `0.8.37`, so built-in overflow checks make arithmetic errors revert rather than silently wrap. The one place we use `unchecked` is the `completedCalls += 1` counter, which is `uint64` on v8 and would need `2^64` calls for a single provider to wrap.
 
 **Attack: Reputation formula `(numerator * 100) / denominator` overflows.**
 *Not possible.* `numerator = completedCalls + 2` and `completedCalls` is `uint32`, so `numerator * 100 ≤ 2^32 × 100 ≈ 4 × 10^11`, well within `uint256` range.
@@ -102,9 +102,9 @@ These are known limitations, not bugs.
 
 ## What was not tested
 
-57 unit tests cover the happy paths, the timeout path, and the revert cases that the code explicitly rejects. Not covered:
+At the last measurement the suite held 621 Foundry tests across 30 suites and 603 frontend tests across 56 files (`bun test tests/`); they cover the happy paths, the timeout path, and the revert cases the code explicitly rejects. Not covered:
 
-- **Fork tests against real USDC on Arc.** Tests use a `MockUSDC` for determinism and speed.
+- **End-to-end fork runs against real USDC on Arc.** Most tests use a `MockUSDC` for determinism and speed; `test/DisputeV4ForkEvidence.t.sol` is the one suite that reads the deployed contracts.
 - **Fuzzing.** `forge test` can run fuzz tests, but we don't have property-based tests against invariants yet.
 - **Gas bounds.** No assertions that a function stays under a gas ceiling.
 - **Adversarial test harness.** No "attacker contract" trying to reenter, front-run, or griefing test cases.

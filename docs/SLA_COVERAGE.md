@@ -2,7 +2,7 @@
 
 Scope: the v8 stack on Arc Testnet (`ServiceRegistryV8` `0x793028B6…12A3`,
 `PayPerCallV8` `0xedce61eF…a7EF`, `SLAKeeper` `0xBe897043…CB7`,
-`DisputeV2` `0xe5D993E0…0900`).
+`DisputeV4` `0xECDb019F…305B`).
 
 Three axes:
 
@@ -188,10 +188,12 @@ this" and "this program ran" are different claims, and only the second one is no
    costs nothing to run; what it proves is still `ping`/`pong`. The next honest step is a guest
    whose journal commits a fact the caller cares about (e.g. a response body typed against a
    declared schema), so the claim covers more than "this program ran".
-1. **B8 — run `finalize(4)`** — dispute #4 resolved `Upheld` on 25 Oct, so
-   `finalize(4)` became callable at `2026-10-27 18:27:26 UTC` and releases
-   `heldSlash(4) = 3481864` (`3.481864 USDC`) to the caller. `finalize` is
-   permissionless, and `reclaimExpiredBond(4)` now reverts `AlreadyResolved`.
+1. **B8 — run `finalize(1)` and `finalize(2)`** — `finalize(4)` on V3 ran on 28 Oct
+   (tx `0xbdaf9525…f6167`) and released `3.481864 USDC`, so V3 carries no escrow. On
+   `DisputeV4` both disputes resolved `Upheld` and are still `settled = false`; their
+   windows opened at `1793389671` (id 1) and `1793389631` (id 2). `finalize` is
+   permissionless, and `reclaimExpiredBond` reverts `AlreadyResolved` on both — the
+   pending call is `finalize`, per `docs/V8_DEPLOYMENT.md` §14.7.
    The remaining gap is a fresh quiet dispute for the silence path, not #4.
 2. **A4 — keeper cadence** — measured, not assumed: 8 runs in 26 h (roughly every
    3-6 h) against a `*/15` request, so the workflow now also runs on every push to

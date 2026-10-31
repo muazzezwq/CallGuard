@@ -68,6 +68,6 @@ export function landingStats(calls: CallRow[], providers: ProviderRow[]): Landin
     activeProviders: providers.filter((p) => p.active).length,
     escrow: escrowRaw / 1e6,
     escrowCapped: calls.length >= CALL_WINDOW,
-    reputationScore: finished > 0 ? Math.round(((completed + 2) / (finished + 3)) * 100) : null,
+    reputationScore: finished > 0 ? Math.floor(((completed + 2) * 100) / (finished + 3)) : null,
   };
 }

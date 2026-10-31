@@ -106,7 +106,7 @@ const DEVELOPERS = [
   },
   {
     t: "MCP server (self-hosted)",
-    d: "Three MCP servers live in the repository under x402-facilitator/. None is deployed on arcsla.vercel.app, so you run one yourself against the subgraph.",
+    d: "Two MCP servers live in the repository under x402-facilitator/. Only mcp-server.js reads SUBGRAPH_URL; mcp-server-remote.js hardcodes the retired v7 endpoint. Neither is deployed on arcsla.vercel.app, so you run one yourself against the subgraph.",
     Icon: Workflow,
   },
   {
@@ -480,7 +480,7 @@ export default function Landing() {
           </div>
           <p className="mk-note mk-reveal">
             The score is <span className="mk-mono">(completed + 2) / (completed + slashed + 3)</span>, so it
-            starts at 67% and never reaches 100%. Escrow covers the open calls inside the newest{" "}
+            starts at 66% and never reaches 100%. Escrow covers the open calls inside the newest{" "}
             {CALL_WINDOW}, which is why it can read as a floor. Source: CallGuard subgraph · refreshed every
             30 seconds.{" "}
             <a className="mk-link" href={CONFIG.subgraphUrl} target="_blank" rel="noopener noreferrer">

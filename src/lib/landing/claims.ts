@@ -62,7 +62,7 @@ export const INTEGRATIONS: Integration[] = [
     state: "partial",
     status: "Self-hosted only",
     detail:
-      "Three MCP servers live in x402-facilitator/ and read the subgraph. None is deployed on arcsla.vercel.app, so you run one yourself.",
+      "Two MCP servers live in x402-facilitator/ (plus an importable factory). Only mcp-server.js reads SUBGRAPH_URL; mcp-server-remote.js hardcodes the retired v7 Goldsky endpoint. Neither is deployed on arcsla.vercel.app, so you run one yourself against the subgraph.",
   },
   {
     name: "ERC-8004 reputation",

@@ -1,13 +1,13 @@
 # Attestor scope — `witness` and `tee-attestation`
 
-Status: decided 28 October 2026. Two of the four evidence kinds have no verifier and will not
-get one until an artifact exists. This document records why, what the absence means for a
-dispute, and what would have to be true for it to change.
+Status: decided 28 October 2026. One of the four evidence kinds — `tee-attestation` — has no
+verifier and will not get one until an artifact exists. This document records why, what the
+absence means for a dispute, and what would have to be true for it to change.
 
-The short version: `zk-constraint` and `zk-execution` are checked on chain today.
-`witness` and `tee-attestation` are not, and the registry will not even accept an anchor for
-them — `anchor()` reverts `NoVerifierForKind()`, so the absence is a refusal, not a failed
-check that got recorded.
+The short version: `witness`, `zk-constraint` and `zk-execution` are checked on chain today
+(`witness` since 28 Oct, through `SLAProvenanceAdapter`). `tee-attestation` is not, and the
+registry will not even accept an anchor for it — `anchor()` reverts `NoVerifierForKind()`, so
+the absence is a refusal, not a failed check that got recorded.
 
 ## 1. What is wired today
 
@@ -39,10 +39,14 @@ read, so no claim of any strength can exist for it — which is still true of `t
 taken without an anchor records `NoAnchor` for it instead — a different sentence, because now the
 absence is the caller's omission rather than the registry's refusal.
 
-No dispute has been opened on `DisputeV4` yet (`getDispute(1..3)` returns an empty record and
-`evidenceOf(1..3)` an empty array), so no snapshot on chain carries either sentence. The
-four-kind wiring has therefore been read back but never exercised end to end; the first real
-dispute will be the first snapshot with rows in it.
+Two disputes have been opened on `DisputeV4`, and both snapshots are on chain. Dispute `1`
+(call `0x5ca2100b…b9ed1`, opened `1793209403`) wrote four absent rows and one sentence per kind;
+dispute `2` (call `0xf68c0c62…b488`, opened `1793214948`) added the first `bound = true` row —
+`zk-execution`, anchored in the transaction before it. Both were resolved `Upheld`
+(`1793216871` and `1793216831`) and neither is `settled`, so what remains for each is
+`finalize(id)`, which opens at `resolvedAt + appealWindow`: `1793389671` for `1`,
+`1793389631` for `2`. `reclaimExpiredBond` is not an alternative — it requires `Pending`.
+Section 5a reads both snapshots row by row.
 
 ## 2. What each kind claims
 
@@ -214,10 +218,12 @@ this repository.
 
 ### The first dispute, on a call nothing was anchored for
 
-`DisputeV4` dispute `1` is open on Arc Testnet, and it is the first one this contract has ever
-held. Opening it needed a call with no V3 record: all four earlier completed V8 calls already carry
-a V3 dispute id, and V4 answers those with `AlreadyDisputedElsewhere` so one stake cannot be slashed
-twice. So a fresh call was made and completed, then disputed by its own caller.
+`DisputeV4` dispute `1` is `Upheld` on Arc Testnet, and it was the first one this contract ever
+held. Only `finalize(1)` is pending — the window opens `1793389671` (`resolvedAt` `1793216871`
+plus `appealWindow`). Opening it needed a call with no V3 record: all four earlier completed V8
+calls already carry a V3 dispute id, and V4 answers those with `AlreadyDisputedElsewhere` so one
+stake cannot be slashed twice. So a fresh call was made and completed, then disputed by its own
+caller.
 
 | Field | Value |
 |---|---|

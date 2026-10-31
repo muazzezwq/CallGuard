@@ -85,12 +85,14 @@ cd x402-facilitator && npm run dev     # node --watch server.js
 
 ## Protocol facts agents get wrong
 
-- `callService` returns and `callId` is **`bytes32`** (not `uint256`); `submitReceipt` takes
-  `(bytes32 callId, bytes32 responseHash, uint64 respondedAt, bytes signature)`.
-- `getProvider` returns a **9-field** tuple; the registry counter is `nextProviderId`
-  (not `providerCount`). `src/lib/config.ts` ABIs already reflect these fixes — trust it.
-- Receipts are **EIP-712** (domain name `"ArcSLA"`, version `"1"`, includes `respondedAt`).
-  `ARCHITECTURE.md` §4 still describes the old EIP-191 `personal_sign` scheme — **stale**.
+- `callService` returns and `callId` is **`bytes32`** (not `uint256`); v8 `submitReceipt` takes
+  `(bytes32 callId, bytes32 responseHash, uint64 respondedAt, uint32 termsVersion, bytes signature)`.
+- `getProvider` on v8 returns an **11-field** tuple (`owner, signer, stake, pricePerCall,
+  latestTermsVersion, active, pendingCalls, completedCalls, slashedCalls, maxConcurrentCalls,
+  zkTier`); the registry counter is `nextProviderId` (not `providerCount`).
+  `src/lib/config.ts` ABIs already reflect these fixes — trust it.
+- Receipts are **EIP-712** (`EIP712("ArcSLA", "2")` on v8, `"1"` on v7, both include
+  `respondedAt`; v8 adds `termsVersion`). `ARCHITECTURE.md` §4 documents this correctly.
 - `getCall` has **two layouts**: v7 returns 8 words with `status` at index `7`; v8 returns
   11 words with `status` at index `10` (after `completedAt`, `termsVersion`, `termsHash`).
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
@@ -156,8 +158,8 @@ do not route new disputes to it.
 The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
 `ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
 on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. Provider
-migration ran on 23 Oct: v8 provider `1` is the owner wallet with `8 USDC` stake (one timeout
-drill slashed `2`), `1 USDC` price, terms v1 (window `120`, slash `2000`, availability `9950`), and endpoint
+migration ran on 23 Oct: v8 provider `1` is the owner wallet with `7.485694 USDC` stake (nine
+slashed calls since, the first a timeout drill that took `2`), `1 USDC` price, terms v1 (window `120`, slash `2000`, availability `9950`), and endpoint
 `https://arcsla.vercel.app/api/auto-receipt`. The v7 provider `1` was deactivated on 24 Oct 15:22:45 UTC
 (tx `0x2b730469…`) and unstaked at 16:23:01 UTC (tx `0x5db0fb6f…`), so its stake is `0` and the v7
 registry holds no locked funds; the cleanup card `src/components/panels/V7Cleanup.tsx` stays as the

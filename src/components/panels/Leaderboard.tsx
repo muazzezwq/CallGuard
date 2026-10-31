@@ -164,7 +164,7 @@ export default function Leaderboard() {
   }, [dataUpdatedAt]);
 
   const tabCopy: Record<Tab, string> = {
-    score: "Ordered by the registry's own score: ((completed + 2) × 100) / (completed + slashed + 3). A provider with no calls scores 66; an empty record cannot reach 100.",
+    score: "Ordered by the app-side score from the registry counters: floor((completed + 2) × 100 / (completed + slashed + 3)). A provider with no calls scores 66; an empty record cannot reach 100.",
     price: "Active providers only, cheapest price per call first. Price is the exact 6-decimal amount charged for one call.",
     slashed: "Providers with at least one slashed call, most slashed first. Providers with no slashes are not ranked here.",
   };

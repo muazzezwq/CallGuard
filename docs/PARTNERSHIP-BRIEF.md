@@ -45,7 +45,7 @@ Arkreen DePIN Node          TLAY BoAT Machine         CallGuard (this project)
 ## For Arkreen — How to Register as a Provider
 
 ### Requirements
-- Arc Testnet wallet with ~2 USDC (1 USDC stake + gas)
+- Arc Testnet wallet with at least 10 USDC (`ServiceRegistryV8.minStake()`) plus gas
 - Your Arkreen node endpoint URL
 - Node.js
 
@@ -60,11 +60,12 @@ npm install ethers
 export PRIVATE_KEY=0x<your_arkreen_node_wallet>
 export ARKREEN_ENDPOINT=https://<your-node>.example.com/api/energy
 
-node scripts/arkreen-register.js
+# the helper script is not in this repo; register through the Register panel,
+# or send ServiceRegistryV8.register(...) with cast
 ```
 
 **What this does:**
-- Stakes 1 USDC on CallGuard ServiceRegistry
+- Stakes the 10 USDC minimum on CallGuard `ServiceRegistryV8`
 - Sets: 0.01 USDC/call, 30s SLA window, 50% slash on timeout
 - Publishes metadata with service schema for TLAY machine discovery
 
@@ -92,7 +93,8 @@ POST https://arcsla.vercel.app/api/call-service
 export PRIVATE_KEY=0x<machine_wallet>
 export PROVIDER_ID=1
 export PAYLOAD=kwh_now
-node scripts/tlay-boat-call.js
+# the helper script is not in this repo; call through the Call Builder panel
+# or PayPerCallV8.callService(...) with cast
 ```
 
 ### EIP-3009 signing (C pseudocode for BoAT)
@@ -144,7 +146,7 @@ This creates the first **Physical AI × DePIN × SLA** loop on Arc:
 ## Open Items for Integration
 
 - [ ] Arkreen: provide testnet node endpoint URL for live demo
-- [ ] TLAY: test `tlay-boat-call.js` script with real BoAT device
+- [ ] TLAY: write the BoAT call script (no helper is in this repo yet) and test it with a real device
 - [ ] CallGuard: add `ARKREEN_API_URL` env var for live kWh data
 - [ ] Joint: coordinate demo video — eCandle → CallGuard → Bitaxe
 - [ ] Joint: co-tweet / blog post on Arc ecosystem

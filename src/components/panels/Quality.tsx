@@ -87,7 +87,7 @@ export default function Quality() {
 
       <SignalRow label="Arbiter terms">
         <Stat label="Earn" value="Dispute fees" hint="per resolved case" />
-        <Stat label="Require" value=">10 USDC" hint="minimum stake" />
+        <Stat label="Require" value=">1 USDC" hint="minVoterStake" />
         <Stat label="Voting power" value="Stake-weighted" hint="Bayesian majority" />
       </SignalRow>
 

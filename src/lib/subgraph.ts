@@ -13,8 +13,6 @@ export interface Provider {
   slashedCalls: number;
   totalSlashed: string;
   totalUnstaked?: string;
-  nftTokenId?: string;
-  nftBound?: boolean;
   createdAt: string;
   updatedAt: string;
   // Computed client-side
@@ -77,7 +75,6 @@ export async function fetchProviders(): Promise<Provider[]> {
     providers(first:100, orderBy:completedCalls, orderDirection:desc) {
       id owner signer stake pricePerCall active
       completedCalls slashedCalls totalSlashed
-      nftTokenId nftBound
       createdAt updatedAt
     }
   }`);
@@ -100,8 +97,6 @@ export async function fetchProviders(): Promise<Provider[]> {
       slashedCalls:   slashed,
       totalSlashed:  String(p.totalSlashed ?? "0"),
       totalUnstaked: String(p.totalUnstaked ?? "0"),
-      nftTokenId:   p.nftTokenId != null ? String(p.nftTokenId) : undefined,
-      nftBound:     Boolean(p.nftBound),
       deactivatedAt: p.deactivatedAt ? String(p.deactivatedAt) : undefined,
       createdAt:    String(p.createdAt ?? "0"),
       updatedAt:    String(p.updatedAt ?? "0"),

@@ -21,7 +21,6 @@ function row(over: Partial<ProviderRow> & { id: string }): ProviderRow {
     slashedCalls: 0,
     totalSlashed: "0",
     totalUnstaked: "0",
-    nftBound: false,
     createdAt: "0",
     updatedAt: "0",
     reputation: 66,
@@ -145,9 +144,8 @@ describe("filterProviders — filters narrow the real list", () => {
     expect(ids(filterProviders(rows, {}))).toEqual(["1", "2", "3"]);
     expect(isFilterActive({})).toBe(false);
   });
-  test("active and NFT-bound filters", () => {
+  test("active filter", () => {
     expect(ids(filterProviders(rows, { activeOnly: true }))).toEqual(["1", "3"]);
-    expect(ids(filterProviders(rows, { nftOnly: true }))).toEqual(["1"]);
   });
   test("max price and min stake compare the on-chain amounts", () => {
     expect(ids(filterProviders(rows, { maxPrice: "0.5" }))).toEqual(["1", "2"]);  // 0.5 included boundary
@@ -171,7 +169,7 @@ describe("filterProviders — filters narrow the real list", () => {
     expect(ids(filterProviders(rows, { search: "nothing" }))).toEqual([]);
   });
   test("filters combine, and clearing them restores the list", () => {
-    const f = { search: "0x", activeOnly: true, nftOnly: true, maxPrice: "1", minStake: "10", minReputation: 90, maxResponseTime: 10 };
+    const f = { search: "0x", activeOnly: true, maxPrice: "1", minStake: "10", minReputation: 90, maxResponseTime: 10 };
     expect(ids(filterProviders(rows, f))).toEqual(["1"]);
     expect(isFilterActive(f)).toBe(true);
     expect(ids(filterProviders(rows, {}))).toEqual(["1", "2", "3"]);

@@ -2,14 +2,14 @@ import { useOutletContext } from "react-router-dom";
 import { useReveal } from "./useReveal";
 
 const ENDPOINTS = [
-  { m: "GET", p: "/api/health", d: "Service liveness and contract wiring." },
-  { m: "GET", p: "/api/marketplace", d: "Listed providers with price, stake and honor rate." },
+  { m: "GET", p: "/api/marketplace/health", d: "Endpoint health roll-up across listed providers." },
+  { m: "GET", p: "/api/marketplace", d: "Listed providers with price, stake and endpoint health." },
   { m: "GET", p: "/api/marketplace/health", d: "Health roll-up across listed providers." },
   { m: "POST", p: "/api/call-service", d: "Execute a paid call (server-side escrow + receipt)." },
   { m: "POST", p: "/api/nano-call", d: "Batched Circle Gateway nanopayment call." },
-  { m: "GET", p: "/api/nano-balance", d: "Unified Gateway balance for an address." },
+  { m: "GET", p: "/api/nano-call?balance=1", d: "USDC balance for an address." },
   { m: "POST", p: "/api/auto-receipt", d: "Provider webhook: sign and submit a receipt." },
-  { m: "GET", p: "/api/attestation", d: "Cross-chain SLA attestation for a call id." },
+  { m: "GET", p: "/api/attestation", d: "SLA attestation for a provider or a call id." },
 ];
 
 export default function Docs() {

@@ -48,7 +48,9 @@ const SUBGRAPH = `{
   providers(first:1000,orderBy:completedCalls,orderDirection:desc){id active completedCalls slashedCalls pricePerCall stake}
 }`;
 
-const OPEN_STATES = new Set(["STARTED", "OPEN", "PENDING"]);
+/* The v8 subgraph emits STARTED as the only open call status
+   (`src/lib/landing/stats.ts:32-36`). */
+const OPEN_STATES = new Set(["STARTED"]);
 const CALLS_CAP = 1000;
 const PROVIDERS_CAP = 1000;
 const DAY = 86400;
@@ -60,11 +62,13 @@ type LiveEvent = {
   hash?: string;
 };
 
-/* Bayesian reputation, the same formula the registry-facing panels use. */
+/* App-side score, floor((completed + 2) × 100 / (completed + slashed + 3)) —
+   the same integer division as `providerMetrics.reputationScore`. Rounding here
+   would show 67 for an empty record where the chain counters say 66. */
 function repPct(p: { completedCalls?: string; slashedCalls?: string }): number {
   const c = parseInt(p.completedCalls || "0");
   const s = parseInt(p.slashedCalls || "0");
-  return Math.round(((c + 2) / (c + s + 3)) * 100);
+  return Math.floor(((c + 2) * 100) / (c + s + 3));
 }
 
 /* Status tone is carried by an icon, a label and a value as well as colour, so
@@ -1019,7 +1023,7 @@ export default function Overview() {
         ) : (
           <ul className="ov-rank">
             {topProviders.map((p, i) => {
-              const rep = Math.round(repPct(p));
+              const rep = repPct(p);
               return (
                 <li key={p.id} className="ov-rank__row">
                   <span className="ov-rank__pos">{i + 1}</span>
@@ -1036,7 +1040,7 @@ export default function Overview() {
       {/* ── Deployed contracts ── */}
       <SectionCard
         title="Deployed Contracts"
-        subtitle="Active v7 deployment addresses; the explorer is the source of truth"
+        subtitle="Active v8 deployment addresses, with retired contracts labelled; the explorer is the source of truth"
         titleAs="h2"
       >
         <div className="ov-contracts">

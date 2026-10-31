@@ -4,7 +4,7 @@ import { useReveal } from "./useReveal";
 
 type Prov = { id: string; pricePerCall: string; stake: string; active: boolean; completedCalls: string; slashedCalls: string; owner: string };
 const usdc = (raw: string) => Number(raw) / 1e6;
-const honorPct = (c: number, s: number) => (c + s > 0 ? Math.round(((c + 2) / (c + s + 3)) * 100) : 66);
+const scorePct = (c: number, s: number) => (c + s > 0 ? Math.floor(((c + 2) / (c + s + 3)) * 100) : 66);
 
 export default function Providers() {
   const { launch } = useOutletContext<{ launch: () => void }>();
@@ -21,8 +21,8 @@ export default function Providers() {
       <header className="mk-page-head">
         <h1 className="mk-page-title">Providers</h1>
         <p className="mk-page-sub">
-          Every active provider on Arc Testnet, ranked by on-chain honor rate. Stake USDC, set your
-          price and SLA window, and get paid per call you answer in time.
+          Every provider registered on Arc Testnet — active and inactive — ordered by completed
+          calls. Stake USDC, set your price and SLA window, and get paid per call you answer in time.
         </p>
         <div className="mk-hero__meta" style={{ marginTop: 18 }}>
           <span className="mk-hero__metaItem"><b>{active}</b> active</span>
@@ -34,12 +34,12 @@ export default function Providers() {
       <div className="mk-tableWrap mk-reveal" style={{ marginTop: 26 }}>
         <table className="mk-table">
           <thead>
-            <tr><th>Provider</th><th>Owner</th><th>Honor rate</th><th className="num">Price / call</th><th className="num">Stake</th><th className="num">Calls</th></tr>
+            <tr><th>Provider</th><th>Owner</th><th>Registry score</th><th className="num">Price / call</th><th className="num">Stake</th><th className="num">Calls</th></tr>
           </thead>
           <tbody>
             {provs.length === 0 && <tr><td colSpan={6} style={{ color: "var(--text-faint)" }}>Loading providers…</td></tr>}
             {provs.map((p) => {
-              const h = honorPct(p.c, p.s);
+              const h = scorePct(p.c, p.s);
               return (
                 <tr key={p.id}>
                   <td>

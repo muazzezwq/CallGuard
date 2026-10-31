@@ -143,7 +143,7 @@ function ProviderCard({ p, onCall, onCompare, onProfile, inCompare }: {
           <span className={`mp-dot${p.active ? " mp-dot-on" : ""}`} aria-hidden="true" />
           <Badge tone={p.active ? "guard" : "neutral"} dot>{p.active ? "Active" : "Inactive"}</Badge>
         </div>
-        <span className={`mp-score mp-score--${band.key}`} title="Registry score: ((completed + 2) × 100) / (completed + slashed + 3), the same formula as getReputationScore">
+        <span className={`mp-score mp-score--${band.key}`} title="App-side score from the registry counters: floor((completed + 2) × 100 / (completed + slashed + 3)). ServiceRegistryV8 has no getReputationScore.">
           {score}
           <span className="mp-score-of">/100</span>
         </span>

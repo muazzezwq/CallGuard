@@ -373,9 +373,11 @@ Conservative choices made without stopping. Format: decision + reason.
   shows as MISMATCH and the anchored hash still stands alone. Reason: a reader must be able to
   check the words without trusting the server that served them.
 - **The retiring contract keeps a labelled read path.** `DisputesV8` gained a legacy section that
-  reads `DisputeV3` — including `finalize` gated on V3's own `appealWindow` — because dispute #4's
-  `3.481864 USDC` escrow lives there. `V7Cleanup` set the precedent: a retired deployment stays
-  reachable through an explicit surface instead of disappearing with the money inside it.
+  reads `DisputeV3` — including `finalize` gated on V3's own `appealWindow`. V3 no longer holds
+  money: dispute #4 was finalized on 28 Oct 2026 (tx `0xbdaf9525…f6167`) and its `3.481864 USDC`
+  escrow went to the caller, so that section is now history rather than a live pot. `V7Cleanup`
+  set the precedent: a retired deployment stays reachable through an explicit surface instead of
+  disappearing with the money inside it.
 - **The reason a claim is unbound is data, not a sentence.** `AbsentReason` gained a sixth value,
   `VerifierNotBinding`, and the snapshot stores `reason` on the row. The five planned values could
   not describe a `Proof`-mode kind whose wiring recorded `bindsResponse = false`: that row would

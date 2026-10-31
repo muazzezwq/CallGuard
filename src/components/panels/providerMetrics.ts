@@ -34,7 +34,8 @@ export type ProviderRow = Omit<Provider, "maxResponseTime" | "slashBps"> & {
 
 /* ── metrics ───────────────────────────────────────────────────────────── */
 
-/** The registry's score, 0-100. Matches `getReputationScore` exactly. */
+/** App-side score, 0-100: the formula v7's `getReputationScore` used.
+ *  v8 exposes no score view, so every caller computes it from the counters. */
 export function reputationScore(completed: number, slashed: number): number {
   const c = Math.max(0, Math.trunc(completed) || 0);
   const s = Math.max(0, Math.trunc(slashed) || 0);
@@ -162,8 +163,6 @@ export interface ProviderFilters {
   /** Free text over provider id, owner address and signer address. */
   search?: string;
   activeOnly?: boolean;
-  /** NFT-bound registration only (registry V2). */
-  nftOnly?: boolean;
   /** Maximum price per call, decimal USDC as typed. */
   maxPrice?: string;
   /** Minimum stake, decimal USDC as typed. */
@@ -178,7 +177,7 @@ export interface ProviderFilters {
 export function isFilterActive(f: ProviderFilters): boolean {
   return Boolean(
     (f.search && f.search.trim()) ||
-    f.activeOnly || f.nftOnly ||
+    f.activeOnly ||
     (f.maxPrice && f.maxPrice.trim()) ||
     (f.minStake && f.minStake.trim()) ||
     (f.minReputation != null) ||
@@ -199,7 +198,6 @@ export function filterProviders<T extends ProviderRow>(rows: readonly T[], f: Pr
 
   return rows.filter(p => {
     if (f.activeOnly && !p.active) return false;
-    if (f.nftOnly && !p.nftBound) return false;
     if (maxPrice !== null) {
       const price = toBig(p.pricePerCall);
       if (price === null || price > maxPrice) return false;

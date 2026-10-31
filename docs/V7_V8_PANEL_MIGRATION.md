@@ -35,7 +35,7 @@ Probes against the live v8 contracts (`registry 0x793028B6…12A3`,
 | `registry.getProvider(1)` | 11 words | v7 was 9 words; `active` moved index `6` → `5` |
 | `registry.nextProviderId()` | `3` | present |
 | `registry.getTerms(uint256,uint32)` | present | needs two args |
-| `payPerCall.claimable(0xfbac99E6…06Da)` | `17527733` (17.527733 USDC) | **real money invisible to the Payments panel today** |
+| `payPerCall.claimable(0xfbac99E6…06Da)` | `26771055` (26.771055 USDC) | **real money invisible to the Payments panel today** |
 | `payPerCall.pipelineHook()` | revert | no hook in v8 |
 | `payPerCall.nextCallId()` | revert | no such counter in v8 |
 | `payPerCall.callService` | present, returns `bytes32` | v7 returned `uint256` |
@@ -186,7 +186,7 @@ That makes the panel's original approval target wrong. Measured 28 Oct 2026:
 | `USDC.allowance(owner → helper)` | `3000000` — the panel's `approve` went to the helper and was never spent |
 | `USDC.allowance(owner → PayPerCall v8)` | `max` — an old unlimited approval, which is the only reason any batch ever worked |
 | `aggregate3([PPC.callService(1, …)], allowFailure=false)` simulated from the owner | succeeds and returns a `bytes32` callId — the subcall runs as the owner |
-| `USDC.balanceOf(helper)` | `6173464` (6.173464 USDC) |
+| `USDC.balanceOf(helper)` | `6206779` (6.206779 USDC) |
 
 Consequences:
 

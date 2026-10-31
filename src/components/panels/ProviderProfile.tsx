@@ -311,12 +311,12 @@ export default function ProviderProfile() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Performance" subtitle="Counters from the registry; the score is the registry's own formula">
+            <SectionCard title="Performance" subtitle="Counters from the registry; the score is computed from them">
               <div className="pp-stats">
                 <Stat
                   label="Registry score"
                   value={<>{score}<small> /100</small></>}
-                  hint={chainScore !== null ? "Read from getReputationScore" : "Computed from the counters"}
+                  hint={chainScore !== null ? "Read from getReputationScore (v7)" : "Computed from the counters"}
                 />
                 <Stat label="Completed calls" value={countLabel(completed)} hint="Registry counter" />
                 <Stat

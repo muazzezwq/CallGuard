@@ -107,7 +107,7 @@ export default function Attestation() {
 
       <SignalRow label="Attestation properties">
         <Stat label="Type" value="On-chain" hint="Immutable records" />
-        <Stat label="Cross-chain" value="CCIP-ready" hint="Chainlink broadcast" />
+        <Stat label="Chain" value="Arc native" hint="No CCIP dependency in this contract" />
         <Stat label="Access" value="Permissionless" hint="No auth required" />
       </SignalRow>
 

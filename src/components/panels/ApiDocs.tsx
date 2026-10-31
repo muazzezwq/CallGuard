@@ -4,15 +4,14 @@ import {
 } from "../panel/PanelUi";
 
 const ENDPOINTS = [
-  { method: "GET", path: "/api/health", auth: false, desc: "Health check — RPC, signer, contract connectivity" },
+  { method: "GET", path: "/api/marketplace/health", auth: false, desc: "Health roll-up across the listed provider endpoints" },
   { method: "GET", path: "/api/attestation?providerId=1&type=score", auth: false, desc: "Provider reputation score + proof" },
   { method: "GET", path: "/api/attestation?callId=0x...", auth: false, desc: "Call verdict (COMPLETED/SLASHED/OPEN)" },
   { method: "POST", path: "/api/attestation", auth: true, desc: "Issue on-chain attestation (facilitator)" },
-  { method: "GET", path: "/api/nano-balance?address=0x...", auth: false, desc: "USDC balance via nano endpoint" },
+  { method: "GET", path: "/api/nano-call?balance=1&address=0x...", auth: false, desc: "USDC balance for an address" },
   { method: "POST", path: "/api/nano-call", auth: true, desc: "Nano-payment call (gasless, 0.001 USDC)" },
   { method: "GET", path: "/api/energy-data", auth: "x402", desc: "Premium energy data (x402 payment required)" },
   { method: "GET", path: "/api/premium-report", auth: "x402", desc: "Premium SLA report (x402 payment required)" },
-  { method: "GET", path: "/api/mcp-server", auth: false, desc: "MCP server manifest for AI agent integration" },
 ];
 
 const CODE = `// Browser JS — call a service
@@ -31,8 +30,9 @@ const EMBED = `<script src="https://arcsla.vercel.app/api/widget.js"></script>
 const MCP_CONFIG = `{
   "mcpServers": {
     "callguard": {
-      "url": "https://arcsla.vercel.app/api/mcp-server",
-      "agentWallet": "YOUR_AGENT_WALLET_ADDRESS"
+      "command": "node",
+      "args": ["x402-facilitator/mcp-server.js"],
+      "env": { "SUBGRAPH_URL": "https://api.studio.thegraph.com/query/1763627/onur/1.0.0" }
     }
   }
 }`;
@@ -49,7 +49,7 @@ export default function ApiDocs() {
     <PanelShell>
       <PageHeader
         title="API & Integration Docs"
-        subtitle="REST endpoints, MCP server, ERC-8004 agent identity, and SDK examples."
+        subtitle="REST endpoints, the MCP server, and SDK examples."
       />
       <PanelSource
         label="API base"
@@ -121,9 +121,8 @@ export default function ApiDocs() {
               label="Reference"
               rows={[
                 { label: "REST endpoints", value: String(ENDPOINTS.length) },
-                { label: "MCP manifest", value: "/api/mcp-server", mono: true },
+                { label: "MCP server", value: "run it locally (stdio)", mono: true },
                 { label: "Network", value: "Arc Testnet" },
-                { label: "ERC-8004", value: "Agent identity" },
               ]}
             />
 

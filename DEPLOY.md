@@ -211,5 +211,5 @@ PAY_PER_CALL=$PAY_PER_CALL_ADDRESS DEPLOYER=$MAIN_WALLET_ADDRESS \
 Run the gates before anything else: `bun run check`, `bun test tests/`, `forge test`.
 Then set the new addresses in the frontend (`src/lib/config.ts`), the server routes
 (`api/_contracts.js`) and the Vercel project env, and read back the wiring on chain —
-`docs/V8_DEPLOYMENT.md` §6 has the exact `cast` calls for the v8 pair and the smoke
-tests that follow.
+`docs/V8_DEPLOYMENT.md` §7 has the read-back `cast` calls for the v8 pair, §14.4 the smoke
+tests that follow, and §14.7 the dispute settlement calls.

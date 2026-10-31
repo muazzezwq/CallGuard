@@ -35,7 +35,7 @@ export default function Nano() {
   const refreshBalance = useCallback(async () => {
     if (!address) return
     try {
-      const res = await fetch(`/api/nano-balance?address=${address}`)
+      const res = await fetch(`/api/nano-call?balance=1&address=${address}`)
       const data = await res.json()
       // HIGH-05 fix: API returns `formatted` field, not `balance`
       if (data.formatted !== undefined) setBalance(data.formatted)
@@ -195,7 +195,7 @@ export default function Nano() {
               <div className="ui-section__body">
                 <div className="pg-form__actions">
                   <Button variant="primary" onClick={makeNanoCall} disabled={loading || !address}>
-                    {loading ? '⚡ Calling...' : '⚡ Call /nano/service (0.001 USDC)'}
+                    {loading ? '⚡ Calling...' : '⚡ Call /api/nano-call (0.001 USDC)'}
                   </Button>
                   <Button variant="secondary" onClick={refreshBalance}>↻ Refresh balance</Button>
                 </div>
@@ -206,8 +206,8 @@ export default function Nano() {
             <p className="pg-copy pg-copy--tight">Test HTTP 402 payment-required endpoints. Pay &amp; try in one click.</p>
             <Ledger label="x402 Endpoints">
               {[
-                { name: 'energy-data', path: '/api/energy-data', price: '0.001 USDC', desc: 'Real-time energy usage data' },
-                { name: 'premium-report', path: '/api/premium-report', price: '0.01 USDC', desc: 'Premium analytics report' },
+                { name: 'energy-data', path: '/api/energy-data', price: '0.01 USDC', desc: 'Real-time energy usage data' },
+                { name: 'premium-report', path: '/api/premium-report', price: '0.001 USDC', desc: 'Premium analytics report' },
               ].map(ep => (
                 <LedgerRow
                   key={ep.name}

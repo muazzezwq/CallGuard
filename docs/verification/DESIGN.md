@@ -24,10 +24,11 @@ is exact:
 | `tee-attestation` | an enclave measuring to an allowlisted PCR0 signed `userData`, and `userData` binds this call's `callId`, `termsHash` and `responseHash` | AWS Nitro root of trust, the PCR0 allowlist, the absence of side channels |
 | `zk-constraint` | there exists a private body whose keccak256 is the committed `responseHash`, and whose first byte is a declared public value, for this `callId` | the verifier bytecode; that the commitment itself was honest |
 
-Registry status (28 Oct 2026): only `zk-constraint` and `zk-execution` are wired as proof
-verifiers on `SLAEvidenceRegistryV2`. `witness` and `tee-attestation` sit at mode `0`, so
-`anchor()` reverts `NoVerifierForKind()` for them and a dispute records them as absent. Why,
-and what would close each: `docs/verification/ATTESTOR_SCOPE.md`.
+Registry status (28 Oct 2026): `zk-constraint`, `zk-execution` and `witness` are wired as
+proof verifiers on `SLAEvidenceRegistryV2`, so `modeOf` answers `2` for all three.
+`tee-attestation` sits at mode `0`: `anchor()` reverts `NoVerifierForKind()` for it and a
+dispute records it as absent. Why, and what would close it:
+`docs/verification/ATTESTOR_SCOPE.md`.
 
 **None of these is a proof of factual correctness.** A TEE proves an image ran; the image
 can compute a wrong answer. A zk proof proves the committed output satisfies a stated
