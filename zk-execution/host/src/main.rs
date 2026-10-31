@@ -21,6 +21,7 @@ use zk_execution_methods::{PING_ELF, PING_ID};
 #[derive(Deserialize)]
 struct InputFile {
     call_id: String,
+    claim_hash: String,
     request: String,
 }
 
@@ -28,6 +29,7 @@ struct InputFile {
 #[derive(Serialize)]
 struct GuestInput {
     call_id: [u8; 32],
+    claim_hash: [u8; 32],
     request: Vec<u8>,
 }
 
@@ -118,6 +120,9 @@ fn main() -> Result<()> {
         call_id: hex::decode(input.call_id.trim_start_matches("0x"))?
             .try_into()
             .map_err(|_| anyhow::anyhow!("call_id must be 32 bytes"))?,
+        claim_hash: hex::decode(input.claim_hash.trim_start_matches("0x"))?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("claim_hash must be 32 bytes"))?,
         request: hex::decode(input.request.trim_start_matches("0x"))?,
     };
 

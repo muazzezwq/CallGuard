@@ -65,6 +65,7 @@ contract Risc0ExecutionAdapterTest is Test {
     bytes32 constant CALL_ID = keccak256("call");
     bytes32 constant REQUEST_HASH = keccak256("ping");
     bytes32 constant RESPONSE_HASH = keccak256("pong");
+    bytes32 constant CLAIM_HASH = keccak256("claim");
 
     MockRisc0Verifier verifier;
     MockPayPerCall payPerCall;
@@ -78,16 +79,18 @@ contract Risc0ExecutionAdapterTest is Test {
             address(verifier), address(payPerCall), IMAGE_ID, HANDLER_ID
         );
         // Accept exactly the digest a correct journal produces.
-        bytes memory journal = _journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID);
+        bytes memory journal = _journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID, CLAIM_HASH);
         verifier.set(IMAGE_ID, sha256(journal));
     }
 
-    function _journal(bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(callId, requestHash, responseHash, handlerId);
+    function _journal(
+        bytes32 callId,
+        bytes32 requestHash,
+        bytes32 responseHash,
+        bytes32 handlerId,
+        bytes32 claimHash
+    ) internal pure returns (bytes memory) {
+        return abi.encode(callId, requestHash, responseHash, handlerId, claimHash);
     }
 
     function _proof(bytes memory journal) internal pure returns (bytes memory) {
@@ -95,68 +98,77 @@ contract Risc0ExecutionAdapterTest is Test {
     }
 
     function _validProof() internal pure returns (bytes memory) {
-        return _proof(_journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID));
+        return _proof(_journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID, CLAIM_HASH));
     }
 
     function test_acceptsValidProof() public view {
-        assertTrue(adapter.verify(_validProof(), CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertTrue(adapter.verify(_validProof(), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsForeignCallId() public view {
-        bytes memory blob = _proof(_journal(keccak256("other call"), REQUEST_HASH, RESPONSE_HASH, HANDLER_ID));
-        assertFalse(adapter.verify(blob, CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        bytes memory blob = _proof(_journal(keccak256("other call"), REQUEST_HASH, RESPONSE_HASH, HANDLER_ID, CLAIM_HASH));
+        assertFalse(adapter.verify(blob, CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsForeignResponseHash() public view {
-        bytes memory blob = _proof(_journal(CALL_ID, REQUEST_HASH, keccak256("pong!"), HANDLER_ID));
-        assertFalse(adapter.verify(blob, CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        bytes memory blob = _proof(_journal(CALL_ID, REQUEST_HASH, keccak256("pong!"), HANDLER_ID, CLAIM_HASH));
+        assertFalse(adapter.verify(blob, CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsRequestHashNotOnChain() public {
         payPerCall.setRequestHash(CALL_ID, keccak256("something else"));
-        assertFalse(adapter.verify(_validProof(), CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertFalse(adapter.verify(_validProof(), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsUnknownHandler() public view {
-        bytes memory blob = _proof(_journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, keccak256("other handler")));
-        assertFalse(adapter.verify(blob, CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        bytes memory blob = _proof(_journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, keccak256("other handler"), CLAIM_HASH));
+        assertFalse(adapter.verify(blob, CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsMissingCall() public {
         payPerCall.fail(true);
-        assertFalse(adapter.verify(_validProof(), CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertFalse(adapter.verify(_validProof(), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsMalformedBlob() public view {
-        assertFalse(adapter.verify(hex"", CALL_ID, keccak256("claim"), RESPONSE_HASH));
-        assertFalse(adapter.verify(hex"deadbeef", CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertFalse(adapter.verify(hex"", CALL_ID, CLAIM_HASH, RESPONSE_HASH));
+        assertFalse(adapter.verify(hex"deadbeef", CALL_ID, CLAIM_HASH, RESPONSE_HASH));
         assertFalse(
-            adapter.verify(abi.encode(uint256(1)), CALL_ID, keccak256("claim"), RESPONSE_HASH)
+            adapter.verify(abi.encode(uint256(1)), CALL_ID, CLAIM_HASH, RESPONSE_HASH)
         );
     }
 
     function test_rejectsWrongJournalLength() public view {
         bytes memory blob = _proof(abi.encode(CALL_ID, REQUEST_HASH));
-        assertFalse(adapter.verify(blob, CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertFalse(adapter.verify(blob, CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_rejectsVerifierRevert() public {
         verifier.fail(true);
-        assertFalse(adapter.verify(_validProof(), CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertFalse(adapter.verify(_validProof(), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function test_passesJournalDigestAndImageId() public view {
-        bytes memory journal = _journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID);
+        bytes memory journal = _journal(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID, CLAIM_HASH);
         // The mock accepts one exact (imageId, journalDigest) pair, so a `true` here is
         // the assertion that the adapter computed sha256(journal) and passed `imageId`.
-        assertTrue(adapter.verify(_proof(journal), CALL_ID, keccak256("claim"), RESPONSE_HASH));
+        assertTrue(adapter.verify(_proof(journal), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
         assertEq(verifier.expectedImageId(), IMAGE_ID);
         assertEq(verifier.expectedJournalDigest(), sha256(journal));
     }
 
-    function test_ignoresClaimHash() public view {
-        assertTrue(adapter.verify(_validProof(), CALL_ID, keccak256("claim a"), RESPONSE_HASH));
-        assertTrue(adapter.verify(_validProof(), CALL_ID, keccak256("claim b"), RESPONSE_HASH));
+    /// The envelope is part of the proof now: the same journal cannot be presented
+    /// under a different `claimHash`, which is the statement-substitution case.
+    function test_rejectsForeignClaimHash() public view {
+        assertTrue(adapter.verify(_validProof(), CALL_ID, CLAIM_HASH, RESPONSE_HASH));
+        assertFalse(adapter.verify(_validProof(), CALL_ID, keccak256("claim b"), RESPONSE_HASH));
+    }
+
+    /// A guest that never committed a claim hash produces a shorter journal, and that
+    /// must read as "not proven" rather than as an unbound-but-valid claim.
+    function test_rejectsJournalWithoutClaimHash() public view {
+        bytes memory legacy = _proof(abi.encode(CALL_ID, REQUEST_HASH, RESPONSE_HASH, HANDLER_ID));
+        assertFalse(adapter.verify(legacy, CALL_ID, CLAIM_HASH, RESPONSE_HASH));
     }
 
     function testFuzz_neverReverts(bytes calldata proof, bytes32 callId, bytes32 claimHash, bytes32 responseHash)

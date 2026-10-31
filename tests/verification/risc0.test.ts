@@ -25,12 +25,27 @@ const RESPONSE_HASH = "0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d
 const HANDLER_ID = keccak256(toBytes("callguard.handler.ping/1"));
 const TERMS_HASH = "0xbe8c8cd7ff8e85af17a1ccdba790eb1dae47a008d61feccdd682559d8d099fcf";
 
-function journalHex(overrides: Partial<Record<"callId" | "requestHash" | "responseHash" | "handlerId", `0x${string}`>> = {}) {
-  return encodeAbiParameters(parseAbiParameters("bytes32,bytes32,bytes32,bytes32"), [
+const CLAIM_HASH = keccak256(toBytes("envelope digest"));
+
+function journalHex(
+  overrides: Partial<Record<"callId" | "requestHash" | "responseHash" | "handlerId" | "claimHash", `0x${string}`>> = {},
+) {
+  return encodeAbiParameters(parseAbiParameters("bytes32,bytes32,bytes32,bytes32,bytes32"), [
     overrides.callId ?? CALL_ID,
     overrides.requestHash ?? REQUEST_HASH,
     overrides.responseHash ?? RESPONSE_HASH,
     overrides.handlerId ?? HANDLER_ID,
+    overrides.claimHash ?? CLAIM_HASH,
+  ]);
+}
+
+/** The 128-byte journal the pre-binding guest produced. */
+function legacyJournalHex() {
+  return encodeAbiParameters(parseAbiParameters("bytes32,bytes32,bytes32,bytes32"), [
+    CALL_ID,
+    REQUEST_HASH,
+    RESPONSE_HASH,
+    HANDLER_ID,
   ]);
 }
 
@@ -62,19 +77,31 @@ function envelope(journal: string): EvidenceEnvelope {
 }
 
 describe("decodeJournal", () => {
-  test("round-trips the four journal fields", () => {
+  test("round-trips the five journal fields", () => {
     expect(decodeJournal(journalHex())).toEqual({
       callId: CALL_ID,
       requestHash: REQUEST_HASH,
       responseHash: RESPONSE_HASH,
       handlerId: HANDLER_ID,
+      claimHash: CLAIM_HASH,
+      claimHashBound: true,
     });
   });
 
-  test("refuses a journal that is not 128 bytes", () => {
-    expect(() => decodeJournal("0x")).toThrow("journal must be 128 bytes");
-    expect(() => decodeJournal(journalHex().slice(0, 2 + 64 * 2))).toThrow("journal must be 128 bytes");
-    expect(() => decodeJournal(`0x${"00".repeat(132)}`)).toThrow("journal must be 128 bytes");
+  test("decodes the legacy 128-byte journal as unbound", () => {
+    expect(decodeJournal(legacyJournalHex())).toEqual({
+      callId: CALL_ID,
+      requestHash: REQUEST_HASH,
+      responseHash: RESPONSE_HASH,
+      handlerId: HANDLER_ID,
+      claimHashBound: false,
+    });
+  });
+
+  test("refuses any other length", () => {
+    expect(() => decodeJournal("0x")).toThrow("journal must be 160 bytes");
+    expect(() => decodeJournal(journalHex().slice(0, 2 + 64 * 2))).toThrow("journal must be 160 bytes");
+    expect(() => decodeJournal(`0x${"00".repeat(132)}`)).toThrow("journal must be 160 bytes");
   });
 });
 
@@ -105,6 +132,29 @@ describe("checkRisc0Binding", () => {
     const result = checkRisc0Binding(journal, subject(), { handlerId: HANDLER_ID });
     expect(result.ok).toBe(false);
     expect(result.reasons.join(" ")).toContain("handlerId");
+  });
+
+  test("accepts the envelope's own claimHash and rejects another", () => {
+    expect(checkRisc0Binding(decodeJournal(journalHex()), subject(), {
+      handlerId: HANDLER_ID,
+      claimHash: CLAIM_HASH,
+    })).toEqual({ ok: true, reasons: [] });
+
+    const other = checkRisc0Binding(decodeJournal(journalHex()), subject(), {
+      handlerId: HANDLER_ID,
+      claimHash: keccak256(toBytes("another envelope")),
+    });
+    expect(other.ok).toBe(false);
+    expect(other.reasons.join(" ")).toContain("claimHash");
+  });
+
+  test("reports a legacy journal as unbound when a claimHash is expected", () => {
+    const result = checkRisc0Binding(decodeJournal(legacyJournalHex()), subject(), {
+      handlerId: HANDLER_ID,
+      claimHash: CLAIM_HASH,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toContain("predates claim binding");
   });
 
   test("carries requestHash through without comparing it: the chain is its only source", () => {

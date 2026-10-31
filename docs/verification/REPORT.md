@@ -52,6 +52,11 @@ not invented. Fixtures: `test/fixtures/zk/keccak-call.{proof,inputs,vk}`.
 | on-chain anchor through the registry | **404,917 gas** (live tx, block `69236411`, ≈0.012 USDC at 30 gwei) |
 | deploy | verifier 1,135,268 gas, adapter 470,413 gas, `setProofVerifier` 33,907 gas |
 
+Every row above measures the **pre-binding guest** (128-byte journal, no `claimHash`), which is
+what the deployed adapter `0xD804F2E0…1a21` accepts. The source guest and adapter now commit and
+compare a fifth word, so the numbers change with the next image: re-measure them when a new seal
+is produced. See `DESIGN.md` §6, "Statement binding, current state".
+
 The seal was produced by CI run `40398709972` for the same live call as the UltraHonk claim,
 and the artifacts are committed (`test/fixtures/zk-execution/`). Two independent checks say it
 is real: `test/Risc0Receipt.t.sol` verifies it against the vendored verifier locally, and the

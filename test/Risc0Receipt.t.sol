@@ -12,6 +12,11 @@ import { VerificationFailed } from "risc0-ethereum/contracts/src/IRiscZeroVerifi
 ///         anchors it on chain. If this test fails, the proof and the constants disagree and the
 ///         chain would reject the anchor; if this test passes and the chain still rejects, the
 ///         difference is in the chain, not in the receipt.
+/// @dev    These artifacts come from the **pre-binding** guest: a 128-byte journal with no
+///         `claimHash`. They pin the image id byte order and the Groth16 constants, which the
+///         new guest did not change; they do not exercise `Risc0ExecutionAdapter`'s 160-byte
+///         requirement, which `Risc0ExecutionAdapter.t.sol` covers. Replacing them needs a
+///         re-prove of the five-word journal through the x86-only prover.
 contract Risc0ReceiptTest is Test {
     bytes32 constant CONTROL_ROOT = 0xa54dc85ac99f851c92d7c96d7318af41dbe7c0194edfcc37eb4d422a998c1f56;
     bytes32 constant BN254_CONTROL_ID = 0x04446e66d300eb7fb45c9726bb53c793dda407a62e9601618bb43c5c14657ac0;
@@ -39,7 +44,7 @@ contract Risc0ReceiptTest is Test {
         bytes memory seal = sealedBytes();
         bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution/journal.bin");
         assertEq(seal.length, 260, "seal is selector + Groth16 proof");
-        assertEq(journal.length, 128, "journal is four 32-byte fields");
+        assertEq(journal.length, 128, "journal is four 32-byte fields (pre-binding guest)");
         assertEq(sha256(journal), JOURNAL_DIGEST, "journal digest pins the journal");
 
         // Reverts VerificationFailed() when the pairing check fails.
@@ -50,7 +55,7 @@ contract Risc0ReceiptTest is Test {
         bytes memory seal = vm.readFileBinary("test/fixtures/zk-execution-f68c0c62/seal.bin");
         bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution-f68c0c62/journal.bin");
         assertEq(seal.length, 260, "seal is selector + Groth16 proof");
-        assertEq(journal.length, 128, "journal is four 32-byte fields");
+        assertEq(journal.length, 128, "journal is four 32-byte fields (pre-binding guest)");
         assertEq(sha256(journal), JOURNAL_DIGEST_SECOND, "journal digest pins the second journal");
 
         // The same image id as the first proof: the guest did not change, only the

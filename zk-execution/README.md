@@ -6,9 +6,12 @@ on a request whose keccak256 is the call's committed `requestHash`.
 
 ## What the proof says, and what it does not
 
-It says: a program with image id `<image id>` ran, read a private request, refused
-everything except `ping`, and committed a journal naming this call, this request hash,
-this response hash, and the handler `keccak256("callguard.handler.ping/1")`.
+It says: a program with image id `<image id>` ran, read a private request and a private
+claim digest, refused everything except `ping`, and committed a journal naming this call,
+this request hash, this response hash, the handler
+`keccak256("callguard.handler.ping/1")`, and the digest of the envelope that describes the
+claim. That last word is what makes the seal cover the description, so the same proof cannot
+be re-anchored under a different statement.
 
 It does not say the answer is *correct*, useful, or that it matches the outside world.
 It also does not say which machine ran it — that is the point of a zkVM, and why this
@@ -53,11 +56,22 @@ One set, or the verifier rejects the seal:
 
 ## Journal layout
 
-`abi.encode(bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId)`,
-128 bytes. `Risc0ExecutionAdapter` requires exactly that length and compares every field.
+`abi.encode(bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId, bytes32 claimHash)`,
+160 bytes. `Risc0ExecutionAdapter` in this tree requires exactly that length and compares every
+field, including `claimHash` against the claim the registry asks it to verify — that is what
+stops a valid proof from being re-anchored under a different statement.
+
+`claim_hash` is private input, so the journal is where it becomes public.
+
+**Legacy length.** The guest before this one committed four words (128 bytes). The adapter
+deployed on Arc Testnet at `0xD804F2E0…1a21` accepts only that, and the artifacts in
+`test/fixtures/zk-execution/` are from it. A fresh proof needs the new guest (new image id) and a
+new adapter; until then the source and the chain disagree by design, and the deployed claim stays
+readable because each claim records the adapter that vouched for it.
 
 Known values for the target call:
 
 - `requestHash` `0xcd541a5f22d1f8d9c088efa3474acd3d04f58894b42e4ffb4bc0dbb4c0b879c7` = `keccak256("ping")`
 - `responseHash` `0x188fcd5cf9ef16dcca9118fafa7971df7a86f5b5762c15c204d6a3d29f4e6e8d` = `keccak256("pong")`
+- `claimHash` `0xe3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c` = the anchored envelope's digest
 - image id, journal hex and proving wall time: recorded after the first real run.

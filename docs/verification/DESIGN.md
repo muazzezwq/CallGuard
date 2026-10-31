@@ -194,28 +194,42 @@ commits a journal, and a Groth16 seal proves that this program, with this image 
 exactly that journal. That is the strongest honest answer to "how was this answer produced"
 that a chain can check by itself, and it needs no key and no enclave.
 
-Guest (`zk-execution/methods/guest/src/main.rs`): reads `(call_id: [u8;32], request: Vec<u8>)`,
-answers `ping` with `pong`, and commits
+Guest (`zk-execution/methods/guest/src/main.rs`): reads
+`(call_id: [u8;32], claim_hash: [u8;32], request: Vec<u8>)`, answers `ping` with `pong`, and
+commits
 
 ```
-journal = abi.encode(bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId)
+journal = abi.encode(
+    bytes32 callId, bytes32 requestHash, bytes32 responseHash, bytes32 handlerId, bytes32 claimHash
+)
 ```
 
-128 bytes, where `requestHash = keccak256(request)`, `responseHash = keccak256(response)` and
-`handlerId = keccak256("callguard.handler.ping/1")`. Journal contents are public in a zkVM:
-privacy is over the input and the execution trace, not the output.
+160 bytes, where `requestHash = keccak256(request)`, `responseHash = keccak256(response)`,
+`handlerId = keccak256("callguard.handler.ping/1")` and `claimHash` is the envelope digest the
+prover wants the seal to cover. Journal contents are public in a zkVM: privacy is over the input
+and the execution trace, not the output. `claim_hash` is private input, so which claim the proof
+was made for is not public until the journal is published with the anchor.
+
+The 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`) is the guest this
+replaced. It still exists on chain: the **deployed** adapter `0xD804F2E0…1a21` accepts only that
+length, and the journal below `test/fixtures/zk-execution/` is one of those. Nothing changes for
+already-anchored claims — each is labelled with the adapter that vouched for it — but a fresh
+proof now needs the new guest, a new image id and a new adapter.
 
 On chain, `contracts/zk/Risc0ExecutionAdapter.sol` takes the registry's
 `(proof, callId, claimHash, responseHash)` and:
 
 1. decodes the blob as `abi.encode(bytes seal, bytes journal)`; a malformed blob returns
    `false` instead of reverting, because the registry treats a revert as "the verifier broke";
-2. decodes the four journal words and requires `journalCallId == callId`,
-   `journalResponseHash == responseHash`, `journalHandler == handlerId`;
-3. reads the call's `requestHash` from `PayPerCallV8.getCall(callId)` and requires the journal's
+2. requires the journal to be exactly 160 bytes — a 128-byte journal is a different guest, and a
+   verifier that accepted it would be accepting a proof about less than it claims;
+3. decodes the five journal words and requires `journalCallId == callId`,
+   `journalResponseHash == responseHash`, `journalHandler == handlerId`,
+   `journalClaimHash == claimHash`;
+4. reads the call's `requestHash` from `PayPerCallV8.getCall(callId)` and requires the journal's
    `requestHash` to equal it — this is what ties a proof to a call rather than to a judgment
    about the call;
-4. calls `IRiscZeroVerifier.verify(seal, imageId, sha256(journal))`.
+5. calls `IRiscZeroVerifier.verify(seal, imageId, sha256(journal))`.
 
 `imageId`, `handlerId` and `verifier` are immutable, so swapping the guest program needs a new
 adapter and a new `setProofVerifier`; the registry's `setProofVerifier` is deliberately
@@ -223,7 +237,7 @@ repeatable so that migration is one owner transaction, and the old claims stay r
 each is already labelled with the adapter that vouched for it.
 
 What this path proves, in one sentence: a guest with the published image id executed and
-committed these four words for this call. It does not prove that:
+committed these five words for this call. It does not prove that:
 
 - the answer is correct, or that any model produced it — the guest implements `ping`/`pong`,
   not the provider's handler;
@@ -231,20 +245,21 @@ committed these four words for this call. It does not prove that:
   whose hash is committed;
 - the request bytes came from the caller — only `keccak256(request)` is committed, so any
   preimage produces the same proof;
-- the envelope's `statement` and `assumptions` are what the proof constrains. `claimHash` is not
-  a circuit input today (see the limitation note below), so the proof is bound to the call and
-  the response, not to the words describing them.
+- the registry's `statementHash`/`assumptionHash` are what the circuit constrained — the circuit
+  sees one `claimHash`, which the anchoring party computed off chain. Binding the envelope means
+  binding *its digest*, not its truth.
 
-**Known limitation, current state (31 Oct 2026).** `claimHash` and the registry's
-`statementHash`/`assumptionHash` never reach the circuit, so one valid proof can be anchored
-under a different envelope. Closing it means a new guest that commits `claimHash` as a fifth
-journal word plus an adapter that compares it; that changes the image id and therefore needs a
-new adapter and one `setProofVerifier`. Until that deployment, read an anchored `claimHash` as a
-description of the claim, never as something the seal constrains.
+**Statement binding, current state (31 Oct 2026).** The guest commits `claimHash` as a fifth
+journal word and the source of `Risc0ExecutionAdapter` compares it with the claim the registry
+asks it to verify, so a proof made for one envelope cannot be anchored under another. That is
+code, not a deployed fact: the live adapter `0xD804F2E0…1a21` still accepts only 128 bytes, and
+its image id commits to the guest that had no `claimHash`. Read a claim anchored before the
+migration as a description the seal does not constrain. Migrating takes a re-prove (x86-only
+Groth16 prover, so the `[prove]` workflow), a new adapter, and one `setProofVerifier`.
 
-`claimHash` is not a circuit input here either. It commits to the envelope (statement,
-assumptions), and the image id is bound by the adapter's immutable field. Neither is a verdict
-about correctness.
+`claimHash` is a circuit input in the source guest, as the fifth journal word, so the seal covers
+the envelope digest. It commits to the envelope (statement, assumptions); it is still not a
+verdict about correctness.
 
 The verifier is vendored, not written here: `lib/risc0-ethereum` at `365e7b2` (`v3.0.1`),
 GPL-3.0, with `ControlID` supplying `CONTROL_ROOT` and `BN254_CONTROL_ID`. `IRiscZeroVerifier`

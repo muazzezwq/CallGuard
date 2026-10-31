@@ -21,10 +21,12 @@ import { IRiscZeroVerifier } from "risc0-ethereum/contracts/src/IRiscZeroVerifie
 ///         not be presented as a proof about this call. `callId`, `responseHash` and
 ///         `handlerId` are each compared against the journal for the same reason.
 ///
-///         `claimHash` is deliberately unchecked. It commits to the off-chain envelope
-///         (statement, assumptions, issuedAt), which is metadata about how the claim is
-///         described, not a fact a circuit can constrain. The registry stores it beside
-///         the proof; `ZkClaimAdapter` documents the same treatment.
+///         `claimHash` is committed by the guest as the journal's fifth word, so the
+///         seal covers the envelope digest (statement + assumptions) as well. An
+///         envelope swapped for a different one no longer verifies: the journal it
+///         would have to carry is not the journal this image produced. The guest takes
+///         `claim_hash` as private input, so the description is not public until the
+///         journal is published alongside the anchor.
 contract Risc0ExecutionAdapter is IEvidenceVerifier {
     /// @notice Groth16 verifier for the pinned RISC Zero version. Root of trust is this
     ///         bytecode: if it accepts the seal, the execution happened.
@@ -56,8 +58,6 @@ contract Risc0ExecutionAdapter is IEvidenceVerifier {
         view
         returns (bool)
     {
-        claimHash; // named for the registry's interface; it is not a circuit input
-
         // A malformed blob must read as "not proven" rather than bubbling a decode revert,
         // because the registry treats a revert as a verifier failure, not a rejection.
         if (proof.length < 96) return false;
@@ -71,19 +71,23 @@ contract Risc0ExecutionAdapter is IEvidenceVerifier {
             return false;
         }
 
-        // 4 × bytes32, ABI encoded: callId, requestHash, responseHash, handlerId.
-        if (journal.length != 128) return false;
+        // 5 × bytes32, ABI encoded: callId, requestHash, responseHash, handlerId, claimHash.
+        if (journal.length != 160) return false;
 
         bytes32 journalCallId;
         bytes32 journalRequestHash;
         bytes32 journalResponseHash;
         bytes32 journalHandler;
-        (journalCallId, journalRequestHash, journalResponseHash, journalHandler) =
-            abi.decode(journal, (bytes32, bytes32, bytes32, bytes32));
+        bytes32 journalClaimHash;
+        (journalCallId, journalRequestHash, journalResponseHash, journalHandler, journalClaimHash) =
+            abi.decode(journal, (bytes32, bytes32, bytes32, bytes32, bytes32));
 
         if (journalCallId != callId) return false;
         if (journalResponseHash != responseHash) return false;
         if (journalHandler != handlerId) return false;
+        // The seal covers the envelope digest: a different statement means a journal this
+        // image never produced, so the verifier rejects the proof below.
+        if (journalClaimHash != claimHash) return false;
 
         bytes32 onChainRequestHash;
         try payPerCall.getCall(callId) returns (IPayPerCallV8.Call memory record) {

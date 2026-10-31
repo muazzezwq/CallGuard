@@ -230,6 +230,7 @@ export function verifyRisc0(
     requestHash: `0x${"0".repeat(64)}`,
     responseHash: `0x${"0".repeat(64)}`,
     handlerId: `0x${"0".repeat(64)}`,
+    claimHashBound: false,
   };
 
   const fail = (reason: string): EvidenceReport => ({

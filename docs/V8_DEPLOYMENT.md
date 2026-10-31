@@ -738,6 +738,12 @@ another response cannot be presented for this one.
 | anchor, end to end | **404,917** gas (≈0.012 USDC at 30 gwei) |
 | third-party service cost | none — the verifier is vendored, proving is CI |
 
+These numbers describe the **pre-binding guest**: a 128-byte journal with no `claimHash`, which is
+what the deployed adapter `0xD804F2E0…1a21` accepts and what the §13.2 proof blob holds. The source
+guest and adapter commit and compare a fifth word now, so the journal length, the digest and the
+blob size all change with the next image and need a new seal to measure. `DESIGN.md` §6 records the
+migration path: a re-prove through the `[prove]` workflow, a new adapter, one `setProofVerifier`.
+
 Compare with §11's UltraHonk path: 2.9M gas to verify an output constraint, versus 0.26M here,
 because the RISC Zero verifier is a hand-written pairing check with the verification key
 compiled into it and only five public inputs.
@@ -889,8 +895,9 @@ PROOF="$(cast abi-encode 'f(bytes,bytes)' "$SEAL" "$JOURNAL")"
 cast call $ADAPTER 'verify(bytes,bytes32,bytes32,bytes32)(bool)' "$PROOF" "$CALL_ID" "$CLAIM" "$RESPONSE" --rpc-url https://rpc.testnet.arc.io  # true before spending gas
 ```
 
-`journal.bin` is the 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`); the
-seal is `260` bytes. `xxd` is not installed on this box, so `od -An -v -tx1` is the portable form.
+`journal.bin` is the 128-byte journal (`callId`, `requestHash`, `responseHash`, `handlerId`) of the
+pre-binding guest — the only length the deployed adapter accepts — and the seal is `260` bytes.
+`xxd` is not installed on this box, so `od -An -v -tx1` is the portable form.
 
 ### 14.3c Production: the 12-function cap and the tuple decode
 

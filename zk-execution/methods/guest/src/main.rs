@@ -18,10 +18,13 @@ use sha3::{Digest, Keccak256};
 risc0_zkvm::guest::entry!(main);
 
 /// Private input. The call id travels as its own field so the request bytes can never
-/// smuggle a different binding into the journal.
+/// smuggle a different binding into the journal. `claim_hash` is the digest of the
+/// off-chain envelope (statement + assumptions): committing it here is what stops a
+/// valid proof from being re-anchored under a different description.
 #[derive(serde::Deserialize)]
 struct Input {
     call_id: [u8; 32],
+    claim_hash: [u8; 32],
     request: Vec<u8>,
 }
 
@@ -41,14 +44,15 @@ fn main() {
     let response_hash: [u8; 32] = Keccak256::digest(body).into();
     let handler_id: [u8; 32] = Keccak256::digest(HANDLER_ID_SOURCE).into();
 
-    // `abi.encode(bytes32,bytes32,bytes32,bytes32)` — 128 bytes, the exact layout
-    // `Risc0ExecutionAdapter` decodes. Written by hand because the guest has no ABI
-    // encoder and this layout has no ambiguity to resolve.
-    let mut journal = [0u8; 128];
+    // `abi.encode(bytes32,bytes32,bytes32,bytes32,bytes32)` — 160 bytes, the exact
+    // layout `Risc0ExecutionAdapter` decodes. Written by hand because the guest has
+    // no ABI encoder and this layout has no ambiguity to resolve.
+    let mut journal = [0u8; 160];
     journal[0..32].copy_from_slice(&input.call_id);
     journal[32..64].copy_from_slice(&request_hash);
     journal[64..96].copy_from_slice(&response_hash);
     journal[96..128].copy_from_slice(&handler_id);
+    journal[128..160].copy_from_slice(&input.claim_hash);
 
     env::commit_slice(&journal);
 }
