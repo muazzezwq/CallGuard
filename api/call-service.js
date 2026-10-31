@@ -27,6 +27,7 @@ import {
   deriveAuthorizationId,
   normalizeExplicitKey,
 } from "./_idempotency.js";
+import { createUpstashIdempotencyStoreFromEnv } from "./_upstash_idempotency_store.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -544,8 +545,62 @@ export function createCallServiceHandler(options = {}) {
   return (req, res) => handler(req, res, options);
 }
 
-export default function defaultHandler(req, res) {
-  return handler(req, res);
+/** Sentinel: the store was configured but could not be built. Fail closed. */
+const IDEMPOTENCY_STORE_FAILED = Symbol("idempotency-store-failed");
+
+export const DEFAULT_IDEMPOTENCY_KEY_PREFIX = "callguard:idempotency:call-service:";
+
+/**
+ * The store the default export uses, resolved per invocation from the environment.
+ *
+ * Activation is an explicit switch, because `docs/decisions.md` still records the
+ * remaining pre-activation work (durable raw-transaction persistence, a recovery
+ * worker, a replacement policy). `UPSTASH_REDIS_REST_URL` may already be set for
+ * rate limiting, so presence alone must not flip payment behaviour.
+ *
+ * Three outcomes, and the difference between the last two is the whole point:
+ * - an object: `CALL_SERVICE_IDEMPOTENCY=enabled` and both Upstash vars are set;
+ * - `null`: not enabled. The endpoint keeps its no-store behaviour, which is the
+ *   current production path and demo mode — neither settles twice;
+ * - `IDEMPOTENCY_STORE_FAILED`: enabled but unusable (one var missing, a bad
+ *   token). Answering 503 is the only safe response: silently falling back to the
+ *   no-store path would settle a second payment for the same authorization, which
+ *   is the failure this store exists to prevent.
+ */
+export function resolveDefaultIdempotencyStore(env = process.env) {
+  if (!isIdempotencyEnabled(env)) return null;
+  try {
+    return createUpstashIdempotencyStoreFromEnv({
+      env,
+      keyPrefix: env?.IDEMPOTENCY_KEY_PREFIX || DEFAULT_IDEMPOTENCY_KEY_PREFIX,
+    });
+  } catch (e) {
+    logError("[x402/call-service] idempotency store unavailable", e);
+    return IDEMPOTENCY_STORE_FAILED;
+  }
+}
+
+function isIdempotencyEnabled(env) {
+  const raw = env?.CALL_SERVICE_IDEMPOTENCY;
+  if (typeof raw !== "string") return false;
+  return ["enabled", "1", "true"].includes(raw.trim().toLowerCase());
+}
+
+/** Receipt reader for record recovery: `null` while the transaction is unmined. */
+export async function readTransactionReceipt(txHash) {
+  const rpcUrl = getRpcUrl();
+  if (!rpcUrl) return null;
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  return provider.getTransactionReceipt(txHash);
+}
+
+export default function defaultHandler(req, res, env = process.env) {
+  const store = resolveDefaultIdempotencyStore(env);
+  if (store === IDEMPOTENCY_STORE_FAILED) {
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+    return sendIdempotencyUnavailable(res);
+  }
+  return handler(req, res, { idempotencyStore: store, readReceipt: readTransactionReceipt });
 }
 
 async function handler(req, res, { idempotencyStore = null, readReceipt = null } = {}) {
