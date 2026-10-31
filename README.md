@@ -551,7 +551,7 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: all tests passing, 0 failed, across 30 suites (`forge test`; 621 passing when last measured on 31 Oct 2026).
+Expected: all tests passing, 0 failed, across 31 suites (`forge test`; 629 passing when last measured on 31 Oct 2026).
 
 ### Try the demo
 
@@ -625,7 +625,7 @@ CallGuard/
 │   └── components/
 │       ├── Architecture.tsx          # architecture diagram panel
 │       └── CgLanding.tsx             # landing page (disconnected view)
-├── test/                             # 621 Foundry tests, 30 suites
+├── test/                             # 629 Foundry tests, 31 suites
 ├── script/                           # deploy scripts
 ├── api/                              # Vercel serverless functions
 │   ├── marketplace.js                # x402 Bazaar discovery endpoint (NEW)
@@ -664,7 +664,7 @@ CallGuard/
 - `SLAProvenance` — an allowlisted attestor signs `(callId, payloadHash, originHash, observedAt)`; the contract recovers the signer, so a caller can check *who* witnessed the payload (live record for call `0x8cfa1821…`)
 - Keeper automation — `.github/workflows/keeper.yml` asks for a 15-minute cadence (`ONCE=1`) on a GitHub runner; observed cadence 3-6 h, batches `claimBatch`, withdraws bounties, uploads JSONL evidence
 - Per-caller concurrency caps tested on v8 (`maxConcurrentCalls`, default 10)
-- Foundry suite green: 621 passing across 30 suites when last measured on 30 Oct 2026; coverage table in `docs/SLA_COVERAGE.md`
+- Foundry suite green: 629 passing across 31 suites when last measured on 31 Oct 2026; coverage table in `docs/SLA_COVERAGE.md`
 
 **Core Protocol (v5) — historical; items retired on v8 are marked**
 - EIP-712 typed receipt signing — structured receipt preview in MetaMask
@@ -673,7 +673,7 @@ CallGuard/
 - x402 HTTP payment protocol — full EIP-3009 authorization flow, gasless for the caller
 - Circle Gateway Nanopayments — gasless micro-payments, server-side settlement
 - ERC-8183 Jobs — full 5-step lifecycle with role badges
-- 223/223 Foundry tests passing (at the time; the suite is 621 today)
+- 223/223 Foundry tests passing (at the time; the suite is 629 today)
 
 **v2 Protocol (Oct 2026) — historical; retired on v8 unless noted**
 - DisputeQuality — community stake-weighted arbitration *(retired; v8 disputes settle on `DisputeV4`)*
@@ -689,7 +689,7 @@ CallGuard/
 - Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute *(retired with `DisputeQuality`; the `api/auto-receipt` relay still runs)*
 - ERC-8004 ReputationRegistry writes — `+1` on receipt, `-1` on slash, best-effort
 - ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call *(v7-era `AgentWallet`; the v8 call path has no pipeline hook)*
-- 621/621 Foundry tests passing (30 suites), measured 31 Oct 2026
+- 629/629 Foundry tests passing (31 suites), measured 31 Oct 2026
 
 **Frontend Migration (Oct 2026)**
 - React 18 + Vite + TypeScript — migrated from single-file HTML/ethers.js
