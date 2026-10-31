@@ -567,12 +567,16 @@ cp .env.example .env
 
 cast wallet import deployer --interactive
 
-forge script script/Deploy.s.sol:Deploy \
+forge script script/DeployV8.s.sol:DeployV8 \
   --account deployer \
   --sender 0xYOUR_DEPLOYER \
   --rpc-url arc_testnet \
   --broadcast
 ```
+
+That deploys the v8 pair plus `SLAKeeper`. The evidence layer (`SLAEvidenceRegistryV2`,
+`DisputeV4`) has its own script, `script/DeployEvidenceV2.s.sol`. `script/Deploy.s.sol` is the
+retired v7 pair: its contracts are still deployed and read-only.
 
 See [`DEPLOY.md`](./DEPLOY.md) for the full walkthrough.
 

@@ -52,7 +52,7 @@ Contracts (Foundry):
 ```bash
 forge test -vv       # 621 tests, 30 test suites (31 Oct 2026)
 forge build
-forge script script/Deploy.s.sol:Deploy --account deployer --rpc-url arc_testnet --broadcast
+forge script script/DeployV8.s.sol:DeployV8 --account deployer --rpc-url arc_testnet --broadcast
 ```
 Subgraph / facilitator (use npm there, not bun):
 ```bash

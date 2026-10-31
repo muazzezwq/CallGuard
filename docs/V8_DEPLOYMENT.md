@@ -188,6 +188,12 @@ bounded number of timeout drills.
 
 ## 7. Deployment record — Arc Testnet, 23 Oct 2026
 
+> **Later history, same section.** The dispute row below is what this deployment created.
+> `DisputeV2` was superseded by `DisputeV3` on 27 Oct 2026 and by `DisputeV4` on 28 Oct 2026;
+> `revokeSlasher` removed V2 and V3 on 28 Oct, so `authorizedSlashers(DisputeV4)` is the only
+> `true` today and the live dispute addresses are in §14. The registry, `PayPerCallV8` and
+> `SLAKeeper` rows are unchanged.
+
 | Contract | Address |
 |---|---|
 | `ServiceRegistryV8` | `0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3` |
@@ -198,7 +204,8 @@ bounded number of timeout drills.
 - Registry admin: `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`.
 - Arbiter, appeal arbiter, treasury: same owner address for this testnet deployment.
 - Verified on chain: bytecode exists at all four addresses; `registry.admin()` is the owner;
-  `registry.payPerCall()` is `PayPerCallV8`; `registry.authorizedSlashers(DisputeV2)` is true;
+  `registry.payPerCall()` is `PayPerCallV8`; `registry.authorizedSlashers(DisputeV2)` was true
+  at deploy time and is `false` since the 28 Oct 2026 handover to `DisputeV4` (§14);
   `SLAKeeper.payPerCall()` is `PayPerCallV8`.
 - Deployer: temporary EOA `0x36f96B4AcCA8dB663Dae4905B7c084D915c78839`. Its key was discarded
   after broadcast; the script handed registry admin to the owner in the same run.

@@ -13,6 +13,13 @@ import { IPayPerCall } from "../contracts/interfaces/IPayPerCall.sol";
 /// @notice Deploys ServiceRegistry + PayPerCall + CrossChainReceiver
 ///         and wires them together.
 ///
+/// @dev    RETIRED 23 Oct 2026. This is the v7 pair. Both contracts are still
+///         deployed and read-only; nothing in the app writes to them except
+///         `V7Cleanup`. The live stack is deployed by `script/DeployV8.s.sol`
+///         (`ServiceRegistryV8`, `PayPerCallV8`, `SLAKeeper`, `DisputeV2`) and the
+///         live dispute contract by `script/DeployEvidenceV2.s.sol` (`DisputeV4`).
+///         Run this only to reproduce the v7 history.
+///
 /// Usage (Arc Testnet, with shell keystore):
 ///
 ///   forge script script/Deploy.s.sol:Deploy \

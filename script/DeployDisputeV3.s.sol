@@ -13,6 +13,12 @@ import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
 /// @notice Deploys DisputeV3 against the live v8 registry and PayPerCall, then
 ///         authorizes it as a slasher.
 ///
+/// @dev    RETIRED 28 Oct 2026. `revokeSlasher(DisputeV3)` ran that day and its
+///         last dispute (#4) was finalized, so V3 holds no USDC and no authority.
+///         The live dispute contract is `DisputeV4`, deployed by
+///         `script/DeployEvidenceV2.s.sol`. Do not run this script against the
+///         current deployment: it would authorize a retired slasher.
+///
 /// DisputeV3 escrows the quality slash at `openDispute` time instead of at
 /// resolution time, which closes the window where a provider could unstake
 /// between a receipt and the arbiter's decision.
