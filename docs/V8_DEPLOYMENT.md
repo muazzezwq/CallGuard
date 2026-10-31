@@ -202,7 +202,10 @@ bounded number of timeout drills.
 | `DisputeV2` | `0xe5D993E0B328B506B874505B23b4bE876d7c0900` |
 
 - Registry admin: `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`.
-- Arbiter, appeal arbiter, treasury: same owner address for this testnet deployment.
+- Arbiter, appeal arbiter, treasury: same owner address for this testnet deployment. Re-read on
+  31 Oct 2026 and still true. One wallet holding all three roles is a testnet convenience, not a
+  security boundary: `docs/decisions.md`, "Arbitration — the deployed instance collapses all
+  three roles into one wallet", and `test/DisputeV4Roles.t.sol` for what each role may do.
 - Verified on chain: bytecode exists at all four addresses; `registry.admin()` is the owner;
   `registry.payPerCall()` is `PayPerCallV8`; `registry.authorizedSlashers(DisputeV2)` was true
   at deploy time and is `false` since the 28 Oct 2026 handover to `DisputeV4` (§14);
