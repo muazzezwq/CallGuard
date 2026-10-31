@@ -146,7 +146,7 @@ the two fields that come from `getTerms`, because v8 keeps them out of the provi
 
 | # | Item | Status |
 |---|---|---|
-| A1 | `Payments` reads `claimable` from v8 PPC | **PASS** — `ACTIVE_PPC_ADDRESS` resolves to `0xedce61eF…a7EF` with the checked-in env (`V8_ENABLED=true`); `claimable(0xfbac99E6…06Da)` reads `17527733` (`17.527733 USDC`) on chain |
+| A1 | `Payments` reads `claimable` from v8 PPC | **PASS** — `ACTIVE_PPC_ADDRESS` resolves to `0xedce61eF…a7EF` with the checked-in env (`V8_ENABLED=true`); `claimable(0xfbac99E6…06Da)` reads `26771055` (`26.771055 USDC`) on chain (re-read 31 Oct 2026; the row's earlier `17527733` was the 28 Oct figure) |
 | A2 | `Notifications` watches v8 PPC events | **PASS** — watch targets `ACTIVE_PPC_ADDRESS` with `PPC_ABI_V8_ACTIVE`; the ABI's `CallStarted`/`ReceiptSubmitted`/`CallSlashed` carry 8/4/4 fields, matching `IPayPerCallV8.sol`, and the v8 subgraph indexes `termsVersion` from that event. No live call was made during the phase, so no event was observed in a browser |
 | A3 | `Requests` `claimTimeout` targets v8 PPC | **PASS** — same address/ABI pair; the argument was already `bytes32`, which is the v8 signature |
 | A4 | `BulkCall` `callService` targets v8 PPC | **PASS** — same address/ABI pair; the call ignores the return value, so the `uint256`→`bytes32` change cannot be misread |

@@ -428,7 +428,7 @@ First live reading, `previewAvailability(1)` on provider 1:
 - `7` samples (`4` completed, `3` timed out)
 - `slashAmount 5.373248 USDC` (10 % of the `53.732480 USDC` stake), bounty
   `1.074649 USDC`, treasury `4.298599 USDC`
-<!-- unverified: this `53.732480` stake does not reconcile with the 16.04 → 12.84 → 9.24 → 7.49 sequence later read from the same provider; the tx event is the source of the 5373248 slash, not of the 53.732480 base -->
+<!-- verified 31 Oct 2026 by archive reads of the same registry: `getProvider(1).stake` is `53732480` at block `69063378` and `48359232` at block `69063380`, so the slash base is the 53.732480 USDC the row prints. The lower stake figures quoted elsewhere come from later blocks, after further slashes and disputes. -->
 - `ready = true`
 
 Vercel production received `VITE_SLA_UPTIME` and `SLA_UPTIME`; the deployment

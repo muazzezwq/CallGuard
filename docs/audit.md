@@ -16,7 +16,7 @@ when code implementing the item is cited. Updated after the completion pass.
 | 4c | Call Builder (tabs, labeled fields, create call) | `CallBuilder.tsx:481-484` | done |
 | 4d | Transactions + detail (back arrow, status chip, 4-step stepper, key-value card) | `History.tsx` detail block (`.tx-detail__head`, `Stepper` from `statusSteps()`); Transaction Hash / View on Explorer omitted — the `Call` entity has no `txHash` | done |
 | 4e | SLA Canvas legend (Success/Pending/Failed) | `History.tsx` SLA lifecycle card legend | done |
-| 5 | 34 panels use their template with features kept | `docs/panel-inventory.md` (all rows done); off-token `#f59e0b` etc. replaced with `var(--warn)`/`var(--info)` | done |
+| 5 | 34 panels use their template with features kept | `docs/panel-inventory.md` (all rows done); off-token `#f59e0b` etc. replaced with `var(--warn)`/`var(--info)` | done. *(31 Oct 2026: the sweep covered the 34 panels that existed then; the tree now has 36 files in `src/components/panels/` and 42 `id:` entries across `HOME_NAV` + `NAV_GROUPS` in `src/components/layout/navConfig.ts`. The numbers below describe that sweep, not today's tree.)* |
 | 6 | Landing sections 1-8 in order, navbar mapping + anchors, 5 marketing pages | `Landing.tsx:174,218,235,261,285,298,314`; `MarketingLayout.tsx:11-15,78-80`; routes verified in browser | done |
 | 7 | 3D hero: deps (three, r3f v8, drei v9, postprocessing v2), lazy+Suspense, SVG fallback | `package.json`; `src/marketing/HeroScene.tsx`; `Landing.tsx:127-137`; live canvas verified | done |
 | 8a | Focus states | `src/index.css:541` global `:focus-visible` | done |
@@ -130,7 +130,8 @@ Note: harness screenshots do not composite the WebGL surface, so the 3D hero is 
 typescript-eslint, eslint-plugin-react-hooks, eslint-plugin-jsx-a11y. Existing violations are
 warnings; only `react-hooks/rules-of-hooks` and a curated correctness set (no-unreachable,
 no-dupe-keys, no-dupe-else-if, no-constant-condition, use-isnan, valid-typeof, ...) are errors.
-Baseline: **0 errors, 386 warnings** across 96 files. `bun run check` passes.
+Baseline at the time: **0 errors, 386 warnings** across 96 files. `bun run check` passes.
+**Re-measured 31 Oct 2026:** the tree is **0 errors, 0 warnings** across 135 files — `eslint src --max-warnings=0` is the gate (`bun run check`), so the warnings below are history, not a live state.
 
 Top 8 warning rules (by count):
 | # | rule | warnings |

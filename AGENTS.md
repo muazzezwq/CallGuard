@@ -50,7 +50,7 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 606 tests, 28 test suites
+forge test -vv       # 621 tests, 30 test suites (31 Oct 2026)
 forge build
 forge script script/Deploy.s.sol:Deploy --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -98,9 +98,11 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
-- Test counts drift fast. Measured 28 Oct 2026: `forge test` **617 tests / 29 suites**,
-  `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip). Fork suite added the same day:
-  `forge test` **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents
+- Test counts drift fast. Measured 31 Oct 2026: `forge test` **621 tests / 30 suites**,
+  `bun test tests/` **603 tests / 56 files** (596 pass, 7 skip), `bun run check` clean with
+  **0 ESLint warnings**. Earlier: 28 Oct `forge test` **617 tests / 29 suites**,
+  `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip), and a fork suite the same day
+  took `forge test` to **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents
   the EIP-712 receipt scheme correctly (`ArcSLA/2` for v8, `ArcSLA/1` for v7); the older
   `personal_sign` description is gone.
 - The subgraph deploy script (`subgraph/package.json`) deploys `callguard-v7/1.1.0`, which

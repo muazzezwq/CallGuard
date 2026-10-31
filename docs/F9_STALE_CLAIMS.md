@@ -45,79 +45,85 @@ Chain 5042002, RPC `https://rpc.testnet.arc.io`.
 
 ## Docs
 
-- [ ] `AGENTS.md:159` "v8 provider 1 … 8 USDC stake (one timeout drill slashed 2)"
+Verified 31 Oct 2026: every row below was re-read in the current tree. Seven needed an edit
+and landed with this commit (README test counts and retired-feature labels, `V8_DEPLOYMENT.md`
+§14.4 stake reconciliation, `V7_V8_PANEL_MIGRATION.md` claimable, `audit.md` lint baseline and
+panel count, `SLA_COVERAGE.md` stake reconciliation); the rest were already fixed by `72386b0`.
+
+
+- [x] `AGENTS.md:159` "v8 provider 1 … 8 USDC stake (one timeout drill slashed 2)"
       → 7.485694 USDC, nine slashed calls.
-- [ ] `AGENTS.md:90` "`getProvider` returns a 9-field tuple" → read
+- [x] `AGENTS.md:90` "`getProvider` returns a 9-field tuple" → read
       `REGISTRY_ABI_V8` in `src/lib/config.ts`; the v8 view has 11 fields.
-- [ ] `AGENTS.md:88` `submitReceipt` quoted with four args → v8 takes five,
+- [x] `AGENTS.md:88` `submitReceipt` quoted with four args → v8 takes five,
       including `uint32 termsVersion` (`contracts/PayPerCallV8.sol:200`).
-- [ ] `AGENTS.md:92-94` "domain `ArcSLA` version `1`" and "ARCHITECTURE.md §4 is
+- [x] `AGENTS.md:92-94` "domain `ArcSLA` version `1`" and "ARCHITECTURE.md §4 is
       stale" → v8 domain is `ArcSLA/2`, and §4 already documents it.
-- [ ] `README.md:161` "25 behaviours … 22 PASS … 3 PARTIAL (finalize,
+- [x] `README.md:161` "25 behaviours … 22 PASS … 3 PARTIAL (finalize,
       reclaimExpiredBond)" → recount from `docs/SLA_COVERAGE.md`
       (29 rows, 27 PASS, 2 PARTIAL: B8 and B3b; `finalize` is PASS).
-- [ ] `README.md:155,660` keeper "every 15 minutes" → measured 3–6 h
+- [x] `README.md:155,660` keeper "every 15 minutes" → measured 3–6 h
       (`docs/SLA_COVERAGE.md:26`, `docs/decisions.md:319`).
-- [ ] `README.md:41` "Reputation score | Onchain (ERC-8004)" → computed off-chain.
-- [ ] `README.md:43,279,605` "Circle Refund Protocol (DisputeQuality)" as live →
+- [x] `README.md:41` "Reputation score | Onchain (ERC-8004)" → computed off-chain.
+- [x] `README.md:43,279,605` "Circle Refund Protocol (DisputeQuality)" as live →
       retired; dispute path is `DisputeV4`.
-- [ ] `README.md:354` "Register with NFT (v2)" instructions → path deleted.
-- [ ] `README.md:407` "Admin Panel — contract owner tools" → read-only card.
-- [ ] `README.md:553,623,662,687` four different test counts → one measured
+- [x] `README.md:354` "Register with NFT (v2)" instructions → path deleted.
+- [x] `README.md:407` "Admin Panel — contract owner tools" → read-only card.
+- [x] `README.md:553,623,662,687` four different test counts → one measured
       figure, dated, or point at the gate command.
-- [ ] `README.md:66` DisputeV2 "open disputes only" → settled, no open disputes.
-- [ ] `ARCHITECTURE.md:68-80` Provider struct missing `maxConcurrentCalls`,
+- [x] `README.md:66` DisputeV2 "open disputes only" → settled, no open disputes.
+- [x] `ARCHITECTURE.md:68-80` Provider struct missing `maxConcurrentCalls`,
       `zkTier`, `deactivatedAt`, `pendingCalls`; counters are uint64; window and
       slash ratio live in `getTerms` (`contracts/ServiceRegistryV8.sol:62`).
-- [ ] `ARCHITECTURE.md:158` `getReputationScore` as shipped → remove.
-- [ ] `ARCHITECTURE.md:203` gas table "at 40 gwei" → live figure is ~533–547 gwei.
-- [ ] `SECURITY.md:43` "caller spam not prevented" → v8 caps open calls per
+- [x] `ARCHITECTURE.md:158` `getReputationScore` as shipped → remove.
+- [x] `ARCHITECTURE.md:203` gas table "at 40 gwei" → live figure is ~533–547 gwei.
+- [x] `SECURITY.md:43` "caller spam not prevented" → v8 caps open calls per
       `(providerId, caller)` via `maxConcurrentCalls`.
-- [ ] `SECURITY.md:52` digest `keccak256(callId, responseHash)` → full EIP-712
+- [x] `SECURITY.md:52` digest `keccak256(callId, responseHash)` → full EIP-712
       digest over `callId, responseHash, respondedAt, termsVersion`.
-- [ ] `SECURITY.md:67` "no address has privileged slash power" → admin can
+- [x] `SECURITY.md:67` "no address has privileged slash power" → admin can
       `authorizeSlasher`/`revokeSlasher`; owner is arbiter and treasury.
-- [ ] `SECURITY.md:79` "0.8.24 … 2^32" → compiler 0.8.37, counters uint64.
-- [ ] `SECURITY.md:105` "57 unit tests", "no fork tests" → current counts;
+- [x] `SECURITY.md:79` "0.8.24 … 2^32" → compiler 0.8.37, counters uint64.
+- [x] `SECURITY.md:105` "57 unit tests", "no fork tests" → current counts;
       `test/DisputeV4ForkEvidence.t.sol` exists.
-- [ ] `DEPLOY.md:214` "§6 has the cast calls" → reads are §7, smoke §14.4,
+- [x] `DEPLOY.md:214` "§6 has the cast calls" → reads are §7, smoke §14.4,
       dispute settlement §14.7.
-- [ ] `docs/PARTNERSHIP-BRIEF.md:48,67` "1 USDC stake / ~2 USDC" →
+- [x] `docs/PARTNERSHIP-BRIEF.md:48,67` "1 USDC stake / ~2 USDC" →
       `minStake` is 10 USDC.
-- [ ] `docs/PARTNERSHIP-BRIEF.md:63,95,147` reference `scripts/arkreen-register.js`
+- [x] `docs/PARTNERSHIP-BRIEF.md:63,95,147` reference `scripts/arkreen-register.js`
       and `scripts/tlay-boat-call.js`, neither exists.
-- [ ] `docs/verification/ATTESTOR_SCOPE.md:42` "no dispute opened on DisputeV4" →
+- [x] `docs/verification/ATTESTOR_SCOPE.md:42` "no dispute opened on DisputeV4" →
       two exist.
-- [ ] `docs/verification/ATTESTOR_SCOPE.md:217` "dispute 1 is open" → Upheld,
+- [x] `docs/verification/ATTESTOR_SCOPE.md:217` "dispute 1 is open" → Upheld,
       `finalize(1)` pending.
-- [ ] `docs/verification/ATTESTOR_SCOPE.md:3` "two of four kinds have no verifier"
+- [x] `docs/verification/ATTESTOR_SCOPE.md:3` "two of four kinds have no verifier"
       → only `tee-attestation`; contradicts its own table at line 14.
-- [ ] `docs/verification/DESIGN.md:27` "witness and tee-attestation at mode 0"
+- [x] `docs/verification/DESIGN.md:27` "witness and tee-attestation at mode 0"
       → `witness` is mode 2 (`SLAProvenanceAdapter`).
-- [ ] `docs/V8_DEPLOYMENT.md:802` "modeOf(witness) and modeOf(tee-attestation) are 0"
+- [x] `docs/V8_DEPLOYMENT.md:802` "modeOf(witness) and modeOf(tee-attestation) are 0"
       → `witness` is 2.
-- [ ] `docs/V8_DEPLOYMENT.md:842` `setSignatureVerifier(keccak256("witness"), …)`
+- [x] `docs/V8_DEPLOYMENT.md:842` `setSignatureVerifier(keccak256("witness"), …)`
       as the path → a signature key reaches mode 1, which `DisputeV4` records as
       `ModeIsSignature`; the deployed path is the proof adapter.
-- [ ] `docs/V8_DEPLOYMENT.md:227` "`nextProviderId()` is 2" → 3.
-- [ ] `docs/V8_DEPLOYMENT.md:229` "8 USDC stake after one drill slashed 2" →
+- [x] `docs/V8_DEPLOYMENT.md:227` "`nextProviderId()` is 2" → 3.
+- [x] `docs/V8_DEPLOYMENT.md:229` "8 USDC stake after one drill slashed 2" →
       7.485694 after nine.
-- [ ] `docs/V8_DEPLOYMENT.md:149` provider-page word indices ("active at word 5")
+- [x] `docs/V8_DEPLOYMENT.md:149` provider-page word indices ("active at word 5")
       → the file decodes named fields now.
-- [ ] `docs/V8_DEPLOYMENT.md:429` and `docs/SLA_COVERAGE.md:129` "53.732480 USDC
+- [x] `docs/V8_DEPLOYMENT.md:429` and `docs/SLA_COVERAGE.md:129` "53.732480 USDC
       stake on 25 Oct" — does not reconcile with the 16.04 → 12.83 → 9.24 → 7.49
       sequence; tx `0xd7429d93…` moves `5373248` out. Needs a decision.
-- [ ] `docs/SLA_COVERAGE.md:5` scope lists `DisputeV2` as the dispute layer →
+- [x] `docs/SLA_COVERAGE.md:5` scope lists `DisputeV2` as the dispute layer →
       `DisputeV4`.
-- [ ] `docs/SLA_COVERAGE.md:191` "next work: B8 — run `finalize(4)`" → ran 28 Oct
+- [x] `docs/SLA_COVERAGE.md:191` "next work: B8 — run `finalize(4)`" → ran 28 Oct
       (tx `0xbdaf9525…f6167`, block 69473913).
-- [ ] `docs/decisions.md:375-377` V3 kept "because dispute #4's 3.481864 USDC
+- [x] `docs/decisions.md:375-377` V3 kept "because dispute #4's 3.481864 USDC
       escrow lives there" → finalized, V3 holds nothing.
-- [ ] `docs/verification/REPORT.md:162` "evidence is advisory today" →
+- [x] `docs/verification/REPORT.md:162` "evidence is advisory today" →
       `DisputeV4` snapshots and binds it in `openDispute`.
-- [ ] `docs/V7_V8_PANEL_MIGRATION.md:38,149` `claimable(owner)` `17527733` →
+- [x] `docs/V7_V8_PANEL_MIGRATION.md:38,149` `claimable(owner)` `17527733` →
       `26771055`.
-- [ ] `docs/V7_V8_PANEL_MIGRATION.md:189` `USDC.balanceOf(helper)` `6173464` →
+- [x] `docs/V7_V8_PANEL_MIGRATION.md:189` `USDC.balanceOf(helper)` `6173464` →
       `6206779`.
 
 ## Frontend

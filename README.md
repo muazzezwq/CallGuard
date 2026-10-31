@@ -551,7 +551,7 @@ forge install && forge build
 forge test -vv
 ```
 
-Expected: all tests passing, 0 failed, across 30 suites (`forge test`; 621 passing when last measured on 30 Oct 2026).
+Expected: all tests passing, 0 failed, across 30 suites (`forge test`; 621 passing when last measured on 31 Oct 2026).
 
 ### Try the demo
 
@@ -621,7 +621,7 @@ CallGuard/
 │   └── components/
 │       ├── Architecture.tsx          # architecture diagram panel
 │       └── CgLanding.tsx             # landing page (disconnected view)
-├── test/                             # 606 Foundry tests, 28 suites
+├── test/                             # 621 Foundry tests, 30 suites
 ├── script/                           # deploy scripts
 ├── api/                              # Vercel serverless functions
 │   ├── marketplace.js                # x402 Bazaar discovery endpoint (NEW)
@@ -662,17 +662,17 @@ CallGuard/
 - Per-caller concurrency caps tested on v8 (`maxConcurrentCalls`, default 10)
 - Foundry suite green: 621 passing across 30 suites when last measured on 30 Oct 2026; coverage table in `docs/SLA_COVERAGE.md`
 
-**Core Protocol (v5)**
+**Core Protocol (v5) — historical; items retired on v8 are marked**
 - EIP-712 typed receipt signing — structured receipt preview in MetaMask
-- ERC-8004 NFT identity binding — `registerV2()` requires AgentIdentity NFT; mint + register in one tx
+- ERC-8004 NFT identity binding — `registerV2()` requires AgentIdentity NFT; mint + register in one tx *(retired on v8: `ServiceRegistryV8.register()` mints nothing and carries no NFT binding)*
 - CCTP multi-chain payments — Ethereum / Base / Polygon → Arc via Circle CCTP V2
 - x402 HTTP payment protocol — full EIP-3009 authorization flow, gasless for the caller
 - Circle Gateway Nanopayments — gasless micro-payments, server-side settlement
 - ERC-8183 Jobs — full 5-step lifecycle with role badges
-- 223/223 Foundry tests passing (at the time; the suite is 606 today)
+- 223/223 Foundry tests passing (at the time; the suite is 621 today)
 
-**v2 Protocol (Oct 2026)**
-- DisputeQuality — verifiable AI output, community stake-weighted arbitration
+**v2 Protocol (Oct 2026) — historical; retired on v8 unless noted**
+- DisputeQuality — community stake-weighted arbitration *(retired; v8 disputes settle on `DisputeV4`)*
 - SLAFutures — provider capacity as tradeable ERC-1155 NFTs
 - ReputationLoan (RepFi) — reputation-as-collateral USDC lending
 - AgentWallet — smart wallet with daily spend limits
@@ -682,10 +682,10 @@ CallGuard/
 - Per-caller rate limiting — `maxConcurrentCalls` per provider, DoS protection, `TooManyConcurrentCalls` error
 - Circle Agent Marketplace — x402 Bazaar discovery endpoint (`/api/marketplace`)
 - Gateway Nanopayments dual-rail — Circle Gateway batching + ERC-20 direct fallback
-- Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute; `api/auto-receipt` relay
+- Circle Refund Protocol — `CircleRefundInitiated` event on `CallerWins` dispute *(retired with `DisputeQuality`; the `api/auto-receipt` relay still runs)*
 - ERC-8004 ReputationRegistry writes — `+1` on receipt, `-1` on slash, best-effort
-- ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call
-- 606/606 Foundry tests passing (28 suites)
+- ERC-8183 Pipeline Hook — `AgentWallet.setAgenticCommerce()` fires `onCallCompleted()` after every call *(v7-era `AgentWallet`; the v8 call path has no pipeline hook)*
+- 621/621 Foundry tests passing (30 suites), measured 31 Oct 2026
 
 **Frontend Migration (Oct 2026)**
 - React 18 + Vite + TypeScript — migrated from single-file HTML/ethers.js

@@ -2,6 +2,13 @@
 
 Batch log. 3-line summary per batch (what changed / state / next).
 
+> **31 Oct 2026 — current tree.** The phase counts below ("34 panels", "34/34") describe the
+> inventory those passes covered. Today `src/components/panels/` holds 36 files and
+> `src/components/layout/navConfig.ts` declares 42 entries (`HOME_NAV` + `NAV_GROUPS`). Gate
+> figures below are snapshots: on 31 Oct 2026 `bun test tests/` is 603 tests / 596 pass / 7 skip
+> (56 files), `forge test` is 621 passing in 30 suites, and `bun run check` is clean with 0 ESLint
+> warnings.
+
 ## Phase 0 — Inventory check
 - Inventory lists all 34 panels + 6 marketing pages; no gaps found.
 - Created docs/progress.md and docs/decisions.md; status tracked in docs/panel-inventory.md.
@@ -506,7 +513,8 @@ Brief: `design/PHASE_5.md` (verbatim, sha256 `96ead39f…f7345`). Checklist:
   formula (`contracts/ServiceRegistry.sol:572-580`): `floor(((completed + 2) * 100) / (completed +
   slashed + 3))`. An empty record scores 66 and can never reach 100. The honor rate is a separate
   metric that returns `null` when there is no denominator, so no screen prints a percentage it
-  cannot support. Covered by `tests/provider-metrics.test.ts` (47 tests).
+  cannot support. Covered by `tests/provider-metrics.test.ts` (47 tests when this pass ran;
+  `bun test tests/provider-metrics.test.ts` reports **25 pass** on 31 Oct 2026).
 - **Marketplace** reads the registry SLA fields (`maxResponseTime`, `slashBps`) the subgraph does
   not index, with one batched `useReadContracts` call for the visible providers. The random
   "reputation trend" sparkline is gone; cards show a completed/slashed bar built from counters.
@@ -514,14 +522,17 @@ Brief: `design/PHASE_5.md` (verbatim, sha256 `96ead39f…f7345`). Checklist:
   resets per key, and loading, RPC error, no-provider and no-match are four different states.
   "Call this provider" writes `sessionStorage["callbuilder_provider"]` and opens the builder.
 - **Provider details** reads one record with one multicall (`getProvider`, `getReputationScore`,
-  `completedCalls`, `slashedCalls`), separates an unregistered id from a failed read, states the
+  `completedCalls`, `slashedCalls`). On v8 the tuple is eleven fields and carries both counters, so
+  only `getProvider` is read; `getReputationScore` exists on v7 only and its hook is gated there
+  (`ProviderProfile.tsx:155-169`). The panel separates an unregistered id from a failed read, states the
   source of every value (registry / indexed / computed / unavailable), and shows the last ten
   indexed calls while failing softly if the indexer is down. Endpoint is reported unavailable,
   because `getProvider` does not return one.
 - **Rankings** now ranks one fetched dataset by one of three stated rules: registry score,
   active-provider price (BigInt ascending), or slashed count. No 100 fallback, no `#000` ink, and
   the compare strip no longer reads whichever list was fetched last.
-- **Providers** shows all nine registry fields with their source, distinguishes invalid id,
+- **Providers** decodes the registry record it reads — eleven fields on v8, nine on v7
+  (`Providers.tsx:190-202`) — and attributes each value to its source, distinguishes invalid id,
   unregistered id, loading, failed read and idle, and links to Provider details. The old "Ping
   endpoint" button is removed: it called `/api/ping-provider` with `?id=`, while the route requires
   `?url=` and the registry stores no endpoint, so every provider reported "Offline". The setup guide
@@ -547,17 +558,20 @@ bun test tests/        # 47 pass, 0 fail, 125 expect() calls
 ```
 
 Browser: vite on port **5204** in `/tmp/opencode/wt-p5` (the repo's 5173 was left alone), with a
-mock-wallet fixture in that worktree only. Real data: provider #1, price 1 USDC, response window
-120 s, slash 2000 bps (2 USDC per slashed call), stake 10 USDC, score 66, NFT #897335, 0 calls.
+mock-wallet fixture in that worktree only. Real data on that deployment was v7: provider #1, price
+1 USDC, response window 120 s, slash 2000 bps (2 USDC per slashed call), stake 10 USDC, score 66,
+NFT #897335, 0 calls. v7 has since been retired: on v8 (31 Oct 2026) provider #1 reads stake
+`7.485694` USDC, price `1` USDC, `6` completed / `9` slashed, app-side score `44`, no NFT (the v8
+registry mints nothing), and `nextProviderId()` is `3`.
 
 | Check | Result |
 |---|---|
-| Marketplace filters (price, stake, score, response, callable, NFT), reset, invalid amount | filter counts change, `aria-invalid` + inline error on a negative/NaN price, reset clears all |
+| Marketplace filters (price, stake, score, response, callable; the NFT chip is gone — v8 has no ERC-8004 binding), reset, invalid amount | filter counts change, `aria-invalid` + inline error on a negative/NaN price, reset clears all |
 | Sorting | `Lowest price` sorts 1 USDC first with `↑`; direction flips per key |
 | Unregistered id `#999` vs RPC error | empty state "No provider is registered under #999"; failed read is a separate error state with Retry |
 | Cross-panel navigation | card → Provider details; Call → Call builder prefilled from `sessionStorage` |
 | Rankings tabs | score / price / slashed each render their stated rule; "Most slashed" shows its own empty state |
-| Providers lookup | #1 renders nine fields + sources; `0` shows the inline field error and disables the actions; #999 renders the unregistered state |
+| Providers lookup | #1 renders every decoded field + sources (eleven on v8); `0` shows the inline field error and disables the actions; #999 renders the unregistered state |
 | Viewports | 1280×900, 834×1000, 411×900: no element extends past the viewport in any of the four panels |
 | Themes | dark and light both rendered and audited |
 | Keyboard | Tab from the id field through actions, address links, copy buttons, disclosure, tabs: every stop has a visible ring (`2px` outline or `3px` focus shadow) |
@@ -581,8 +595,10 @@ background-image arrow, 3 glyph buttons, 2 decorative `·`) were measured by han
 
 ### Limits recorded, not hidden
 
-- Only one provider exists on Arc Testnet, so multi-provider states (the compare modal, ranking
-  order beyond one row, pagination past 20) cannot be exercised against real data.
+- One provider existed on Arc Testnet at the time of this pass, so multi-provider states (the compare
+  modal, ranking order beyond one row, pagination past 20) could not be exercised against real data.
+  Two are registered now (`nextProviderId()` = `3`, id `0` reserved; provider `2` is inactive with 0
+  calls), which is still too few for those states.
 - No real screen reader in this environment; the accessibility tree and axe stand in.
 - The subgraph indexes neither `maxResponseTime`, `slashBps` nor `endpoint`; the first two come
   from the registry, the third does not exist anywhere.
@@ -763,9 +779,10 @@ unverified.
 ## Idempotency Stage 1/2 — prepared, not active (2026-10-21)
 
 Stage 1 (`api/_idempotency.js`, `api/_idempotency_state.js`) and Stage 2
-(`api/_upstash_idempotency_store.js`) are present in the working tree but are not committed,
-deployed, or wired into the production default handler. `defaultHandler` still calls `handler`
-without an `idempotencyStore`; production idempotency remains off.
+(`api/_upstash_idempotency_store.js`) were uncommitted when this pass ran; all three are tracked now
+(`git ls-files api/_idempotency*.js api/_upstash_idempotency_store.js`). They are still not deployed
+as a wired default, and production idempotency remains off: `api/call-service.js` takes
+`idempotencyStore = null` and skips the reservation path when the caller passes none.
 
 Stage 1 is a pure state machine for operation and nonce-reservation records: forward-only
 transitions, explicit revisions, recovery leases, and versioned records. Legacy v1 `prepared`
@@ -798,6 +815,13 @@ persistence, recovery-worker host/scheduler, bounded receipt wait, and replaceme
 and cross-endpoint idempotency remain unauthorised.
 
 ## Production v7 alignment — prepared, not deployed (2026-10-21)
+
+**Superseded 23 Oct 2026.** The v8 cutover deployed both contracts, so the v7 alignment described
+here is history: `ServiceRegistryV8` `0x793028B6…12A3` and `PayPerCallV8` `0xedce61eF…a7EF` are
+live, the frontend reads `ACTIVE_PPC_ADDRESS` / `ACTIVE_REGISTRY_ADDRESS`
+(`src/lib/config.ts:144-145`), and the server reads `ACTIVE` (`api/_contracts.js:25-26`). v7 stays
+deployed and read-only. Nothing below was deleted or rewritten — it records what the deployed
+split configuration was on 21 Oct.
 
 Read-only inspection of deployment `3d858a2ffed9d73a086fc89a34490508e2a37b26` found a split
 configuration. The deployed client bundle contains the v7 addresses, but the deployed server

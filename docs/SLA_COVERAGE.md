@@ -1,4 +1,4 @@
-# SLA coverage — what the system actually enforces (24 Oct 2026)
+# SLA coverage — what the system actually enforces (24 Oct 2026, updated 31 Oct 2026)
 
 Scope: the v8 stack on Arc Testnet (`ServiceRegistryV8` `0x793028B6…12A3`,
 `PayPerCallV8` `0xedce61eF…a7EF`, `SLAKeeper` `0xBe897043…CB7`,
@@ -137,6 +137,11 @@ the `53.732480` stake), split `1.074649` to the claimer and `4.298599` to the
 treasury, tx `0xd7429d93…60539`. The window reset to `0` samples and
 `previewAvailability(1)` now reports `ready = false` until the 24 h cooldown
 (`1793034255`) elapses and new calls land.
+
+The `53.732480` base is the registry's own stake at that block, verified 31 Oct 2026 by archive
+reads: `getProvider(1).stake` is `53732480` at block `69063378` and `48359232` at block
+`69063380`. Lower stake figures quoted elsewhere belong to later blocks, after further slashes
+and disputes; none of them contradicts this one.
 
 Known limit, stated honestly: a provider that stops taking calls stops
 accumulating misses. It also stops earning, and the stake stays exposed to dispute
