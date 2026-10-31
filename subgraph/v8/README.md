@@ -23,7 +23,7 @@ npm run deploy:studio:v8
 ```
 
 The development query URL is
-`https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. It is limited to 3,000
+`https://api.studio.thegraph.com/query/1763627/onur/1.0.2`. It is limited to 3,000
 queries per day. `src/lib/config.ts` defaults `subgraphUrl` to it, and
 `VITE_SUBGRAPH_URL` overrides the default — an unset variable no longer falls back
 to the retired v7 Goldsky endpoint.

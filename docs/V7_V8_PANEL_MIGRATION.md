@@ -165,7 +165,7 @@ the two fields that come from `getTerms`, because v8 keeps them out of the provi
 ## Known constraints
 
 - A new `api/*.js` file breaks the Vercel Hobby 12-function cap; nothing here adds one.
-- The v8 subgraph (`onur/1.0.0`) is the only indexer for new activity; the v7 Goldsky
+- The v8 subgraph (`onur/1.0.2`) is the only indexer for new activity; the v7 Goldsky
   subgraph stops at the cutover. Panels that fall back to the subgraph must read v8.
 - The 17.527733 USDC claimable balance is owner-wallet money. Fixing `Payments` makes it
   discoverable; withdrawing it is a separate, owner-signed action.

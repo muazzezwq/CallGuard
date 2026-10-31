@@ -16,7 +16,7 @@ separate deployable with its own `package.json` and `node_modules`:
 - `api/` — Vercel serverless functions (ESM Node, shipped as-is; no Vite build).
 - `subgraph/` — v7 Goldsky subgraph (`graph codegen` / `build` / `goldsky` deploy).
   `subgraph/v8/` is the v8 indexer source (`npm run codegen:v8` / `build:v8`); it is
-  deployed to The Graph Studio as `onur/1.0.0` and starts at block `68651068`.
+  deployed to The Graph Studio as `onur/1.0.2` and starts at block `68651068`.
 - `x402-facilitator/` — standalone Node/Express server.
 - `src/lib/config.ts` — **frontend source of truth** for contract addresses and the
   inline ABIs (they encode fix history for tuple/field shape). AGENTS.md mirrors it.
@@ -159,7 +159,7 @@ do not route new disputes to it.
 
 The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
 `ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
-on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`. Provider
+on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.2`. Provider
 migration ran on 23 Oct: v8 provider `1` is the owner wallet with `7.485694 USDC` stake (nine
 slashed calls since, the first a timeout drill that took `2`), `1 USDC` price, terms v1 (window `120`, slash `2000`, availability `9950`), and endpoint
 `https://arcsla.vercel.app/api/auto-receipt`. The v7 provider `1` was deactivated on 24 Oct 15:22:45 UTC
@@ -330,7 +330,7 @@ annotated `("memory-safe")`. Regenerate via `scripts/zk-claim-envelope.ts` and t
 ## Key parameters
 
 - Chain ID `5042002`; RPC `https://rpc.testnet.arc.io`; explorer `https://explorer.testnet.arc.io`.
-- Subgraph (v8, live app, The Graph Studio): `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`.
+- Subgraph (v8, live app, The Graph Studio): `https://api.studio.thegraph.com/query/1763627/onur/1.0.2`.
 - Subgraph (v7 legacy): `https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn`.
 - `SUBMIT_GRACE = 5` seconds. EIP-712 receipt domain is `ArcSLA/2` on v8 (`PayPerCallV8`'s
   `EIP712("ArcSLA", "2")`, with `termsVersion` in the struct) and `ArcSLA/1` on the retired v7

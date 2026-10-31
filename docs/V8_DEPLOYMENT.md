@@ -65,7 +65,7 @@ VITE_PAY_PER_CALL_V8=0x...
 VITE_SLA_KEEPER=0x...
 VITE_DISPUTE_V2=0x...
 # set after the v8 subgraph is synced; otherwise the app keeps the v7 endpoint
-VITE_SUBGRAPH_URL=https://api.studio.thegraph.com/query/1763627/onur/1.0.0
+VITE_SUBGRAPH_URL=https://api.studio.thegraph.com/query/1763627/onur/1.0.2
 ```
 
 Both registry and pay-per-call are required; without them the app keeps the v7
@@ -83,7 +83,7 @@ cd v8
 ```
 
 Its manifest starts at block `68651068`. The Studio development query URL is
-`https://api.studio.thegraph.com/query/1763627/onur/1.0.0` and is limited to 3,000
+`https://api.studio.thegraph.com/query/1763627/onur/1.0.2` and is limited to 3,000
 queries per day. A production key is required before public traffic moves to it.
 
 ## 4. Provider migration (testnet)
@@ -225,7 +225,7 @@ both addresses and the Studio query URL; no console errors on the landing/app ro
 
 The v8 indexer is deployed to The Graph Studio as slug `onur`, version `1.0.0`:
 
-- Query URL: `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`
+- Query URL: `https://api.studio.thegraph.com/query/1763627/onur/1.0.2`
 - Deployment start block: `68651068`
 - Verified during deployment: `_meta.hasIndexingErrors` false, frontend provider/call
   queries and `disputeRecords` all return valid responses. The Studio development URL is

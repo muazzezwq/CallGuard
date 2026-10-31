@@ -8,7 +8,7 @@ Implemented: `ServiceRegistryV8` (43 tests), `PayPerCallV8` (18), `SLAKeeper` (9
 Frontend and server routes select v8 when `VITE_SERVICE_REGISTRY_V8` + `VITE_PAY_PER_CALL_V8`
 (or `SERVICE_REGISTRY_V8` + `PAY_PER_CALL_V8`) are set; otherwise the v7 pair stays active.
 Not implemented: provider migration execution, a v8 dispute panel, and the 7-day testnet
-soak. The v8 indexer is deployed at `https://api.studio.thegraph.com/query/1763627/onur/1.0.0`.
+soak. The v8 indexer is deployed at `https://api.studio.thegraph.com/query/1763627/onur/1.0.2`.
 Scope: the shared core for A (availability), B (quality), and C (financial SLA).
 This phase delivers **A only**. B and C depend on the proof layer added here.
 

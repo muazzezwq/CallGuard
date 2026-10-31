@@ -325,7 +325,7 @@ The app at [arcsla.vercel.app](https://arcsla.vercel.app) is a full-featured Rea
 | Chain | wagmi v2 + viem |
 | Wallet | ConnectKit (MetaMask, Coinbase, Rainbow, injected) |
 | State | Zustand (persist) |
-| Subgraph | The Graph Studio (`onur/1.0.0`); v7 Goldsky is legacy |
+| Subgraph | The Graph Studio (`onur/1.0.2`); v7 Goldsky is legacy |
 | Styling | Custom CSS (light/dark theme via `[data-theme]`) |
 | Deploy | Vercel (SPA rewrites) |
 
@@ -632,7 +632,7 @@ CallGuard/
 │   ├── call-service.js               # x402 facilitator (full accepts array)
 │   ├── nano-call.js                  # Gateway nanopayments (dual-rail)
 │   └── auto-receipt.js               # auto-receipt + Circle Refund Protocol relay
-├── subgraph/                         # v8 Studio indexer (onur/1.0.0); v7 Goldsky legacy
+├── subgraph/                         # v8 Studio indexer (onur/1.0.2); v7 Goldsky legacy
 ├── x402-facilitator/                 # x402 + Gateway facilitator server
 ├── AGENTS.md                         # deployed contract addresses (canonical source)
 ├── SPEC.md
@@ -724,7 +724,7 @@ CallGuard/
 
 - [Arc Testnet Faucet](https://faucet.testnet.arc.io) — free testnet USDC (also covers gas)
 - [ArcScan Testnet](https://explorer.testnet.arc.io/) — block explorer
-- [v8 Subgraph](https://api.studio.thegraph.com/query/1763627/onur/1.0.0) — live GraphQL endpoint (The Graph Studio)
+- [v8 Subgraph](https://api.studio.thegraph.com/query/1763627/onur/1.0.2) — live GraphQL endpoint (The Graph Studio)
 - [Goldsky Subgraph (v7 legacy)](https://api.goldsky.com/api/public/project_cmqryheeji1m801sy3dhe6jhk/subgraphs/callguard-v7/1.1.0/gn) — read-only legacy endpoint
 - [thirdweb Arc Testnet](https://thirdweb.com/arc-testnet) — chain config, contract explorer
 
