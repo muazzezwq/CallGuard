@@ -145,6 +145,8 @@ export function createOperationRecord({
     ...(explicitKey ? { explicitKey } : {}),
     fingerprint,
     state: "prepared",
+    // The store's transition is a revision CAS; a record without one can never move.
+    revision: 0,
     createdAt: now,
     updatedAt: now,
     attempts: 0,

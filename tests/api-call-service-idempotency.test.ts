@@ -143,7 +143,7 @@ function makeStore() {
     failCreateFor: null as null | ((record: Record<string, unknown>) => boolean),
     failTransition: null as null | ((
       operationId: string,
-      expected: string,
+      nextState: string,
       patch: Record<string, unknown>,
     ) => boolean),
     beforeCreate: null as null | ((record: Record<string, unknown>) => Promise<void>),
@@ -162,15 +162,36 @@ function makeStore() {
       const record = records.get(operationId);
       return record ? { ...record } : null;
     },
-    async transition(operationId: string, expected: string, patch: Record<string, unknown>) {
-      if (store.failTransition?.(operationId, expected, patch)) {
+    /* The five-argument shape is the store's real contract: a revision CAS that
+       owns state, revision and updatedAt. A three-argument handler would throw
+       here, which is exactly the bug this fake exists to catch. */
+    async transition(
+      operationId: string,
+      expectedState: string,
+      expectedRevision: number,
+      nextState: string,
+      patch: Record<string, unknown> = {},
+    ) {
+      if (!Number.isInteger(expectedRevision) || expectedRevision < 0) {
+        throw new Error("expectedRevision must be a non-negative integer");
+      }
+      for (const field of ["state", "revision", "updatedAt", "operationId", "fingerprint"]) {
+        if (field in patch) throw new Error(`patch cannot change ${field}`);
+      }
+      if (store.failTransition?.(operationId, nextState, patch)) {
         throw new Error("transition unavailable");
       }
       const record = records.get(operationId);
-      if (!record || record.state !== expected) {
+      if (!record || record.state !== expectedState || (record.revision ?? 0) !== expectedRevision) {
         return { ok: false, record: record ? { ...record } : null };
       }
-      const next = { ...record, ...patch, updatedAt: Date.now() };
+      const next = {
+        ...record,
+        ...patch,
+        state: nextState,
+        revision: expectedRevision + 1,
+        updatedAt: Date.now(),
+      };
       records.set(operationId, next);
       return { ok: true, record: { ...next } };
     },
@@ -274,7 +295,7 @@ function seedRecord(
     authorization,
   });
   if (aliasId) {
-    store.records.set(aliasId, createAliasRecord({ aliasId, authId, fingerprint, now: 1 }));
+    store.records.set(aliasId, createAliasRecord({ aliasId, authId, fingerprint }));
   }
   store.records.set(authId, {
     ...createOperationRecord({
@@ -282,7 +303,6 @@ function seedRecord(
       authId,
       fingerprint,
       explicitKey: key,
-      now: 1,
     }),
     state: recordState,
     ...(txHash ? { txHash } : {}),
@@ -683,7 +703,7 @@ describe("call-service idempotency foundation", () => {
 
   test("a failed submitted transition after broadcast returns unknown with the hash and never resubmits", async () => {
     const store = makeStore();
-    store.failTransition = (_operationId, _expected, patch) => patch.state === "submitted";
+    store.failTransition = (_operationId, nextState) => nextState === "submitted";
     const handler = makeHandler(store);
     const req = makeReq({ key: "transition-after-broadcast" });
 
@@ -713,7 +733,7 @@ describe("call-service idempotency foundation", () => {
 
   test("a failed transition after a confirmed receipt is not returned as durable success", async () => {
     const store = makeStore();
-    store.failTransition = (_operationId, _expected, patch) => patch.state === "confirmed";
+    store.failTransition = (_operationId, nextState) => nextState === "confirmed";
     const handler = makeHandler(store);
     const req = makeReq({ key: "transition-after-confirmation" });
 
@@ -747,7 +767,7 @@ describe("call-service idempotency foundation", () => {
 
   test("a failed transition after a reverted receipt is not returned as durable reverted", async () => {
     const store = makeStore();
-    store.failTransition = (_operationId, _expected, patch) => patch.state === "reverted";
+    store.failTransition = (_operationId, nextState) => nextState === "reverted";
     const handler = makeHandler(store);
     const req = makeReq({ key: "transition-after-revert" });
     state.waitReceipt = receipt(0);
@@ -781,10 +801,17 @@ describe("call-service idempotency foundation", () => {
 
   test("a CAS failure after confirmation resolves from the latest persisted operation", async () => {
     const store = makeStore();
-    store.failTransition = (operationId, _expected, patch) => {
-      if (patch.state !== "confirmed") return false;
+    store.failTransition = (operationId, nextState, patch) => {
+      if (nextState !== "confirmed") return false;
       const current = store.records.get(operationId);
-      if (current) store.records.set(operationId, { ...current, ...patch });
+      if (current) {
+        store.records.set(operationId, {
+          ...current,
+          ...patch,
+          state: "confirmed",
+          revision: Number(current.revision ?? 0) + 1,
+        });
+      }
       return true;
     };
     const handler = makeHandler(store);
@@ -796,6 +823,64 @@ describe("call-service idempotency foundation", () => {
     expect(res.body).toMatchObject({ success: true, txHash: TX_HASH, callId: CALL_ID });
     expect(res.headers["X-Idempotency-Persisted"]).toBeUndefined();
     expect(state.submitCount).toBe(1);
+  });
+
+  test("a prepared record past the abandonment window is released, not retried", async () => {
+    const store = makeStore();
+    const { req, operationId } = seedPrepared(store);
+    store.records.get(operationId)!.createdAt = Date.now() - 10 * 60_000;
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({
+      success: false,
+      code: "OPERATION_ABANDONED",
+      operationId,
+    });
+    expect(store.records.get(operationId)).toMatchObject({ state: "abandoned" });
+    expect(state.submitCount).toBe(0);
+  });
+
+  test("an unknown record with no transaction is abandoned once the window passes", async () => {
+    const store = makeStore();
+    const { req, operationId } = seedRecord(store, "unknown", null);
+    store.records.get(operationId)!.createdAt = Date.now() - 10 * 60_000;
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({ code: "OPERATION_ABANDONED" });
+    expect(state.submitCount).toBe(0);
+  });
+
+  test("a fresh prepared record still reports in progress inside the window", async () => {
+    const store = makeStore();
+    const { req } = seedPrepared(store);
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(202);
+    expect(res.body).toMatchObject({ code: "OPERATION_IN_PROGRESS" });
+  });
+
+  test("an abandoned record keeps refusing the payment instead of resubmitting", async () => {
+    const store = makeStore();
+    const { req } = seedRecord(store, "abandoned", null);
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({ code: "OPERATION_ABANDONED" });
+    expect(state.submitCount).toBe(0);
   });
 
   test("a store failure between alias creation and operation creation leaves a recoverable orphan alias", async () => {

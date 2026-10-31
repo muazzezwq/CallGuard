@@ -56,6 +56,8 @@ const OPERATION_IN_PROGRESS_CODE = "OPERATION_IN_PROGRESS";
 const SETTLEMENT_OUTCOME_UNKNOWN_CODE = "SETTLEMENT_OUTCOME_UNKNOWN";
 const SUBMISSION_OUTCOME_UNKNOWN_CODE = "SUBMISSION_OUTCOME_UNKNOWN";
 const SETTLEMENT_REVERTED_CODE = "SETTLEMENT_REVERTED";
+const OPERATION_ABANDONED_CODE = "OPERATION_ABANDONED";
+const PREPARED_TTL_MS = 120_000;
 
 const {
   USDC: USDC_ADDR,
@@ -319,13 +321,61 @@ function parseCallStarted(receipt) {
   return null;
 }
 
-async function transitionOperation(store, operationId, expected, patch) {
+/**
+ * The store owns `state`, `revision` and `updatedAt`, and its transition is a
+ * five-argument revision CAS. `handle` is this request's cursor into the record:
+ * a successful transition advances it, so a later transition in the same request
+ * cannot claim a revision it has already spent.
+ */
+function operationHandle(record) {
+  return {
+    operationId: record.operationId,
+    state: record.state,
+    revision: typeof record.revision === "number" ? record.revision : 0,
+  };
+}
+
+async function transitionOperation(store, handle, nextState, patch) {
   try {
-    return await store.transition(operationId, expected, patch);
+    const result = await store.transition(
+      handle.operationId,
+      handle.state,
+      handle.revision,
+      nextState,
+      patch,
+    );
+    if (result?.ok === true && result.record) {
+      handle.state = result.record.state;
+      handle.revision = result.record.revision;
+    }
+    return result;
   } catch (e) {
     logError("[x402/call-service] idempotency transition failed", e);
     return null;
   }
+}
+
+function recordAge(record) {
+  return typeof record.createdAt === "number" ? Date.now() - record.createdAt : 0;
+}
+
+/**
+ * A request that died between reserving the authorization and recording a
+ * transaction would otherwise hold the key forever. Moving the record to
+ * `abandoned` frees the caller but never resubmits: the process may have
+ * broadcast before it died, so the answer tells the caller to check the chain
+ * and lets the authorization nonce decide whether a retry can settle.
+ */
+async function abandonStale({ record, store, res, operationId }) {
+  const updated = await transitionOperation(store, operationHandle(record), "abandoned", {});
+  if (updated?.ok !== true) {
+    return sendPending(res, {
+      code: record.txHash ? SETTLEMENT_OUTCOME_UNKNOWN_CODE : SUBMISSION_OUTCOME_UNKNOWN_CODE,
+      operationId,
+      txHash: record.txHash,
+    });
+  }
+  return sendAbandoned(res, { operationId, txHash: record.txHash });
 }
 
 function sendIdempotencyUnavailable(res) {
@@ -340,6 +390,18 @@ function sendIdempotencyConflict(res) {
     error: "Idempotency key was already used with different payment parameters",
     code: IDEMPOTENCY_KEY_REUSED_CODE,
   });
+}
+
+function sendAbandoned(res, { operationId, txHash }) {
+  const body = {
+    success: false,
+    code: OPERATION_ABANDONED_CODE,
+    error:
+      "The earlier attempt stopped before it recorded a transaction. Check the payment authorization on chain before retrying; this operation is never resubmitted automatically.",
+    operationId,
+  };
+  if (txHash) body.txHash = txHash;
+  return res.status(409).json(body);
 }
 
 async function readStoreRecord(store, operationId) {
@@ -484,12 +546,23 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
   if (record.state === "reverted") {
     return sendReverted(res, { txHash: record.txHash, operationId });
   }
+  if (record.state === "abandoned") {
+    return sendAbandoned(res, { operationId, txHash: record.txHash });
+  }
   if (record.state === "prepared") {
+    if (recordAge(record) >= PREPARED_TTL_MS) {
+      return abandonStale({ record, store, res, operationId });
+    }
     return sendPending(res, { code: OPERATION_IN_PROGRESS_CODE, operationId });
   }
 
   const txHash = typeof record.txHash === "string" ? record.txHash : null;
   if (!txHash) {
+    // `unknown` with nothing to observe is the same dead-request case as
+    // `prepared`: without the window the authorization stays locked.
+    if (recordAge(record) >= PREPARED_TTL_MS) {
+      return abandonStale({ record, store, res, operationId });
+    }
     return sendPending(res, { code: SUBMISSION_OUTCOME_UNKNOWN_CODE, operationId });
   }
   if (typeof readReceipt === "function") {
@@ -501,11 +574,9 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
       return sendPending(res, { code: SETTLEMENT_OUTCOME_UNKNOWN_CODE, operationId, txHash });
     }
     if (receipt && Number(receipt.status) === 0) {
-      const updated = await transitionOperation(store, operationId, record.state, {
-        state: "reverted",
+      const updated = await transitionOperation(store, operationHandle(record), "reverted", {
         txHash,
         blockNumber: receipt.blockNumber ?? null,
-        updatedAt: Date.now(),
       });
       if (updated?.ok !== true) {
         return resolveTransitionFailure({ store, operationId, fingerprint, txHash, res });
@@ -515,12 +586,10 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
     if (receipt && Number(receipt.status) === 1) {
       const callId = parseCallStarted(receipt);
       const receiptHash = typeof receipt.hash === "string" ? receipt.hash : txHash;
-      const updated = await transitionOperation(store, operationId, record.state, {
-        state: "confirmed",
+      const updated = await transitionOperation(store, operationHandle(record), "confirmed", {
         txHash: receiptHash,
         callId,
         blockNumber: receipt.blockNumber ?? null,
-        updatedAt: Date.now(),
       });
       if (updated?.ok !== true) {
         return resolveTransitionFailure({
@@ -843,6 +912,7 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
     // until a verified durable store is wired in.
     let operationId = null;
     let operationFingerprint = null;
+    let operation = null;
     if (idempotencyStore && idempotencyContext) {
       const { explicitKey, aliasId, authId, fingerprint } = idempotencyContext;
       operationId = authId;
@@ -889,6 +959,7 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
           store: idempotencyStore,
         });
       }
+      operation = operationHandle(created.record);
     }
 
     let tx;
@@ -902,10 +973,7 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
       );
     } catch (e) {
       if (!idempotencyStore || !operationId) throw e;
-      await transitionOperation(idempotencyStore, operationId, "prepared", {
-        state: "unknown",
-        updatedAt: Date.now(),
-      });
+      await transitionOperation(idempotencyStore, operation, "unknown", {});
       logError("[x402/call-service] settlement submission failed", e);
       return sendPending(res, { code: SUBMISSION_OUTCOME_UNKNOWN_CODE, operationId });
     }
@@ -913,17 +981,12 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
     const txHash = typeof tx?.hash === "string" ? tx.hash : null;
     if (idempotencyStore && operationId) {
       if (!txHash) {
-        await transitionOperation(idempotencyStore, operationId, "prepared", {
-          state: "unknown",
-          updatedAt: Date.now(),
-        });
+        await transitionOperation(idempotencyStore, operation, "unknown", {});
         return sendPending(res, { code: SUBMISSION_OUTCOME_UNKNOWN_CODE, operationId });
       }
-      const submitted = await transitionOperation(idempotencyStore, operationId, "prepared", {
-        state: "submitted",
+      const submitted = await transitionOperation(idempotencyStore, operation, "submitted", {
         txHash,
         attempts: 1,
-        updatedAt: Date.now(),
       });
       if (submitted?.ok !== true) {
         return resolveTransitionFailure({
@@ -941,10 +1004,8 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
       receipt = await tx.wait();
     } catch (e) {
       if (!idempotencyStore || !operationId || !txHash) throw e;
-      const markedUnknown = await transitionOperation(idempotencyStore, operationId, "submitted", {
-        state: "unknown",
+      const markedUnknown = await transitionOperation(idempotencyStore, operation, "unknown", {
         txHash,
-        updatedAt: Date.now(),
       });
       logError("[x402/call-service] settlement wait failed", e);
       if (markedUnknown?.ok !== true) {
@@ -966,11 +1027,9 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
     if (idempotencyStore && operationId) {
       const status = Number(receipt?.status);
       if (status === 0) {
-        const updated = await transitionOperation(idempotencyStore, operationId, "submitted", {
-          state: "reverted",
+        const updated = await transitionOperation(idempotencyStore, operation, "reverted", {
           txHash,
           blockNumber: receipt.blockNumber ?? null,
-          updatedAt: Date.now(),
         });
         if (updated?.ok !== true) {
           return resolveTransitionFailure({
@@ -984,10 +1043,8 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
         return sendReverted(res, { txHash, operationId });
       }
       if (status !== 1) {
-        const markedUnknown = await transitionOperation(idempotencyStore, operationId, "submitted", {
-          state: "unknown",
+        const markedUnknown = await transitionOperation(idempotencyStore, operation, "unknown", {
           txHash,
-          updatedAt: Date.now(),
         });
         if (markedUnknown?.ok !== true) {
           return resolveTransitionFailure({
@@ -1009,12 +1066,10 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
     const callId = parseCallStarted(receipt);
     if (idempotencyStore && operationId) {
       const receiptHash = typeof receipt.hash === "string" ? receipt.hash : txHash;
-      const updated = await transitionOperation(idempotencyStore, operationId, "submitted", {
-        state: "confirmed",
+      const updated = await transitionOperation(idempotencyStore, operation, "confirmed", {
         txHash: receiptHash,
         callId,
         blockNumber: receipt.blockNumber ?? null,
-        updatedAt: Date.now(),
       });
       if (updated?.ok !== true) {
         return resolveTransitionFailure({
