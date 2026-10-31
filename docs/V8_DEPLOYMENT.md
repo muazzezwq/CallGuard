@@ -1066,3 +1066,69 @@ cast call 0x3600000000000000000000000000000000000000 "balanceOf(address)(uint256
 `DisputeFinalized(id, status, slashAmount)` is the event to expect. A revert before the window
 closes means too early, not a defect: read `block.timestamp` and `resolvedAt` again rather than
 retrying.
+
+### 14.8 Arbitration roles — one key holds all three
+
+`DisputeV4` separates three roles, but the deployment gives every one of them to
+`0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`: `arbiter()` opens the first-instance
+decision (`DisputeV4.sol:347`), `appealArbiter()` decides the appeal (`:376`), and
+`treasury()` receives the upheld slash. An appeal therefore reviews the same key that
+ruled, and the key that rules also holds the money. Nothing in the contract is broken —
+the roles are declared — but the independence they imply does not exist on this
+deployment.
+
+The setters are gated by the **current arbiter**, not by a separate owner
+(`DisputeV4.sol:416,423,430`):
+
+```solidity
+function setArbiter(address next)       external { if (msg.sender != arbiter) revert NotArbiter(); ... }
+function setAppealArbiter(address next) external { if (msg.sender != arbiter) revert NotArbiter(); ... }
+function setTreasury(address next)      external { if (msg.sender != arbiter) revert NotArbiter(); ... }
+```
+
+Read the current wiring first:
+
+```bash
+cast call 0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B "arbiter()(address)"       --rpc-url arc_testnet
+cast call 0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B "appealArbiter()(address)" --rpc-url arc_testnet
+cast call 0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B "treasury()(address)"      --rpc-url arc_testnet
+```
+
+**Order matters, and the last step is effectively one-way.** Only the current arbiter
+can call the setters, so `appealArbiter` and `treasury` must move while the owner wallet
+is still the arbiter. Handing `arbiter` to another key gives that key every setter: it can
+replace the appeal arbiter, the treasury, the bonds, `disputeSlashBps`, and the evidence
+kinds, and there is no owner override to take it back. Decide the final arbiter address
+before sending the third transaction.
+
+```bash
+D=0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B
+
+# 1. treasury — a key that holds funds and never rules
+cast send $D "setTreasury(address)" <treasury-address> --account deployer --rpc-url arc_testnet
+# 2. appeal arbiter — a key unrelated to the first-instance arbiter
+cast send $D "setAppealArbiter(address)" <appeal-arbiter-address> --account deployer --rpc-url arc_testnet
+# 3. arbiter — last, and only once the address is final
+cast send $D "setArbiter(address)" <arbiter-address> --account deployer --rpc-url arc_testnet
+```
+
+Read back after each send; `ArbiterChanged`, `AppealArbiterChanged` and `TreasuryChanged`
+carry both the old and the new address. `arbiter()` must answer the new address before the
+next step is attempted, otherwise the following `cast send` reverts `NotArbiter()`.
+
+Settle any dispute that is already past its appeal window **before** the rotation
+(`finalize(id)` is permissionless, so a rotation cannot strand one), then confirm the new
+arbiter can read the contract: `cast call $D "disputeCount()(uint256)"`.
+
+What role separation buys: an appeal is decided by a key that did not rule, and the
+treasury key cannot rule either. What it does not buy:
+
+- the first-instance arbiter still decides alone, with no panel and no timelock;
+- that key can still change `disputeBond`, `appealBond`, `disputeSlashBps` and
+  `setEvidenceKinds` at will;
+- the slash already escrowed is released by `finalize`, which anyone can call, so
+  treasury custody is accounting, not gating.
+
+A real fix for independence needs a dispute contract that either splits admin from
+arbitration or enforces a delay on arbiter-originated changes. Until then the honest
+statement is the one on this page: three roles, one key.

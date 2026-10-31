@@ -99,7 +99,7 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
 - Test counts drift fast. Measured 31 Oct 2026: `forge test` **629 tests / 31 suites**,
-  `bun test tests/` **623 tests / 58 files** (616 pass, 7 skip), `bun run check` clean with
+  `bun test tests/` **627 tests / 58 files** (620 pass, 7 skip), `bun run check` clean with
   **0 ESLint warnings**. Earlier: 28 Oct `forge test` **617 tests / 29 suites**,
   `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip), and a fork suite the same day
   took `forge test` to **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents

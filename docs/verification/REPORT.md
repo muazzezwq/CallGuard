@@ -207,3 +207,28 @@ Minimum evidence that would move this row from PARTIAL to PASS, in order:
   proof-verified claim and refuses a claim bound to another call.
 - Suite totals after this layer: `forge test` 526 tests / 22 suites; `bun test tests/`
   464 tests / 40 files; `bun run check` clean.
+
+## What the `zk-execution` claim does and does not bind
+
+Measured against the deployed `Risc0ExecutionAdapter` `0xD804F2E0…1a21`, 31 Oct 2026.
+
+Bound by the guest journal, five `bytes32` words: `callId`, `requestHash`,
+`responseHash`, `handlerId`, `claimHash`. `Risc0ExecutionAdapter.verify` compares all
+four of the first values against its arguments and against `PayPerCallV8`, and
+`contracts/zk/Risc0ExecutionAdapter.sol:90` rejects a journal whose `claimHash` differs
+from the one the dispute row carries. The seal is a Groth16 proof verified on chain
+(`Risc0Groth16Verifier`), at `256,608` gas.
+
+Not bound:
+
+- **The human-readable statement and assumption.** They live in the envelope and are
+  validated for presence, not anchored; only `claimHash` is inside the proof. An
+  observer can rewrite the sentence next to a valid claim, so the sentence is a
+  description of the claim, not part of it.
+- **Which program produced the journal, beyond its image id.** `imageId` is immutable in
+  the adapter (`:41`), so a different guest — a real model, a different API client — needs
+  a new adapter and a repeatable `setProofVerifier`. The deployed guest is the demo
+  handler that echoes a ping, which is what `handlerId` identifies.
+- **Correctness of any model output.** The claim says "this image ran and committed these
+  four values for this call". It does not say the response was a good answer to the
+  request, and no evidence kind does.

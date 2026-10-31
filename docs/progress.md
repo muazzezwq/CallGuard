@@ -8,6 +8,14 @@ Batch log. 3-line summary per batch (what changed / state / next).
 > figures below are snapshots: on 31 Oct 2026 `bun test tests/` is 603 tests / 596 pass / 7 skip
 > (56 files), `forge test` is 621 passing in 30 suites, and `bun run check` is clean with 0 ESLint
 > warnings.
+>
+> **31 Oct 2026 — this file is a dated log, not current architecture.** Each batch below
+> records the state at the time it was written, so older entries still name infrastructure
+> that has since been retired: the Goldsky `callguard-v7` endpoint, `DisputeV2`/`DisputeV3`,
+> the ERC-8004 identity-NFT register path, and `getReputationScore` on the active registry.
+> Read `AGENTS.md` and `docs/V8_DEPLOYMENT.md` for what is live today; do not cite a batch
+> entry as a current fact. `docs/audit.md` is a SPEC-conformance table and carries no
+> chain claims.
 
 ## Phase 0 — Inventory check
 - Inventory lists all 34 panels + 6 marketing pages; no gaps found.
