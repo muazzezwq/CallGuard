@@ -830,7 +830,15 @@ async function recoveryHandler(req, res, env) {
     return res.status(200).json({ ok: true, ...counts });
   } catch (e) {
     logError("[x402/call-service] recovery sweep failed", e);
-    return sendIdempotencyUnavailable(res);
+    // A sweep failure is not a payment-safety failure: the payment path never
+    // calls this code. Answering 503 here would make a broken sweep look like a
+    // broken store, which is a different and much more urgent problem.
+    return res.status(500).json({
+      error: "Recovery sweep failed",
+      code: "RECOVERY_FAILED",
+      detail: typeof e?.code === "string" ? e.code : "UNKNOWN",
+      status: typeof e?.status === "number" ? e.status : null,
+    });
   }
 }
 
