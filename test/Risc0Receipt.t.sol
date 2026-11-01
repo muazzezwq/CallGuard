@@ -40,6 +40,14 @@ contract Risc0ReceiptTest is Test {
     bytes32 constant JOURNAL_DIGEST_DISPATCH = 0xb6ea536433e00d36a768509bb0280770304007916f2659457af8da8a6e09d45b;
     bytes32 constant CLAIM_HASH_DISPATCH = 0xe3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c;
 
+    // ── the fourth committed receipt: the same guest over a call with no claim ──
+    // The previous fixture names a call the registry has already anchored, so it can never
+    // be anchored again. This one names a `COMPLETED` call that carries no claim; the
+    // program, the image id and the request/response words are unchanged.
+    bytes32 constant JOURNAL_DIGEST_UNCLAIMED = 0x45f14970b03ecfddce90a17560f83d481ffa8d14166378875fad3473189f489c;
+    bytes32 constant UNCLAIMED_CALL_ID = 0x041ab7c6b4caa2453282d7043e1bbf961cd0511e365f05567d5eba570a5a366b;
+    bytes32 constant CLAIM_HASH_UNCLAIMED = 0xc1d4ae3c8400463e7e9841a10572e99b5dfe13b80118979d947a0de3bd55cf72;
+
     function verifier() internal returns (IRiscZeroVerifier) {
         return new RiscZeroGroth16Verifier(CONTROL_ROOT, BN254_CONTROL_ID);
     }
@@ -133,6 +141,32 @@ contract Risc0ReceiptTest is Test {
         assertEq(callId, SECOND_CALL_ID, "journal names the call the proof is about");
         assertEq(handlerId, keccak256(bytes("callguard.handler.ping/1")), "handler 0 is the original program");
         assertEq(claimHash, CLAIM_HASH_DISPATCH, "fifth word is the claim hash");
+    }
+
+    /// The same program, over a call that carries no claim: the seal verifies against the
+    /// dispatch image id, and the journal's first and last words are the new binding.
+    function test_dispatchGuestSealVerifiesForTheUnclaimedCall() public {
+        bytes memory seal = vm.readFileBinary("test/fixtures/zk-execution-v3/seal.bin");
+        bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution-v3/journal.bin");
+        assertEq(seal.length, 260, "seal is selector + Groth16 proof");
+        assertEq(journal.length, 160, "journal is the five words the adapter decodes");
+        assertEq(sha256(journal), JOURNAL_DIGEST_UNCLAIMED, "journal digest pins the journal");
+        assertEq(
+            vm.trim(vm.readFile("test/fixtures/zk-execution-v3/image_id.txt")),
+            "0x2ba16114072357de21188f6ece592aee1783fd8ec6c30cfaf1548b0d3e2eac6c",
+            "image id fixture"
+        );
+
+        bytes32 callId;
+        bytes32 claimHash;
+        assembly {
+            callId := mload(add(journal, 32))
+            claimHash := mload(add(journal, 160))
+        }
+        assertEq(callId, UNCLAIMED_CALL_ID, "journal names the unclaimed call");
+        assertEq(claimHash, CLAIM_HASH_UNCLAIMED, "fifth word is the claim hash to anchor");
+
+        verifier().verify(seal, IMAGE_ID_DISPATCH, JOURNAL_DIGEST_UNCLAIMED);
     }
 
     function test_committedImageIdIsTheOneTheSealProves() public {
