@@ -6,12 +6,28 @@ on a request whose keccak256 is the call's committed `requestHash`.
 
 ## What the proof says, and what it does not
 
-It says: a program with image id `<image id>` ran, read a private request and a private
-claim digest, refused everything except `ping`, and committed a journal naming this call,
-this request hash, this response hash, the handler
-`keccak256("callguard.handler.ping/1")`, and the digest of the envelope that describes the
-claim. That last word is what makes the seal cover the description, so the same proof cannot
-be re-anchored under a different statement.
+It says: a program with image id `<image id>` ran, read a private request, a private claim
+digest and a handler number, ran only that handler, and committed a journal naming this call,
+this request hash, this response hash, the handler id of the handler it ran, and the digest of
+the envelope that describes the claim. That last word is what makes the seal cover the
+description, so the same proof cannot be re-anchored under a different statement.
+
+### Handlers
+
+The guest dispatches on the `handler` field of the input. A proof commits the id of the handler
+it ran, and `Risc0ExecutionAdapter` pins one handler id, so one adapter proves one handler.
+
+| `handler` | Id source | Behaviour |
+|---|---|---|
+| `0` (default) | `callguard.handler.ping/1` | request must be `ping`; response is `pong` |
+| `1` | `callguard.handler.keccak-echo/1` | response is `keccak256(request)`; any request |
+
+An input file with no `handler` field means `0`, so files written before the dispatch existed
+still prove the journal they proved then.
+
+A handler is not a model. Neither handler shows that a service answered well: `ping` binds two
+fixed strings, `keccak-echo` binds an arbitrary request to a digest of it. Both are honest about
+being the minimum that can be proved, and neither says the response is *correct*.
 
 It does not say the answer is *correct*, useful, or that it matches the outside world.
 It also does not say which machine ran it — that is the point of a zkVM, and why this

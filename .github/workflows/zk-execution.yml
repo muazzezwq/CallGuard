@@ -35,9 +35,10 @@ env:
   RISC0_RUST_VERSION: "1.88.0"
   # abi.encode(callId, requestHash, responseHash, handlerId) for
   # 0xf68c…b488 on PayPerCallV8, with handlerId = keccak256("callguard.handler.ping/1").
-  # Pinned from the first reproducible build. A drift fails the job instead of
-  # producing a proof the deployed adapter would reject.
-  EXPECTED_IMAGE_ID: "0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa"
+  # Left empty on purpose: the handler dispatch changed the guest, so the previous pinned
+  # id no longer describes this build. The first run prints the new id in its annotations;
+  # pin that value here and no proof is accepted until it matches.
+  EXPECTED_IMAGE_ID: ""
   # Dispatching this workflow needs a token, so a Groth16 run can also be requested
   # by putting `[prove]` in the commit message of a push that touches this workflow.
   PROVE_REQUESTED: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[prove]')) || inputs.mode == 'groth16' }}
@@ -121,7 +122,9 @@ jobs:
           echo "PROVE_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
           grep -q '"devMode": false' out/receipt.json
           test -s out/seal.bin
-          test "$(wc -c < out/journal.bin)" = 128
+          # Five words, not four: the guest commits callId, requestHash, responseHash,
+          # handlerId and claimHash, and `Risc0ExecutionAdapter` rejects any other length.
+          test "$(wc -c < out/journal.bin)" = 160
 
       - name: Print the artifacts worth checking
         if: env.PROVE_REQUESTED == 'true'

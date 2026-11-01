@@ -25,12 +25,16 @@ import { ControlID } from "risc0-ethereum/contracts/src/groth16/ControlID.sol";
 ///   ZK_EXECUTION_IMAGE_ID   the guest id the CI run printed, as 0x-prefixed bytes32
 /// Optional env:
 ///   ZK_VERIFIER             reuse an already deployed verifier instead of deploying another
+///   ZK_EXECUTION_HANDLER_ID the handler the guest ran, as 0x-prefixed bytes32; defaults to
+///                           the `ping/1` id below. Deploy a separate adapter per handler,
+///                           because the adapter pins exactly one handler id.
 ///
 /// The verifier's control constants are not env vars on purpose: they come from the
 /// vendored `ControlID` library at the pinned risc0-ethereum tag, so the deployed root of
 /// trust is the one the repository committed rather than whatever an operator typed.
 contract DeployZkExecution is Script {
-    /// @dev `keccak256("callguard.handler.ping/1")`, the guest's own handler id.
+    /// @dev `keccak256("callguard.handler.ping/1")`. The guest's default handler id, used
+    /// when `ZK_EXECUTION_HANDLER_ID` is not set.
     bytes32 internal constant HANDLER_ID = 0xc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7;
 
     function run() external returns (address verifier, address adapter) {
@@ -40,11 +44,15 @@ contract DeployZkExecution is Script {
         // The verifier's address is a fixed input once it is deployed and its constants are the
         // vendored ones, so a redeploy of the adapter alone must not mint a second root of trust.
         address existingVerifier = vm.envOr("ZK_VERIFIER", address(0));
+        // One adapter proves one handler, so the id is an input and not a constant baked into
+        // the deployment: the guest dispatches on a handler number and commits that handler's id.
+        bytes32 handlerId = vm.envOr("ZK_EXECUTION_HANDLER_ID", HANDLER_ID);
+        require(handlerId != bytes32(0), "ZK_EXECUTION_HANDLER_ID is zero");
 
         console2.log("Deployer        :", msg.sender);
         console2.log("PayPerCallV8    :", payPerCall);
         console2.log("Handler id      :");
-        console2.logBytes32(HANDLER_ID);
+        console2.logBytes32(handlerId);
         console2.log("Image id        :");
         console2.logBytes32(imageId);
 
@@ -58,7 +66,7 @@ contract DeployZkExecution is Script {
             console2.log("Reusing verifier:", verifier);
         }
 
-        adapter = address(new Risc0ExecutionAdapter(verifier, payPerCall, imageId, HANDLER_ID));
+        adapter = address(new Risc0ExecutionAdapter(verifier, payPerCall, imageId, handlerId));
         console2.log("ExecutionAdapter:", adapter);
 
         vm.stopBroadcast();

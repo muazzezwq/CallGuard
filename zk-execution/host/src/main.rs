@@ -22,6 +22,11 @@ use zk_execution_methods::{PING_ELF, PING_ID};
 struct InputFile {
     call_id: String,
     claim_hash: String,
+    /// Which handler the guest runs. `0` is `callguard.handler.ping/1`, `1` is
+    /// `callguard.handler.keccak-echo/1`. Absent means `ping`, so an input file written
+    /// before the dispatch existed still proves the same journal it proved then.
+    #[serde(default)]
+    handler: u8,
     request: String,
 }
 
@@ -30,6 +35,7 @@ struct InputFile {
 struct GuestInput {
     call_id: [u8; 32],
     claim_hash: [u8; 32],
+    handler: u8,
     request: Vec<u8>,
 }
 
@@ -123,6 +129,7 @@ fn main() -> Result<()> {
         claim_hash: hex::decode(input.claim_hash.trim_start_matches("0x"))?
             .try_into()
             .map_err(|_| anyhow::anyhow!("claim_hash must be 32 bytes"))?,
+        handler: input.handler,
         request: hex::decode(input.request.trim_start_matches("0x"))?,
     };
 

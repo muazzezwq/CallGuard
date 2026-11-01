@@ -788,6 +788,37 @@ own claim cannot leave CI. Confirming the fix needed no new proof — only a new
    and `anchor` the blob. Simulate first; every step in the runner is an `eth_call` before it is
    a transaction.
 
+### 13.6 A second handler needs a second adapter
+
+The guest dispatches on the `handler` byte of `input.json` and commits the id of the handler it
+ran, so the journal keeps its five-word shape and `Risc0ExecutionAdapter` needs no change. What
+does change is the deployment: the adapter pins one `handlerId` immutable, and `verify` answers
+`false` for any journal that commits a different one. One adapter therefore proves one handler.
+
+| `handler` | Id source | `handlerId` |
+|---|---|---|
+| `0` (default) | `callguard.handler.ping/1` | `0xc60c6f3bf0f8f833abad48f8abf4ed6861c7e7138115b0d567a72cdf9bfa84c7` |
+| `1` | `callguard.handler.keccak-echo/1` | `0x210761e0c0a6b53df36f9dfb38434acb2afb14359f9a603611c68637371c6996` |
+
+Order of work for a handler that is not yet on chain:
+
+1. `[prove]` push. `EXPECTED_IMAGE_ID` is empty in the workflow until this run prints the new
+   id, so the run builds, asserts the journal, proves, and publishes `imageId`/`journal`/
+   `journalDigest`/`sealHex` in its annotations. Pin the printed id into `EXPECTED_IMAGE_ID`
+   before the next proof is treated as deployable.
+2. `bun scripts/zk-execution-proof.ts --write --blob <file>`, then
+   `forge test --match-contract Risc0ReceiptTest` (verifies the seal without gas).
+3. `ZK_EXECUTION_IMAGE_ID=… ZK_EXECUTION_HANDLER_ID=<id from the table> ZK_VERIFIER=<deployed>
+   forge script script/DeployZkExecution.s.sol:DeployZkExecution … --broadcast` from the owner
+   TTY. Without `ZK_EXECUTION_HANDLER_ID` the script falls back to `ping/1`, which is the wrong
+   id for a new handler and would deploy an adapter that rejects every proof of it.
+4. `setProofVerifier(zk-execution, <new adapter>, true)` as arbiter, then `anchor` the blob.
+
+The anchor binds `requestHash`, so the call it names must be a completed V8 call whose committed
+request bytes hash to the journal's second word; the adapter reads that hash from
+`PayPerCallV8.getCall` and refuses a mismatch. Plan a call whose response the chosen handler can
+actually reproduce, or use `handler: 0` with a `ping` request.
+
 Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkvm 3.0.6`,
 `r0vm 3.0.6`, `cargo-risczero 3.0.6`, host Rust `1.91.0`, guest Rust `1.88.0` via
 `rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
