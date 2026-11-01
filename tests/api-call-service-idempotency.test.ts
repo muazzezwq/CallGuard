@@ -8,10 +8,9 @@ import {
 } from "../api/_idempotency";
 import { classifyFacilitatorResult, type FacilitatorBody } from "../src/lib/facilitatorOutcome";
 
-/* These tests exercise the factory path only. The default export stays on the
-   current production behavior: no idempotency store is injected, so no
-   idempotency decision is made. The store below is an in-memory fake, not a
-   distributed Redis integration test. */
+/* These tests exercise the factory path and the recovery sweep. The store below
+   is an in-memory fake, not a distributed Redis integration test; the recovery
+   sweep shares its shape (one SCAN page, then a revision CAS per record). */
 
 const FROM = "0x1111111111111111111111111111111111111111";
 const CONTRACT = "0x5fb41dd22c44e1de08f37d98c2995a62d6220540";
@@ -132,6 +131,12 @@ type Factory = (options: {
 }) => Handler;
 
 let createCallServiceHandler: Factory;
+let recoverOperations: (options: {
+  store: ReturnType<typeof makeStore>;
+  readReceipt?: ((txHash: string) => Promise<Receipt | null>) | null;
+  limit?: number;
+}) => Promise<Record<string, number>>;
+let defaultHandler: (req: unknown, res: unknown, env?: Record<string, string | undefined>) => unknown;
 
 function makeStore() {
   const records = new Map<string, Record<string, unknown>>();
@@ -194,6 +199,11 @@ function makeStore() {
       };
       records.set(operationId, next);
       return { ok: true, record: { ...next } };
+    },
+    /* One SCAN page over every stored key, in insertion order. */
+    async scanIds({ count = 100 }: { cursor?: string; count?: number } = {}) {
+      const ids = Array.from(records.keys()).slice(0, count);
+      return { cursor: "0", ids };
     },
   };
   return store;
@@ -328,6 +338,8 @@ beforeAll(async () => {
 
   const mod = await import("../api/call-service.js");
   createCallServiceHandler = mod.createCallServiceHandler as Factory;
+  recoverOperations = mod.recoverOperations;
+  defaultHandler = (mod.default ?? mod.defaultHandler);
 });
 
 afterAll(() => {
@@ -858,6 +870,35 @@ describe("call-service idempotency foundation", () => {
     expect(state.submitCount).toBe(0);
   });
 
+  test("a submitted record whose receipt never appears is released after the settlement window", async () => {
+    const store = makeStore();
+    const { req, operationId } = seedSubmitted(store);
+    store.records.get(operationId)!.createdAt = Date.now() - 16 * 60_000;
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({ code: "OPERATION_ABANDONED", operationId, txHash: TX_HASH });
+    expect(store.records.get(operationId)).toMatchObject({ state: "abandoned" });
+    expect(state.submitCount).toBe(0);
+  });
+
+  test("a submitted record inside the settlement window still waits for its receipt", async () => {
+    const store = makeStore();
+    const { req, operationId } = seedSubmitted(store);
+    const handler = makeHandler(store);
+
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(202);
+    expect(res.body).toMatchObject({ code: "SETTLEMENT_OUTCOME_UNKNOWN", txHash: TX_HASH });
+    expect(store.records.get(operationId)).toMatchObject({ state: "submitted" });
+    expect(state.submitCount).toBe(0);
+  });
+
   test("a fresh prepared record still reports in progress inside the window", async () => {
     const store = makeStore();
     const { req } = seedPrepared(store);
@@ -972,5 +1013,153 @@ describe("call-service idempotency foundation", () => {
     expect(operations).toHaveLength(1);
     expect(aliases).toHaveLength(1);
     expect(aliases[0]?.authId).toBe(operations[0]?.authId);
+  });
+});
+
+describe("recovery sweep", () => {
+  /** Age every stored operation record so the sweep sees it as stale. */
+  function ageOperations(store: ReturnType<typeof makeStore>, minutes: number) {
+    for (const [id, record] of store.records) {
+      if (record.kind !== "operation") continue;
+      store.records.set(id, { ...record, createdAt: Date.now() - minutes * 60_000 });
+    }
+  }
+
+  test("settles a submitted record with no caller retrying", async () => {
+    const store = makeStore();
+    const { operationId } = seedSubmitted(store);
+
+    const counts = await recoverOperations({
+      store,
+      readReceipt: async () => ({ status: 1, blockNumber: 42, logs: [{}] }),
+    });
+
+    expect(counts.confirmed).toBe(1);
+    expect(counts.scanned).toBeGreaterThan(0);
+    const record = store.records.get(operationId);
+    expect(record?.state).toBe("confirmed");
+  });
+
+  test("marks a submitted record reverted when its receipt failed", async () => {
+    const store = makeStore();
+    const { operationId } = seedSubmitted(store);
+
+    const counts = await recoverOperations({
+      store,
+      readReceipt: async () => ({ status: 0, blockNumber: 42, logs: [] }),
+    });
+
+    expect(counts.reverted).toBe(1);
+    expect(store.records.get(operationId)?.state).toBe("reverted");
+  });
+
+  test("abandons a stale record whose receipt never appears", async () => {
+    const store = makeStore();
+    const { operationId } = seedSubmitted(store);
+    ageOperations(store, 30);
+
+    const counts = await recoverOperations({ store, readReceipt: async () => null });
+
+    expect(counts.abandoned).toBe(1);
+    expect(store.records.get(operationId)?.state).toBe("abandoned");
+  });
+
+  test("keeps a fresh record pending when its receipt never appears", async () => {
+    const store = makeStore();
+    const { operationId } = seedSubmitted(store);
+
+    const counts = await recoverOperations({ store, readReceipt: async () => null });
+
+    expect(counts.pending).toBe(1);
+    expect(store.records.get(operationId)?.state).toBe("submitted");
+  });
+
+  test("keeps the record pending when the receipt read throws", async () => {
+    const store = makeStore();
+    const { operationId } = seedSubmitted(store);
+    ageOperations(store, 30);
+
+    const counts = await recoverOperations({
+      store,
+      readReceipt: async () => {
+        throw new Error("rpc down");
+      },
+    });
+
+    expect(counts.pending).toBe(1);
+    expect(store.records.get(operationId)?.state).toBe("submitted");
+  });
+
+  test("abandons a stale prepared record and skips alias records", async () => {
+    const store = makeStore();
+    const { operationId, aliasId } = seedRecord(store, "prepared", null);
+    ageOperations(store, 10);
+
+    const counts = await recoverOperations({ store, readReceipt: async () => null });
+
+    expect(counts.abandoned).toBe(1);
+    expect(counts.skipped).toBeGreaterThan(0);
+    expect(store.records.get(operationId)?.state).toBe("abandoned");
+    expect(store.records.get(aliasId)?.state).toBeUndefined();
+  });
+});
+
+describe("recovery endpoint", () => {
+  const secret = "test-cron-secret";
+
+  test("refuses to run without a configured secret", async () => {
+    const res = makeRes();
+    await defaultHandler({ method: "GET", headers: {}, url: "/api/call-service?recovery=1" }, res, {
+      CALL_SERVICE_IDEMPOTENCY: "enabled",
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(res.body).toMatchObject({ code: "RECOVERY_NOT_CONFIGURED" });
+  });
+
+  test("rejects a wrong secret", async () => {
+    const res = makeRes();
+    await defaultHandler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer wrong" },
+        url: "/api/call-service?recovery=1",
+      },
+      res,
+      { CRON_SECRET: secret },
+    );
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toMatchObject({ code: "RECOVERY_UNAUTHORIZED" });
+  });
+
+  test("authorizes the cron bearer token before touching the store", async () => {
+    const res = makeRes();
+    await defaultHandler(
+      {
+        method: "GET",
+        headers: { authorization: `Bearer ${secret}` },
+        url: "/api/call-service?recovery=1",
+      },
+      res,
+      { CRON_SECRET: secret },
+    );
+
+    // Authorized, but no store is enabled in this environment.
+    expect(res.statusCode).toBe(503);
+    expect(res.body).toMatchObject({ code: "IDEMPOTENCY_UNAVAILABLE" });
+  });
+
+  test("a normal POST is not treated as a recovery request", async () => {
+    const res = makeRes();
+    await defaultHandler(
+      { method: "POST", headers: {}, body: {}, url: "/api/call-service" },
+      res,
+      { CRON_SECRET: secret },
+    );
+
+    // Routed as a payment request, not as a sweep: no store, no recovery.
+    expect(res.statusCode).toBe(400);
+    expect(res.body).not.toHaveProperty("scanned");
   });
 });

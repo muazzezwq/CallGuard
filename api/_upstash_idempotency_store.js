@@ -1,6 +1,7 @@
 // Stage 2 Upstash REST EVAL adapter for idempotency records.
 //
-// This module is server-only and deliberately not wired into any route. It
+// This module is server-only and is wired into /api/call-service when
+// CALL_SERVICE_IDEMPOTENCY is enabled. It
 // stores JSON records through the existing Upstash REST credentials named
 // UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN. It does not read them at
 // module load; callers must opt in with createUpstashIdempotencyStoreFromEnv().
@@ -12,6 +13,8 @@
 //     -> record | null
 //   transition(id, expectedState, expectedRevision, nextState, patch)
 //     -> { ok: true, record } | { ok: false, record: null | record }
+//   scanIds({ cursor, count })
+//     -> { cursor, ids }   -- one SCAN page, prefix already stripped
 //
 // The five-argument transition is intentional. Stage 1 requires revision CAS;
 // the older three-argument state-only shape is not implemented because it
@@ -36,6 +39,12 @@ import { redact } from "./_redact.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 
+// Records are swept by TTL, not by a delete job: every write refreshes the
+// key so that a record only disappears once nothing has touched it for a full
+// retention window. Abandoned and terminal records therefore cannot grow the
+// keyspace forever.
+const DEFAULT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
 const CREATE_SCRIPT = `
 -- create-if-absent
 local existing = redis.call("GET", KEYS[1])
@@ -43,6 +52,9 @@ if existing then
   return {0, existing}
 end
 redis.call("SET", KEYS[1], ARGV[1])
+if ARGV[2] ~= "" then
+  redis.call("PEXPIRE", KEYS[1], tonumber(ARGV[2]))
+end
 return {1, ARGV[1]}
 `;
 
@@ -68,6 +80,9 @@ record["revision"] = tonumber(ARGV[2]) + 1
 record["updatedAt"] = tonumber(ARGV[5])
 local updated = cjson.encode(record)
 redis.call("SET", KEYS[1], updated)
+if ARGV[6] ~= "" then
+  redis.call("PEXPIRE", KEYS[1], tonumber(ARGV[6]))
+end
 return {1, updated}
 `;
 
@@ -226,6 +241,7 @@ export function createUpstashIdempotencyStore({
   keyPrefix,
   fetchImpl = globalThis.fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  retentionMs = DEFAULT_RETENTION_MS,
   now = Date.now,
 } = {}) {
   if (!isNonEmptyString(keyPrefix)) {
@@ -236,6 +252,9 @@ export function createUpstashIdempotencyStore({
   }
   if (!isPositiveInteger(timeoutMs)) {
     fail("UPSTASH_INVALID_CONFIG", "timeoutMs must be a positive integer");
+  }
+  if (!isPositiveInteger(retentionMs)) {
+    fail("UPSTASH_INVALID_CONFIG", "retentionMs must be a positive integer");
   }
   if (typeof now !== "function") {
     fail("UPSTASH_INVALID_CONFIG", "now must be a function");
@@ -340,7 +359,9 @@ export function createUpstashIdempotencyStore({
       fail("INVALID_ARGUMENT", "record is not JSON serializable");
     }
     const key = keyFor(record.operationId);
-    return parseCreateResult(await request(["EVAL", CREATE_SCRIPT, "1", key, encoded]));
+    return parseCreateResult(
+      await request(["EVAL", CREATE_SCRIPT, "1", key, encoded, String(retentionMs)]),
+    );
   }
 
   async function get(id) {
@@ -390,11 +411,44 @@ export function createUpstashIdempotencyStore({
       nextState,
       encoded,
       String(updatedAt),
+      String(retentionMs),
     ]);
     return parseTransitionResult(result);
   }
 
-  return { create, get, transition };
+  async function scanIds({ cursor = "0", count = 100 } = {}) {
+    if (!isNonEmptyString(cursor)) {
+      fail("INVALID_ARGUMENT", "cursor is required");
+    }
+    if (!isPositiveInteger(count)) {
+      fail("INVALID_ARGUMENT", "count must be a positive integer");
+    }
+    const result = await request([
+      "SCAN",
+      cursor,
+      "MATCH",
+      `${keyPrefix}*`,
+      "COUNT",
+      String(count),
+    ]);
+    if (!Array.isArray(result) || result.length !== 2 || !Array.isArray(result[1])) {
+      fail("UPSTASH_INVALID_RESPONSE", "Upstash returned an invalid SCAN result");
+    }
+    const [nextCursor, keys] = result;
+    if (!isNonEmptyString(String(nextCursor ?? ""))) {
+      fail("UPSTASH_INVALID_RESPONSE", "Upstash returned an invalid SCAN cursor");
+    }
+    const ids = [];
+    for (const key of keys) {
+      if (!isNonEmptyString(key)) continue;
+      if (!key.startsWith(keyPrefix)) continue;
+      const id = key.slice(keyPrefix.length);
+      if (id) ids.push(id);
+    }
+    return { cursor: String(nextCursor), ids };
+  }
+
+  return { create, get, transition, scanIds };
 }
 
 export function createUpstashIdempotencyStoreFromEnv({

@@ -19,6 +19,7 @@ import { ethers } from "ethers";
 import { ACTIVE, V8_ACTIVE } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   callServiceFingerprint,
   createAliasRecord,
@@ -58,6 +59,9 @@ const SUBMISSION_OUTCOME_UNKNOWN_CODE = "SUBMISSION_OUTCOME_UNKNOWN";
 const SETTLEMENT_REVERTED_CODE = "SETTLEMENT_REVERTED";
 const OPERATION_ABANDONED_CODE = "OPERATION_ABANDONED";
 const PREPARED_TTL_MS = 120_000;
+// A recorded transaction hash is not proof of settlement. If the receipt never
+// appears, the record would otherwise answer 202 forever.
+const SUBMITTED_TTL_MS = 15 * 60_000;
 
 const {
   USDC: USDC_ADDR,
@@ -360,6 +364,18 @@ function recordAge(record) {
 }
 
 /**
+ * How long a record may sit in its current state before the caller is released.
+ * `prepared` and a hash-less `unknown` are dead-request cases with nothing to
+ * observe, so they expire on the short window. A record that did record a hash
+ * waits on the longer one: a submitted transaction can legitimately take
+ * minutes, but it cannot stay pending forever.
+ */
+function recordTtl(record) {
+  const hasHash = typeof record.txHash === "string" && record.txHash.length > 0;
+  return record.state === "prepared" || !hasHash ? PREPARED_TTL_MS : SUBMITTED_TTL_MS;
+}
+
+/**
  * A request that died between reserving the authorization and recording a
  * transaction would otherwise hold the key forever. Moving the record to
  * `abandoned` frees the caller but never resubmits: the process may have
@@ -550,7 +566,7 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
     return sendAbandoned(res, { operationId, txHash: record.txHash });
   }
   if (record.state === "prepared") {
-    if (recordAge(record) >= PREPARED_TTL_MS) {
+    if (recordAge(record) >= recordTtl(record)) {
       return abandonStale({ record, store, res, operationId });
     }
     return sendPending(res, { code: OPERATION_IN_PROGRESS_CODE, operationId });
@@ -560,11 +576,12 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
   if (!txHash) {
     // `unknown` with nothing to observe is the same dead-request case as
     // `prepared`: without the window the authorization stays locked.
-    if (recordAge(record) >= PREPARED_TTL_MS) {
+    if (recordAge(record) >= recordTtl(record)) {
       return abandonStale({ record, store, res, operationId });
     }
     return sendPending(res, { code: SUBMISSION_OUTCOME_UNKNOWN_CODE, operationId });
   }
+  let sawReceipt = false;
   if (typeof readReceipt === "function") {
     let receipt;
     try {
@@ -573,6 +590,7 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
       logError("[x402/call-service] receipt read failed", e);
       return sendPending(res, { code: SETTLEMENT_OUTCOME_UNKNOWN_CODE, operationId, txHash });
     }
+    sawReceipt = Boolean(receipt);
     if (receipt && Number(receipt.status) === 0) {
       const updated = await transitionOperation(store, operationHandle(record), "reverted", {
         txHash,
@@ -607,6 +625,12 @@ async function resolveExistingOperation({ record, fingerprint, res, readReceipt,
       });
     }
   }
+  // Nothing is mined yet. Before the window closes that is a normal pending
+  // state; after it, the transaction hash is not going to settle and the caller
+  // must be released instead of polling 202 forever.
+  if (!sawReceipt && recordAge(record) >= recordTtl(record)) {
+    return abandonStale({ record, store, res, operationId });
+  }
   return sendPending(res, { code: SETTLEMENT_OUTCOME_UNKNOWN_CODE, operationId, txHash });
 }
 
@@ -622,10 +646,8 @@ export const DEFAULT_IDEMPOTENCY_KEY_PREFIX = "callguard:idempotency:call-servic
 /**
  * The store the default export uses, resolved per invocation from the environment.
  *
- * Activation is an explicit switch, because `docs/decisions.md` still records the
- * remaining pre-activation work (durable raw-transaction persistence, a recovery
- * worker, a replacement policy). `UPSTASH_REDIS_REST_URL` may already be set for
- * rate limiting, so presence alone must not flip payment behaviour.
+ * Activation is an explicit switch. `UPSTASH_REDIS_REST_URL` may already be set
+ * for rate limiting, so presence alone must not flip payment behaviour.
  *
  * Three outcomes, and the difference between the last two is the whole point:
  * - an object: `CALL_SERVICE_IDEMPOTENCY=enabled` and both Upstash vars are set;
@@ -663,7 +685,157 @@ export async function readTransactionReceipt(txHash) {
   return provider.getTransactionReceipt(txHash);
 }
 
+/** How many records one sweep may inspect. See `recoverOperations`. */
+export const RECOVERY_LIMIT = 200;
+
+const TERMINAL_STATES = new Set(["confirmed", "reverted", "abandoned"]);
+
+// Constant-time secret comparison (hash first so lengths always match).
+function secretEquals(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b) return false;
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
+/**
+ * Advance one record without a caller in the loop.
+ *
+ * The retry path in `resolveExistingOperation` only helps a caller who asks
+ * again with the same authorization. If the client gave up (or died), a record
+ * that reached `submitted` stayed there forever, and its nonce stayed reserved.
+ * This sweep resolves it from the chain alone.
+ *
+ * It never broadcasts: a hash is only ever observed, never submitted. A record
+ * whose receipt is missing and whose window has not closed stays `pending` for
+ * the next sweep, because a transaction can legitimately take minutes.
+ */
+async function recoverOne({ store, id, readReceipt = null }) {
+  const record = await store.get(id);
+  if (!record || record.kind !== "operation") return "skipped";
+  if (TERMINAL_STATES.has(record.state)) return "skipped";
+  const handle = operationHandle(record);
+  const stale = recordAge(record) >= recordTtl(record);
+  const txHash = typeof record.txHash === "string" && record.txHash ? record.txHash : null;
+
+  if (!txHash) {
+    if (!stale) return "pending";
+    const updated = await transitionOperation(store, handle, "abandoned", {});
+    return updated?.ok === true ? "abandoned" : "failed";
+  }
+  if (typeof readReceipt !== "function") return "pending";
+
+  let receipt;
+  try {
+    receipt = await readReceipt(txHash);
+  } catch (e) {
+    logError("[x402/call-service] recovery receipt read failed", e);
+    return "pending";
+  }
+  if (!receipt) {
+    if (!stale) return "pending";
+    const updated = await transitionOperation(store, handle, "abandoned", { txHash });
+    return updated?.ok === true ? "abandoned" : "failed";
+  }
+  if (Number(receipt.status) === 0) {
+    const updated = await transitionOperation(store, handle, "reverted", {
+      txHash,
+      blockNumber: receipt.blockNumber ?? null,
+    });
+    return updated?.ok === true ? "reverted" : "failed";
+  }
+  const receiptHash = typeof receipt.hash === "string" ? receipt.hash : txHash;
+  const updated = await transitionOperation(store, handle, "confirmed", {
+    txHash: receiptHash,
+    callId: parseCallStarted(receipt),
+    blockNumber: receipt.blockNumber ?? null,
+  });
+  return updated?.ok === true ? "confirmed" : "failed";
+}
+
+/**
+ * One sweep pass over the store.
+ *
+ * Only one SCAN page is read per call, so the sweep is bounded by `limit` rather
+ * than by the size of the keyspace. Records that are skipped or pending simply
+ * wait for the next pass; the retention window on every write is what keeps the
+ * keyspace finite, not this loop.
+ */
+export async function recoverOperations({ store, readReceipt = null, limit = RECOVERY_LIMIT } = {}) {
+  const counts = {
+    scanned: 0,
+    confirmed: 0,
+    reverted: 0,
+    abandoned: 0,
+    pending: 0,
+    skipped: 0,
+    failed: 0,
+  };
+  if (!store || typeof store.scanIds !== "function") return counts;
+  const page = await store.scanIds({ count: limit });
+  for (const id of page.ids || []) {
+    counts.scanned += 1;
+    try {
+      const outcome = await recoverOne({ store, id, readReceipt });
+      if (outcome in counts) counts[outcome] += 1;
+      else counts.skipped += 1;
+    } catch (e) {
+      logError("[x402/call-service] recovery step failed", e);
+      counts.failed += 1;
+    }
+  }
+  return counts;
+}
+
+function isRecoveryRequest(req) {
+  if (req?.query?.recovery === "1") return true;
+  try {
+    const url = new URL(req?.url || "/", "http://localhost");
+    return url.searchParams.get("recovery") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `GET /api/idempotency-recovery` — reached through a `vercel.json` rewrite onto
+ * `/api/call-service?recovery=1`, because the Hobby plan caps a deployment at
+ * twelve serverless functions and the API already has twelve.
+ *
+ * Vercel cron sends `Authorization: Bearer $CRON_SECRET` on its own. Callers that
+ * cannot set that header may use `x-recovery-secret` instead.
+ */
+async function recoveryHandler(req, res, env) {
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+  const secret = env?.CRON_SECRET;
+  if (typeof secret !== "string" || !secret) {
+    return res.status(503).json({ error: "Recovery is not configured", code: "RECOVERY_NOT_CONFIGURED" });
+  }
+  const authorization = req.headers?.authorization;
+  const bearer =
+    typeof authorization === "string" && authorization.startsWith("Bearer ")
+      ? authorization.slice("Bearer ".length).trim()
+      : "";
+  const provided = bearer || req.headers?.["x-recovery-secret"] || "";
+  if (!secretEquals(provided, secret)) {
+    return res.status(401).json({ error: "Unauthorized", code: "RECOVERY_UNAUTHORIZED" });
+  }
+  const store = resolveDefaultIdempotencyStore(env);
+  if (store === IDEMPOTENCY_STORE_FAILED) return sendIdempotencyUnavailable(res);
+  if (!store) {
+    return res.status(503).json({ error: "Idempotency store is disabled", code: IDEMPOTENCY_UNAVAILABLE_CODE });
+  }
+  try {
+    const counts = await recoverOperations({ store, readReceipt: readTransactionReceipt });
+    return res.status(200).json({ ok: true, ...counts });
+  } catch (e) {
+    logError("[x402/call-service] recovery sweep failed", e);
+    return sendIdempotencyUnavailable(res);
+  }
+}
+
 export default function defaultHandler(req, res, env = process.env) {
+  if (isRecoveryRequest(req)) return recoveryHandler(req, res, env);
   const store = resolveDefaultIdempotencyStore(env);
   if (store === IDEMPOTENCY_STORE_FAILED) {
     Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));

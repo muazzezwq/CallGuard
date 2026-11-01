@@ -253,6 +253,44 @@ describe("Upstash REST EVAL store contract", () => {
     expect(calls.every(call => call.command[0] !== "PIPELINE")).toBe(true);
   });
 
+  test("create and transition refresh the retention window on every write", async () => {
+    const record = operation();
+    const signed = operation({ state: "signed", revision: 1, updatedAt: NOW });
+    const { fetchImpl, calls } = makeFakeFetch([
+      { body: { result: [1, JSON.stringify(record)] } },
+      { body: { result: [1, JSON.stringify(signed)] } },
+    ]);
+    const store = createStore(fetchImpl, { retentionMs: 60_000 });
+
+    await store.create(record);
+    await store.transition(OP_ID, "prepared", 0, "signed", { txHash: TX_HASH });
+
+    expect(calls[0].command[1]).toContain('redis.call("PEXPIRE", KEYS[1], tonumber(ARGV[2]))');
+    expect(calls[0].command[5]).toBe("60000");
+    expect(calls[1].command[1]).toContain('redis.call("PEXPIRE", KEYS[1], tonumber(ARGV[6]))');
+    expect(calls[1].command[9]).toBe("60000");
+  });
+
+  test("scanIds issues one SCAN page and strips the key prefix", async () => {
+    const { fetchImpl, calls } = makeFakeFetch([
+      { body: { result: ["17", [`${PREFIX}${OP_ID}`, `${PREFIX}other`, "elsewhere:key"]] } },
+    ]);
+    const store = createStore(fetchImpl);
+
+    const page = await store.scanIds({ count: 50 });
+
+    expect(page).toEqual({ cursor: "17", ids: [OP_ID, "other"] });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toEqual(["SCAN", "0", "MATCH", `${PREFIX}*`, "COUNT", "50"]);
+  });
+
+  test("scanIds rejects a malformed Upstash reply", async () => {
+    const { fetchImpl } = makeFakeFetch([{ body: { result: "nope" } }]);
+    const store = createStore(fetchImpl);
+
+    await expect(store.scanIds()).rejects.toMatchObject({ code: "UPSTASH_INVALID_RESPONSE" });
+  });
+
   test("createFromEnv uses only the existing UPSTASH_REDIS_REST names", async () => {
     const record = operation();
     const { fetchImpl, calls } = makeFakeFetch([

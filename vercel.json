@@ -26,7 +26,11 @@
     { "source": "/api/evidence",      "destination": "/api/attestation?evidence=1" },
     { "source": "/api/marketplace/health", "destination": "/api/marketplace?health=1" },
     { "source": "/api/auto-receipt/health", "destination": "/api/auto-receipt" },
+    { "source": "/api/idempotency-recovery", "destination": "/api/call-service?recovery=1" },
     { "source": "/(.*)",              "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/idempotency-recovery", "schedule": "0 4 * * *" }
   ],
   "headers": [
     {
