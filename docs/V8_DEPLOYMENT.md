@@ -1169,6 +1169,20 @@ cast call 0x3600000000000000000000000000000000000000 "balanceOf(address)(uint256
 closes means too early, not a defect: read `block.timestamp` and `resolvedAt` again rather than
 retrying.
 
+**Executed on 1 Nov 2026.** Both writes succeeded, in this order:
+
+| id | tx | block | gas | paid out |
+|---|---|---|---|---|
+| `1` | `0x1fb8a54fdcdbd01d4fc2d9816d4489b2e7a501714af7158c835bb13300f3fc6c` | `70231283` (`1793562632`) | `85,048` | `1,283,554` (`0x1395e2`) |
+| `2` | `0x632860521fde49b50841fe86d0e90f1a0cd65eff5adb0f3c7121b8911b128d14` | `70231530` (`1793562757`) | `85,048` | `924,159` (`0x0e19ff`) |
+
+Read back afterwards: `settled(1)` and `settled(2)` are `true`, `heldSlash(1)` and `heldSlash(2)`
+are `0`, and `USDC.balanceOf(DisputeV4)` is `0` — the last of the escrow this contract held is
+gone. Each finalize emitted three logs: two `Transfer`s of the same amount (one from the native
+asset address `0xffff…fffe`, one from the ERC-20 view `0x3600…0000`) and one `DisputeFinalized`.
+Arc's USDC is a native asset with an ERC-20 face, so one movement shows up twice; comparing only
+the ERC-20 log is still correct.
+
 ### 14.8 Arbitration roles — one key holds all three
 
 `DisputeV4` separates three roles, but the deployment gives every one of them to
