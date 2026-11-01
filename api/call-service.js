@@ -838,6 +838,12 @@ async function recoveryHandler(req, res, env) {
       code: "RECOVERY_FAILED",
       detail: typeof e?.code === "string" ? e.code : "UNKNOWN",
       status: typeof e?.status === "number" ? e.status : null,
+      // The adapter's own messages are canned strings, and node's fetch failures
+      // carry the useful signal in cause.code (ENOTFOUND, ECONNREFUSED, ...).
+      // Without them a transport failure is indistinguishable from a timeout,
+      // and the runtime logs are not readable from this deployment.
+      reason: typeof e?.message === "string" ? e.message : null,
+      cause: typeof e?.cause?.code === "string" ? e.cause.code : null,
     });
   }
 }
