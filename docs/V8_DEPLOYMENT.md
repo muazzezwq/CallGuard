@@ -674,6 +674,14 @@ The real-quote regression suite still skips, `test/fixtures/tdx/` is empty, and 
 `tee-attestation` claim is anchored. Resuming needs one thing — a funded balance — after
 which §12.3 steps 1–5 run unchanged.
 
+**Closed on 1 November 2026.** The missing artifact is now accepted as permanent rather than
+pending: no balance will be added for this, `modeOf(tee-attestation)` stays `0`, and the kind is
+documented as closed in `docs/verification/ATTESTOR_SCOPE.md`. The verifier, the container and
+this runbook stay in the tree unchanged, so the work that was done is not wasted — a funded
+enclave run later is a deployment (`§12.3` steps 1–5), not a rewrite. What this costs is
+honesty, not capability: an `tee-attestation` row in a dispute still reads `NoVerifier`, and that
+is now the finished state of the scope rather than a gap that opens later.
+
 
 The billing gate also falsifies an assumption this section opened with: Phala Cloud does not
 hand out a free CVM on signup. An account with no payment method has a `$0.00` balance, and

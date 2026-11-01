@@ -1,8 +1,12 @@
 # Attestor scope — `witness` and `tee-attestation`
 
-Status: decided 28 October 2026. One of the four evidence kinds — `tee-attestation` — has no
-verifier and will not get one until an artifact exists. This document records why, what the
-absence means for a dispute, and what would have to be true for it to change.
+Status: decided 28 October 2026, **closed 1 November 2026**. One of the four evidence kinds —
+`tee-attestation` — has no verifier and will not get one until an artifact exists. This document
+records why, what the absence means for a dispute, and what would have to be true for it to
+change. On 1 Nov 2026 the project accepted the missing artifact as a permanent state rather than
+a pending one: `modeOf(tee-attestation)` stays `0`, no `tee-attestation` claim will be anchored,
+and the code, the image and the runbook stay in the tree so a future funded enclave run is a
+deployment, not a rewrite.
 
 The short version: `witness`, `zk-constraint` and `zk-execution` are checked on chain today
 (`witness` since 28 Oct, through `SLAProvenanceAdapter`). `tee-attestation` is not, and the
@@ -206,7 +210,9 @@ this repository.
 - `witness` is wired to `SLAProvenanceAdapter` in proof mode with `bindsResponse = true`. It was
   never a candidate for a signature verifier: that changes nothing for `bound`, and it would let a
   key anchor a claim the dispute cannot use. `tee-attestation` stays at mode `0` for the missing
-  artifact, not for a missing decision.
+  artifact, not for a missing decision — and since 1 Nov 2026 that absence is final: the kind is
+  closed rather than pending, so a dispute that reads `NoVerifier` for it is reading the finished
+  state of this scope, not a gap that opens later.
 - The panels state the absence rather than hiding it: `DisputesV8` renders reason `NoVerifier`
   as "no verifier is wired for this kind on the evidence registry", and `Verify` labels mode `0`
   as "no verifier".
@@ -307,10 +313,11 @@ token movement is covered by `test/DisputeV4.t.sol` and by the live transactions
 ## 6. What a reader should not conclude
 
 Four kinds in `evidenceKinds()` is not four claims per dispute, and a wired kind is not an anchored
-one. Three kinds have a verifier (`witness`, `zk-constraint`, `zk-execution`) and only one call has
-claims, so a dispute on any other call reads `NoAnchor` on all three of them; two calls carry claims —
-`0x8cfa1821…` (`witness`, `zk-execution`) and `0xf68c0c62…` (`zk-execution`, bound in dispute `2`) —
-and the rest do not; `tee-attestation`
+one. Three kinds have a verifier (`witness`, `zk-constraint`, `zk-execution`) and only one call
+carries all three: `0x8cfa1821…` (`witness`, `zk-execution`, and `zk-constraint` since 1 Nov 2026);
+`0xf68c0c62…` carries `zk-execution`, bound in dispute `2`; `0x041ab7c6…366b` carries a
+`zk-execution` claim from the two-handler adapter; the rest carry nothing and read `NoAnchor` on
+all three; `tee-attestation`
 cannot be anchored at all and reads `NoVerifier`. Count `bound = true` rows when judging a dispute
 snapshot, not rows, and read the reason on each unbound one — the reasons are different sentences
 for a reason. A bound row also never decides the dispute by itself: `DisputeV4` writes the snapshot

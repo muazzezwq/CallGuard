@@ -179,9 +179,10 @@ is `true` and `authorizedSlashers(DisputeV3)` is `false`. V3 is closed: `finaliz
 (tx `0xbdaf9525…f6167`, block `69473913`, `85048` gas) and released `3.481864 USDC`; `settled(4)` is
 `true`, `heldSlash(4)` is `0`, and V3 holds no USDC in either representation. The live zk-execution
 fixture is anchored on the new registry.
-`tee-attestation` is still `NoVerifier` (`modeOf` = `0`) and will stay there until an enclave
-produces a quote; at mode `0` `anchor()` reverts `NoVerifierForKind()`, so its row cannot exist at
-all. `witness` used to be in the same state for a different reason — `DisputeV4` binds only mode
+`tee-attestation` is `NoVerifier` (`modeOf` = `0`) and, as of 1 Nov 2026, that is final rather than
+pending: the missing TDX quote is accepted as permanently absent, so the kind is closed and no
+`tee-attestation` claim will be anchored; at mode `0` `anchor()` reverts `NoVerifierForKind()`, so
+its row cannot exist at all. `witness` used to be in the same state for a different reason — `DisputeV4` binds only mode
 `2`, and a signature key reaches mode `1`, which it records as `ModeIsSignature`, so an attestor
 key was never enough. It now has a proof adapter and is wired (below). Scope and re-open conditions:
 `docs/verification/ATTESTOR_SCOPE.md`. `witness` was wired on 28 Oct 2026 to
