@@ -699,14 +699,15 @@ binding to the call, never a clock — a proof has no timestamp.
 | Item | Value |
 |---|---|
 | `RiscZeroGroth16Verifier` | `0x8F0a67be3cB5750e1Ea088ECbfD27DBdB8228f01` |
-| `Risc0ExecutionAdapter` (active) | `0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21` |
+| `Risc0ExecutionAdapter` (active) | `0x0Eba15Bb9CbDd262186Dc56B9512Cf76FA8E48Bd` — deployed 1 Nov 2026 for the two-handler guest, see §13.6 |
+| `Risc0ExecutionAdapter` (superseded) | `0xD804F2E0EfB3D8c470d60942643B71Ea5b271a21` — the single-handler adapter, superseded by the row above |
 | `Risc0ExecutionAdapter` (superseded) | `0xfB9b71be4f719688C906A76b8f81B63c27c4e560` — deployed with a mis-formatted image id, never used, see §13.4 |
 | vendored verifier source | `lib/risc0-ethereum` at `365e7b2` (`v3.0.1`), GPL-3.0, unchanged |
-| deploy txs | verifier `0x5e1a5cd8…` (block `69234491`, `1,135,268` gas), adapter `0x2b334a30…` (block `69236302`, `470,413` gas) |
-| wiring txs | `setProofVerifier(keccak256("zk-execution"), adapter)` — `0x72d58a6d…` (block `69234518`, `70,907` gas) into first adapter, `0x3c2dd697…` (block `69236342`, `33,907` gas) into the active one. Repeatable by design, not one-time |
+| deploy txs | verifier `0x5e1a5cd8…` (block `69234491`, `1,135,268` gas), first adapter `0x2b334a30…` (block `69236302`, `470,413` gas), two-handler adapter `0x487367e8d9bce36eac7823f2b2c2c987ef321a0ca6c80c1c001186f4703d45bf` (block `70224647`, `481,875` gas, `0.0098784375` USDC) |
+| wiring txs | `setProofVerifier(keccak256("zk-execution"), adapter)` — `0x72d58a6d…` (block `69234518`, `70,907` gas) into first adapter, `0x3c2dd697…` (block `69236342`, `33,907` gas) into the single-handler one, `0xe29cfbd6d08b2fd4aa35cb7494dccd19f0588f93a396b564a36dde4db5d01bbf` (block `70224815`, `36,612` gas) into the two-handler one. Repeatable by design, not one-time |
 | constants | `ControlID.CONTROL_ROOT` `0xa54dc85a…`, `BN254_CONTROL_ID` `0x04446e66…`, selector `0x73c457ba`, all read back from chain |
-| image id | `0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa` |
-| script | `script/DeployZkExecution.s.sol` (`PAY_PER_CALL_V8`, `ZK_EXECUTION_IMAGE_ID`, optional `ZK_VERIFIER` to reuse a deployed verifier) |
+| image id | `0x2ba16114072357de21188f6ece592aee1783fd8ec6c30cfaf1548b0d3e2eac6c` — the two-handler guest (§13.6). The first adapter's image id was `0x5fc483d58bc5eb7aa650ff3df138de5d435d97f39e2c06f74e7b40c48504b9fa` |
+| script | `script/DeployZkExecution.s.sol` (`PAY_PER_CALL_V8`, `ZK_EXECUTION_IMAGE_ID`, optional `ZK_VERIFIER` to reuse a deployed verifier, optional `ZK_EXECUTION_HANDLER_ID`, default `ping/1`) |
 | frontend | the Verify panel's "Anchored evidence" card gains a `ZK execution proof` row |
 
 ### 13.2 The anchored claim
@@ -847,6 +848,24 @@ Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkv
 `rzup install rust`. The guest keeps its own `Cargo.lock` (`ruint 1.16.0`, `enum-ordinalize
 4.3.0`) because the guest toolchain resolves differently from the host.
 
+### 13.7 The two-handler adapter on chain (1 Nov 2026)
+
+| Step | Value |
+|---|---|
+| deploy | `Risc0ExecutionAdapter 0x0Eba15Bb9CbDd262186Dc56B9512Cf76FA8E48Bd`, tx `0x487367e8d9bce36eac7823f2b2c2c987ef321a0ca6c80c1c001186f4703d45bf`, block `70224647`, `481,875` gas, `0.0098784375` USDC. Verifier reused (`0x8F0a67be…8f01`), handler `ping/1`, image id from §13.6 |
+| gasless check | `cast call <adapter> "verify(bytes,bytes32,bytes32,bytes32)(bool)" <blob> 0xf68c0c62…b488 0xe3baff68…f419c 0x188fcd5c…6e8d` → `true`. The blob is `abi.encode(seal, journal)` = **576 bytes** (260-byte seal, 160-byte journal) |
+| wiring | `setProofVerifier(keccak256("zk-execution"), 0x0Eba15Bb…48Bd, true)`, tx `0xe29cfbd6d08b2fd4aa35cb7494dccd19f0588f93a396b564a36dde4db5d01bbf`, block `70224815`, `36,612` gas, `VerifierChanged` |
+| read back | `proofVerifier(zk-execution)` = `0x0Eba15Bb…48Bd`, `modeOf` = `2`, kind `0x1543345ab2c7d9f20f0ca458172e62bb9c41a1746258195a37a403fef58c9031` |
+
+No claim was anchored for the new adapter. `anchor` accepts one claim per `(callId, kind)` and the
+call the proof was built over — `0xf68c0c62…b488` — already carries a `zk-execution` claim from the
+single-handler adapter, so the registry answers `AlreadyAnchored`. A claim from the new adapter
+needs a new completed call, which is a `callService` transaction the owner signs; the gasless
+`verify` above is what establishes, today, that the deployed adapter accepts the deployed proof.
+
+The old claim keeps pointing at the old adapter: `getEvidence` stores the verifier address that was
+wired at anchor time, so superseding the wiring does not rewrite rows that already exist.
+
 ## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
 
 `DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
@@ -883,6 +902,7 @@ that is the wiring's honest state, not a gap in the snapshot.
 |---|---|
 | `setProofVerifier(zk-constraint, ZkClaimAdapter, true)` | `0x19ac4811…f77cd` (block `69469204`, `93512` gas) |
 | `setProofVerifier(zk-execution, Risc0ExecutionAdapter, true)` | `0x5b9addae…ed0fad` (block `69469218`, `93512` gas) |
+| `setProofVerifier(zk-execution, 0x0Eba15Bb…48Bd, true)` — the two-handler adapter | `0xe29cfbd6d08b2fd4aa35cb7494dccd19f0588f93a396b564a36dde4db5d01bbf` (block `70224815`, `36612` gas), see §13.7 |
 | `DisputeV4.setEvidenceKinds([4 kinds])` | `0x44b6701e…7bf1e` (block `69469236`, `142806` gas) |
 | `ServiceRegistryV8.revokeSlasher(DisputeV3)` | `0xfc9579c2…729f7cd` (block `69469252`, `25604` gas) |
 | `ServiceRegistryV8.authorizeSlasher(DisputeV4)` | `0x5b30dded…bc85507` (block `69469274`, `47502` gas) |
@@ -914,7 +934,7 @@ Run them in this order. Each read-back is the gate for the next one.
 | # | Call | Read-back | What wrong looks like |
 |---|---|---|---|
 | 1 | `registryV2.setProofVerifier(keccak256("zk-constraint"), 0x8bD4fB9F…664E, true)` | `modeOf(kind) == 2`, `bindsResponse(kind) == true` | `bindsResponse` false → every `zk-constraint` row reads `VerifierNotBinding` and never binds |
-| 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0xD804F2E0…1a21, true)` | same, plus `proofVerifier(kind) == 0xD804F2E0…1a21` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
+| 2 | `registryV2.setProofVerifier(keccak256("zk-execution"), 0x0Eba15Bb…48Bd, true)` | same, plus `proofVerifier(kind) == 0x0Eba15Bb…48Bd` | a stale adapter address anchors nothing (`VerifierNotAllowed` on the re-anchor) |
 | 3 | `registryV2.setProofVerifier(keccak256("witness"), 0x046d715D…0498, true)` — the deployed path | `modeOf(kind) == 2`, `bindsResponse(kind) == true`, `proofVerifier(kind) == 0x046d715D…0498` | **do not use `setSignatureVerifier` here.** A signature key reaches mode `1`, `DisputeV4` binds only mode `2`, and the snapshot records a mode-1 row as `ModeIsSignature` — a claim the dispute cannot use, which reads like progress and is not. An unwired kind instead reads `NoVerifier`, which is visible on chain and silent in the money paths |
 | 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
 | 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | **do not skip and do not reorder**: the V4 guard is one-directional — V4 asks V3 whether it already holds a call, V3 has no reciprocal check. While V3 stays a slasher, a caller can open a second dispute on a call V4 already escrowed and cut the same stake twice. The script prints an ORDERING GATE line while `authorizedSlashers(V3)` is still true |
@@ -1099,8 +1119,8 @@ cast call $D "heldSlash(uint256)(uint256)" 1 --rpc-url $RPC   # expect 1283554
 The two writes, signed by the owner in its own terminal (the agent never broadcasts these):
 
 ```bash
-cast send $D "finalize(uint256)" 1 --account deployer --rpc-url arc_testnet
-cast send $D "finalize(uint256)" 2 --account deployer --rpc-url arc_testnet
+cast send $D "finalize(uint256)" 1 --account owner --rpc-url arc_testnet
+cast send $D "finalize(uint256)" 2 --account owner --rpc-url arc_testnet
 ```
 
 The same two actions exist in the UI: on `/app?nogate` → Disputes, each row shows
@@ -1159,11 +1179,11 @@ before sending the third transaction.
 D=0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B
 
 # 1. treasury — a key that holds funds and never rules
-cast send $D "setTreasury(address)" <treasury-address> --account deployer --rpc-url arc_testnet
+cast send $D "setTreasury(address)" <treasury-address> --account owner --rpc-url arc_testnet
 # 2. appeal arbiter — a key unrelated to the first-instance arbiter
-cast send $D "setAppealArbiter(address)" <appeal-arbiter-address> --account deployer --rpc-url arc_testnet
+cast send $D "setAppealArbiter(address)" <appeal-arbiter-address> --account owner --rpc-url arc_testnet
 # 3. arbiter — last, and only once the address is final
-cast send $D "setArbiter(address)" <arbiter-address> --account deployer --rpc-url arc_testnet
+cast send $D "setArbiter(address)" <arbiter-address> --account owner --rpc-url arc_testnet
 ```
 
 Read back after each send; `ArbiterChanged`, `AppealArbiterChanged` and `TreasuryChanged`
