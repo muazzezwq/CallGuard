@@ -32,6 +32,14 @@ contract Risc0ReceiptTest is Test {
     bytes32 constant JOURNAL_DIGEST_SECOND = 0xec2d831d009105b80687b8dda69e7f33eb4125090298fe1ce614c64eb99a1634;
     bytes32 constant SECOND_CALL_ID = 0xf68c0c621adf813fb65be6e8b594061669fced19d678807cbb22a92ca6feb488;
 
+    // ── the third committed receipt: the two-handler guest, five-word journal ──
+    // Handler dispatch made this a different program, so it has its own image id and needs
+    // its own adapter. It commits the five words `Risc0ExecutionAdapter` decodes, including
+    // the claim hash the earlier 128-byte fixtures predate.
+    bytes32 constant IMAGE_ID_DISPATCH = 0x2ba16114072357de21188f6ece592aee1783fd8ec6c30cfaf1548b0d3e2eac6c;
+    bytes32 constant JOURNAL_DIGEST_DISPATCH = 0xb6ea536433e00d36a768509bb0280770304007916f2659457af8da8a6e09d45b;
+    bytes32 constant CLAIM_HASH_DISPATCH = 0xe3baff68e7c0299a4275cc3e7553fb27da16d1929fa47a5fe04ab7b58b9f419c;
+
     function verifier() internal returns (IRiscZeroVerifier) {
         return new RiscZeroGroth16Verifier(CONTROL_ROOT, BN254_CONTROL_ID);
     }
@@ -93,6 +101,38 @@ contract Risc0ReceiptTest is Test {
             embedded := mload(add(seal, 32))
         }
         assertEq(embedded, IRiscZeroSelectable(address(verifier())).SELECTOR(), "seal selector");
+    }
+
+    function test_dispatchGuestSealVerifiesOverItsFiveWordJournal() public {
+        bytes memory seal = vm.readFileBinary("test/fixtures/zk-execution-v2/seal.bin");
+        bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution-v2/journal.bin");
+        assertEq(seal.length, 260, "seal is selector + Groth16 proof");
+        assertEq(journal.length, 160, "journal is the five words the adapter decodes");
+        assertEq(sha256(journal), JOURNAL_DIGEST_DISPATCH, "journal digest pins the journal");
+        assertEq(
+            vm.trim(vm.readFile("test/fixtures/zk-execution-v2/image_id.txt")),
+            "0x2ba16114072357de21188f6ece592aee1783fd8ec6c30cfaf1548b0d3e2eac6c",
+            "image id fixture"
+        );
+        // Reverts VerificationFailed() unless the seal was produced by this exact image id.
+        verifier().verify(seal, IMAGE_ID_DISPATCH, JOURNAL_DIGEST_DISPATCH);
+    }
+
+    /// The earlier fixtures stop at four words. This one shows the two extra words the
+    /// adapter insists on: the call it is about, and the claim hash the registry compares.
+    function test_dispatchGuestJournalCarriesCallIdAndClaimHash() public view {
+        bytes memory journal = vm.readFileBinary("test/fixtures/zk-execution-v2/journal.bin");
+        bytes32 callId;
+        bytes32 handlerId;
+        bytes32 claimHash;
+        assembly {
+            callId := mload(add(journal, 32))
+            handlerId := mload(add(journal, 128))
+            claimHash := mload(add(journal, 160))
+        }
+        assertEq(callId, SECOND_CALL_ID, "journal names the call the proof is about");
+        assertEq(handlerId, keccak256(bytes("callguard.handler.ping/1")), "handler 0 is the original program");
+        assertEq(claimHash, CLAIM_HASH_DISPATCH, "fifth word is the claim hash");
     }
 
     function test_committedImageIdIsTheOneTheSealProves() public {

@@ -806,18 +806,41 @@ Order of work for a handler that is not yet on chain:
    id, so the run builds, asserts the journal, proves, and publishes `imageId`/`journal`/
    `journalDigest`/`sealHex` in its annotations. Pin the printed id into `EXPECTED_IMAGE_ID`
    before the next proof is treated as deployable.
-2. `bun scripts/zk-execution-proof.ts --write --blob <file>`, then
-   `forge test --match-contract Risc0ReceiptTest` (verifies the seal without gas).
+2. Keep the artifacts in their own directory (`test/fixtures/zk-execution-v2/`), not in
+   `test/fixtures/zk-execution/`, while the proof has no anchor. `bun scripts/zk-execution-proof.ts
+   --write` rewrites `src/lib/verification/fixtures/zk-execution.json`, which is the file
+   `/api/evidence` compares against the claim already on chain: pointing it at an unanchored proof
+   makes the live check answer `match: false`. Verify the seal without gas first —
+   `forge test --match-contract Risc0ReceiptTest` — and write the served fixture only once the new
+   claim is anchored.
 3. `ZK_EXECUTION_IMAGE_ID=… ZK_EXECUTION_HANDLER_ID=<id from the table> ZK_VERIFIER=<deployed>
    forge script script/DeployZkExecution.s.sol:DeployZkExecution … --broadcast` from the owner
    TTY. Without `ZK_EXECUTION_HANDLER_ID` the script falls back to `ping/1`, which is the wrong
    id for a new handler and would deploy an adapter that rejects every proof of it.
 4. `setProofVerifier(zk-execution, <new adapter>, true)` as arbiter, then `anchor` the blob.
 
+Measured on 1 Nov 2026 (`e227bc6`, first `[prove]` run of the dispatched guest):
+
+| Item | Value |
+|---|---|
+| image id | `0x2ba16114072357de21188f6ece592aee1783fd8ec6c30cfaf1548b0d3e2eac6c` (identical across two rebuilds in the run) |
+| journal | 160 bytes, digest `0xb6ea536433e00d36a768509bb0280770304007916f2659457af8da8a6e09d45b` |
+| seal | 260 bytes, `268` s of proving |
+
+That first run failed its journal assertion, which was the check working: `EXPECTED_JOURNAL` still
+held the four-word value from before `claimHash` joined the layout, so the compare stopped it before
+Groth16 and no seal was produced. `ef20b43` pinned the five-word journal and the image id, and the
+rerun passed. A pin that is wrong costs one run; a pin that is missing costs an anchor the chain
+rejects.
+
 The anchor binds `requestHash`, so the call it names must be a completed V8 call whose committed
 request bytes hash to the journal's second word; the adapter reads that hash from
 `PayPerCallV8.getCall` and refuses a mismatch. Plan a call whose response the chosen handler can
-actually reproduce, or use `handler: 0` with a `ping` request.
+actually reproduce, or use `handler: 0` with a `ping` request. The registry also anchors **one claim
+per `(callId, kind)`** (`SLAEvidenceRegistryV2.sol:173` reverts `AlreadyAnchored`), so a call that
+already carries a `zk-execution` claim — `0xf68c0c62…b488` does — cannot take a second one from a
+new adapter. A new proof therefore needs a new completed call, which is a `callService` transaction
+the owner signs.
 
 Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkvm 3.0.6`,
 `r0vm 3.0.6`, `cargo-risczero 3.0.6`, host Rust `1.91.0`, guest Rust `1.88.0` via
