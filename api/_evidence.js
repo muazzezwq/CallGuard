@@ -15,9 +15,9 @@
  *   - note: "rpc-error"   — the chain read threw (or answered with an RPC error)
  *   - note: null          — the read was attempted and answered, anchored or not.
  *
- * Two envelopes are bundled: the committed zk-execution fixture and the committed
- * witness fixture. Both describe the same live call, so the lookup is keyed by
- * `(kind, callId)` — a call alone does not name a claim. For any other pair the
+ * Several envelopes are bundled — three `zk-execution` claims and one `witness` — so the
+ * lookup is keyed by `(kind, callId)`: a call alone does not name a claim, and two
+ * `zk-execution` rows for different calls must not be handed to each other. For any other pair the
  * endpoint reports what the chain anchored and nothing else; it never invents an
  * envelope the caller did not ask for.
  */
@@ -31,6 +31,9 @@ import fixture from "../src/lib/verification/fixtures/zk-execution.json" with { 
 // A second execution claim, for the call a live dispute is about. Two calls, two
 // envelopes, one kind — which is why the bundle list is a list.
 import executionFixtureSecond from "../src/lib/verification/fixtures/zk-execution-f68c0c62.json" with { type: "json" };
+// A third execution claim: the two-handler guest, anchored on a call that carried no
+// claim yet, which is what let the new adapter be proved on chain.
+import executionFixtureThird from "../src/lib/verification/fixtures/zk-execution-041ab7c6.json" with { type: "json" };
 import witnessFixture from "../src/lib/verification/fixtures/witness.json" with { type: "json" };
 import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
@@ -107,6 +110,7 @@ const BUNDLES = {
   "zk-execution": [
     { fixture, envelope: () => envelopeFromFixture(fixture) },
     { fixture: executionFixtureSecond, envelope: () => envelopeFromFixture(executionFixtureSecond) },
+    { fixture: executionFixtureThird, envelope: () => envelopeFromFixture(executionFixtureThird) },
   ],
   witness: [{ fixture: witnessFixture, envelope: () => buildWitnessEnvelope(witnessFixture) }],
 };

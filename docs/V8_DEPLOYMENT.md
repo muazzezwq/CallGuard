@@ -857,14 +857,42 @@ Guest and toolchain pins live in the workflow and in `zk-execution/`: `risc0-zkv
 | wiring | `setProofVerifier(keccak256("zk-execution"), 0x0Eba15Bb…48Bd, true)`, tx `0xe29cfbd6d08b2fd4aa35cb7494dccd19f0588f93a396b564a36dde4db5d01bbf`, block `70224815`, `36,612` gas, `VerifierChanged` |
 | read back | `proofVerifier(zk-execution)` = `0x0Eba15Bb…48Bd`, `modeOf` = `2`, kind `0x1543345ab2c7d9f20f0ca458172e62bb9c41a1746258195a37a403fef58c9031` |
 
-No claim was anchored for the new adapter. `anchor` accepts one claim per `(callId, kind)` and the
-call the proof was built over — `0xf68c0c62…b488` — already carries a `zk-execution` claim from the
-single-handler adapter, so the registry answers `AlreadyAnchored`. A claim from the new adapter
-needs a new completed call, which is a `callService` transaction the owner signs; the gasless
-`verify` above is what establishes, today, that the deployed adapter accepts the deployed proof.
+The gasless `verify` above is what establishes that the deployed adapter accepts the deployed
+proof. A claim from it could not ride on `0xf68c0c62…b488`: `anchor` accepts one claim per
+`(callId, kind)` and that call already carries one from the single-handler adapter, so the registry
+answers `AlreadyAnchored`. The claim went onto a different completed call instead — §13.8.
 
 The old claim keeps pointing at the old adapter: `getEvidence` stores the verifier address that was
 wired at anchor time, so superseding the wiring does not rewrite rows that already exist.
+
+### 13.8 The claim the new adapter anchors (1 Nov 2026)
+
+The one-claim-per-`(callId, kind)` rule pushed the anchor onto another call. Three V8 calls were
+`COMPLETED` with no claim at all — provider `1`, `requestHash = keccak256("ping")`,
+`responseHash = keccak256("pong")` — so no `callService` transaction was needed; `0x041ab7c6…a366b`
+was used.
+
+| Step | Value |
+|---|---|
+| proof | `[prove]` run of the two-handler guest: image id `0x2ba16114…eac6c`, 260-byte seal, 160-byte journal, journal digest `0x45f14970b03ecfddce90a17560f83d481ffa8d14166378875fad3473189f489c`, 391 s |
+| fixture | `test/fixtures/zk-execution-v3/{seal.bin, journal.bin, image_id.txt}`, asserted by `Risc0ReceiptTest.test_dispatchGuestSealVerifiesForTheUnclaimedCall` |
+| gasless check | `verify(...)` on `0x0Eba15Bb…48Bd` → `true`, blob 576 bytes |
+| anchor | `anchor(callId, zk-execution, 0xc1d4ae3c…cf72, 0x188fcd5c…6e8d, 0xf638c765…10f9, 0xa0071945…fef9, blob)` — tx `0xf0197fca2c078ea2826043166e0404553383b1e3eedd238f6644b10b72f31ac8`, block `70229915`, `450,881` gas, `anchoredAt 1793561936` |
+| read back | `isAnchored(callId, kind, claimHash)` = `true`; `getEvidence` = `(kind, 0xc1d4ae3c…cf72, 0x188fcd5c…6e8d, 0xf638c765…10f9, 0xa0071945…fef9, 0x0Eba15Bb…48Bd, 1793561936)`. The verifier in the row is the two-handler adapter, so this is the first claim that adapter carries |
+| served fixture | `src/lib/verification/fixtures/zk-execution-041ab7c6.json`, regenerated with `bun scripts/zk-execution-proof.ts --dir test/fixtures/zk-execution-v3 --call 0x041ab7c6…a366b --out <that file> --write`. `api/_evidence.js` bundles it, so `/api/evidence?callId=0x041ab7c6…a366b&kind=zk-execution` answers `match: true` |
+
+Two details cost time and are worth keeping. `isAnchored` takes the claim hash as its **third**
+argument; passing zero answers `false` for a row that is anchored, which reads like a failed write.
+And the claim hash is computable **before** the proof exists, because `envelopeDigest` covers the
+envelope's nine fields and not `proof.payload` — so `zk-execution/input.json` can carry the hash the
+journal must commit.
+
+The statement is the one §13.2 records, unchanged; only the subject moved, so the statement and
+assumption hashes are the same words hashed and the claim hash is the one line above.
+
+The workflow pins the journal it expects (`EXPECTED_JOURNAL`) to the proof being built. Moving
+`input.json` to a new call without moving that pin fails CI with "Journal binds the call (dev mode,
+no proof)" — the guest is correct and the assertion is stale; commit the new pin, then the proof.
 
 ## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
 
