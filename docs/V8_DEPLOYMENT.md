@@ -894,6 +894,33 @@ The workflow pins the journal it expects (`EXPECTED_JOURNAL`) to the proof being
 `input.json` to a new call without moving that pin fails CI with "Journal binds the call (dev mode,
 no proof)" — the guest is correct and the assertion is stale; commit the new pin, then the proof.
 
+### 13.9 The constraint claim on V2 (1 Nov 2026)
+
+`zk-constraint` was the one kind whose claim lived only on the **v1** registry `0x7d643B2b…62dB`
+(§11, tx `0xe8f6b0c5…3732`). `DisputeV4` reads `SLAEvidenceRegistryV2`, so a dispute over
+`0x8cfa1821…b265` would have shown `NoAnchor` for a claim that existed, one registry away. The
+envelope did not change: same statement, same assumptions, same claim hash, anchored again on the
+registry the dispute contract reads.
+
+| Step | Value |
+|---|---|
+| proof | `ZkClaimAdapter` blob `abi.encode(uint8 firstByte, bytes honkProof)` = 8,864 bytes, from `test/fixtures/zk/keccak-call.proof` (8,768-byte UltraHonk proof), predicate byte `0x70` |
+| claim hash | `0x51323974d481dbcb701dfb12f57e988b73ddd4a2b0a60525b1382caf39608021` — the same hash v1 stores |
+| gasless check | `ZkClaimAdapter 0x8bD4fB9F…664E.verify(blob, callId, claimHash, responseHash)` → `true` |
+| anchor | `anchor(0x8cfa1821…b265, zk-constraint, 0x51323974…8021, 0x188fcd5c…6e8d, 0x31d3bf64…df51, 0x4ca063de…48a, blob)` — tx `0x2e0ae937e89cf7ee3ab49ec857e343acc088a6afcecba06ed918a2f92ee93790`, block `70236572`, **`3,855,593` gas**, `anchoredAt 1793565324` |
+| read back | `isAnchored` = `true`; `getEvidence` = `(0x12b89b11…531e, 0x51323974…8021, 0x188fcd5c…6e8d, 0x31d3bf64…df51, 0x4ca063de…48a, 0x8bD4fB9F…664E, 1793565324)` |
+| served fixture | `src/lib/verification/fixtures/zk-constraint.json`, bundled by `api/_evidence.js` under `zk-constraint`, so `/api/evidence?callId=0x8cfa1821…b265&kind=zk-constraint` compares four hashes instead of reporting an absence |
+
+Anchor gas is the reason this row is worth keeping: a proof kind whose verifier runs *inside*
+`anchor` costs the verification, not a blob store. `zk-execution` anchored for `450,881` gas because
+`Risc0ExecutionAdapter` was verified gaslessly beforehand; this one paid `2.9M` for the UltraHonk
+pairing check plus storage. Neither number is a bug — but a budget that assumes "anchor ≈ 450k" is
+wrong for any kind that validates on the write path.
+
+`anchor` still answers one row per `(callId, kind)`, so the v1 row and this one coexist: the same
+claim hash now exists in two registries, which is what lets a v1-era dispute and a V4 dispute read
+the same words.
+
 ## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
 
 `DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
@@ -922,7 +949,10 @@ Read back after the wiring, all matching the runbook: `modeOf(zk-constraint)` = 
 kinds, `authorizedSlashers(DisputeV3)` = `false`, `authorizedSlashers(DisputeV4)` = `true`,
 `isAnchored(callId, zk-execution, claim)` = `true`. `modeOf(witness)` read `0` (`NoVerifier`) at
 deploy time, before its adapter existed; it was wired to `SLAProvenanceAdapter` later the same
-day (tx `0xd5499453…6f81`, block `69494118`) and now reads `2`. `modeOf(tee-attestation)` is
+day (tx `0xd5499453…6f81`, block `69494118`) and now reads `2`. `zk-constraint` was wired from the
+start but had no row until 1 Nov 2026, when the claim the v1 registry already held was anchored
+here too (§13.9); before that a V4 snapshot over that call read `NoAnchor` for a claim that
+existed one registry away. `modeOf(tee-attestation)` is
 still `0`, because no attestor exists, so that row answers `present=false, reason=NoVerifier`;
 that is the wiring's honest state, not a gap in the snapshot.
 
@@ -935,6 +965,7 @@ that is the wiring's honest state, not a gap in the snapshot.
 | `ServiceRegistryV8.revokeSlasher(DisputeV3)` | `0xfc9579c2…729f7cd` (block `69469252`, `25604` gas) |
 | `ServiceRegistryV8.authorizeSlasher(DisputeV4)` | `0x5b30dded…bc85507` (block `69469274`, `47502` gas) |
 | `anchor(zk-execution fixture)` | `0x5f57a56e…702a013e` (block `69469682`, `450278` gas) |
+| `anchor(zk-constraint fixture)` — the same claim the v1 registry holds, written to V2 | `0x2e0ae937…3790` (block `70236572`, `3,855,593` gas), see §13.9 |
 
 Everything after this table is the historical procedure plus the limits; the agent does not
 broadcast an owner-wallet transaction.

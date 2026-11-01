@@ -6,7 +6,7 @@ import { keccak256, toBytes } from "viem";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes";
 import { envelopeDigest, type EvidenceEnvelope } from "../src/lib/verification/schema";
 
-// The committed zk-execution fixture is one of two bundled envelopes.
+// The committed zk-execution fixture is one of several bundled envelopes.
 const fixture = JSON.parse(
   readFileSync("src/lib/verification/fixtures/zk-execution.json", "utf8"),
 ) as {
@@ -23,6 +23,23 @@ const fixture = JSON.parse(
 const LIVE_CALL = fixture.callId;
 const LIVE_CLAIM_HASH = fixture.claimHash;
 const KIND32 = keccak256(toBytes("zk-execution"));
+
+// A different kind on a different call. It is bundled so a `zk-constraint` read can
+// compare an envelope against the row `SLAEvidenceRegistryV2` anchored for it.
+const constraintFixture = JSON.parse(
+  readFileSync("src/lib/verification/fixtures/zk-constraint.json", "utf8"),
+) as {
+  callId: `0x${string}`;
+  responseHash: `0x${string}`;
+  claimHash: `0x${string}`;
+  statement: string;
+  assumptions: string[];
+  issuedAt: number;
+};
+
+const CONSTRAINT_CALL = constraintFixture.callId;
+const CONSTRAINT_CLAIM_HASH = constraintFixture.claimHash;
+const CONSTRAINT_KIND32 = keccak256(toBytes("zk-constraint"));
 
 /**
  * A `getEvidence` row the way the V2 registry stores it. The statement/assumption
@@ -220,10 +237,36 @@ describe("GET /api/evidence: the witness bundle", () => {
     expect(res.match).toBe(true);
   });
 
-  test("no fixture exists for zk-constraint, so nothing is invented for it", async () => {
+  test("serves the zk-constraint envelope for the call its own fixture names", async () => {
     const { handle } = await import("../api/_evidence.js");
     const res = await handle(
-      { callId: LIVE_CALL, kind: "zk-constraint" },
+      { callId: CONSTRAINT_CALL, kind: "zk-constraint" },
+      {
+        readAnchored: async () => ({
+          kind: CONSTRAINT_KIND32,
+          claimHash: CONSTRAINT_CLAIM_HASH,
+          responseHash: constraintFixture.responseHash,
+          statementHash: statementHash(constraintFixture.statement),
+          assumptionHash: assumptionHash(constraintFixture.assumptions),
+          verifier: "0x8bD4fB9F364F9aAd80E4dB275B08a49B88e3664E",
+          anchoredAt: constraintFixture.issuedAt,
+        }),
+      },
+    );
+    const envelope = res.envelope as EvidenceEnvelope;
+    expect(envelope.claim.kind).toBe("zk-constraint");
+    expect(envelope.proof.type).toBe("ultrahonk-keccak-claim");
+    expect(res.digest).toBe(CONSTRAINT_CLAIM_HASH);
+    expect(res.match).toBe(true);
+    expect(res.source).toBe("fixture");
+  });
+
+  test("does not hand the zk-constraint envelope to a call it is not about", async () => {
+    const { handle } = await import("../api/_evidence.js");
+    // 0x041ab7c6… carries a `zk-execution` claim. Asking for `zk-constraint` there must
+    // answer with what the chain said and nothing else.
+    const res = await handle(
+      { callId: "0x041ab7c6b4caa2453282d7043e1bbf961cd0511e365f05567d5eba570a5a366b", kind: "zk-constraint" },
       { readAnchored: async () => null },
     );
     expect(res.envelope).toBeNull();

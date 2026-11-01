@@ -15,9 +15,10 @@
  *   - note: "rpc-error"   — the chain read threw (or answered with an RPC error)
  *   - note: null          — the read was attempted and answered, anchored or not.
  *
- * Several envelopes are bundled — three `zk-execution` claims and one `witness` — so the
- * lookup is keyed by `(kind, callId)`: a call alone does not name a claim, and two
- * `zk-execution` rows for different calls must not be handed to each other. For any other pair the
+ * Several envelopes are bundled — three `zk-execution` claims, one `zk-constraint` and one
+ * `witness` — so the lookup is keyed by `(kind, callId)`: a call alone does not name a
+ * claim, and two `zk-execution` rows for different calls must not be handed to each other.
+ * For any other pair the
  * endpoint reports what the chain anchored and nothing else; it never invents an
  * envelope the caller did not ask for.
  */
@@ -35,6 +36,10 @@ import executionFixtureSecond from "../src/lib/verification/fixtures/zk-executio
 // claim yet, which is what let the new adapter be proved on chain.
 import executionFixtureThird from "../src/lib/verification/fixtures/zk-execution-041ab7c6.json" with { type: "json" };
 import witnessFixture from "../src/lib/verification/fixtures/witness.json" with { type: "json" };
+// A constraint claim, which runs on a different verifier and is anchored on a different
+// call. It was anchored to the v1 registry first and to `SLAEvidenceRegistryV2` later;
+// the envelope is the same bytes in both cases, so one fixture answers both reads.
+import constraintFixture from "../src/lib/verification/fixtures/zk-constraint.json" with { type: "json" };
 import { CG_CLAIM_VERSION, envelopeDigest } from "../src/lib/verification/schema.js";
 import { assumptionHash, statementHash } from "../src/lib/verification/claimHashes.js";
 // The witness envelope is built by the same function the anchor script used, so the
@@ -95,8 +100,15 @@ function envelopeFromFixture(f) {
       termsHash: f.termsHash,
       responseHash: f.responseHash,
     },
-    claim: { kind: "zk-execution", statement: f.statement, assumptions: f.assumptions },
-    proof: { type: "risc0-groth16-receipt", payload: f.journal },
+    claim: {
+      kind: f.kind ?? "zk-execution",
+      statement: f.statement,
+      assumptions: f.assumptions,
+    },
+    proof: {
+      type: f.proofType ?? "risc0-groth16-receipt",
+      payload: f.proofPayload ?? f.journal,
+    },
     issuedAt: f.issuedAt,
   };
 }
@@ -113,6 +125,7 @@ const BUNDLES = {
     { fixture: executionFixtureThird, envelope: () => envelopeFromFixture(executionFixtureThird) },
   ],
   witness: [{ fixture: witnessFixture, envelope: () => buildWitnessEnvelope(witnessFixture) }],
+  "zk-constraint": [{ fixture: constraintFixture, envelope: () => envelopeFromFixture(constraintFixture) }],
 };
 
 const EMPTY = Object.freeze({

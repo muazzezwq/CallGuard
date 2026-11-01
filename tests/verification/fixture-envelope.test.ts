@@ -14,7 +14,9 @@ const envelope = JSON.parse(
   readFileSync("test/fixtures/zk/keccak-call.envelope.json", "utf8"),
 ) as EvidenceEnvelope;
 
-/** Live anchor for call 0x8cfa1821… in SLAEvidenceRegistry 0x7d643B2b…62dB. */
+/** Live anchor for call 0x8cfa1821…: the v1 registry 0x7d643B2b…62dB first, then
+ *  SLAEvidenceRegistryV2 0x64872c29…11FC (tx 0x2e0ae937…3790). Same envelope bytes, so
+ *  one claim hash answers both rows. */
 const ANCHORED_CLAIM_HASH = "0x51323974d481dbcb701dfb12f57e988b73ddd4a2b0a60525b1382caf39608021";
 
 describe("zk claim envelope fixture", () => {
@@ -56,5 +58,44 @@ describe("zk claim envelope fixture", () => {
     const blob = decodeProofBytes(envelope.proof.payload);
     const onDisk = readFileSync("test/fixtures/zk/keccak-call.proof");
     expect(Buffer.from(blob.slice(96, 96 + 8768)).toString("hex")).toBe(onDisk.toString("hex"));
+  });
+
+  test("the envelope /api/evidence serves rebuilds the same anchor", () => {
+    // The served fixture carries the same nine digested fields, so the registry row and
+    // the panel answer describe one claim. Two copies of the sentence is exactly the
+    // drift this pins down.
+    const served = JSON.parse(
+      readFileSync("src/lib/verification/fixtures/zk-constraint.json", "utf8"),
+    ) as {
+      callId: `0x${string}`;
+      providerId: number;
+      termsHash: `0x${string}`;
+      responseHash: `0x${string}`;
+      claimHash: `0x${string}`;
+      proofType: string;
+      proofPayload: string;
+      statement: string;
+      assumptions: string[];
+      issuedAt: number;
+    };
+
+    const rebuilt: EvidenceEnvelope = {
+      version: "cg-claim/1",
+      subject: {
+        callId: served.callId,
+        providerId: served.providerId,
+        termsHash: served.termsHash,
+        responseHash: served.responseHash,
+      },
+      claim: { kind: "zk-constraint", statement: served.statement, assumptions: served.assumptions },
+      proof: { type: served.proofType, payload: served.proofPayload },
+      issuedAt: served.issuedAt,
+    };
+
+    expect(served.claimHash).toBe(ANCHORED_CLAIM_HASH);
+    expect(envelopeDigest(rebuilt)).toBe(ANCHORED_CLAIM_HASH);
+    expect(rebuilt.claim.statement).toBe(envelope.claim.statement);
+    expect(rebuilt.claim.assumptions).toEqual(envelope.claim.assumptions);
+    expect(rebuilt.proof.payload).toBe(envelope.proof.payload);
   });
 });

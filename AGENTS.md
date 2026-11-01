@@ -50,7 +50,7 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 629 tests, 31 test suites (31 Oct 2026)
+forge test -vv       # 632 tests, 31 test suites (1 Nov 2026)
 forge build
 forge script script/DeployV8.s.sol:DeployV8 --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -98,9 +98,10 @@ cd x402-facilitator && npm run dev     # node --watch server.js
   `Verify.tsx` and `api/attestation.js` decode both, so a v8 call no longer verifies as
   "no receipt found". Read the **active** PayPerCall (`ACTIVE_PPC_ADDRESS` in the frontend,
   `ACTIVE` in `api/_contracts.js`), never the hardcoded v7 address.
-- Test counts drift fast. Measured 31 Oct 2026: `forge test` **629 tests / 31 suites**,
-  `bun test tests/` **627 tests / 58 files** (620 pass, 7 skip), `bun run check` clean with
-  **0 ESLint warnings**. Earlier: 28 Oct `forge test` **617 tests / 29 suites**,
+- Test counts drift fast. Measured 1 Nov 2026: `forge test` **632 tests / 31 suites**,
+  `bun test tests/` **644 tests / 58 files** (637 pass, 7 skip), `bun run check` clean with
+  **0 ESLint warnings**. Earlier: 31 Oct `forge test` **629 tests / 31 suites**,
+  `bun test tests/` **627 tests / 58 files** (620 pass, 7 skip); 28 Oct `forge test` **617 tests / 29 suites**,
   `bun test tests/` **570 tests / 53 files** (563 pass, 7 skip), and a fork suite the same day
   took `forge test` to **619 tests / 30 suites**. `ARCHITECTURE.md` §4 now documents
   the EIP-712 receipt scheme correctly (`ArcSLA/2` for v8, `ArcSLA/1` for v7); the older
@@ -222,11 +223,16 @@ proof.contract: ServiceRegistryV8}`, `/api/evidence?callId=0xf68c0c62…&kind=zk
 `{anchored:true, match:true, source:"fixture", note:null}`, and the same for `witness` on
 `0x8cfa1821…` (`claimHash 0x3e1dc967…2514`).
 
-**On `SLAEvidenceRegistryV2` only `witness` and `zk-execution` hold a claim for that call.** The
-`zk-constraint` anchor from B3d (`tx 0xe8f6b0c5…3732`, block `69092517`) is on the **v1** registry
-`0x7d643B2b…` — `DisputeV4` reads `V2` (`0x64872c29…11FC`), so its row says `NoAnchor` (mode `2`),
-not `NoVerifier`. A snapshot therefore mixes three different sentences and
-`test/DisputeV4ForkEvidence.t.sol` asserts all three against the deployed contracts.
+**Three kinds hold a claim on `SLAEvidenceRegistryV2` for call `0x8cfa1821…b265`: `witness`,
+`zk-execution` and — since 1 Nov 2026 — `zk-constraint`.** The constraint claim was anchored on the
+**v1** registry first (`tx 0xe8f6b0c5…3732`, block `69092517`). `DisputeV4` reads V2
+(`0x64872c29…11FC`), so a V4 snapshot used to answer `NoAnchor` for a claim that existed one
+registry away; the same envelope (claim hash `0x51323974…8021`) was anchored on V2 too — tx
+`0x2e0ae937…3790`, block `70236572`, `3,855,593` gas (the UltraHonk verification runs *inside*
+`anchor`; `zk-execution` cost `450,881` because its adapter was verified gaslessly first). See
+`docs/V8_DEPLOYMENT.md` §13.9. `tee-attestation` still reads `NoVerifier`, so a snapshot still
+mixes three different sentences and `test/DisputeV4ForkEvidence.t.sol` asserts them against the
+deployed contracts.
 **DisputeV4 has two disputes.** Dispute `1` was opened on 28 Oct 2026 for call
 `0x5ca2100b…b9ed1` (tx `0x3ce4abe3…aed1`, block `69537552`, gas `775,507`), with bond
 `2,000,000` and `heldSlash` `1,283,554` (10% of stake `12,835,548`). It needed a *new* call
