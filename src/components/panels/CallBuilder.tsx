@@ -4,7 +4,7 @@ import {
   useAccount, useReadContract, useReadContracts, useWriteContract, useSwitchChain, useChainId,
   useWalletClient, usePublicClient, useBalance,
 } from "wagmi";
-import { keccak256, stringToBytes, maxUint256, pad, decodeEventLog, createPublicClient, http } from "viem";
+import { keccak256, stringToBytes, pad, decodeEventLog, createPublicClient, http } from "viem";
 // MEDIUM-09: import canonical ABIs from config — eliminates local duplicates
 import {
   arcTestnet, CONFIG, V8_ENABLED, ACTIVE_PPC_ADDRESS, ACTIVE_REGISTRY_ADDRESS,
@@ -597,7 +597,7 @@ export default function CallBuilder() {
         address: CONFIG.usdcAddress as `0x${string}`,
         abi: USDC_APPROVE_ABI_ONE,
         functionName: "approve",
-        args: [ACTIVE_PPC_ADDRESS, maxUint256],
+        args: [ACTIVE_PPC_ADDRESS, amount],
         chainId: arcTestnet.id,
       });
     } catch (error) {
@@ -811,7 +811,7 @@ export default function CallBuilder() {
             address: sourceUsdcAddr,
             abi: USDC_APPROVE_ABI,
             functionName: "approve",
-            args: [CCTP_CONFIG.contracts.TokenMessengerV2 as `0x${string}`, maxUint256],
+            args: [CCTP_CONFIG.contracts.TokenMessengerV2 as `0x${string}`, amount],
             chainId: sourceChain.chainId,
           });
         } catch (error) {
