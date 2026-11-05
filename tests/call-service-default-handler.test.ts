@@ -39,10 +39,32 @@ describe("resolveDefaultIdempotencyStore", () => {
     expect(resolveDefaultIdempotencyStore({})).toBeNull();
   });
 
-  test("stays off while the switch is absent, even with Upstash configured", () => {
+  test("stays off outside production while the switch is absent", () => {
     expect(resolveDefaultIdempotencyStore({
       UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       UPSTASH_REDIS_REST_TOKEN: "token",
+    })).toBeNull();
+  });
+
+  test("turns on by default in production when Upstash is configured", () => {
+    const store = resolveDefaultIdempotencyStore({ ...CONFIGURED, NODE_ENV: "production" });
+    expect(store).not.toBeNull();
+    expect(typeof store.create).toBe("function");
+  });
+
+  test("fails closed in production when Upstash is missing", () => {
+    const store = resolveDefaultIdempotencyStore({
+      NODE_ENV: "production",
+      UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+    });
+    expect(typeof store).toBe("symbol");
+  });
+
+  test("an explicit opt-out still wins in production", () => {
+    expect(resolveDefaultIdempotencyStore({
+      ...CONFIGURED,
+      NODE_ENV: "production",
+      CALL_SERVICE_IDEMPOTENCY: "disabled",
     })).toBeNull();
   });
 

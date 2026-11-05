@@ -342,15 +342,30 @@ describe("call-service payment terms", () => {
     });
   });
 
-  test("a valid authorization for the advertised provider price stays compatible", async () => {
+  test("a valid authorization without a settlement key fails closed", async () => {
     resetState();
     state.price = 2_500_000n;
 
     const res = makeRes();
     await handler(makeReq({ authorization: { value: "2500000" } }), res);
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toMatchObject({ success: true, demo: true, settled: false });
+    expect(res.statusCode).toBe(503);
+    expect(res.body).toMatchObject({ code: "SETTLEMENT_UNCONFIGURED" });
+  });
+
+  test("demo mode answers 200 only when explicitly enabled", async () => {
+    resetState();
+    state.price = 2_500_000n;
+    process.env.CALL_SERVICE_DEMO = "1";
+    try {
+      const res = makeRes();
+      await handler(makeReq({ authorization: { value: "2500000" } }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toMatchObject({ success: true, demo: true, settled: false });
+    } finally {
+      delete process.env.CALL_SERVICE_DEMO;
+    }
   });
 
   test("invalid provider identifiers are controlled client errors", async () => {

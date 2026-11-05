@@ -12,7 +12,8 @@
  * emits it, because nothing settled.
  *
  * If FACILITATOR_PRIVATE_KEY is set: real on-chain settlement.
- * Otherwise: demo mode (sig verified, returns mock txHash).
+ * Otherwise: fail closed with 503 unless `CALL_SERVICE_DEMO=1` explicitly asks for
+ * the local demo response, which never settles and never emits PAYMENT-RESPONSE.
  */
 
 import { ethers } from "ethers";
@@ -646,13 +647,14 @@ export const DEFAULT_IDEMPOTENCY_KEY_PREFIX = "callguard:idempotency:call-servic
 /**
  * The store the default export uses, resolved per invocation from the environment.
  *
- * Activation is an explicit switch. `UPSTASH_REDIS_REST_URL` may already be set
- * for rate limiting, so presence alone must not flip payment behaviour.
+ * Activation is explicit in every other environment, and on by default in a
+ * production deployment. `UPSTASH_REDIS_REST_URL` may already be set for rate
+ * limiting, so presence alone must not flip payment behaviour outside production.
  *
- * Three outcomes, and the difference between the last two is the whole point:
- * - an object: `CALL_SERVICE_IDEMPOTENCY=enabled` and both Upstash vars are set;
- * - `null`: not enabled. The endpoint keeps its no-store behaviour, which is the
- *   current production path and demo mode — neither settles twice;
+ * Four outcomes, and the difference between the failure ones is the whole point:
+ * - an object: the switch is enabled (or production defaulted it on) and both Upstash vars are set;
+ * - `null`: explicitly disabled, or not production and not enabled. The endpoint keeps
+ *   its no-store behaviour;
  * - `IDEMPOTENCY_STORE_FAILED`: enabled but unusable (one var missing, a bad
  *   token). Answering 503 is the only safe response: silently falling back to the
  *   no-store path would settle a second payment for the same authorization, which
@@ -672,9 +674,12 @@ export function resolveDefaultIdempotencyStore(env = process.env) {
 }
 
 function isIdempotencyEnabled(env) {
-  const raw = env?.CALL_SERVICE_IDEMPOTENCY;
-  if (typeof raw !== "string") return false;
-  return ["enabled", "1", "true"].includes(raw.trim().toLowerCase());
+  const raw = typeof env?.CALL_SERVICE_IDEMPOTENCY === "string"
+    ? env.CALL_SERVICE_IDEMPOTENCY.trim().toLowerCase()
+    : "";
+  if (["disabled", "off", "false", "0"].includes(raw)) return false;
+  if (["enabled", "1", "true"].includes(raw)) return true;
+  return env?.VERCEL_ENV === "production" || env?.NODE_ENV === "production";
 }
 
 /** Receipt reader for record recovery: `null` while the transaction is unmined. */
@@ -1075,9 +1080,16 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
     if (BigInt(value) !== BigInt(price))
       return res.status(402).json({ error: "Authorization value must equal provider pricePerCall", code: PRE_SETTLEMENT_CODE });
 
-    // Demo mode — NO on-chain settlement. Explicit flags so callers
-    // cannot mistake this for a paid call.
+    // Demo mode is opt-in. Production without a settlement key is a
+    // configuration failure, not a successful call, so it must not answer 200.
     if (!process.env.FACILITATOR_PRIVATE_KEY) {
+      if (process.env.CALL_SERVICE_DEMO !== "1") {
+        console.error("[x402/call-service] FACILITATOR_PRIVATE_KEY is not set; refusing to settle");
+        return res.status(503).json({
+          error: "Settlement is not configured on this deployment",
+          code: "SETTLEMENT_UNCONFIGURED",
+        });
+      }
       const mockCallId = ethers.keccak256(ethers.toUtf8Bytes(requestHash + Date.now()));
       return res.json({ success: true, callId: mockCallId, txHash: null, demo: true, settled: false,
         message: "Signature verified — demo mode (NO on-chain call was made)" });
