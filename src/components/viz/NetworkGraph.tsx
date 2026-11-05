@@ -62,10 +62,10 @@ export function NetworkGraph({
   }, [nodes, seed]);
 
   const labelSlots = [
-    { left: "12%", top: "16%" },
-    { left: "70%", top: "10%" },
+    { left: "18%", top: "16%" },
+    { left: "68%", top: "10%" },
     { left: "58%", top: "74%" },
-    { left: "6%", top: "66%" },
+    { left: "12%", top: "66%" },
   ];
 
   return (

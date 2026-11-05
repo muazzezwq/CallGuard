@@ -12,7 +12,7 @@
 }
 .mk a { color: inherit; text-decoration: none; }
 
-.mk-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.mk-container { width: 100%; max-width: min(1600px, 92vw); margin: 0 auto; padding: 0 24px; }
 
 /* ── Nav ─────────────────────────────────────────────── */
 .mk-nav {
@@ -49,7 +49,7 @@
   gap: 56px; align-items: center; padding-block: 84px 64px;
 }
 .mk-hero__title {
-  font-size: clamp(38px, 5.2vw, 66px); line-height: 1.02; letter-spacing: -0.035em;
+  font-size: clamp(38px, 4.4vw, 84px); line-height: 1.02; letter-spacing: -0.035em;
   font-weight: 700; color: var(--text); max-width: 14ch;
 }
 .mk-hero__title em { font-style: normal; color: var(--accent-ink); }
@@ -64,7 +64,7 @@
 .mk-hero__title { max-width: 18ch; }
 .mk-hero__copy { min-width: 0; }
 .mk-hero__art {
-  position: relative; min-width: 0; height: 420px;
+  position: relative; min-width: 0; height: clamp(420px, 30vw, 600px);
   border-radius: var(--radius-lg);
   overflow: visible;
   background: radial-gradient(ellipse 80% 70% at 50% 45%, rgba(25,209,134,0.10) 0%, transparent 70%);
@@ -123,6 +123,10 @@
 }
 .viz3d-tag__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .viz3d-wrap { position: relative; width: 100%; height: 100%; }
+/* drei renders its <Html> labels inside React Three Fiber's wrapper, which defaults
+   to overflow:hidden; that clips the leftmost pill against the canvas edge. The hero
+   section still clips at the viewport, so labels cannot escape the page. */
+.viz3d-wrap > div { overflow: visible !important; }
 .viz3d-fallback { width: 100%; height: 100%; display: grid; place-items: center; }
 
 /* Nav: built-on-Arc pill */
@@ -177,11 +181,11 @@
 @keyframes mk-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 /* ── Sections ────────────────────────────────────────── */
-.mk-section { padding: 104px 0; }
+.mk-section { padding: clamp(104px, 7.5vw, 144px) 0; }
 .mk-section--tight { padding: 72px 0; }
 .mk-section--field { background: var(--surface-1); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .mk-head { max-width: 720px; }
-.mk-h2 { font-size: clamp(28px, 3.4vw, 42px); line-height: 1.08; letter-spacing: -0.028em; font-weight: 700; }
+.mk-h2 { font-size: clamp(28px, 2.8vw, 54px); line-height: 1.08; letter-spacing: -0.028em; font-weight: 700; }
 .mk-lead { margin-top: 16px; font-size: 16px; line-height: 1.6; color: var(--text-dim); max-width: 60ch; }
 
 /* steps */
@@ -406,7 +410,7 @@
 }
 
 /* ── Redesign: hero refinement ───────────────────────── */
-.mk-hero__title { max-width: none; font-size: clamp(32px, 4.2vw, 52px); text-wrap: balance; }
+.mk-hero__title { max-width: none; font-size: clamp(32px, 4.4vw, 84px); text-wrap: balance; }
 .mk-hero__cta--center { justify-content: center; }
 @media (min-width: 981px) {
   .mk-hero__grid { grid-template-columns: 1.15fr 0.85fr; }

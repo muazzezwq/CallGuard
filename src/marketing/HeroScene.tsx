@@ -340,9 +340,9 @@ function Particles() {
 }
 
 const LABELS: { text: string; pos: [number, number, number] }[] = [
-  { text: "AI Agents", pos: [-2.4, 1.5, 0.7] },
-  { text: "Providers", pos: [2.3, 1.3, 0.3] },
-  { text: "Callers", pos: [-2.2, -1.75, 0.7] },
+  { text: "AI Agents", pos: [-1.9, 1.55, 0.7] },
+  { text: "Providers", pos: [2.15, 1.3, 0.3] },
+  { text: "Callers", pos: [-1.9, -1.75, 0.7] },
 ];
 
 function Scene({ count, paused }: { count: number; paused: boolean }) {
