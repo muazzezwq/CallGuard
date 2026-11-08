@@ -52,3 +52,25 @@ jobs:
           submodules: recursive
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge test
+
+  # Advisory only for now: the backlog of transitive advisories is real and would
+  # block every push. The facilitator holds FACILITATOR_PRIVATE_KEY and the
+  # subgraph is deployed from this repository, and neither is covered by the root
+  # gates, so they get their own report here.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: root audit
+        run: bun audit --production || true
+      - name: subgraph audit
+        working-directory: subgraph
+        run: npm audit --omit=dev || true
+      - name: facilitator audit
+        working-directory: x402-facilitator
+        run: npm audit --omit=dev || true
