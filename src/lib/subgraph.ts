@@ -57,15 +57,35 @@ export interface NetworkStats {
 }
 
 // ── GraphQL helper ───────────────────────────────────────────
+/**
+ * The indexer is unavailable rather than empty. A cold or rate-limited Studio
+ * endpoint answers 429, and treating that as "no data" made every panel render
+ * an empty marketplace as if no provider had ever registered.
+ */
+export class SubgraphUnavailableError extends Error {
+  readonly reason: string;
+
+  constructor(reason: string) {
+    super(`Subgraph unavailable: ${reason}`);
+    this.name = "SubgraphUnavailableError";
+    this.reason = reason;
+  }
+}
+
 async function gql(query: string) {
   const res = await fetch(CONFIG.subgraphUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
   });
-  if (!res.ok) throw new Error(`Subgraph HTTP error: ${res.status}`);
+  if (!res.ok) throw new SubgraphUnavailableError(`HTTP ${res.status}`);
   const json = await res.json();
-  if (json.errors?.length) console.warn("[subgraph]", json.errors[0]?.message);
+  if (json.errors?.length) {
+    // Errors with no data at all means the query never ran. Partial data is a
+    // different case: the rows that came back are real, so keep them.
+    if (!json.data) throw new SubgraphUnavailableError(json.errors[0]?.message || "GraphQL errors");
+    console.warn("[subgraph]", json.errors[0]?.message);
+  }
   return json.data ?? {};
 }
 

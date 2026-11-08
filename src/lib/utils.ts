@@ -1,7 +1,3 @@
-import { createWalletClient, createPublicClient, http, keccak256, toHex, toBytes } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { CONFIG, ACTIVE_PPC_ADDRESS, V8_ENABLED, PPC_ABI, PPC_ABI_V8 } from "./config";
-import { arcTestnet } from "./config";
 import {
   readPending,
   pendingMemory,
@@ -109,76 +105,6 @@ export function initTabTitleCounter(): () => void {
   return () => document.removeEventListener("visibilitychange", handler);
 }
 
-// ── auto-receipt (client-side, provider key from sessionStorage) ──────────
-// After a successful callService TX, call this to auto-sign + submit the receipt.
-// sessionStorage key: cg_ar_key_<providerId>  (private key of provider signer)
-export async function tryClientAutoReceipt(
-  callId: `0x${string}`,
-  providerId: number,
-  payload: string,
-  toastFn: (opts: { kind: string; title: string; detail?: string }) => void
-): Promise<void> {
-  const key = sessionStorage.getItem(`cg_ar_key_${providerId}`);
-  if (!key) return;
-  const autoPayload = payload || sessionStorage.getItem(`cg_ar_payload_${providerId}`) || '{"status":"ok","auto":true}';
-  try {
-    const account = privateKeyToAccount(key as `0x${string}`);
-    const wc = createWalletClient({ account, chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
-    const pc = createPublicClient({ chain: arcTestnet, transport: http(CONFIG.rpcUrl) });
-    const responseHash = keccak256(toHex(toBytes(autoPayload)));
-    let termsVersion = 1;
-    if (V8_ENABLED) {
-      const call = await pc.readContract({
-        address: ACTIVE_PPC_ADDRESS,
-        abi: PPC_ABI_V8,
-        functionName: "getCall",
-        args: [callId],
-      });
-      termsVersion = Number((call as readonly unknown[])[6] ?? 1);
-    }
-    const respondedAt = BigInt(Math.floor(Date.now() / 1000));
-    toastFn({ kind: "info", title: "⚡ Auto-submitting receipt…" });
-    const hash = V8_ENABLED
-      ? await wc.writeContract({
-          address: ACTIVE_PPC_ADDRESS,
-          abi: PPC_ABI_V8,
-          functionName: "submitReceipt",
-          args: [callId, responseHash as `0x${string}`, respondedAt, termsVersion, await wc.signTypedData({
-            account,
-            domain: { name: "ArcSLA", version: "2", chainId: CONFIG.chainId, verifyingContract: ACTIVE_PPC_ADDRESS },
-            types: { Receipt: [
-              { name: "callId",       type: "bytes32" },
-              { name: "responseHash", type: "bytes32" },
-              { name: "respondedAt",  type: "uint64"  },
-              { name: "termsVersion", type: "uint32"  },
-            ]},
-            primaryType: "Receipt",
-            message: { callId, responseHash, respondedAt, termsVersion },
-          })],
-        })
-      : await wc.writeContract({
-          address: ACTIVE_PPC_ADDRESS,
-          abi: PPC_ABI,
-          functionName: "submitReceipt",
-          args: [callId, responseHash as `0x${string}`, respondedAt, await wc.signTypedData({
-            account,
-            domain: { name: "ArcSLA", version: "1", chainId: CONFIG.chainId, verifyingContract: ACTIVE_PPC_ADDRESS },
-            types: { Receipt: [
-              { name: "callId",       type: "bytes32" },
-              { name: "responseHash", type: "bytes32" },
-              { name: "respondedAt",  type: "uint64"  },
-            ]},
-            primaryType: "Receipt",
-            message: { callId, responseHash, respondedAt },
-          })],
-        });
-    await pc.waitForTransactionReceipt({ hash });
-    toastFn({ kind: "ok", title: "⚡ Receipt auto-submitted", detail: `call ${callId.slice(0, 10)}… · escrow released` });
-  } catch (e) {
-    const err = e as { reason?: string; message?: string };
-    toastFn({ kind: "err", title: "Auto-receipt failed", detail: err.reason ?? err.message?.slice(0, 80) });
-  }
-}
 
 // ── pending transaction marker ────────────────────────────────────────────
 // The marker prevents a duplicate write after a submitted transaction. The
