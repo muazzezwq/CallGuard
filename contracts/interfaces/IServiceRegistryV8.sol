@@ -147,9 +147,36 @@ interface IServiceRegistryV8 {
 
     function admin() external view returns (address);
 
+    /// @notice Nominate a new admin. The nominee must call `acceptAdmin`.
     function transferAdmin(address newAdmin) external;
 
+    /// @notice Accept a pending admin handover.
+    function acceptAdmin() external;
+
+    function pendingAdmin() external view returns (address);
+
     function payPerCall() external view returns (address);
+
+    /// @notice Nominate a dispute contract as a slasher. Requires
+    ///         `confirmSlasher` after `SLASHER_DELAY`.
+    function authorizeSlasher(address slasher) external;
+
+    /// @notice Confirm a nominated slasher once the delay elapsed.
+    function confirmSlasher() external;
+
+    function pendingSlasher() external view returns (address);
+
+    function pendingSlasherAt() external view returns (uint64);
+
+    /// @notice Minimum delay between slasher nomination and confirmation.
+    function SLASHER_DELAY() external view returns (uint32);
+
+    /// @notice Window after the last completed call during which a provider
+    ///         cannot unstake.
+    function DISPUTE_WINDOW() external view returns (uint32);
+
+    /// @notice Timestamp of the provider's most recent completed call.
+    function lastCompletedAt(uint256 providerId) external view returns (uint64);
 
     // ---------------------------------------------------------------------
     // PayPerCall hooks

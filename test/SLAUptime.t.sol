@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
+import { authorizeSlasherNow } from "./RegistryAdmin.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { SLAUptime } from "../contracts/SLAUptime.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
@@ -53,7 +54,7 @@ contract SLAUptimeTest is Test {
             COOLDOWN,
             MIN_SAMPLES
         );
-        registry.authorizeSlasher(address(uptime));
+        authorizeSlasherNow(vm, registry, address(uptime));
         vm.stopPrank();
 
         usdc.mint(provider, 1_000e6);
@@ -338,8 +339,9 @@ contract SLAUptimeTest is Test {
             COOLDOWN,
             MIN_SAMPLES
         );
-        vm.prank(admin);
-        registry.authorizeSlasher(address(greedy));
+        vm.startPrank(admin);
+        authorizeSlasherNow(vm, registry, address(greedy));
+        vm.stopPrank();
 
         _record(providerId, 0, 20);
 

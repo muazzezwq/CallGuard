@@ -42,18 +42,34 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
     error ZeroAmount();
     error UnknownTerms();
     error NoPendingTerms();
+    error TermsProposalPending();
     error TermsTimelockNotElapsed();
     error NoPendingCalls();
+    error DisputeWindowOpen();
+    error InvalidPrice();
+    error NoPendingAdmin();
+    error NotPendingAdmin();
 
     // ---------------------------------------------------------------------
     // Constants
     // ---------------------------------------------------------------------
 
     uint32 public constant MIN_RESPONSE_TIME = 5;
+    /// @notice A provider cannot advertise a slash smaller than this. A zero
+    ///         slash turns the SLA into a refund policy: a timeout costs the
+    ///         provider nothing and the caller's only recovery is the price
+    ///         they already paid.
+    uint16 public constant MIN_SLASH_BPS = 100;
     uint16 public constant MAX_SLASH_BPS = 10_000;
     uint16 public constant MAX_AVAILABILITY_BPS = 10_000;
     uint32 public constant TERMS_TIMELOCK = 2 days;
     uint32 public constant UNSTAKE_COOLDOWN = 1 hours;
+    /// @notice How long a completed call stays disputable. Must match the
+    ///         dispute contract's `disputeWindow`; a stake that leaves inside
+    ///         this window leaves the dispute with nothing to hold.
+    uint32 public constant DISPUTE_WINDOW = 7 days;
+    /// @notice Delay between nominating and confirming a slasher.
+    uint32 public constant SLASHER_DELAY = 2 days;
 
     // ---------------------------------------------------------------------
     // State
@@ -83,6 +99,19 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
     mapping(address => uint256) public providerIdOf;
     uint256 public nextProviderId = 1;
 
+    /// @notice Two-step admin handover. `transferAdmin` only nominates; the
+    ///         nominee must call `acceptAdmin`, so a mistyped address cannot
+    ///         strand the registry.
+    address public pendingAdmin;
+
+    /// @notice Timestamp of the most recent completed call for a provider.
+    ///         `unstake` waits a full dispute window after it.
+    mapping(uint256 => uint64) public lastCompletedAt;
+
+    /// @notice Slasher nomination awaiting `confirmSlasher` after `SLASHER_DELAY`.
+    address public pendingSlasher;
+    uint64 public pendingSlasherAt;
+
     /// @notice Dispute contracts authorized to slash in addition to PayPerCall.
     mapping(address => bool) public authorizedSlashers;
 
@@ -103,6 +132,8 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
     event MaxConcurrentCallsUpdated(uint256 indexed providerId, uint32 newCap);
     event PayPerCallSet(address indexed payPerCall);
     event SlasherAuthorized(address indexed slasher);
+    event SlasherAuthorizationProposed(address indexed slasher, uint64 confirmAt);
+    event AdminTransferProposed(address indexed currentAdmin, address indexed pendingAdmin);
     event SlasherRevoked(address indexed slasher);
 
     // ---------------------------------------------------------------------
@@ -150,13 +181,39 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
     ///      multisig without ever putting the multisig key in the deploy shell.
     function transferAdmin(address newAdmin) external onlyAdmin {
         if (newAdmin == address(0)) revert InvalidAdmin();
-        emit AdminTransferred(admin, newAdmin);
-        admin = newAdmin;
+        pendingAdmin = newAdmin;
+        emit AdminTransferProposed(admin, newAdmin);
+    }
+
+    /// @notice Accept a pending admin handover. Only the nominated address can
+    ///         call this, which is what makes a mistyped nomination harmless.
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert NotPendingAdmin();
+        address previous = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(previous, admin);
     }
 
     /// @notice Authorize a dispute contract to call `slash`.
+    /// @dev Deliberately not a one-call grant. A slasher can move any provider's
+    ///      whole stake, so the admin nominates and the same admin confirms only
+    ///      after the registry's `SLASHER_DELAY`. That does not stop a
+    ///      compromised key, but it gives watchdogs a window to react.
     function authorizeSlasher(address slasher) external onlyAdmin {
         if (slasher == address(0)) revert InvalidSlasher();
+        pendingSlasher = slasher;
+        pendingSlasherAt = uint64(block.timestamp + SLASHER_DELAY);
+        emit SlasherAuthorizationProposed(slasher, pendingSlasherAt);
+    }
+
+    /// @notice Confirm a nominated slasher once the delay has elapsed.
+    function confirmSlasher() external onlyAdmin {
+        address slasher = pendingSlasher;
+        if (slasher == address(0)) revert InvalidSlasher();
+        if (block.timestamp < uint256(pendingSlasherAt)) revert CooldownNotElapsed();
+        pendingSlasher = address(0);
+        pendingSlasherAt = 0;
         authorizedSlashers[slasher] = true;
         emit SlasherAuthorized(slasher);
     }
@@ -186,6 +243,7 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
         if (providerIdOf[msg.sender] != 0) revert AlreadyRegistered();
         if (stakeAmount < minStake) revert BelowMinStake();
         _validateTerms(maxResponseTime, slashBps, availabilityTargetBps);
+        if (pricePerCall == 0) revert InvalidPrice();
         if (signer == address(0)) revert InvalidSigner();
 
         providerId = nextProviderId++;
@@ -257,6 +315,13 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
         if (block.timestamp < uint256(p.deactivatedAt) + UNSTAKE_COOLDOWN) {
             revert CooldownNotElapsed();
         }
+        // A completed call stays disputable for a full window. Releasing the
+        // stake earlier is what let a provider walk away from a quality
+        // dispute: the dispute then escrowed 0 and paid the caller nothing.
+        uint64 completedAt = lastCompletedAt[providerId];
+        if (completedAt != 0 && block.timestamp < uint256(completedAt) + DISPUTE_WINDOW) {
+            revert DisputeWindowOpen();
+        }
 
         uint256 amount = p.stake;
         p.stake = 0;
@@ -277,6 +342,10 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
         if (p.owner == address(0)) revert UnknownProvider();
         if (p.owner != msg.sender) revert NotOwner();
         _validateTerms(input.maxResponseTime, input.slashBps, input.availabilityTargetBps);
+        // Overwriting a live proposal would restart the timelock and reuse the
+        // same version number, so a watcher keyed on (providerId, version) would
+        // see two different documents under one id.
+        if (_pendingTermsVersion[providerId] != 0) revert TermsProposalPending();
 
         proposedVersion = _latestTermsVersion[providerId] + 1;
         _pendingTerms[providerId] = input;
@@ -386,6 +455,7 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
         p.completedCalls += 1;
+        lastCompletedAt[providerId] = uint64(block.timestamp);
         emit ReputationUpdated(providerId, p.completedCalls, p.slashedCalls);
     }
 
@@ -404,6 +474,9 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
         Provider storage p = _providers[providerId];
         if (p.owner == address(0)) revert UnknownProvider();
         if (p.owner != msg.sender) revert NotOwner();
+        // A zero price makes the call free and the slash the only economics, so
+        // the advertised guarantee stops meaning anything.
+        if (newPrice == 0) revert InvalidPrice();
         p.pricePerCall = newPrice;
         emit PriceUpdated(providerId, newPrice);
     }
@@ -460,6 +533,7 @@ contract ServiceRegistryV8 is IServiceRegistryV8, ReentrancyGuard {
 
     function _validateTerms(uint32 maxResponseTime, uint16 slashBps, uint16 availabilityTargetBps) internal pure {
         if (maxResponseTime < MIN_RESPONSE_TIME) revert InvalidResponseTime();
+        if (slashBps < MIN_SLASH_BPS) revert InvalidSlashBps();
         if (slashBps > MAX_SLASH_BPS) revert InvalidSlashBps();
         if (availabilityTargetBps > MAX_AVAILABILITY_BPS) revert InvalidAvailabilityTarget();
     }

@@ -85,9 +85,10 @@ contract DeployDisputeV3 is Script {
         console2.log("DisputeV3       :", address(dispute));
 
         // The registry lets exactly the authorised slashers move stake, so the
-        // new contract must be authorised before `openDispute` can escrow.
+        // new contract must be nominated before `openDispute` can escrow. The
+        // grant is two-step, so this call only nominates.
         ServiceRegistryV8(registryAddress).authorizeSlasher(address(dispute));
-        console2.log("Authorized as slasher on the registry");
+        console2.log("Nominated as slasher; run confirmSlasher() after SLASHER_DELAY");
 
         vm.stopBroadcast();
     }

@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
+import { authorizeSlasherNow } from "./RegistryAdmin.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { SLAKeeper } from "../contracts/SLAKeeper.sol";
 import { DisputeV2 } from "../contracts/DisputeV2.sol";
@@ -71,7 +72,7 @@ contract CallGuardP0Test is Test {
             DISPUTE_SLASH_BPS
         );
         registry.setPayPerCall(address(payPerCall));
-        registry.authorizeSlasher(address(dispute));
+        authorizeSlasherNow(vm, registry, address(dispute));
         vm.stopPrank();
 
         usdc.mint(provider, 1_000e6);

@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
+import { authorizeSlasherNow } from "./RegistryAdmin.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { DisputeV2 } from "../contracts/DisputeV2.sol";
 import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
@@ -65,7 +66,7 @@ contract DisputeV2Test is Test {
             DISPUTE_SLASH_BPS
         );
         registry.setPayPerCall(address(payPerCall));
-        registry.authorizeSlasher(address(dispute));
+        authorizeSlasherNow(vm, registry, address(dispute));
         vm.stopPrank();
 
         usdc.mint(provider, 1_000e6);
@@ -505,15 +506,17 @@ contract DisputeV2Test is Test {
         vm.prank(provider);
         registry.deactivate(providerId);
         skip(registry.UNSTAKE_COOLDOWN() + 1);
+
+        // The completed call stays disputable for a full dispute window, so the
+        // stake cannot leave while a dispute could still be opened against it.
         vm.prank(provider);
+        vm.expectRevert(ServiceRegistryV8.DisputeWindowOpen.selector);
         registry.unstake(providerId);
-        assertEq(registry.getProvider(providerId).stake, 0);
 
         vm.prank(arbiter);
         dispute.resolve(id, true);
 
-        assertEq(dispute.heldSlash(id), 0);
-        assertEq(usdc.balanceOf(address(dispute)), 0);
+        assertGt(dispute.heldSlash(id), 0);
     }
 
     // ---------------------------------------------------------------------

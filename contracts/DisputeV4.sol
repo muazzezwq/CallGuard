@@ -584,7 +584,16 @@ contract DisputeV4 is IDisputeV2, ReentrancyGuard {
 
     function _currentDisputeSlash(uint256 providerId) internal view returns (uint256) {
         uint256 stake = registry.getProvider(providerId).stake;
-        return (stake * disputeSlashBps) / 10_000;
+        uint256 amount = (stake * disputeSlashBps) / 10_000;
+        // A dispute must not take more of the stake than the provider advertised
+        // in its own SLA terms. The arbiter's global bps is only an upper bound;
+        // the per-provider terms are the promise the caller relied on.
+        uint32 version = registry.latestTermsVersion(providerId);
+        if (version != 0) {
+            uint256 promised = (stake * registry.getTerms(providerId, version).slashBps) / 10_000;
+            if (amount > promised) amount = promised;
+        }
+        return amount;
     }
 }
 

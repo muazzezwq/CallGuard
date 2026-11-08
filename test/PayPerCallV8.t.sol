@@ -405,7 +405,10 @@ contract PayPerCallV8Test is Test {
     }
 
     /// @dev `callServiceFor` spends the beneficiary's budget, not the payer's.
-    function test_concurrency_countsAgainstBeneficiary() public {
+    /// @dev `callServiceFor` charges the cap to the payer, not the beneficiary.
+    ///      Otherwise one funder could dodge their own cap by naming a fresh
+    ///      beneficiary for every call.
+    function test_concurrency_countsAgainstPayer() public {
         uint32 cap = payPerCall.DEFAULT_MAX_CONCURRENT();
 
         for (uint256 i; i < cap; i++) {
@@ -413,8 +416,8 @@ contract PayPerCallV8Test is Test {
             payPerCall.callServiceFor(providerId, keccak256(abi.encode("req-beneficiary", i)), beneficiary);
         }
 
-        assertEq(payPerCall.openCallsPerCaller(providerId, caller), 0);
-        assertEq(payPerCall.openCallsPerCaller(providerId, beneficiary), cap);
+        assertEq(payPerCall.openCallsPerCaller(providerId, caller), cap);
+        assertEq(payPerCall.openCallsPerCaller(providerId, beneficiary), 0);
 
         vm.expectRevert(PayPerCallV8.TooManyConcurrentCalls.selector);
         vm.prank(caller);

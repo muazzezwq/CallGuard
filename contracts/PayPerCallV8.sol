@@ -91,6 +91,13 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
     mapping(address => uint256) public claimable;
     mapping(uint256 => mapping(address => uint32)) public openCallsPerCaller;
 
+    /// @notice Account charged against the per-caller concurrent-call cap for a
+    ///         call. This is the payer, which is the beneficiary for a normal
+    ///         call but the funder for `callServiceFor`. Keying the cap on the
+    ///         beneficiary let a funder dodge their own cap by naming a fresh
+    ///         beneficiary for every call.
+    mapping(bytes32 => address) public capAccountOf;
+
     /// @dev Bumped on every call so callIds cannot collide across identical
     ///      requests from the same beneficiary in the same block.
     uint256 public nonce;
@@ -110,7 +117,7 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------------
 
     function callService(uint256 providerId, bytes32 requestHash) external nonReentrant returns (bytes32 callId) {
-        OpenResult memory open = _createCall(providerId, requestHash, msg.sender);
+        OpenResult memory open = _createCall(providerId, requestHash, msg.sender, msg.sender);
 
         usdc.safeTransferFrom(msg.sender, address(this), open.amount);
         _registry.markCallStarted(providerId);
@@ -128,7 +135,9 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
     {
         if (beneficiary == address(0)) revert InvalidBeneficiary();
 
-        OpenResult memory open = _createCall(providerId, requestHash, beneficiary);
+        // The cap follows the payer: a funder cannot open unlimited concurrent
+        // calls by naming a different beneficiary each time.
+        OpenResult memory open = _createCall(providerId, requestHash, beneficiary, msg.sender);
 
         usdc.safeTransferFrom(msg.sender, address(this), open.amount);
         _registry.markCallStarted(providerId);
@@ -164,7 +173,7 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
             revert AuthorizationAlreadyUsed();
         }
 
-        OpenResult memory open = _createCall(providerId, requestHash, beneficiary);
+        OpenResult memory open = _createCall(providerId, requestHash, beneficiary, beneficiary);
 
         IUSDC3009(address(usdc)).transferWithAuthorization(
             beneficiary,
@@ -233,7 +242,7 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
         c.completedAt = uint32(block.timestamp);
         c.status = CallStatus.Completed;
 
-        _decrementOpenCalls(c.providerId, c.caller);
+        _decrementOpenCalls(c.providerId, capAccountOf[callId]);
         _registry.markCallFinished(c.providerId);
         _registry.incCompleted(c.providerId);
 
@@ -258,14 +267,18 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
 
         c.status = CallStatus.Slashed;
 
-        _decrementOpenCalls(c.providerId, c.caller);
+        _decrementOpenCalls(c.providerId, capAccountOf[callId]);
         _registry.markCallFinished(c.providerId);
         _registry.incSlashed(c.providerId);
 
         IServiceRegistryV8.ProviderView memory provider = _registry.getProvider(c.providerId);
         IServiceRegistryV8.SLATerms memory terms = _registry.getTerms(c.providerId, c.termsVersion);
 
+        // A concurrent dispute can take part of the stake first. Capping the
+        // slash at what is left keeps a timeout claimable instead of reverting
+        // on `InsufficientStake()` and stranding the call forever.
         uint256 slashAmount = Math.mulDiv(provider.stake, terms.slashBps, 10_000);
+        if (slashAmount > provider.stake) slashAmount = provider.stake;
         uint256 bountyAmount = Math.mulDiv(slashAmount, keeperBountyBps, 10_000);
         if (bountyAmount > MAX_KEEPER_BOUNTY) bountyAmount = MAX_KEEPER_BOUNTY;
         if (slashAmount == 0) bountyAmount = 0;
@@ -330,7 +343,7 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
         uint32 deadline;
     }
 
-    function _createCall(uint256 providerId, bytes32 requestHash, address beneficiary)
+    function _createCall(uint256 providerId, bytes32 requestHash, address beneficiary, address capAccount)
         internal
         returns (OpenResult memory open)
     {
@@ -346,7 +359,7 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
 
         uint32 baseCap = provider.maxConcurrentCalls == 0 ? DEFAULT_MAX_CONCURRENT : provider.maxConcurrentCalls;
         uint32 cap = provider.zkTier >= 2 ? baseCap * 2 : baseCap;
-        if (openCallsPerCaller[providerId][beneficiary] >= cap) revert TooManyConcurrentCalls();
+        if (openCallsPerCaller[providerId][capAccount] >= cap) revert TooManyConcurrentCalls();
 
         uint256 currentNonce = nonce++;
         open.callId = keccak256(
@@ -373,7 +386,8 @@ contract PayPerCallV8 is IPayPerCallV8, ReentrancyGuard, EIP712 {
             status: CallStatus.Pending
         });
 
-        openCallsPerCaller[providerId][beneficiary]++;
+        openCallsPerCaller[providerId][capAccount]++;
+        capAccountOf[open.callId] = capAccount;
     }
 
     function _decrementOpenCalls(uint256 providerId, address caller) internal {

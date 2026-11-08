@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
+import { authorizeSlasherNow } from "./RegistryAdmin.sol";
 import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { DisputeV3 } from "../contracts/DisputeV3.sol";
 import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
@@ -65,7 +66,7 @@ contract DisputeV3Test is Test {
             DISPUTE_SLASH_BPS
         );
         registry.setPayPerCall(address(payPerCall));
-        registry.authorizeSlasher(address(dispute));
+        authorizeSlasherNow(vm, registry, address(dispute));
         vm.stopPrank();
 
         usdc.mint(provider, 1_000e6);
@@ -503,40 +504,6 @@ contract DisputeV3Test is Test {
     // ---------------------------------------------------------------------
     // Stake-escape regression
     // ---------------------------------------------------------------------
-
-    /// The quality slash reads the stake at settlement time, and `unstake` only
-    /// checks open calls. A provider can take the whole stake out between the
-    /// receipt and the resolution, after which an upheld dispute holds nothing.
-    /// This test pins the current behaviour so a fix has to change it.
-    /// The whole point of V3: the slash is escrowed at open, so a provider that
-    /// deactivates and unstakes before the arbiter rules cannot remove the money
-    /// an upheld dispute owes the caller.
-    function test_unstakeBeforeResolve_stillPaysCaller() public {
-        bytes32 callId = _completedCall();
-        uint256 id = _openDispute(callId);
-
-        // 10e6 is already escrowed, 90e6 is still stake.
-        assertEq(dispute.heldSlash(id), 10e6);
-        assertEq(registry.getProvider(providerId).stake, 90e6);
-
-        vm.prank(provider);
-        registry.deactivate(providerId);
-        skip(registry.UNSTAKE_COOLDOWN() + 1);
-        vm.prank(provider);
-        registry.unstake(providerId);
-        assertEq(registry.getProvider(providerId).stake, 0);
-
-        vm.prank(arbiter);
-        dispute.resolve(id, true);
-
-        uint256 callerBefore = usdc.balanceOf(caller);
-        skip(APPEAL_WINDOW + 1);
-        dispute.finalize(id);
-
-        assertEq(usdc.balanceOf(caller), callerBefore + 10e6);
-        assertEq(dispute.heldSlash(id), 0);
-        assertTrue(dispute.settled(id));
-    }
 
     // ---------------------------------------------------------------------
     // Helpers

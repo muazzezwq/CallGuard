@@ -96,7 +96,11 @@ contract DeployV8 is Script {
         console2.log("DisputeV2           :", address(d.dispute));
 
         d.registry.setPayPerCall(address(d.payPerCall));
+        // The grant is two-step: this only nominates, and the admin calls
+        // `confirmSlasher` after SLASHER_DELAY. A script cannot wait two days,
+        // so it prints the follow-up instead of pretending the wiring is done.
         d.registry.authorizeSlasher(address(d.dispute));
+        console2.log("DisputeV2 nominated as slasher; run confirmSlasher() after SLASHER_DELAY");
         if (admin != msg.sender) {
             d.registry.transferAdmin(admin);
             console2.log("Registry admin handed to:", admin);

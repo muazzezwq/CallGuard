@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ServiceRegistryV8 } from "../contracts/ServiceRegistryV8.sol";
+import { authorizeSlasherNow } from "./RegistryAdmin.sol";
 import { IServiceRegistryV8 } from "../contracts/interfaces/IServiceRegistryV8.sol";
 import { MockUSDC } from "./helpers/MockUSDC.sol";
 
@@ -56,8 +57,26 @@ contract ServiceRegistryV8Test is Test {
         vm.prank(admin);
         registry.transferAdmin(user);
 
+        // A nomination is not a handover: only the nominee can accept, so a
+        // mistyped address cannot strand the registry.
+        assertEq(registry.admin(), admin);
+        assertEq(registry.pendingAdmin(), user);
+
+        vm.prank(user);
+        registry.acceptAdmin();
+
         assertEq(registry.admin(), user);
+        assertEq(registry.pendingAdmin(), address(0));
         assertEq(registry.payPerCall(), payPerCall);
+    }
+
+    function test_acceptAdmin_onlyPending_reverts() public {
+        vm.prank(admin);
+        registry.transferAdmin(user);
+
+        vm.prank(admin);
+        vm.expectRevert(ServiceRegistryV8.NotPendingAdmin.selector);
+        registry.acceptAdmin();
     }
 
     function test_transferAdmin_zeroAddress_reverts() public {
@@ -418,8 +437,9 @@ contract ServiceRegistryV8Test is Test {
         uint256 id = _registerDefault();
         address dispute = address(0xD15);
 
-        vm.prank(admin);
-        registry.authorizeSlasher(dispute);
+        vm.startPrank(admin);
+        authorizeSlasherNow(vm, registry, dispute);
+        vm.stopPrank();
 
         vm.prank(dispute);
         registry.slash(id, 10e6, user);
@@ -428,9 +448,10 @@ contract ServiceRegistryV8Test is Test {
     }
 
     function test_authorizeSlasher_zeroAddress_reverts() public {
+        vm.startPrank(admin);
         vm.expectRevert(ServiceRegistryV8.InvalidSlasher.selector);
-        vm.prank(admin);
         registry.authorizeSlasher(address(0));
+        vm.stopPrank();
     }
 
     function test_slash_unauthorized_reverts() public {

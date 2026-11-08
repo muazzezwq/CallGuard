@@ -296,6 +296,8 @@ contract DeployEvidenceV2 is Script {
         console2.log("");
         console2.log("6) cast send %s \\", _addr(address(registry)));
         console2.log("    \"authorizeSlasher(address)\" %s", _addr(address(dispute)));
+        console2.log("   # the grant is two-step: wait SLASHER_DELAY (2 days), then");
+        console2.log("   cast send %s \"confirmSlasher()\"", _addr(address(registry)));
         console2.log(
             "   cast call %s \"authorizedSlashers(address)(bool)\" %s --rpc-url %s  # expect true",
             _addr(address(registry)),

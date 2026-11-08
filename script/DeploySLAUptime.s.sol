@@ -66,9 +66,10 @@ contract DeploySLAUptime is Script {
         console2.log("SLAUptime       :", address(uptime));
 
         // The registry only lets authorised slashers move stake, so the claim
-        // reverts until this lands.
+        // reverts until the grant lands. The grant is two-step: this call only
+        // nominates, and the admin confirms after SLASHER_DELAY.
         ServiceRegistryV8(registryAddress).authorizeSlasher(address(uptime));
-        console2.log("Authorized as slasher on the registry");
+        console2.log("Nominated as slasher; run confirmSlasher() after SLASHER_DELAY");
 
         vm.stopBroadcast();
     }
