@@ -60,6 +60,10 @@ const SETTLEMENT_KEYS: ReadonlySet<string> = new Set([
   "demo",
   "settled",
   "callId",
+  // A settlement can confirm while the `CallStarted` log is missing from the
+  // receipt. The sender states that explicitly instead of leaving `callId: null`
+  // to mean both "not recorded" and "could not be read".
+  "callIdParse",
   "blockNumber",
   "message",
 ]);
@@ -99,6 +103,7 @@ export type FacilitatorBody = {
   demo?: boolean;
   settled?: boolean;
   callId?: string | null;
+  callIdParse?: "ok" | "missing";
   blockNumber?: number | null;
   message?: string;
   operationId?: string;

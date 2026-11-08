@@ -141,6 +141,8 @@ export default async function handler(req, res) {
     signature: verification.signature,
     usdcAddress: USDC_ADDR,
     rpcUrl: getRpcUrl(),
+    expectedTo: FACILITATOR,
+    minValue: PRICE_ATOMIC,
   });
   if (!settlement.ok) {
     logError('[energy-data] settlement failed', { message: settlement.error });

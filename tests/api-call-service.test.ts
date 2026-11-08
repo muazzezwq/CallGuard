@@ -154,10 +154,17 @@ beforeAll(async () => {
   delete process.env.FACILITATOR_PRIVATE_KEY;
 
   const mod = await import("../api/call-service.js");
+  // The module-level pair is pinned at import (v7 here). The money guard reads
+  // the environment at request time, so the v8 pair is set after the import to
+  // keep these fixtures on the same contract addresses they mock.
+  process.env.SERVICE_REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
+  process.env.PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
   handler = mod.default as Handler;
 });
 
 afterAll(() => {
+  delete process.env.SERVICE_REGISTRY_V8;
+  delete process.env.PAY_PER_CALL_V8;
   mock.restore();
 });
 

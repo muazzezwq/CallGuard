@@ -17,7 +17,7 @@
  */
 
 import { ethers } from "ethers";
-import { ACTIVE, V8_ACTIVE } from "./_contracts.js";
+import { ACTIVE, V8_ACTIVE, moneyContracts } from "./_contracts.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -141,6 +141,10 @@ function providerPrice(provider) {
 }
 
 function missingPaymentConfig() {
+  // v7 is read-only since the v8 cutover. Settling against it would take the
+  // caller's money and record nothing, so a missing v8 pair stops the route
+  // here rather than falling back to the retired pair.
+  if (moneyContracts().missing) return "SERVICE_REGISTRY_V8/PAY_PER_CALL_V8";
   if (!USDC_ADDR) return "USDC_ADDRESS";
   if (!CONTRACT) return "PAY_PER_CALL";
   if (!REGISTRY) return "SERVICE_REGISTRY";
@@ -156,6 +160,9 @@ function missingSignatureConfig() {
 }
 
 function missingSettlementConfig() {
+  // Settlement has no v7 fallback either: the v7 PayPerCall cannot record a
+  // call for this route, so paying into it is worse than failing.
+  if (moneyContracts().missing) return "SERVICE_REGISTRY_V8/PAY_PER_CALL_V8";
   if (!REGISTRY) return "SERVICE_REGISTRY";
   return null;
 }
@@ -279,7 +286,16 @@ function sendSettled(res, { callId, txHash, blockNumber }) {
       network: ARC_TESTNET_CHAIN_ID,
     })).toString("base64"));
   }
-  return res.json({ success: true, callId: callId ?? null, txHash: txHash ?? null, blockNumber: blockNumber ?? null });
+  // `success: true` means the payment settled, which is not the same as the
+  // call being recoverable. `callIdParse` states which of the two happened so a
+  // caller does not read a settled payment with no call id as a complete result.
+  return res.json({
+    success: true,
+    callId: callId ?? null,
+    callIdParse: callId ? "ok" : "missing",
+    txHash: txHash ?? null,
+    blockNumber: blockNumber ?? null,
+  });
 }
 
 function pendingMessage(code) {

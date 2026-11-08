@@ -337,12 +337,18 @@ beforeAll(async () => {
   process.env.FACILITATOR_PRIVATE_KEY = `0x${"22".repeat(32)}`;
 
   const mod = await import("../api/call-service.js");
+  // The money guard reads the environment at request time; the module-level
+  // pair stays pinned to the fixtures this file mocks.
+  process.env.SERVICE_REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
+  process.env.PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
   createCallServiceHandler = mod.createCallServiceHandler as Factory;
   recoverOperations = mod.recoverOperations;
   defaultHandler = (mod.default ?? mod.defaultHandler);
 });
 
 afterAll(() => {
+  delete process.env.SERVICE_REGISTRY_V8;
+  delete process.env.PAY_PER_CALL_V8;
   mock.restore();
 });
 
@@ -373,9 +379,9 @@ describe("call-service idempotency foundation", () => {
     await handler(req, second);
 
     expect(first.statusCode).toBe(200);
-    expect(first.body).toEqual({ success: true, txHash: TX_HASH, callId: CALL_ID, blockNumber: 42 });
+    expect(first.body).toEqual({ success: true, txHash: TX_HASH, callId: CALL_ID, callIdParse: "ok", blockNumber: 42 });
     expect(second.statusCode).toBe(200);
-    expect(second.body).toEqual({ success: true, txHash: TX_HASH, callId: CALL_ID, blockNumber: 42 });
+    expect(second.body).toEqual({ success: true, txHash: TX_HASH, callId: CALL_ID, callIdParse: "ok", blockNumber: 42 });
     expect(state.submitCount).toBe(1);
   });
 

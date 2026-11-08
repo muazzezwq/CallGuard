@@ -30,8 +30,12 @@
 //     authorization repairs it by creating the operation.
 //   - A key reused for a different authorization or fingerprint is rejected by
 //     the alias before any operation lookup or submission.
-// The store still needs orphan-alias TTL/cleanup before production activation.
-// The in-memory test fake is not evidence of distributed atomicity.
+// The store still needs orphan-alias cleanup before production activation: an
+// alias is written before the operation it points at, so a crash in between
+// leaves an alias with nothing behind it. The retention window below bounds
+// that: the Upstash adapter applies it as a Redis PEXPIRE on every write, so an
+// orphan disappears once nothing has touched it for a full window. The
+// in-memory test fake is not evidence of distributed atomicity.
 //
 // Two record kinds share this contract:
 //   operation: keyed by <operation>:auth:<from>:<nonce>; owns the payment.
@@ -42,6 +46,18 @@
 // writes the canonical operation.
 
 import { createHash } from "node:crypto";
+
+/**
+ * Retention window for both record kinds. One constant, because the record's
+ * `expiresAt` and the adapter's Redis PEXPIRE describe the same promise and
+ * must not drift apart.
+ */
+export const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** When a record created at `now` stops being worth keeping. */
+export function expiresAtFrom(now) {
+  return now + RETENTION_MS;
+}
 
 const EXPLICIT_KEY_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -148,6 +164,9 @@ export function createOperationRecord({
     // The store's transition is a revision CAS; a record without one can never move.
     revision: 0,
     createdAt: now,
+    // Retention is part of the record, not only of the store: a reader can tell
+    // when an operation has outlived its usefulness without knowing the adapter.
+    expiresAt: expiresAtFrom(now),
     updatedAt: now,
     attempts: 0,
   };
@@ -163,6 +182,9 @@ export function createAliasRecord({ aliasId, authId, fingerprint, now = Date.now
     authId,
     fingerprint,
     createdAt: now,
+    // An alias is only an index, but it must not outlive the operation it points
+    // at; the same window keeps a dangling index from surviving its target.
+    expiresAt: expiresAtFrom(now),
     updatedAt: now,
   };
 }

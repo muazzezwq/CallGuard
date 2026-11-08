@@ -106,7 +106,14 @@ export default async function handler(req, res) {
       // Consume the nonce by settling on-chain. Without this a single signed
       // authorization could be replayed for unlimited reports.
       const rpcUrl = getRpcUrl();
-      const settlement = await settleEip3009({ auth, signature: paymentSig, usdcAddress: USDC_ADDR, rpcUrl });
+      const settlement = await settleEip3009({
+        auth,
+        signature: paymentSig,
+        usdcAddress: USDC_ADDR,
+        rpcUrl,
+        expectedTo: payTo,
+        minValue: amountAtomic,
+      });
       if (!settlement.ok) {
         logError("[premium] settlement failed", { message: settlement.error });
         return res.status(503).json({ error: "Payment settlement unavailable" });

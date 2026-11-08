@@ -36,6 +36,7 @@
 // distributed atomicity; only an isolated real Upstash integration can.
 
 import { redact } from "./_redact.js";
+import { RETENTION_MS } from "./_idempotency.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 
@@ -43,7 +44,9 @@ const DEFAULT_TIMEOUT_MS = 5_000;
 // key so that a record only disappears once nothing has touched it for a full
 // retention window. Abandoned and terminal records therefore cannot grow the
 // keyspace forever.
-const DEFAULT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+// Same window as the record's own `expiresAt`, so the Redis TTL and the record
+// field cannot disagree.
+const DEFAULT_RETENTION_MS = RETENTION_MS;
 
 const CREATE_SCRIPT = `
 -- create-if-absent
@@ -101,6 +104,7 @@ const PROTECTED_PATCH_FIELDS = new Set([
   "revision",
   "lease",
   "createdAt",
+  "expiresAt",
   "updatedAt",
   "__proto__",
   "constructor",
