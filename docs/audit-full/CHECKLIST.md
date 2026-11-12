@@ -52,7 +52,7 @@
 | Item | Finding | Status |
 |---|---|---|
 | Provider can unstake inside the dispute window | CG-DIS-01 | PASS in source — `unstake` waits `DISPUTE_WINDOW` after `lastCompletedAt`; needs a redeploy |
-| Single key holds admin, arbiter, appeal, treasury, evidence owner | CG-REG-02, CG-DIS-03 | PARTIAL — slasher grant and admin handover are now two-step; the single-wallet role collapse is a deployment decision, not a code fix |
+| Single key holds admin, arbiter, appeal, treasury, evidence owner | CG-REG-02, CG-DIS-03 | PARTIAL — `script/DeployV8.s.sol::_requireSeparateRoles` now refuses a collapsed role set, so the deploy path cannot create one by accident; the four addresses themselves are chosen at deployment and the current testnet instance still holds one wallet |
 | Facilitator tree carries 1 critical and 21 high advisories | CG-OPS-05 | PARTIAL — `audit` job added to CI, non-blocking until the backlog clears |
 | Silent v7 fallback on money routes | CG-API-01 | PASS — `moneyContracts()` makes the v8 pair mandatory on money routes |
 | Zero-slash terms accepted | CG-REG-01 | PASS — `MIN_SLASH_BPS = 100`, zero price rejected |

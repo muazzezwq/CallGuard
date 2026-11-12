@@ -35,9 +35,30 @@ forge script script/DeployV8.s.sol:DeployV8 \
 ```
 
 The script deploys all four contracts, calls `registry.setPayPerCall(payPerCall)`
-once, authorizes `DisputeV2` as a slasher, and then hands registry admin to
-`ADMIN_ADDRESS` (when it differs from the broadcaster). The broadcaster is admin
-only while the pair is wired, so the wiring stays atomic. Record the four addresses.
+once, nominates `DisputeV2` as a slasher, and nominates `ADMIN_ADDRESS` as the
+registry admin (when it differs from the broadcaster). Both handovers are
+two-step: run `confirmSlasher()` after `SLASHER_DELAY` (2 days) and `acceptAdmin()`
+from the nominee. Until then the broadcaster is still the registry admin, which
+is what keeps the wiring atomic. Record the four addresses.
+
+### 1.1 Role separation (CG-REG-02, CG-DIS-03)
+
+The registry admin changes who the registry trusts, and the arbiter resolves a
+dispute and routes the slash. One key holding both can rule on a dispute and
+then change who rules on the next one, so the script refuses a collapsed set:
+
+| Role | Env | What it can do |
+|---|---|---|
+| Registry admin | `ADMIN_ADDRESS` | `authorizeSlasher`, `revokeSlasher`, `transferAdmin`, evidence wiring |
+| Dispute arbiter | `ARBITER_ADDRESS` | `resolve`, `setDisputeSlashBps`, `setBonds`, `finalize` |
+| Appeal arbiter | `APPEAL_ARBITER_ADDRESS` | reverse a resolution on appeal |
+| Treasury | `TREASURY_ADDRESS` | receives dispute slashes and fees |
+
+`_requireSeparateRoles` reverts when `admin == arbiter`, `admin == treasury`,
+`arbiter == appealArbiter`, or `arbiter == treasury`. `ALLOW_SINGLE_KEY=1`
+overrides it and must only be used for a throwaway-chain rehearsal. The guard
+covers the vector it can see: it cannot prove the four addresses are held by
+four different people, so use four wallets with four separate keys.
 
 ## 2. Server env
 

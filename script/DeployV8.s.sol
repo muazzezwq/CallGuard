@@ -34,6 +34,7 @@ import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
 ///   APPEAL_WINDOW=172800
 ///   RESOLUTION_WINDOW=604800
 ///   DISPUTE_SLASH_BPS=1000
+///   ALLOW_SINGLE_KEY=0           (refuses collapsed roles; 1 only for a rehearsal)
 contract DeployV8 is Script {
     struct Deployment {
         ServiceRegistryV8 registry;
@@ -59,6 +60,7 @@ contract DeployV8 is Script {
 
         console2.log("Deployer            :", msg.sender);
         console2.log("Registry admin      :", admin);
+        _requireSeparateRoles(admin, arbiter, appealArbiter, treasury);
         console2.log("USDC                :", usdcAddress);
         console2.log("Arbiter             :", arbiter);
         console2.log("Appeal arbiter      :", appealArbiter);
@@ -112,5 +114,27 @@ contract DeployV8 is Script {
         console2.log("Wired PayPerCallV8 and DisputeV2");
 
         vm.stopBroadcast();
+    }
+
+    /// @dev CG-REG-02 / CG-DIS-03. The registry admin changes who the registry
+    ///      trusts, and the arbiter decides a dispute and routes the slash. One
+    ///      key holding both can rule on a dispute and then change the rule for
+    ///      the next one, so the roles are separate addresses. A rehearsal on a
+    ///      throwaway chain can opt out with ALLOW_SINGLE_KEY=1; nothing else
+    ///      should.
+    function _requireSeparateRoles(address admin, address arbiter, address appealArbiter, address treasury)
+        internal
+        view
+    {
+        if (admin != arbiter && admin != treasury && arbiter != appealArbiter && arbiter != treasury) {
+            return;
+        }
+        if (vm.envOr("ALLOW_SINGLE_KEY", false)) {
+            console2.log("WARNING: roles share an address because ALLOW_SINGLE_KEY=1");
+            return;
+        }
+        revert(
+            "roles must be separate addresses: set ADMIN_ADDRESS, ARBITER_ADDRESS, APPEAL_ARBITER_ADDRESS and TREASURY_ADDRESS to different wallets (ALLOW_SINGLE_KEY=1 only on a throwaway chain)"
+        );
     }
 }
