@@ -6,9 +6,9 @@ dataSources:
     name: ServiceRegistryV8
     network: arc-testnet
     source:
-      address: "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3"
+      address: "0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9"
       abi: ServiceRegistryV8
-      startBlock: 68651068
+      startBlock: 72114871
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -45,9 +45,9 @@ dataSources:
     name: PayPerCallV8
     network: arc-testnet
     source:
-      address: "0xedce61eF5be31DC22cEfE342692622A26919a7EF"
+      address: "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491"
       abi: PayPerCallV8
-      startBlock: 68651068
+      startBlock: 72114871
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -73,9 +73,9 @@ dataSources:
     source:
       # Live dispute contract since 28 Oct 2026. DisputeV2's data source was
       # retired with its slasher authority.
-      address: "0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B"
+      address: "0x7c04880003361c16Dd1d49205ef5ec187e2D2d39"
       abi: DisputeV4
-      startBlock: 69401608
+      startBlock: 72116512
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
