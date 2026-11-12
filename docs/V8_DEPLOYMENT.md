@@ -1402,3 +1402,30 @@ Two things this run did **not** do, and why:
 `pendingSlasher`, and `DisputeV2` already holds that slot. Sending it now would cancel the
 `DisputeV2` grant. Order: `confirmSlasher()` for `DisputeV2` after `1794693723`, then nominate
 `DisputeV4` and confirm it two days later.
+
+### 15.2 Vercel cutover to the redeployed contracts — 13 Nov 2026
+
+Eleven variables were written to **both** Production and Preview with the Vercel CLI and read
+back with `vercel env ls`: `SERVICE_REGISTRY_V8`/`VITE_SERVICE_REGISTRY_V8`,
+`PAY_PER_CALL_V8`/`VITE_PAY_PER_CALL_V8`, `SLA_KEEPER_V8`/`VITE_SLA_KEEPER`,
+`DISPUTE_V4`/`VITE_DISPUTE_V4`, `SLA_EVIDENCE_V2`/`VITE_SLA_EVIDENCE_V2`, and
+`VITE_SUBGRAPH_URL` (`onur/1.0.3`). No source change was needed: `src/lib/config.ts` reads all
+five addresses from `import.meta.env`, so the values are baked into the bundle at build time
+and only a redeploy applies them.
+
+The first `vercel --prod` answered `deploy_failed`: Vercel Hobby rejects a cron that runs more
+than once a day, and `vercel.json` scheduled `/api/idempotency-recovery` at `*/15 * * * *`.
+Nothing had shipped since that schedule was committed (the live site was an older build), and
+the same error would have hit every later deploy. The schedule is now `0 3 * * *`, so stuck
+idempotency records wait up to a day instead of a quarter hour — acceptable while the
+marketplace is empty, and the reason to revisit the Pro plan. Commit `16b79f2`.
+
+Verified live on `https://arcsla.vercel.app` (deployment `callguard-1izyln5jw`):
+
+- `GET /api/attestation?providerId=1` → `200` with
+  `proof.contract: 0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9`, so the serverless side reads
+  the new registry.
+- The served bundle `assets/index-D0-m4kpm.js` contains all five new addresses and
+  `onur/1.0.3`, so the browser side does too.
+- `POST /api/call-service` → `409 PROVIDER_NOT_ACTIVE`, which is the expected answer: the new
+  registry has no provider registered yet, and the route reached the registry to find that out.
