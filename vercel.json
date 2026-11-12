@@ -30,7 +30,7 @@
     { "source": "/(.*)",              "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/idempotency-recovery", "schedule": "*/15 * * * *" }
+    { "path": "/api/idempotency-recovery", "schedule": "0 3 * * *" }
   ],
   "headers": [
     {
