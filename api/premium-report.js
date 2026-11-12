@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { settleEip3009 } from "./_settle.js";
 import { getRpcUrl } from "./_rpc.js";
+import { disabledResponse, moneyRoutesDisabled } from "./_killswitch.js";
 import { logError } from "./_redact.js";
 
 const USDC_ADDR = process.env.USDC_ADDRESS || "0x3600000000000000000000000000000000000000";
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type,Payment-Signature,X-Payment");
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (moneyRoutesDisabled()) return disabledResponse(res);
 
   const amountAtomic = "1000";
   const payTo = process.env.FACILITATOR_ADDRESS || "0x0e515aed287a7b3d2d9f7911321d99826653fbd8";

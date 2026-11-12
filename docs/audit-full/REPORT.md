@@ -7,7 +7,7 @@
 
 Per-step evidence: `00-baseline.md`, `01-threat-model.md`, `02-contracts-calls.md`, `03-contracts-registry.md`, `04-contracts-disputes.md`, `05-contracts-zk-legacy.md`, `06-api.md`, `07-frontend.md`, `08-ops.md`, `PLAN.md`.
 
-**Remediation status (8 November 2026):** the source-level fixes for every finding except CG-EVD-01, CG-OPS-02 and the deployment-shaped part of CG-REG-02/CG-DIS-03 are applied; the per-finding table is in `CHECKLIST.md` under "Fixed in the remediation pass". The contract fixes are immutable-deployment changes, so the live testnet instance still has the old behaviour until it is redeployed. Gates after the fixes: `bun run check` exit `0`, `bun test tests/` 647 pass / 7 skip / 0 fail, `forge test` 631 pass / 0 fail.
+**Remediation status (13 November 2026):** the source-level fixes for every finding except CG-EVD-01 and the deployment-shaped part of CG-REG-02/CG-DIS-03 are applied; the per-finding table is in `CHECKLIST.md` under "Fixed in the remediation pass". CG-OPS-02 is closed by decision as well as by code: the contracts cannot be paused, so the deployment carries a `MONEY_ROUTES_DISABLED` switch on the three money routes and `docs/INCIDENT_RUNBOOK.md` records the procedure that replaces a pause. The contract fixes are immutable-deployment changes, so the live testnet instance still has the old behaviour until it is redeployed. Gates after the fixes: `bun run check` exit `0`, `bun test tests/` 652 pass / 7 skip / 0 fail across 61 files, `forge test` 631 pass / 0 fail.
 
 ## Verdict
 

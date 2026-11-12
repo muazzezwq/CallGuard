@@ -131,7 +131,7 @@ const addrChecks = [
   { keys: ['USDC_ADDRESS', 'VITE_USDC_ADDRESS'], expected: V8.USDC, label: 'USDC' },
   { keys: ['CHAIN_ID', 'VITE_CHAIN_ID'], expected: V8.CHAIN_ID, label: 'chain ID', numeric: true },
   { keys: ['SLA_KEEPER_V8', 'VITE_SLA_KEEPER'], expected: V8.SLA_KEEPER, label: 'SLAKeeper', optional: true },
-  { keys: ['DISPUTE_V2', 'VITE_DISPUTE_V4'], expected: V8.DISPUTE_V4, label: 'DisputeV4', optional: true },
+  { keys: ['DISPUTE_V4', 'DISPUTE_V2', 'VITE_DISPUTE_V4'], expected: V8.DISPUTE_V4, label: 'DisputeV4', optional: true },
   { keys: ['SLA_EVIDENCE_V2', 'VITE_SLA_EVIDENCE_V2'], expected: V8.EVIDENCE_V2, label: 'SLAEvidenceRegistryV2', optional: true },
 ];
 addrChecks.forEach(({ keys, expected, label, numeric, optional }) => {

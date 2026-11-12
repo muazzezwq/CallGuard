@@ -57,7 +57,7 @@
 | Silent v7 fallback on money routes | CG-API-01 | PASS — `moneyContracts()` makes the v8 pair mandatory on money routes |
 | Zero-slash terms accepted | CG-REG-01 | PASS — `MIN_SLASH_BPS = 100`, zero price rejected |
 | Claim statement not bound to the proof | CG-EVD-01 | FAIL — open, needs a circuit change |
-| No global pause or incident runbook | CG-OPS-02 | FAIL — open |
+| No global pause or incident runbook | CG-OPS-02 | PASS — `MONEY_ROUTES_DISABLED` answers 503 on all three money routes before an authorization is read, and `docs/INCIDENT_RUNBOOK.md` is the written replacement for a pause |
 
 ## Fixed in the remediation pass
 

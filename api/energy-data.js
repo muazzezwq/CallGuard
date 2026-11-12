@@ -10,6 +10,7 @@
 import { V7 } from './_contracts.js';
 import { settleEip3009 } from './_settle.js';
 import { getRpcUrl } from './_rpc.js';
+import { disabledResponse, moneyRoutesDisabled } from './_killswitch.js';
 import { logError, safeLogValue } from './_redact.js';
 
 // Canonical v7 USDC and chain; facilitator/seller remain runtime configuration.
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (moneyRoutesDisabled()) return disabledResponse(res);
 
   // No payment header → return 402 + terms (BoAT reads these)
   if (!req.headers['x-payment']) {

@@ -18,6 +18,7 @@
 
 import { ethers } from "ethers";
 import { ACTIVE, V8_ACTIVE, moneyContracts } from "./_contracts.js";
+import { disabledResponse, moneyRoutesDisabled } from "./_killswitch.js";
 import { getRpcUrl } from "./_rpc.js";
 import { logError } from "./_redact.js";
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -883,6 +884,9 @@ async function handler(req, res, { idempotencyStore = null, readReceipt = null }
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).end();
+  // Incident switch: refuse before an authorization is read, so nothing is
+  // settled while the operator is turning value flow off.
+  if (moneyRoutesDisabled()) return disabledResponse(res);
 
   const body = req.body || {};
   const { providerId: rawProviderId, requestHash } = body;
