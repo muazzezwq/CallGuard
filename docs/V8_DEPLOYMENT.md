@@ -1358,8 +1358,47 @@ Two steps are deliberately still open, and neither can be scripted:
 
 1. `confirmSlasher()` from the admin after `SLASHER_DELAY` — before it, `openDispute` reverts at
    the escrow step.
-2. `acceptAdmin()` from `0x8776B382…` — before it, the deploying wallet is still the admin.
+2. ~~`acceptAdmin()` from `0x8776B382…`~~ — done on 13 Nov 2026 (tx `0xf3db56b5…8032`, block `72116093`, `28055` gas). `admin()` now reads `0x8776B382…` and `pendingAdmin()` is zero.
 
 The evidence layer (`SLAEvidenceRegistryV2`, `DisputeV4`) was **not** part of this deploy;
 `DeployV8` only builds `DisputeV2`. §14's wiring has to be repeated against the new registry
 before `zk-execution` / `witness` claims can be anchored on it.
+
+### 15.1 Evidence layer on the new registry — deployed and wired, 13 Nov 2026
+
+`DeployEvidenceV2` ran against `0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9` with
+`WITNESS_ATTESTOR=0x046d715D…` so the witness kind did not fall back to `NoVerifier`.
+
+| Contract | Address | Deploy tx |
+|---|---|---|
+| `SLAEvidenceRegistryV2` | `0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311` | `0xebef0dff…1fe4` (block `72116512`) |
+| `DisputeV4` | `0x7c04880003361c16Dd1d49205ef5ec187e2D2d39` | `0xafee2ab2…efa6` (block `72116512`) |
+
+Both owned and deployed by the new registry admin `0x8776B382…`; arbiter, appeal arbiter
+and treasury are the same three non-admin wallets as the core stack.
+
+Wiring, all read back from chain:
+
+| Call | Signer | Tx |
+|---|---|---|
+| `setProofVerifier(zk-constraint, ZkClaimAdapter, true)` | admin | `0x4f8aed79…2a4f` |
+| `setProofVerifier(zk-execution, Risc0ExecutionAdapter, true)` | admin | (same run, block `72117044`) |
+| `setSignatureVerifier(witness, SLAProvenanceAdapter, true)` | admin | `0xfa3b54cf…4daa` |
+| `setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | **arbiter** | `0x2564cff9…2132` |
+
+`modeOf` / `bindsResponse`: `witness` `1`/`true`, `tee-attestation` `0`/`false`,
+`zk-constraint` `2`/`true`, `zk-execution` `2`/`true`. `evidenceKinds()` returns all four.
+
+Two things this run did **not** do, and why:
+
+- `setEvidenceKinds` is arbiter-only, not owner-only. The first attempt from the admin
+  answered `NotArbiter`, which is the role separation from §1.1 working as intended.
+- The zk-execution fixture was **not** anchored. Its call id `0x8cfa1821…` belongs to the
+  previous `PayPerCallV8`, and `Risc0ExecutionAdapter` binds the journal to the call it can
+  read, so anchoring it here would record a true proof about a retired call. Anchor the next
+  claim against a call opened on `0xA40623c2…` instead.
+
+`authorizeSlasher(DisputeV4)` is deliberately **not** sent yet: the registry keeps a single
+`pendingSlasher`, and `DisputeV2` already holds that slot. Sending it now would cancel the
+`DisputeV2` grant. Order: `confirmSlasher()` for `DisputeV2` after `1794693723`, then nominate
+`DisputeV4` and confirm it two days later.
