@@ -32,7 +32,7 @@ const MCP_CONFIG = `{
     "callguard": {
       "command": "node",
       "args": ["x402-facilitator/mcp-server.js"],
-      "env": { "SUBGRAPH_URL": "https://api.studio.thegraph.com/query/1763627/onur/1.0.2" }
+      "env": { "SUBGRAPH_URL": "https://api.studio.thegraph.com/query/1763627/onur/1.0.3" }
     }
   }
 }`;

@@ -64,7 +64,7 @@ export const CONFIG = {
   // v8 Studio subgraph. The v7 Goldsky endpoint is retired, so it is no longer
   // a fallback: an unset VITE_SUBGRAPH_URL must not point the app at v7 data.
   subgraphUrl: (import.meta.env.VITE_SUBGRAPH_URL as string | undefined)
-    || "https://api.studio.thegraph.com/query/1763627/onur/1.0.2",
+    || "https://api.studio.thegraph.com/query/1763627/onur/1.0.3",
   explorerBase: "https://explorer.testnet.arc.io",
   explorerTx: (hash: string) => `https://explorer.testnet.arc.io/tx/${hash}`,
   explorerAddr: (addr: string) => `https://explorer.testnet.arc.io/address/${addr}`,
