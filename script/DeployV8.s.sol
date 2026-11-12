@@ -103,7 +103,11 @@ contract DeployV8 is Script {
         console2.log("DisputeV2 nominated as slasher; run confirmSlasher() after SLASHER_DELAY");
         if (admin != msg.sender) {
             d.registry.transferAdmin(admin);
-            console2.log("Registry admin handed to:", admin);
+            // A nomination is not a handover: the new admin must call
+            // `acceptAdmin` themselves, so a mistyped address cannot strand
+            // the registry. The script cannot sign for them.
+            console2.log("Registry admin NOMINATED:", admin);
+            console2.log("  run acceptAdmin() from that address to complete the handover");
         }
         console2.log("Wired PayPerCallV8 and DisputeV2");
 

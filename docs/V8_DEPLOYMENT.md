@@ -306,7 +306,14 @@ authorise from the owner wallet:
 cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
   'authorizeSlasher(address)' <DISPUTE_V3> \
   --account <owner-account> --rpc-url arc_testnet
+# then, after SLASHER_DELAY (2 days):
+cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
+  'confirmSlasher()' \
+  --account <owner-account> --rpc-url arc_testnet
 ```
+The first call only nominates. `authorizedSlashers(<DISPUTE_V3>)` stays `false`
+until the second one lands, so a plan that stops after step one leaves the
+contract deployed and unusable.
 
 Without that authorisation `openDispute` reverts, because the registry only lets
 authorised slashers move stake.
@@ -398,6 +405,10 @@ reverts. Deploy without it and authorise from the owner wallet:
 ```bash
 cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
   'authorizeSlasher(address)' <SLA_UPTIME> \
+  --account <owner-account> --rpc-url arc_testnet
+# then, after SLASHER_DELAY (2 days):
+cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
+  'confirmSlasher()' \
   --account <owner-account> --rpc-url arc_testnet
 ```
 
@@ -1005,7 +1016,7 @@ Run them in this order. Each read-back is the gate for the next one.
 | 3 | `registryV2.setProofVerifier(keccak256("witness"), 0x046d715D…0498, true)` — the deployed path | `modeOf(kind) == 2`, `bindsResponse(kind) == true`, `proofVerifier(kind) == 0x046d715D…0498` | **do not use `setSignatureVerifier` here.** A signature key reaches mode `1`, `DisputeV4` binds only mode `2`, and the snapshot records a mode-1 row as `ModeIsSignature` — a claim the dispute cannot use, which reads like progress and is not. An unwired kind instead reads `NoVerifier`, which is visible on chain and silent in the money paths |
 | 4 | `disputeV4.setEvidenceKinds([witness, tee-attestation, zk-constraint, zk-execution])` | `evidenceKinds()` returns the four kinds | **the dangerous one**: with an empty allowlist `openDispute` snapshots nothing, no row is ever rendered, and nothing errors — the feature ships doing nothing |
 | 5 | `registry.revokeSlasher(0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec)` | `authorizedSlashers(V3) == false` | **do not skip and do not reorder**: the V4 guard is one-directional — V4 asks V3 whether it already holds a call, V3 has no reciprocal check. While V3 stays a slasher, a caller can open a second dispute on a call V4 already escrowed and cut the same stake twice. The script prints an ORDERING GATE line while `authorizedSlashers(V3)` is still true |
-| 6 | `registry.authorizeSlasher(<new DisputeV4>)` | `authorizedSlashers(V4) == true` | without it `openDispute` reverts at the escrow step, so disputes simply cannot open |
+| 6 | `registry.authorizeSlasher(<new DisputeV4>)`, then `registry.confirmSlasher()` after `SLASHER_DELAY` | `authorizedSlashers(V4) == true` | the first call only nominates; without the confirm `openDispute` reverts at the escrow step, so disputes simply cannot open |
 | 7 | `registryV2.anchor(<fixture callId>, keccak256("zk-execution"), …)` with the fixture's four hashes and `` `0x$(xxd -p test/fixtures/zk-execution/seal.bin)` `` | `isAnchored(callId, kind, claimHash) == true`, `modeOf(kind) == 2` | the live UI row disappears; the v1 anchor on the old registry still stands, so the panel would read the v1 row and say the registry predates statement hashing |
 
 Order matters twice, and only one of the two is negotiable. Steps 1-2 must precede step 7: an
