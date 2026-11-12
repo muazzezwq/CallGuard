@@ -56,7 +56,7 @@
 | Facilitator tree carries 1 critical and 21 high advisories | CG-OPS-05 | PARTIAL — `audit` job added to CI, non-blocking until the backlog clears |
 | Silent v7 fallback on money routes | CG-API-01 | PASS — `moneyContracts()` makes the v8 pair mandatory on money routes |
 | Zero-slash terms accepted | CG-REG-01 | PASS — `MIN_SLASH_BPS = 100`, zero price rejected |
-| Claim statement not bound to the proof | CG-EVD-01 | FAIL — open, needs a circuit change |
+| Claim statement not bound to the proof | CG-EVD-01 | FAIL — open; the circuit source is not in this repository and the generated verifier pins `NUMBER_OF_PUBLIC_INPUTS = 73`. Exact five-step remediation in `docs/verification/CG-EVD-01.md` |
 | No global pause or incident runbook | CG-OPS-02 | PASS — `MONEY_ROUTES_DISABLED` answers 503 on all three money routes before an authorization is read, and `docs/INCIDENT_RUNBOOK.md` is the written replacement for a pause |
 
 ## Fixed in the remediation pass
