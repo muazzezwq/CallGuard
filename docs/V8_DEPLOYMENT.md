@@ -1319,3 +1319,47 @@ treasury key cannot rule either. What it does not buy:
 A real fix for independence needs a dispute contract that either splits admin from
 arbitration or enforces a delay on arbiter-originated changes. Until then the honest
 statement is the one on this page: three roles, one key.
+
+## 15. v8 redeployment with the audit fixes — Arc Testnet, 13 Nov 2026
+
+The 23 Oct deployment ran bytecode from before the audit remediation pass, so every
+contract fix was source-only until this deploy. Four freshly created wallets hold the
+four roles, and `_requireSeparateRoles` accepted the set.
+
+| Contract | Address | Deploy tx |
+|---|---|---|
+| `ServiceRegistryV8` | `0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9` | `0xd98b154c…b533` (block `72114871`) |
+| `PayPerCallV8` | `0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491` | `0x443ecabf…3a36` |
+| `SLAKeeper` | `0xc1028E084Fad5Ab08C30BbF2b062683da6f0b280` | `0x5e9fa08a…96e1` |
+| `DisputeV2` | `0x6d9D5E59AE820E58dB0402eB34579bA55419fEF5` | `0x4042790d…9615` |
+
+Roles, all separate (`ALLOW_SINGLE_KEY` unset):
+
+| Role | Address |
+|---|---|
+| Deployer / current registry admin | `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da` |
+| Registry admin (nominated) | `0x8776B38284694436d0C3940044156BB2706dd0A2` |
+| Dispute arbiter | `0xd4944e689D86dfC19df6Cce24F06af1d44efEc0D` |
+| Appeal arbiter | `0x196009724E7AC847F48e37c138850c14b241EdC3` |
+| Treasury | `0xeF4b7003E00C9033806254035D3c7C97E454dEf2` |
+
+Wiring txs in the same block: `setPayPerCall` `0x89e88aac…17a7`, `authorizeSlasher(DisputeV2)`
+`0xedbc7b0c…81be`, `transferAdmin` `0xf698d0fa…7460`. Total paid `0.2068061325 USDC`.
+
+Read-backs after the deploy:
+
+- `admin()` = `0xfbac99E6…`, `pendingAdmin()` = `0x8776B382…` — the handover is nominated, not done.
+- `payPerCall()` = `0xA40623c2…`, `SLAKeeper.payPerCall()` = `0xA40623c2…`.
+- `pendingSlasher()` = `0x6d9D5E59…`, `pendingSlasherAt` = `1794693723` (14 Nov 2026 22:02:03 UTC), `authorizedSlashers(DisputeV2)` = `false`.
+- `SLASHER_DELAY` = `172800`, `DISPUTE_WINDOW` = `604800`, `MIN_SLASH_BPS` = `100`.
+- `DisputeV2.arbiter()` = `0xd4944e68…`, `appealArbiter()` = `0x196009…`, `treasury()` = `0xeF4b7003…`.
+
+Two steps are deliberately still open, and neither can be scripted:
+
+1. `confirmSlasher()` from the admin after `SLASHER_DELAY` — before it, `openDispute` reverts at
+   the escrow step.
+2. `acceptAdmin()` from `0x8776B382…` — before it, the deploying wallet is still the admin.
+
+The evidence layer (`SLAEvidenceRegistryV2`, `DisputeV4`) was **not** part of this deploy;
+`DeployV8` only builds `DisputeV2`. §14's wiring has to be repeated against the new registry
+before `zk-execution` / `witness` claims can be anchored on it.
