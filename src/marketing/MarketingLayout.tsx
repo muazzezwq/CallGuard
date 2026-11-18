@@ -78,7 +78,7 @@ export default function MarketingLayout() {
               <span className="mk-nav__builton-dot" />
               Built on Arc
             </a>
-            <button className="ui-btn ui-btn--primary ui-btn--md" onClick={launch}>Launch App</button>
+            <button className="mk-nav__launch ui-btn ui-btn--primary ui-btn--md" onClick={launch}>Launch App</button>
             <button className="mk-nav__toggle ui-btn ui-btn--secondary ui-btn--sm" onClick={() => setDrawer((d) => !d)} aria-label="Menu"><Menu size={15} /></button>
           </div>
         </div>
@@ -91,6 +91,12 @@ export default function MarketingLayout() {
                 <a key={n.href} href={n.href} className={linkCls(n.href)} onClick={() => setDrawer(false)}>{n.label}</a>
               ),
             )}
+            <button
+              className="ui-btn ui-btn--primary ui-btn--md mk-nav__drawer-launch"
+              onClick={() => { setDrawer(false); launch(); }}
+            >
+              Launch App
+            </button>
           </div>
         )}
       </header>
