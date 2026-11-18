@@ -67,7 +67,13 @@ contract DisputeV4ForkEvidenceTest is Test {
     IERC20 internal usdc;
 
     function setUp() public {
-        string memory rpc = vm.envOr("ARC_RPC_URL", DEFAULT_RPC);
+        // A fork pinned to FORK_BLOCK needs an archive endpoint. The public RPC
+        // still answers createSelectFork for a pruned block and fails later on
+        // the first state read, which surfaces as an EVM database error and
+        // fails setUp instead of skipping. Require the endpoint explicitly, as
+        // .github/workflows/checks.yml assumes.
+        string memory rpc = vm.envOr("ARC_RPC_URL", string(""));
+        if (bytes(rpc).length == 0) vm.skip(true);
         try vm.createSelectFork(rpc, FORK_BLOCK) {}
         catch {
             vm.skip(true);
