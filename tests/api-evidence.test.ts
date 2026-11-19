@@ -306,7 +306,7 @@ describe("GET /api/evidence: the witness bundle", () => {
     };
     // Both a registry and an RPC URL, so the answer is a read that succeeded rather
     // than `no-registry`/`rpc-error` — those two turn the status into 502 by design.
-    process.env.SLA_EVIDENCE_V2 = "0x64872c29A19dF8E471103d0708397BAb96A311FC";
+    process.env.SLA_EVIDENCE_V2 = "0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311";
     process.env.ARC_RPC_URL = "https://rpc.testnet.arc.io";
     const savedFetch = globalThis.fetch;
     globalThis.fetch = (async (_url: string | URL | Request, _init?: RequestInit) => {

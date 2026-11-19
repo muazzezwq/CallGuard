@@ -55,7 +55,7 @@ The same rule applies to `KEEPER_PK` (GitHub Actions secret) and to
 Per-provider, on chain, from the owner wallet:
 
 ```bash
-cast send 0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3 \
+cast send 0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9 \
   "deactivate(uint256)" <providerId> --account deployer --rpc-url arc_testnet
 ```
 

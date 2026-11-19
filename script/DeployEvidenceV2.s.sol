@@ -30,7 +30,10 @@ import { IDisputeV2 } from "../contracts/interfaces/IDisputeV2.sol";
 ///   forge script script/DeployEvidenceV2.s.sol:DeployEvidenceV2 \
 ///     --account deployer --rpc-url arc_testnet            # dry run, no broadcast
 ///
-/// Optional env (defaults are the live deployments / live configuration):
+/// Optional env (defaults below are the **retired 23 Oct** pair this script was
+/// first broadcast against; §15.1 of docs/V8_DEPLOYMENT.md records the live
+/// evidence-layer deploy, which was run from the same script against the new
+/// registry):
 ///   USDC_ADDRESS=0x3600000000000000000000000000000000000000
 ///   SERVICE_REGISTRY_V8=0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3
 ///   PAY_PER_CALL_V8=0xedce61eF5be31DC22cEfE342692622A26919a7EF

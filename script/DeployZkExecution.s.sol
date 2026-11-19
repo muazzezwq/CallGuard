@@ -21,7 +21,7 @@ import { ControlID } from "risc0-ethereum/contracts/src/groth16/ControlID.sol";
 ///     --account owner --sender 0xOWNER --rpc-url arc_testnet --broadcast
 ///
 /// Required env:
-///   PAY_PER_CALL_V8         active PayPerCallV8 (0xedce61eF…a7EF)
+///   PAY_PER_CALL_V8         active PayPerCallV8 (0xA40623c2…5491)
 ///   ZK_EXECUTION_IMAGE_ID   the guest id the CI run printed, as 0x-prefixed bytes32
 /// Optional env:
 ///   ZK_VERIFIER             reuse an already deployed verifier instead of deploying another

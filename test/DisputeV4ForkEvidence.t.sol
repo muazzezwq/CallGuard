@@ -10,10 +10,14 @@ import { PayPerCallV8 } from "../contracts/PayPerCallV8.sol";
 import { IPayPerCallV8 } from "../contracts/interfaces/IPayPerCallV8.sol";
 import { IDisputeV2 } from "../contracts/interfaces/IDisputeV2.sol";
 
-/// @title The vier-kind evidence snapshot, read from the deployed contracts
+/// @title The four-kind evidence snapshot, read from a deployed contract
+/// @notice **This test pins the retired 23 Oct 2026 deployment on purpose.**
+///         The 13 Nov redeploy has the same code but no calls, so the dispute it
+///         opens here cannot be reproduced there yet. `ARC_RPC_URL` must be an
+///         archive endpoint; without it `setUp` skips the suite.
 /// @notice `test/DisputeV4.t.sol` builds the snapshot against mocks, which proves
 ///         the branching but not that the *deployed* registry answers the way the
-///         branch expects. This fork test opens a real dispute on the live
+///         branch expects. This fork test opens a real dispute on the deployed
 ///         `DisputeV4` and reads back the four rows it actually wrote.
 ///
 ///         One thing is simulated and only one: `legacyDispute.disputeIdByCallId`

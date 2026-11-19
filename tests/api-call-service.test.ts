@@ -157,8 +157,8 @@ beforeAll(async () => {
   // The module-level pair is pinned at import (v7 here). The money guard reads
   // the environment at request time, so the v8 pair is set after the import to
   // keep these fixtures on the same contract addresses they mock.
-  process.env.SERVICE_REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
-  process.env.PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
+  process.env.SERVICE_REGISTRY_V8 = "0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9";
+  process.env.PAY_PER_CALL_V8 = "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491";
   handler = mod.default as Handler;
 });
 

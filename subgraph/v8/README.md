@@ -1,12 +1,12 @@
 # CallGuard v8 subgraph
 
-Indexes the Arc Testnet v8 availability core:
+Indexes the Arc Testnet v8 deployment that went live on 13 Nov 2026:
 
-- `ServiceRegistryV8` `0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3`
-- `PayPerCallV8` `0xedce61eF5be31DC22cEfE342692622A26919a7EF`
-- `DisputeV2` `0xe5D993E0B328B506B874505B23b4bE876d7c0900`
+- `ServiceRegistryV8` `0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9`
+- `PayPerCallV8` `0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491`
+- `DisputeV4` `0x7c04880003361c16Dd1d49205ef5ec187e2D2d39`
 
-Start block: `68651068`.
+Start blocks: `72114871` (registry, pay-per-call) and `72116512` (dispute).
 
 The manifest deliberately keeps the v7 Goldsky deployment untouched. Build it from
 the parent `subgraph/` directory:
@@ -16,14 +16,14 @@ npm run codegen:v8
 npm run build:v8
 ```
 
-Deploy to The Graph Studio (slug `onur`, version label `1.0.0`):
+Deploy to The Graph Studio (slug `onur`, version label `1.0.3`):
 
 ```bash
 npm run deploy:studio:v8
 ```
 
 The development query URL is
-`https://api.studio.thegraph.com/query/1763627/onur/1.0.2`. It is limited to 3,000
+`https://api.studio.thegraph.com/query/1763627/onur/1.0.3`. It is limited to 3,000
 queries per day. `src/lib/config.ts` defaults `subgraphUrl` to it, and
 `VITE_SUBGRAPH_URL` overrides the default — an unset variable no longer falls back
 to the retired v7 Goldsky endpoint.
@@ -38,6 +38,6 @@ to the retired v7 Goldsky endpoint.
 - **`nftBound` is always `false` and `nftTokenId` always `null`.** v8's
   `ServiceRegistryV8` has no ERC-8004 binding and emits no NFT event; the fields are
   hardcoded in `handleProviderRegistered` so the entity keeps its shape.
-- **`DisputeRecord` only holds DisputeV2 disputes.** The manifest indexes
-  `DisputeV2`; disputes opened on V3 or V4 are not here. Read `DisputeV4` directly
-  for current disputes.
+- **`DisputeRecord` covers DisputeV4 only.** The manifest indexes `DisputeV4`; the
+  retired `DisputeV2`/`V3` disputes are not in this deployment and are read from
+  their own contracts if needed.

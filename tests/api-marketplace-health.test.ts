@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 // The health route must list the providers the registry actually holds. It used to
 // read them from `/api/energy-data`, which is an x402-gated route: the internal fetch
 // got a 402, so the list was always empty while the chain held active providers.
-const REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
-const PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
+const REGISTRY_V8 = "0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9";
+const PAY_PER_CALL_V8 = "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491";
 
 // Set per test, not at module scope: a module-scope assignment stayed in
 // `process.env` for every later file in the same test process, so a clean checkout

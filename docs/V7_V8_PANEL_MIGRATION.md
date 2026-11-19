@@ -1,5 +1,9 @@
 # v7 → v8 panel migration
 
+> **Historical (28 Oct 2026).** The v8 addresses in this audit belong to the retired
+> 23 Oct deployment; the 13 Nov redeploy replaced them (`docs/V8_DEPLOYMENT.md` §15).
+> The panel conclusions still describe the code, not the live addresses.
+
 Audit date: 28 October 2026 (read-only pass). The migration it plans then ran as phases P1–P5
 on the same day: every row below carries the verdict **after** its phase, and the checklist at
 the end records the evidence. No contract was changed — this is a frontend-only migration.

@@ -139,7 +139,32 @@ Dependent: `FACILITATOR_ADDRESS` `0x0E515aEd287a7b3d2D9F7911321d99826653Fbd8`,
 `0x5a2f5455…`; (7 Oct) `PayPerCall` v3 `0x51bbd776…`, `ServiceRegistry` v3 `0xea00f898…`.
 Also superseded: AgentWallet `0xf73f2Fc5…` (1 Oct).
 
-## SLA P0 v8 — ACTIVE (Arc Testnet, 23 Oct 2026)
+## SLA P0 v8 — LIVE (Arc Testnet, 13 Nov 2026)
+
+This is the deployment the frontend, the API routes and the subgraph read. The
+production bundle served by `https://arcsla.vercel.app` contains these five
+addresses; the 23 Oct section below is kept as history and pins the fork test.
+
+| Contract | Address |
+|---|---|
+| `ServiceRegistryV8` | `0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9` |
+| `PayPerCallV8` | `0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491` |
+| `SLAKeeper` | `0xc1028E084Fad5Ab08C30BbF2b062683da6f0b280` |
+| `DisputeV4` | `0x7c04880003361c16Dd1d49205ef5ec187e2D2d39` |
+| `SLAEvidenceRegistryV2` | `0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311` |
+
+Provider 1 (the only registered one): stake `12000000`, price `1000000`, active,
+`latestTermsVersion` 1, `maxConcurrentCalls` 10, `zkTier` 0, signer
+`0x9adEDa85604C205791B98B4C239b5625688a4ba5`, completed/slashed calls 0/0.
+Wiring and role wallets: `docs/V8_DEPLOYMENT.md` §15. `SLAUptime` and
+`SLAProvenance` were **not** redeployed and still point at the 23 Oct registry,
+so the optional availability/provenance panels cannot be used against this stack.
+
+## SLA P0 v8 — retired pre-audit deployment (Arc Testnet, 23 Oct 2026)
+
+> Superseded on 13 Nov 2026. These contracts still exist and
+> `test/DisputeV4ForkEvidence.t.sol` forks this block on purpose, but no app,
+> API route or subgraph reads them any more.
 
 | Contract | Address |
 |---|---|
@@ -158,7 +183,8 @@ Registry admin, arbiter, appeal arbiter, and treasury are all the owner wallet
 while `authorizedSlashers(DisputeV3)` stays `true`. The contract remains deployed and readable;
 do not route new disputes to it.
 
-The v8 env vars are set in Vercel production (23 Oct 2026). The frontend and API now use
+The v8 env vars were set in Vercel production on 23 Oct 2026 and then replaced by
+the 13 Nov pair (`docs/V8_DEPLOYMENT.md` §15.2). During that period the frontend and API used
 `ServiceRegistryV8` + `PayPerCallV8`; v7 stays deployed and read-only. The v8 indexer is live
 on The Graph Studio: `https://api.studio.thegraph.com/query/1763627/onur/1.0.3`. Provider
 migration ran on 23 Oct: v8 provider `1` is the owner wallet with `7.485694 USDC` stake (nine
@@ -170,7 +196,12 @@ unverified-contract write path. Goldsky v8 was
 abandoned after Starter-plan credit exhaustion (23 Oct 2026). Deployment details and activation
 order: `docs/V8_DEPLOYMENT.md` §7.
 
-## Dispute evidence binding (deployed + wired 28 Oct 2026) — ACTIVE
+## Dispute evidence binding (28 Oct 2026) — historical, 23 Oct stack
+
+> The addresses and fixtures below belong to the retired 23 Oct deployment. The live
+> evidence layer is `SLAEvidenceRegistryV2` `0x59C02ABe…1311` + `DisputeV4`
+> `0x7c048800…2d39` (`docs/V8_DEPLOYMENT.md` §15.1), and it has no disputes or anchored
+> claims yet because the redeployed `PayPerCallV8` has no calls.
 
 `SLAEvidenceRegistryV2` and `DisputeV4` are deployed on Arc Testnet and **wired**: `zk-constraint`
 and `zk-execution` are in `Proof` mode (`modeOf` = `2`) with `bindsResponse` `true`,
@@ -284,7 +315,10 @@ before the RPC guard. Adding a 13th `api/*.js` fails the deploy with
 `No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan`. The path and
 payload are unchanged. Runbook and per-step read-backs: `docs/V8_DEPLOYMENT.md` §14.
 
-## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — additive, no v8 contract changed
+## Verification layer (B3c/B3d/B3e, 26 Oct 2026) — historical, 23 Oct stack
+
+> `SLAProvenance` below was not redeployed, so the live 13 Nov registry has no
+> provenance writer. The live evidence registry is `0x59C02ABe…1311`.
 
 | Contract | Address |
 |---|---|

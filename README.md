@@ -51,19 +51,24 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 
 > **Note on Arc native USDC decimals:** Arc exposes USDC two ways. The ERC-20 `decimals()` returns **6** (standard USDC). The EVM gas layer uses **18 decimals** (wei-equivalent). MetaMask and `wallet_addEthereumChain` require `decimals: 18` — using 6 causes gas estimates to display as 10¹² × the correct value.
 
-### Core Contracts (v8 — active, October 2026; v7 stays deployed read-only)
+### Core Contracts (v8 — live since the 13 Nov 2026 redeploy; v7 stays deployed read-only)
+
+The 13 Nov deployment carries the audit fixes. The 23 Oct pair is still on chain and
+still called by the pinned fork evidence test, but no app or API route reads it; its
+record is in `docs/V8_DEPLOYMENT.md` §4, §8 and §14, and §15 documents the cutover.
 
 | Contract | Address | Role |
 |---|---|---|
-| `ServiceRegistryV8` | [`0x793028B6...`](https://explorer.testnet.arc.io/address/0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3) | Providers, stake, terms versions, call counters |
-| `PayPerCallV8` | [`0xedce61eF...`](https://explorer.testnet.arc.io/address/0xedce61eF5be31DC22cEfE342692622A26919a7EF) | Escrow, receipts, timeout claims |
-| `SLAKeeper` | [`0xBe897043...`](https://explorer.testnet.arc.io/address/0xBe897043e4c21cFe9A6532e43542CA48EaD83CB7) | Permissionless batch timeout claims + bounty withdrawal |
-| `DisputeV4` | [`0xECDb019F...`](https://explorer.testnet.arc.io/address/0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B) | Active dispute path: slash escrowed at open, plus an evidence snapshot per call |
-| `SLAEvidenceRegistryV2` | [`0x64872c29...`](https://explorer.testnet.arc.io/address/0x64872c29A19dF8E471103d0708397BAb96A311FC) | Anchored claims about a call: what was proven, what it assumes |
-| `SLAUptime` | [`0x6916997D...`](https://explorer.testnet.arc.io/address/0x6916997DEFe98819176F66867fD5B356C284e89f) | Rolling-uptime verdict against `availabilityTargetBps` |
-| `SLAProvenance` | [`0xa74D1A80...`](https://explorer.testnet.arc.io/address/0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb) | Allowlisted attestor records *who* witnessed a call's payload |
+| `ServiceRegistryV8` | [`0x21E07303...`](https://explorer.testnet.arc.io/address/0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9) | Providers, stake, terms versions, call counters |
+| `PayPerCallV8` | [`0xA40623c2...`](https://explorer.testnet.arc.io/address/0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491) | Escrow, receipts, timeout claims |
+| `SLAKeeper` | [`0xc1028E08...`](https://explorer.testnet.arc.io/address/0xc1028E084Fad5Ab08C30BbF2b062683da6f0b280) | Permissionless batch timeout claims + bounty withdrawal |
+| `DisputeV4` | [`0x7c048800...`](https://explorer.testnet.arc.io/address/0x7c04880003361c16Dd1d49205ef5ec187e2D2d39) | Active dispute path: slash escrowed at open, plus an evidence snapshot per call |
+| `SLAEvidenceRegistryV2` | [`0x59C02ABe...`](https://explorer.testnet.arc.io/address/0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311) | Anchored claims about a call: what was proven, what it assumes |
+| `SLAUptime` | [`0x6916997D...`](https://explorer.testnet.arc.io/address/0x6916997DEFe98819176F66867fD5B356C284e89f) | **Not wired to the 13 Nov registry** (its `registry()` is the 23 Oct address); optional panel, env unset in production |
+| `SLAProvenance` | [`0xa74D1A80...`](https://explorer.testnet.arc.io/address/0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb) | **23 Oct stack only**; the live attestor scope is recorded in `docs/verification/ATTESTOR_SCOPE.md` |
 | `DisputeV3` | [`0xEf9f21E...`](https://explorer.testnet.arc.io/address/0xEf9f21Ece9b4C58BCb76913887E4f4846Ec36Fec) | Superseded by `DisputeV4` on 28 Oct 2026; no slash authority, no funds held |
-| `DisputeV2` | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, then V4; no open disputes, no slash authority |
+| `DisputeV2` (23 Oct) | [`0xe5D993E0...`](https://explorer.testnet.arc.io/address/0xe5D993E0B328B506B874505B23b4bE876d7c0900) | Superseded by `DisputeV3`, then V4; no open disputes, no slash authority |
+| `DisputeV2` (13 Nov) | [`0x6d9D5E59...`](https://explorer.testnet.arc.io/address/0x6d9D5E59AE820E58dB0402eB34579bA55419fEF5) | Holds the registry's current `pendingSlasher` slot (§15) |
 | `USDC` | [`0x36000000...`](https://explorer.testnet.arc.io/address/0x3600000000000000000000000000000000000000) | Native gas token, ERC-20 `decimals() = 6` |
 
 `ServiceRegistry` v7 `0x9ca97010…7333` and `PayPerCall` v7.1 `0x5fb41dd2…0540` are still on chain but

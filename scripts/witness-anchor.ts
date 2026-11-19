@@ -17,9 +17,9 @@
  *
  * Env:
  *   ARC_RPC_URL       default https://rpc.testnet.arc.io
- *   WA_PPC            PayPerCallV8, default 0xedce61eF5be31DC22cEfE342692622A26919a7EF
+ *   WA_PPC            PayPerCallV8, default 0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491
  *   WA_PROVENANCE     SLAProvenance, default 0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb
- *   WA_EVIDENCE       SLAEvidenceRegistryV2, default 0x64872c29A19dF8E471103d0708397BAb96A311FC
+ *   WA_EVIDENCE       SLAEvidenceRegistryV2, default 0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311
  *
  * `--send` is opt-in and needs a key on this machine. Without it the script prints
  * the exact `cast send` command instead, so a human signs at their own terminal.
@@ -31,9 +31,9 @@ import { anchorHashes, buildWitnessEnvelope, type WitnessInput } from "../src/li
 import { validateEnvelope } from "../src/lib/verification/schema";
 
 const RPC = process.env.ARC_RPC_URL ?? "https://rpc.testnet.arc.io";
-const PPC = process.env.WA_PPC ?? "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
+const PPC = process.env.WA_PPC ?? "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491";
 const PROVENANCE = process.env.WA_PROVENANCE ?? "0xa74D1A809184e4A906f11C9EE38fff8C1155aFeb";
-const EVIDENCE = process.env.WA_EVIDENCE ?? "0x64872c29A19dF8E471103d0708397BAb96A311FC";
+const EVIDENCE = process.env.WA_EVIDENCE ?? "0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311";
 
 const GET_CALL_ABI = [
   {

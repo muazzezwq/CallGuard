@@ -10,9 +10,9 @@
 >
 > **Dispute layer:** `DeployV8.s.sol` still deploys `DisputeV2` because that is the
 > contract it was written against. The live dispute contract is `DisputeV4`
-> `0xECDb019F…305B`, deployed by `script/DeployEvidenceV2.s.sol`; `DisputeV2` and
+> `0x7c048800…2d39`, deployed by `script/DeployEvidenceV2.s.sol`; `DisputeV2` and
 > `DisputeV3` hold no slash authority today. Current addresses: `AGENTS.md` and
-> `docs/V8_DEPLOYMENT.md` §14.
+> `docs/V8_DEPLOYMENT.md` §15.1.
 
 We are deploying contracts to Arc Testnet using a hybrid approach:
 

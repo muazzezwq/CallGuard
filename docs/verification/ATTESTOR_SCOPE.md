@@ -15,6 +15,12 @@ the absence is a refusal, not a failed check that got recorded.
 
 ## 1. What is wired today
 
+> **Read on 28 Oct 2026, before the 13 Nov redeploy.** The live evidence registry is
+> `0x59C02ABe…1311` with `DisputeV4` `0x7c048800…2d39` (§15.1 of
+> `docs/V8_DEPLOYMENT.md`); the witness adapter was re-wired there. The standalone
+> `SLAProvenance` log named below was **not** redeployed, so it still answers with the
+> 23 Oct registry and cannot record witnesses for calls on the live one.
+
 Read from Arc Testnet on 28 Oct 2026. Evidence registry `0x64872c29A19dF8E471103d0708397BAb96A311FC`
 (`SLAEvidenceRegistryV2`), dispute contract `0xECDb019F1E92Ad35324cc7bBDf1D56b9e70B305B`
 (`DisputeV4`), which returns these four hashes from `evidenceKinds()` — the set below, in this order.

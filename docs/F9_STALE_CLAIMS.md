@@ -1,5 +1,11 @@
 # F9 — stale claim sweep
 
+> **Historical measurement (30 Oct 2026).** The 13 Nov redeploy replaced the v8
+> pair, keeper, evidence registry and dispute contract; the addresses in "Ground
+> truth" below are retired. Live addresses: `docs/V8_DEPLOYMENT.md` §15, or
+> `README.md` "Core Contracts". The claim/fix pairs are kept because they explain
+> why the current wording exists.
+
 Work list from the 30 Oct 2026 audit. Everything below was applied on 31 Oct 2026 in
 the same commit that introduced this file; it is kept as the record of what was wrong
 and what the truth was, so a later edit does not quietly restore an old sentence.

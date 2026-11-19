@@ -89,7 +89,7 @@ describe("landing copy", () => {
 
   test("describes the dispute and evidence layer", () => {
     has(landing, "DisputeV4");
-    has(landing, "0x64872c29A19dF8E471103d0708397BAb96A311FC");
+    has(landing, "0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311");
   });
 
   test("the request sample uses the real price of the live provider", () => {

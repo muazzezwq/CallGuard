@@ -35,7 +35,7 @@ import {
 } from "../src/lib/verification/tdx";
 
 const RPC = "https://rpc.testnet.arc.io";
-const PAY_PER_CALL = "0xedce61eF5be31DC22cEfE342692622A26919a7EF" as const;
+const PAY_PER_CALL = "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491" as const;
 
 const CALL_ABI = [
   {

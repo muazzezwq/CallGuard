@@ -339,8 +339,8 @@ beforeAll(async () => {
   const mod = await import("../api/call-service.js");
   // The money guard reads the environment at request time; the module-level
   // pair stays pinned to the fixtures this file mocks.
-  process.env.SERVICE_REGISTRY_V8 = "0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3";
-  process.env.PAY_PER_CALL_V8 = "0xedce61eF5be31DC22cEfE342692622A26919a7EF";
+  process.env.SERVICE_REGISTRY_V8 = "0x21E073030Bdb226Fb69E2f7ABE233c33A7b0ddC9";
+  process.env.PAY_PER_CALL_V8 = "0xA40623c2C8A39ae55AE3fEa47f85cF89Dc7F5491";
   createCallServiceHandler = mod.createCallServiceHandler as Factory;
   recoverOperations = mod.recoverOperations;
   defaultHandler = (mod.default ?? mod.defaultHandler);

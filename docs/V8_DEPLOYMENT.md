@@ -215,6 +215,10 @@ bounded number of timeout drills.
 > `true` today and the live dispute addresses are in §14. The registry, `PayPerCallV8` and
 > `SLAKeeper` rows are unchanged.
 
+**Superseded on 13 Nov 2026.** The 23 Oct bytecode predates the audit remediation, so
+every address in this table and the production read-back below was replaced by §15.
+Keep this section as the deployment record; do not point a new client at it.
+
 | Contract | Address |
 |---|---|
 | `ServiceRegistryV8` | `0x793028B6A1d1bdA063dC9dB5bC8930b856F512A3` |
@@ -237,7 +241,8 @@ bounded number of timeout drills.
 - Deployment block: `68651068` (all four contracts and the three wiring calls). Use this as the
   v8 subgraph `startBlock`.
 
-**Status: contracts deployed, indexed, and active in production.** Vercel production received
+**Status at the time: contracts deployed, indexed, and active in production** — until the
+13 Nov redeploy (§15.2) replaced all five addresses. Vercel production received
 the v8 contract env vars and `VITE_SUBGRAPH_URL`, and deployment
 `dpl_7SLyCpKPpRQ5ELKda6KxLfAvG8fu` is `READY` at `https://arcsla.vercel.app`. Verified after
 the deploy: `/api/marketplace` returns `payPerCall` `0xedce61eF5be31DC22cEfE342692622A26919a7EF`
@@ -962,6 +967,10 @@ claim hash now exists in two registries, which is what lets a v1-era dispute and
 the same words.
 
 ## 14. Dispute evidence binding (SLAEvidenceRegistryV2 + DisputeV4) — deployed and wired
+
+> **23 Oct stack, superseded 13 Nov 2026.** The live evidence registry and dispute
+> contract are in §15.1; the code and behaviour described below are the same, but none
+> of the addresses or anchored claims in this section belong to the live deployment.
 
 `DisputeV4` is a verbatim port of `DisputeV3`'s money flow plus one write at `openDispute`: a
 snapshot of every configured evidence kind for that call. `SLAEvidenceRegistryV2` is the v1

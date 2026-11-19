@@ -1,5 +1,11 @@
 # SLA coverage — what the system actually enforces (24 Oct 2026, updated 31 Oct 2026)
 
+> **Measured on the retired 23 Oct deployment.** The 13 Nov redeploy
+> (`docs/V8_DEPLOYMENT.md` §15) runs the same code at new addresses, but it has no
+> calls, disputes or anchored claims yet, so every production transaction below is
+> evidence for the mechanism against the older deployment, not state of the live
+> one. A8 (`SLAUptime`) was not redeployed and is not wired to the live registry.
+
 Scope: the v8 stack on Arc Testnet (`ServiceRegistryV8` `0x793028B6…12A3`,
 `PayPerCallV8` `0xedce61eF…a7EF`, `SLAKeeper` `0xBe897043…CB7`,
 `DisputeV4` `0xECDb019F…305B`).
