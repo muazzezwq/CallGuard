@@ -282,7 +282,7 @@ export default function AppTopbar({
           className="tb-cmd tb-hide-xs"
           onClick={onCommandPalette}
           title="Command palette (Ctrl+K)"
-          aria-label="Open command palette"
+          aria-label="Open command palette — shortcut ⌘K"
         >
           <Search size={14} />
           <kbd>⌘K</kbd>

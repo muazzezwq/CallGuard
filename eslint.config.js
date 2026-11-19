@@ -87,6 +87,11 @@ export default tseslint.config(
       ],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // A horizontally scrollable code block has to be reachable by keyboard
+      // (axe `scrollable-region-focusable`). The documented pattern is a
+      // labelled region with tabIndex=0, which this rule flags unless the
+      // "region" role is allowed.
+      "jsx-a11y/no-noninteractive-tabindex": ["warn", { roles: ["region"] }],
     },
   }
 );

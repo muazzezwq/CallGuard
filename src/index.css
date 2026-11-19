@@ -3595,6 +3595,11 @@ pre, code { max-width: 100%; overflow-x: auto; word-break: break-word; }
 .pv-src { font-size: .7rem; color: var(--text-faint); white-space: nowrap; }
 .pv-hint { color: var(--text-muted); font-size: .72rem; }
 .pv-endpoint { overflow-wrap: anywhere; }
+/* A bare <a> keeps the UA default blue, which fails contrast on the dark
+   surface (2.2:1). Links in this table use the accent ink like every other
+   in-app link, and stay underlined so colour is not the only cue. */
+.pv-endpoint-link { color: var(--accent-ink); text-decoration: underline; }
+.pv-endpoint-link:hover { color: var(--accent-ink); text-decoration-thickness: 2px; }
 .pp-endpoint { overflow-wrap: anywhere; }
 .pv-note { font-size: .78rem; line-height: 1.55; color: var(--text-dim); margin: 12px 0 0; max-width: 74ch; }
 .pv-inline-link {

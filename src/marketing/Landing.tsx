@@ -524,7 +524,11 @@ export default function Landing() {
             <button className="mk-copy" onClick={copy} aria-label="Copy code">
               {copied ? <Check size={13} /> : <Copy size={13} />}{copied ? "Copied" : "Copy"}
             </button>
-            <pre className="mk-codeblock">{CODE}</pre>
+            {/* The snippet scrolls horizontally on a phone, so it must be
+                reachable by keyboard (axe: scrollable-region-focusable). */}
+            <pre className="mk-codeblock" role="region" tabIndex={0} aria-label="Example call, scrollable">
+              {CODE}
+            </pre>
           </div>
         </div>
       </section>

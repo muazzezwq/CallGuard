@@ -432,7 +432,7 @@ export default function Providers() {
                       </>
                     ) : (
                       <>
-                        <a className="pv-endpoint" href={endpointLink ?? undefined} target="_blank" rel="noreferrer noopener">
+                        <a className="pv-endpoint pv-endpoint-link" href={endpointLink ?? undefined} target="_blank" rel="noreferrer noopener">
                           {endpoint.value}
                         </a>
                         <span className="pv-hint"> · recorded at registration, not verified</span>
