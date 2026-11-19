@@ -761,6 +761,21 @@ export default function DisputesV8() {
     query: { enabled: LIVE && !!address, refetchInterval: 30_000 },
   });
 
+  // The registry, not this panel, decides who may slash. A dispute contract
+  // without that grant makes `openDispute` revert `OnlySlasher` after the
+  // wallet has already paid for gas, so read the grant and treat "not
+  // granted" as a blocker with its own explanation. Unknown (undefined) is
+  // not treated as granted: the button only unlocks on an explicit `true`.
+  const { data: slasherAuthorised, isError: slasherReadFailed } = useReadContract({
+    address: V8_CONFIG.registryAddress,
+    abi: REGISTRY_ABI_V8,
+    functionName: "authorizedSlashers",
+    args: [DISPUTE_ADDRESS],
+    query: { enabled: LIVE, refetchInterval: 60_000 },
+  });
+  const slasherGrantKnown = slasherAuthorised !== undefined;
+  const disputeUnauthorised = slasherAuthorised === false;
+
   const callReady = isCallId(callIdInput);
   const myCallsQuery = address ? `{
     calls(first: 25, orderBy: createdAt, orderDirection: desc,
@@ -893,7 +908,8 @@ export default function DisputesV8() {
   const alreadyDisputed = !existingDisputeUnknown && existingDispute !== undefined;
   const canOpenNow = Boolean(
     callRecord && callCompleted && same(address, callRecord.caller)
-      && now <= disputeDeadline && !alreadyDisputed && !existingDisputeUnknown,
+      && now <= disputeDeadline && !alreadyDisputed && !existingDisputeUnknown
+      && slasherGrantKnown && !disputeUnauthorised,
   );
 
   async function run(label: string, send: () => Promise<`0x${string}`>) {
@@ -939,6 +955,14 @@ export default function DisputesV8() {
 
   function openDispute() {
     if (!callRecord || !callReady) return;
+    if (!slasherGrantKnown || disputeUnauthorised) {
+      setStatus(
+        disputeUnauthorised
+          ? "ServiceRegistryV8 has not authorised this dispute contract, so openDispute would revert OnlySlasher. Nothing was sent. See docs/V8_DEPLOYMENT.md §15.3 for the grant."
+          : "Could not read the registry's slasher grant, so the dispute cannot be opened safely. Retry once the RPC answers.",
+      );
+      return;
+    }
     const bondAmount = params.bond;
     void run("Open dispute", async () => {
       // Read the allowance at send time: a cached value would skip the approve
@@ -986,6 +1010,9 @@ export default function DisputesV8() {
   const balanceShort = params.bond > 0n && ((balance as bigint | undefined) ?? 0n) < params.bond;
 
   const blockers = [
+    slasherReadFailed && !slasherGrantKnown && "Could not read the registry's slasher grant, so the panel cannot prove openDispute would succeed. Retry once the RPC answers.",
+    !slasherGrantKnown && !slasherReadFailed && "Reading the registry's slasher grant. The dispute path is not opened until that read answers.",
+    disputeUnauthorised && "ServiceRegistryV8 has not authorised this dispute contract, so openDispute would revert OnlySlasher. The grant is an admin call, not something this panel can send.",
     !callReady && "Paste the 32-byte call id of a Completed call.",
     callReady && !callRecord && "No call exists for that id on PayPerCallV8.",
     callRecord && !callCompleted && "That call is not Completed yet, so it cannot be disputed.",
@@ -1005,6 +1032,20 @@ export default function DisputesV8() {
         hint="call-bound arbitration on ServiceRegistryV8 + PayPerCallV8"
         state="live"
       />
+
+      {/* A dispute contract the registry has not authorised reverts at
+          `slash` — after the wallet already paid gas — so say it here, in the
+          panel, instead of letting the user discover it in the revert. */}
+      {disputeUnauthorised && (
+        <StatusNotice tone="danger" title="This deployment cannot open disputes yet">
+          ServiceRegistryV8 has not authorised {shortAddr(DISPUTE_ADDRESS)} as a slasher, so
+          {" "}<code>openDispute</code> reverts <code>OnlySlasher</code> before any bond moves.
+          The grant is two admin calls — <code>authorizeSlasher</code>, then
+          {" "}<code>confirmSlasher</code> after the two-day delay; the runbook is
+          {" "}<code>docs/V8_DEPLOYMENT.md</code> §15.3. Nothing you click here is sent until then.
+          Timeout refunds do not depend on this grant.
+        </StatusNotice>
+      )}
 
       <SignalRow label="Dispute parameters">
         <Stat label="Dispute bond" value={bondLabel} hint="returned when upheld" />
