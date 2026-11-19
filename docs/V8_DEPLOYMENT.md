@@ -1438,3 +1438,30 @@ Verified live on `https://arcsla.vercel.app` (deployment `callguard-1izyln5jw`):
   `onur/1.0.3`, so the browser side does too.
 - `POST /api/call-service` → `409 PROVIDER_NOT_ACTIVE`, which is the expected answer: the new
   registry has no provider registered yet, and the route reached the registry to find that out.
+
+### 15.3 Live state read back on 19 Nov 2026 — provider registered, dispute authority still pending
+
+`getProvider(1)` on `0x21E07303…0ddC9` answers
+`(owner 0xfbac…06Da, signer 0x9adE…4ba5, stake 12000000, price 1000000, terms v1,
+active true, pending 0, completed 0, slashed 0, maxConcurrentCalls 10, zkTier 0)`, and
+`getEndpoint(1)` is `https://arcsla.vercel.app/api/auto-receipt`, so the provider that
+§15.2 expected is now registered and the live frontend shows it (checked in headless
+Chromium at `/app?provider=1`).
+
+The dispute half is **not** usable yet:
+
+- `authorizedSlashers(0x7c048800…2d39)` is `false` and
+  `authorizedSlashers(0x6d9D5E59…fEF5)` is `false`. The single
+  `pendingSlasher` slot still holds `DisputeV2` `0x6d9D5E59…fEF5` with
+  `pendingSlasherAt = 1794693723` (14 Nov 2026 22:02:03 UTC), five days past.
+- `confirmSlasher()` from the admin (`0x8776B382…0A2`) now succeeds as an `eth_call`,
+  so only the key is missing, not the cooldown.
+- Calling `registry.slash(1, 1, …)` from `DisputeV4` reverts `OnlySlasher`, so
+  `DisputeV4.openDispute` cannot escrow a dispute until the grant lands.
+- Timeout claims are unaffected: `onlySlasher` also admits `payPerCall()`.
+
+Order to close it: `confirmSlasher()` (grants DisputeV2), then
+`authorizeSlasher(0x7c048800…2d39)`, wait `SLASHER_DELAY = 172800`, then
+`confirmSlasher()`. The registry keeps one pending slot, which is why the first
+grant has to land before V4 can be nominated. Until then the UI, README and
+`AGENTS.md` describe the dispute path as deployed but not yet authorised.

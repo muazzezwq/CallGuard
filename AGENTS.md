@@ -39,13 +39,17 @@ CI runs the same three gates on every push to `main` and every pull request
 A red run posts the failing test names as annotations, because the job log needs
 repository admin rights — read the annotation before rerunning.
 
+`tests/setup-env.ts` is preloaded by `bunfig.toml` and clears every key defined in
+`.env.example` before a test module is imported, so a local `.env` cannot change what
+the suite exercises. Suites that need an env value set and restore it themselves.
+
 Frontend (from repo root; uses bun on Vercel):
 ```bash
 bun run dev          # vite dev server, port 5173
 bun run build        # vite build → dist/
 bun run typecheck    # tsc -p tsconfig.json --noEmit
 bun run check        # typecheck + lint
-bun run check-env    # node check.js — validates .env against active v7 addresses
+bun run check-env    # node check.js — validates .env against the canonical v8 addresses
 bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
@@ -159,6 +163,15 @@ Provider 1 (the only registered one): stake `12000000`, price `1000000`, active,
 Wiring and role wallets: `docs/V8_DEPLOYMENT.md` §15. `SLAUptime` and
 `SLAProvenance` were **not** redeployed and still point at the 23 Oct registry,
 so the optional availability/provenance panels cannot be used against this stack.
+
+**Open live blocker (19 Nov 2026):** no dispute contract holds slasher authority on
+this registry. `pendingSlasher` is `DisputeV2` `0x6d9D5E59…fEF5`, its
+`pendingSlasherAt` passed on 14 Nov, and both `authorizedSlashers(V2)` and
+`authorizedSlashers(V4)` are `false`; `registry.slash` called from `DisputeV4`
+reverts `OnlySlasher`, so `openDispute` cannot escrow. The admin key
+(`0x8776B382…0A2`) is not in this workspace. `confirmSlasher()` →
+`authorizeSlasher(V4)` → wait `172800` → `confirmSlasher()`; §15.3 has the read-backs.
+Timeout claims still work because `onlySlasher` also admits `payPerCall()`.
 
 ## SLA P0 v8 — retired pre-audit deployment (Arc Testnet, 23 Oct 2026)
 
@@ -390,7 +403,7 @@ Owner `0xfbac99E6e32a50c14D5e2150b66dA852f22B06Da`; agent hot wallet
   (`outputDirectory: dist`, `buildCommand: bun run build`, per-route `maxDuration`
   and CORS headers); `/callService`, `/nano/*`, `/providers/:id`, `/sitemap.xml` are
   rewritten to `api/` functions.
-- Required deploy env vars and v7 address checks are enumerated by `bun run check-env`
+- Required deploy env vars and the canonical v8 address checks are enumerated by `bun run check-env`
   and `.env.example` — use those, not a duplicated list here.
 - Post-deploy (from admin wallet): `ServiceRegistry.setPayPerCall(0x5fb41dd2…)`
   is **one-time/irreversible**; then best-effort `PayPerCall.setReputationRegistry(0x8004B663…)`

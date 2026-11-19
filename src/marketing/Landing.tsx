@@ -163,7 +163,7 @@ const FAQ = [
   },
   {
     q: "What can be disputed?",
-    a: "A completed call can be disputed in DisputeV4 (0x7c04880003361c16Dd1d49205ef5ec187e2D2d39), which escrows a bond and reads evidence from SLAEvidenceRegistryV2 (0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311). Two kinds are anchored today: zk-execution, a RISC Zero receipt binding the committed response to the call, and witness, a provenance record of the bytes a key saw. Evidence never changes a bond, a window or a verdict.",
+    a: "A completed call can be disputed in DisputeV4 (0x7c04880003361c16Dd1d49205ef5ec187e2D2d39), which escrows a bond and reads evidence from SLAEvidenceRegistryV2 (0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311). Two kinds can be anchored: zk-execution, a RISC Zero receipt binding the committed response to the call, and witness, a provenance record of the bytes a key saw. The 13 Nov deployment has no anchored claims yet, and its dispute grant is still pending. Evidence never changes a bond, a window or a verdict.",
   },
   {
     q: "How do developers integrate?",
