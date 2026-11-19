@@ -168,6 +168,9 @@ interface IServiceRegistryV8 {
 
     function pendingSlasherAt() external view returns (uint64);
 
+    /// @notice Whether `slasher` may call `slash` today.
+    function authorizedSlashers(address slasher) external view returns (bool);
+
     /// @notice Minimum delay between slasher nomination and confirmation.
     function SLASHER_DELAY() external view returns (uint32);
 
