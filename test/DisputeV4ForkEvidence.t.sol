@@ -74,9 +74,10 @@ contract DisputeV4ForkEvidenceTest is Test {
         // A fork pinned to FORK_BLOCK needs an archive endpoint. The public RPC
         // still answers createSelectFork for a pruned block and fails later on
         // the first state read, which surfaces as an EVM database error and
-        // fails setUp instead of skipping. Require the endpoint explicitly, as
-        // .github/workflows/checks.yml assumes.
-        string memory rpc = vm.envOr("ARC_RPC_URL", string(""));
+        // fails setUp instead of skipping — no try/catch can see it. So this
+        // suite reads its own variable: `ARC_RPC_URL` (a head endpoint, which is
+        // what the two live-state fork suites need) cannot serve this block.
+        string memory rpc = vm.envOr("ARC_ARCHIVE_RPC_URL", string(""));
         if (bytes(rpc).length == 0) vm.skip(true);
         try vm.createSelectFork(rpc, FORK_BLOCK) {}
         catch {

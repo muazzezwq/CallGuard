@@ -1407,10 +1407,12 @@ Two things this run did **not** do, and why:
   read, so anchoring it here would record a true proof about a retired call. Anchor the next
   claim against a call opened on `0xA40623c2…` instead.
 
-`authorizeSlasher(DisputeV4)` is deliberately **not** sent yet: the registry keeps a single
-`pendingSlasher`, and `DisputeV2` already holds that slot. Sending it now would cancel the
-`DisputeV2` grant. Order: `confirmSlasher()` for `DisputeV2` after `1794693723`, then nominate
-`DisputeV4` and confirm it two days later.
+`authorizeSlasher(DisputeV4)` was deliberately not sent at deploy time, so the registry's single
+`pendingSlasher` slot still holds `DisputeV2` and its delay ran out unused. Confirming that stale
+nomination is **not** required: `authorizeSlasher` overwrites the slot unconditionally, so the
+two-call path is `authorizeSlasher(DisputeV4)` → wait `SLASHER_DELAY` → `confirmSlasher()`. That
+restarts the delay from the nomination and never grants the deprecated `DisputeV2`, which is
+strictly better than confirming V2 first and then repeating the wait (§15.3).
 
 ### 15.2 Vercel cutover to the redeployed contracts — 13 Nov 2026
 
@@ -1460,8 +1462,11 @@ The dispute half is **not** usable yet:
   `DisputeV4.openDispute` cannot escrow a dispute until the grant lands.
 - Timeout claims are unaffected: `onlySlasher` also admits `payPerCall()`.
 
-Order to close it: `confirmSlasher()` (grants DisputeV2), then
-`authorizeSlasher(0x7c048800…2d39)`, wait `SLASHER_DELAY = 172800`, then
-`confirmSlasher()`. The registry keeps one pending slot, which is why the first
-grant has to land before V4 can be nominated. Until then the UI, README and
-`AGENTS.md` describe the dispute path as deployed but not yet authorised.
+Order to close it — two calls, not three: `authorizeSlasher(0x7c048800…2d39)` overwrites the
+stale `DisputeV2` nomination in place, then after `SLASHER_DELAY = 172800`
+`confirmSlasher()` grants V4. The stale nomination does not have to be confirmed first; doing so
+would hand the deprecated `DisputeV2` slash authority for no benefit. `scripts/grant-dispute-slasher.sh`
+sends whichever of the two calls is currently possible and refuses to run as a non-admin.
+`test/LiveSlasherGrantFork.t.sol` executes both calls on a fork of the live head and asserts that
+`authorizedSlashers(V2)` stays `false`. Until the grant lands, the UI, README and `AGENTS.md`
+describe the dispute path as deployed but not yet authorised.

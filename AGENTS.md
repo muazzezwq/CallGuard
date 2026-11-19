@@ -54,7 +54,10 @@ bun run setup        # check.js && bun install
 ```
 Contracts (Foundry):
 ```bash
-forge test -vv       # 632 tests, 31 test suites (1 Nov 2026)
+forge test -vv       # 632 tests, 33 suites; three fork suites skip without an RPC
+# fork evidence, opt-in by endpoint:
+ARC_RPC_URL=https://rpc.testnet.arc.io forge test   # head-state suites (grant, timeout) run
+ARC_ARCHIVE_RPC_URL=<archive> forge test            # + the pinned-block evidence suite (69_498_000)
 forge build
 forge script script/DeployV8.s.sol:DeployV8 --account deployer --rpc-url arc_testnet --broadcast
 ```
@@ -169,8 +172,10 @@ this registry. `pendingSlasher` is `DisputeV2` `0x6d9D5E59…fEF5`, its
 `pendingSlasherAt` passed on 14 Nov, and both `authorizedSlashers(V2)` and
 `authorizedSlashers(V4)` are `false`; `registry.slash` called from `DisputeV4`
 reverts `OnlySlasher`, so `openDispute` cannot escrow. The admin key
-(`0x8776B382…0A2`) is not in this workspace. `confirmSlasher()` →
-`authorizeSlasher(V4)` → wait `172800` → `confirmSlasher()`; §15.3 has the read-backs.
+(`0x8776B382…0A2`) is not in this workspace. Two calls close it: `authorizeSlasher(V4)`
+overwrites the stale V2 nomination, then `confirmSlasher()` after `172800`. Do not confirm the
+stale V2 first — it would grant the deprecated contract slash authority for nothing. §15.3 has
+the read-backs, `scripts/grant-dispute-slasher.sh` sends the step that is possible now.
 Timeout claims still work because `onlySlasher` also admits `payPerCall()`.
 
 ## SLA P0 v8 — retired pre-audit deployment (Arc Testnet, 23 Oct 2026)

@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # Grant DisputeV4 slasher authority on the live registry (issue #5).
-
 #
-# The registry keeps one pending slasher at a time, so the order is:
-#   1. confirmSlasher()                  -> grants DisputeV2 (the slot holder)
-#   2. authorizeSlasher(DisputeV4)
-#   3. wait SLASHER_DELAY (172800 s)
-#   4. confirmSlasher()                  -> grants DisputeV4
+# Two admin calls, two days apart:
+#   1. authorizeSlasher(DisputeV4)  -> starts SLASHER_DELAY (172800 s)
+#   2. confirmSlasher()             -> grants DisputeV4
 #
-# Run it twice with the same account: the second run starts after the first
-# confirm, and a third run after the delay completes the grant. The script only
-# sends the step that is currently possible and never prints key material.
+# The live slot already holds a stale DisputeV2 nomination whose delay elapsed
+# on 14 Nov. It does not need to be confirmed: authorizeSlasher overwrites the
+# single pending slot, so step 1 replaces V2 with V4 and never hands the
+# deprecated contract the authority. Run this script, wait two days, run it
+# again.
 #
 #   CAST_ACCOUNT=registry-admin ./scripts/grant-dispute-slasher.sh
 #   CAST_ACCOUNT=registry-admin YES=1 ./scripts/grant-dispute-slasher.sh   # no prompt
@@ -28,50 +27,47 @@ if [[ -z "$ACCOUNT" ]]; then
   exit 2
 fi
 
+if [[ "$(cast call "$REGISTRY" 'admin()(address)' --rpc-url "$RPC")" != "$(cast wallet address --account "$ACCOUNT")" ]]; then
+  echo "$ACCOUNT is not the registry admin; the call would revert NotAdmin." >&2
+  exit 2
+fi
+
 call() { cast call "$REGISTRY" "$1" "${@:2}" --rpc-url "$RPC"; }
 
-confirm() {
+send() {
+  local what="$1"; shift
   if [[ "${YES:-0}" != "1" ]]; then
-    read -r -p "send confirmSlasher() from $ACCOUNT? [y/N] " answer
+    read -r -p "send $what from $ACCOUNT? [y/N] " answer
     [[ "$answer" == "y" || "$answer" == "Y" ]] || exit 1
   fi
-  cast send "$REGISTRY" "confirmSlasher()" --account "$ACCOUNT" --rpc-url "$RPC"
+  cast send "$REGISTRY" "$@" --account "$ACCOUNT" --rpc-url "$RPC"
 }
 
-nominate() {
-  if [[ "${YES:-0}" != "1" ]]; then
-    read -r -p "send authorizeSlasher($DISPUTE_V4) from $ACCOUNT? [y/N] " answer
-    [[ "$answer" == "y" || "$answer" == "Y" ]] || exit 1
-  fi
-  cast send "$REGISTRY" "authorizeSlasher(address)" "$DISPUTE_V4" --account "$ACCOUNT" --rpc-url "$RPC"
-}
-
-authorized=$(call "authorizedSlashers(address)(bool)" "$DISPUTE_V4")
+authorized=$(call 'authorizedSlashers(address)(bool)' "$DISPUTE_V4")
 if [[ "$authorized" == "true" ]]; then
   echo "DisputeV4 is already authorised; nothing to do."
   exit 0
 fi
 
-pending=$(call "pendingSlasher()(address)")
-ready_at=$(call "pendingSlasherAt()(uint256)" | awk '{print $1}')
+pending=$(call 'pendingSlasher()(address)')
+ready_at=$(call 'pendingSlasherAt()(uint256)' | awk '{print $1}')
 now=$(cast block latest --field timestamp --rpc-url "$RPC")
 
-if [[ "$pending" == "0x0000000000000000000000000000000000000000" ]]; then
-  echo "No pending nomination; nominating DisputeV4 (2-day delay starts now)."
-  nominate
+if [[ "$pending" != "$DISPUTE_V4" ]]; then
+  echo "Pending slot holds ${pending:0:10}…; nominating DisputeV4 (delay restarts now)."
+  send "authorizeSlasher($DISPUTE_V4)" "authorizeSlasher(address)" "$DISPUTE_V4"
+  echo
+  echo "Now wait SLASHER_DELAY ($(call 'SLASHER_DELAY()(uint32)' | awk '{print $1}') s), then re-run this script."
   exit 0
 fi
 
 if (( now < ready_at )); then
-  echo "Pending slasher $pending is not confirmable yet."
-  echo "Ready at $(date -u -d "@$ready_at" '+%Y-%m-%d %H:%M UTC'); re-run then."
+  echo "DisputeV4 is nominated but not confirmable until $(date -u -d "@$ready_at" '+%Y-%m-%d %H:%M UTC')."
+  echo "Re-run this script then; it will send confirmSlasher()."
   exit 0
 fi
 
-echo "Confirming pending slasher $pending."
-confirm
-if [[ "$pending" == "$DISPUTE_V4" ]]; then
-  echo "DisputeV4 granted."
-else
-  echo "Slot cleared. Re-run to nominate DisputeV4, then re-run once more after the 2-day delay."
-fi
+send "confirmSlasher()" "confirmSlasher()"
+[[ "$(call 'authorizedSlashers(address)(bool)' "$DISPUTE_V4")" == "true" ]] \
+  && echo "DisputeV4 granted; openDispute can escrow again." \
+  || { echo "confirmSlasher returned but the grant is not visible yet; re-check status." >&2; exit 1; }
