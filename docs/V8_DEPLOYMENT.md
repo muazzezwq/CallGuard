@@ -1470,3 +1470,43 @@ sends whichever of the two calls is currently possible and refuses to run as a n
 `test/LiveSlasherGrantFork.t.sol` executes both calls on a fork of the live head and asserts that
 `authorizedSlashers(V2)` stays `false`. Until the grant lands, the UI, README and `AGENTS.md`
 describe the dispute path as deployed but not yet authorised.
+
+### 15.4 Source verified on the explorer — 19 Nov 2026
+
+All five contracts in the 13 Nov stack are now verified on
+`explorer.testnet.arc.io`, so a reader can compare the bytecode that holds the
+money with the Solidity in this repository instead of trusting the deploy log.
+The submission used `solc 0.8.37`, `via_ir = true`, `evm_version = cancun`,
+optimiser 200 — the values in `foundry.toml` — and the constructor arguments
+taken from each creation transaction's input tail rather than retyped from this
+page.
+
+| Contract | Verified | Constructor arguments used |
+|---|---|---|
+| `ServiceRegistryV8` | yes | `(USDC, 10000000, 0x8776B382…)` |
+| `PayPerCallV8` | yes | `(USDC, 0x21E07303…)` |
+| `SLAKeeper` | yes | `(0xA40623c2…, USDC)` |
+| `SLAEvidenceRegistryV2` | yes | `(0x8776B382…)` |
+| `DisputeV4` | yes | 14 args: USDC, registry, `0xA40623c2…`, `0xd4944e68…`, `0x196009…`, `0xeF4b7003…`, `2000000`, `3000000`, `604800`, `172800`, `604800`, `1000`, `0x59C02ABe…`, `0xEf9f21E…` |
+
+The verification is not just a badge: Blockscout recompiles and compares the
+metadata hash, so a pass means the deployed bytecode is reproducible from this
+tree at these settings. It was submitted after the 13 Nov deploy, against the
+same sources — `IServiceRegistryV8` gained a getter in `08e03ab`, which does not
+change any compiled contract, and nothing else in `contracts/` moved.
+
+Reproduce one of them with:
+
+```bash
+forge verify-contract <address> contracts/DisputeV4.sol:DisputeV4 \
+  --verifier blockscout --verifier-url https://explorer.testnet.arc.io/api/ \
+  --chain 5042002 --num-of-optimizations 200 \
+  --constructor-args "$(cast abi-encode 'constructor(address,address)' <args>)"
+```
+
+Two operational notes. Blockscout's free tier answers
+`Too many requests` to the ABI fetch `forge` performs before submitting, so the
+five addresses went one at a time with a pause between them; the retry is not a
+different command. And a verified address is not an authorised one: `DisputeV4`
+is readable on the explorer while `authorizedSlashers(0x7c048800…)` is still
+`false` (§15.3), which is exactly the distinction the panel now shows.

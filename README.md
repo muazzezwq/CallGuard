@@ -56,6 +56,9 @@ CallGuard's core thesis: **financial skin-in-the-game enforces reliability bette
 The 13 Nov deployment carries the audit fixes. The 23 Oct pair is still on chain and
 still called by the pinned fork evidence test, but no app or API route reads it; its
 record is in `docs/V8_DEPLOYMENT.md` §4, §8 and §14, and §15 documents the cutover.
+All five contracts below are **verified on the explorer** against the sources in
+`contracts/` (`docs/V8_DEPLOYMENT.md` §15.4), so the bytecode can be read, not just
+the deploy log.
 
 | Contract | Address | Role |
 |---|---|---|

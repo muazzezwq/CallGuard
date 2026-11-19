@@ -160,6 +160,9 @@ addresses; the 23 Oct section below is kept as history and pins the fork test.
 | `DisputeV4` | `0x7c04880003361c16Dd1d49205ef5ec187e2D2d39` |
 | `SLAEvidenceRegistryV2` | `0x59C02ABe0f42aa9C553142E2931Be7CE2E7d1311` |
 
+All five are verified on `explorer.testnet.arc.io` (19 Nov 2026, §15.4), so the
+bytecode there is the source in `contracts/` — not a deploy-log claim.
+
 Provider 1 (the only registered one): stake `12000000`, price `1000000`, active,
 `latestTermsVersion` 1, `maxConcurrentCalls` 10, `zkTier` 0, signer
 `0x9adEDa85604C205791B98B4C239b5625688a4ba5`, completed/slashed calls 0/0.
